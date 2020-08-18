@@ -8,7 +8,7 @@
 /build/
 
 # Ignore the iron templates folder (for now)
-/sculptor/git data/iron_templates/
+/sculptor/data/iron_templates/
 
 # Ignore examples for now
 /examples/

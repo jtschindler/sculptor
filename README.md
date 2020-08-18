@@ -43,9 +43,6 @@ The Sculptor GUI uses the masks and models defined in the sub-package "models_an
  
  *  <u>quasar.py</u> : A large range of models for fitting quasar spectra.
  
- * <u>example.py</u> : An example of a module for this sub-package. It helps you to easily build your own module
-  for your use case.
- 
 ### Introduction and Tutorials
 
 Coming soon!
