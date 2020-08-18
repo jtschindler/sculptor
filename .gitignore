@@ -1,0 +1,18 @@
+# Compiled python modules.
+*.pyc
+
+# Setuptools distribution folder.
+/dist/
+
+# Build folder
+/build/
+
+# Ignore the iron templates folder (for now)
+/sculptor/models_and_masks/data/iron_templates/
+
+# Ignore examples for now
+/examples/
+
+# Python egg metadata, regenerated from source files by setuptools.
+/*.egg-info
+
