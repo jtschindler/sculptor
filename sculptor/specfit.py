@@ -76,7 +76,7 @@ class SpecFit:
             self.spec = spectrum.copy()
             self.xlim = [min(self.spec.dispersion),
                          max(self.spec.dispersion)]
-            self.ylim = [0, max(self.spec.flux)]
+            self.ylim = [0, max(self.spec.fluxden)]
         else:
             self.spec = None
             self.xlim = [0, 1]
@@ -84,6 +84,7 @@ class SpecFit:
 
         self.redshift = redshift
         self.fitting_method = 'Levenberg-Marquardt'
+        self.colors = np.array([0.5])
         self.colors = np.array([0.5])
         self.super_params = Parameters()
         self.specmodels = []
@@ -129,8 +130,8 @@ class SpecFit:
 
             elif hasattr(self.specmodels[-1], 'spec'):
                 spec = self.specmodels[-1].spec.copy()
-                if hasattr(self.specmodels[-1], 'model_flux'):
-                    spec.flux -= self.specmodels[-1].model_flux
+                if hasattr(self.specmodels[-1], 'model_fluxden'):
+                    spec.fluxden -= self.specmodels[-1].model_fluxden
                 specmodel = SpecModel(self,
                                       spectrum=spec,
                                       redshift=self.redshift)
@@ -182,7 +183,7 @@ class SpecFit:
         This function updates the SpecModel spectra consecutively. Model fits
         from each SpecModel will be automatically subtracted.
 
-        Note: Not only the dispersion and the flux, but also the mask will be
+        Note: Not only the dispersion and the fluxden, but also the mask will be
         updated.
 
         :return : None
@@ -198,10 +199,10 @@ class SpecFit:
                 # Propagate Spectrum
                 for idx in range(len(self.specmodels[1:])):
                     previous_spec = self.specmodels[idx].spec.copy()
-                    previous_model_flux = self.specmodels[idx].model_flux
+                    previous_model_fluxden = self.specmodels[idx].model_fluxden
 
                     self.specmodels[idx+1].spec = previous_spec.copy()
-                    self.specmodels[idx + 1].spec.flux -= previous_model_flux
+                    self.specmodels[idx + 1].spec.fluxden -= previous_model_fluxden
 
 
 
@@ -277,11 +278,11 @@ class SpecFit:
                 specmodel.save_fit_report(foldername, specmodel_id=str(idx) + '_FitAll')
 
             specmodel.update_params_from_fit_result()
-            # Update the flux of the next specmodel
+            # Update the fluxden of the next specmodel
             if idx+1 < len(self.specmodels):
-                self.specmodels[idx+1].spec.flux = \
-                    specmodel.spec.flux - \
-                    specmodel.model_flux
+                self.specmodels[idx+1].spec.fluxden = \
+                    specmodel.spec.fluxden - \
+                    specmodel.model_fluxden
 
     def load(self, foldername):
         """ Load a full spectral fit (SpecFit) from a folder
@@ -295,11 +296,11 @@ class SpecFit:
         # Load main SpecFit data
         df = pd.read_hdf(foldername+'/fit.hdf5', key='specfit')
         self.spec = sod.SpecOneD(dispersion=df['dispersion'].values,
-                                 flux=df['flux'].values,
+                                 fluxden=df['fluxden'].values,
                                  mask=np.array(df['mask'].values, dtype=bool),
                                  unit='f_lam')
         if hasattr(df, 'flux_error'):
-            self.spec.flux_err = df['flux_error'].values
+            self.spec.fluxden_err = df['flux_error'].values
 
         #  Load SpecFit meta data
         meta = pd.read_hdf(foldername + '/fit.hdf5', key='specfit_meta')
@@ -344,12 +345,12 @@ class SpecFit:
 
         # Create an hdf5 file with information on the SpecFit data
         data = [self.spec.dispersion,
-                self.spec.flux,
+                self.spec.fluxden,
                 self.spec.mask]
-        columns = ['dispersion', 'flux', 'mask']
+        columns = ['dispersion', 'fluxden', 'mask']
 
-        if hasattr(self.spec, 'flux_err'):
-            data.append(self.spec.flux_err)
+        if hasattr(self.spec, 'fluxden_err'):
+            data.append(self.spec.fluxden_err)
             columns.append('flux_error')
 
         df = pd.DataFrame(np.array(data).T, columns=columns)
@@ -412,10 +413,10 @@ class SpecFit:
 
         spec = self.spec.copy()
 
-        print(spec.flux_err)
+        print(spec.fluxden_err)
 
-        if not hasattr(spec, 'flux_err'):
-            raise ValueError("The spectrum does not have usable flux errors.")
+        if not hasattr(spec, 'fluxden_err'):
+            raise ValueError("The spectrum does not have usable fluxden errors.")
 
         if len(self.specmodels) == 0:
             raise ValueError("No SpecModel to fit.")
@@ -429,8 +430,8 @@ class SpecFit:
         result_array = np.zeros(shape=(n_samples, n_results))
         np.random.seed(seed)
 
-        for idx, flux_value in enumerate(spec.flux):
-            flux_err_value = spec.flux_err[idx]
+        for idx, flux_value in enumerate(spec.fluxden):
+            flux_err_value = spec.fluxden_err[idx]
             sampled_flux = np.random.normal(flux_value, flux_err_value,
                                             n_samples)
 
@@ -442,7 +443,7 @@ class SpecFit:
             # Create a new SpecFit Object from the current one.
             new_specfit = self.copy()
             # Update the spectrum in the new SpecFit object
-            new_specfit.spec.flux = flux_array[idx, :]
+            new_specfit.spec.fluxden = flux_array[idx, :]
             new_specfit.update_specmodel_spectra()
 
             # Fit the new SpecFit object
@@ -565,19 +566,19 @@ class SpecFit:
 
         spec = self.spec.copy()
 
-        # Plot the spectrum flux error
-        if spec.flux_err is not None:
+        # Plot the spectrum fluxden error
+        if spec.fluxden_err is not None:
             ax_main.plot(spec.dispersion[spec.mask],
-                         spec.flux_err[spec.mask],
+                         spec.fluxden_err[spec.mask],
                          'grey')
-        ax_main.plot(spec.dispersion[spec.mask], spec.flux[spec.mask],
+        ax_main.plot(spec.dispersion[spec.mask], spec.fluxden[spec.mask],
                      'k')
 
         trans = mtransforms.blended_transform_factory(
             ax_main.transData, ax_main.transAxes)
 
         # Plot spectrum mask
-        mask = np.ones_like(self.spec.flux)
+        mask = np.ones_like(self.spec.fluxden)
         mask[self.spec.mask] = -1
         ax_main.fill_between(self.spec.dispersion, 0, 1,
                              where=(mask > 0),
@@ -589,14 +590,14 @@ class SpecFit:
 
             color = plt.cm.viridis(self.colors[idx])
 
-            if hasattr(specmodel, 'model_flux'):
+            if hasattr(specmodel, 'model_fluxden'):
                 ax_main.plot(specmodel.spec.dispersion,
-                             specmodel.model_flux, color=color, lw=3)
+                             specmodel.model_fluxden, color=color, lw=3)
             #
             # trans = mtransforms.blended_transform_factory(
             #     ax_main.transData, ax_main.transAxes)
 
-            mask = np.ones_like(self.spec.flux)
+            mask = np.ones_like(self.spec.fluxden)
             mask[np.invert(specmodel.mask)] = -1
             ax_main.fill_between(self.spec.dispersion, 0, 1,
                                  where=(mask > 0),
@@ -604,18 +605,18 @@ class SpecFit:
                                  transform=trans)
 
         # Plot the full SpecFit model
-        model_flux = np.zeros_like(spec.dispersion)
+        model_fluxden = np.zeros_like(spec.dispersion)
         for specmodel in self.specmodels:
-            if hasattr(specmodel, 'model_flux'):
-                model_flux = model_flux + specmodel.model_flux
+            if hasattr(specmodel, 'model_fluxden'):
+                model_fluxden = model_fluxden + specmodel.model_fluxden
 
-        ax_main.plot(spec.dispersion, model_flux, color='red', lw=3)
+        ax_main.plot(spec.dispersion, model_fluxden, color='red', lw=3)
 
         # Plot the residual
-        ax_resid.plot(self.spec.dispersion, self.spec.flux - model_flux,
+        ax_resid.plot(self.spec.dispersion, self.spec.fluxden - model_fluxden,
                       color='k')
 
-        ax_resid.plot(self.spec.dispersion, self.spec.flux*0, color='r',
+        ax_resid.plot(self.spec.dispersion, self.spec.fluxden*0, color='r',
                       ls=':', lw=2)
 
         if self.redshift is not None:
@@ -642,7 +643,7 @@ class SpecFit:
 
         ax_main.set_ylabel(r'$\rm{Flux\ density}\ \rm{(arbitrary\ units)}$')
 
-        ylim = [0, max(spec.flux)]
+        ylim = [0, max(spec.fluxden)]
 
         ax_main.set_ylim(ylim)
 

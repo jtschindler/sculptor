@@ -63,7 +63,7 @@ def balmer_continuum_model(x, z, flux_BE, T_e, tau_BE, lambda_BE):
 
     # Dietrich 2003
     # lambda <= 3646A, flux_BE = normalized estimate for Balmer continuum
-    # The strength of the Balmer continuum can be estimated from the flux
+    # The strength of the Balmer continuum can be estimated from the fluxden
     # density at 3675A after subtraction of the power-law continuum component
     # for reference see Grandi82, Wills85 or Verner99
     # at >= 3646A higher order balmer lines are merging  -> templates Dietrich03
@@ -87,7 +87,7 @@ def power_law_at_2500A_plus_flexible_BC(x, amp, slope, z, f, T_e, tau_BE,
                                        lambda_BE):
     """
     Power law anchored at 2500 (Angstroem) plus a Balmer continuum model with
-    a fixed flux of 30% of the power law flux at 3645A.
+    a fixed fluxden of 30% of the power law fluxden at 3645A.
     :param x:
     :param amp:
     :param slope:
@@ -120,7 +120,7 @@ def power_law_at_2500A_plus_manual_BC(x, amp, slope, z, amp_BE, T_e, tau_BE,
                                        lambda_BE):
     """
     Power law anchored at 2500 (Angstroem) plus a Balmer continuum model with
-    a fixed flux of 30% of the power law flux at 3645A.
+    a fixed fluxden of 30% of the power law fluxden at 3645A.
     :param x:
     :param amp:
     :param slope:

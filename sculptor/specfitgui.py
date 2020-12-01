@@ -217,7 +217,7 @@ class SpecFitGui(QMainWindow):
         self.buttonSetX = QPushButton('Set X (x)')
         self.buttonSetX.clicked.connect(self.set_plot_dispersion)
         self.buttonSetY = QPushButton('Set Y (y)')
-        self.buttonSetY.clicked.connect(self.set_plot_flux)
+        self.buttonSetY.clicked.connect(self.set_plot_fluxden)
         self.buttonResetPlot = QPushButton('Reset plot (r)')
         self.buttonResetPlot.clicked.connect(self.reset_plot_region)
 
@@ -463,7 +463,7 @@ class SpecFitGui(QMainWindow):
 
         elif event.key == 'y':
 
-            self.set_plot_flux()
+            self.set_plot_fluxden()
 
         # Reset the region values
         elif event.key == 'r':
@@ -484,7 +484,7 @@ class SpecFitGui(QMainWindow):
         self.specfit.xlim = [self.x_pos_a, self.x_pos_b]
         self.update_specfit_plot()
 
-    def set_plot_flux(self):
+    def set_plot_fluxden(self):
 
         self.update_region_from_ui()
         self.specfit.ylim = [self.y_pos_a, self.y_pos_b]
@@ -500,8 +500,8 @@ class SpecFitGui(QMainWindow):
         if self.specfit.spec is not None:
             self.x_pos_a = min(self.specfit.spec.dispersion)
             self.x_pos_b = max(self.specfit.spec.dispersion)
-            self.y_pos_a = min(self.specfit.spec.flux)
-            self.y_pos_b = max(self.specfit.spec.flux)
+            self.y_pos_a = min(self.specfit.spec.fluxden)
+            self.y_pos_b = max(self.specfit.spec.fluxden)
 
         else:
             self.x_pos_a = 0

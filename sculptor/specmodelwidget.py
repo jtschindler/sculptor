@@ -204,7 +204,7 @@ class SpecModelWidget(QWidget):
         self.buttonFit.clicked.connect(lambda: self.fit())
         self.buttonSaveResult = QPushButton('Save fit result')
         self.buttonSaveResult.clicked.connect(lambda: self.save_fit_result())
-        self.checkboxUseWeights = QCheckBox('Use weights (flux errors)')
+        self.checkboxUseWeights = QCheckBox('Use weights (fluxden errors)')
         self.checkboxUseWeights.setChecked(self.specmodel.use_weights)
         self.checkboxUseWeights.stateChanged.connect(
             lambda: self.update_specmodel(specfitgui))
@@ -345,8 +345,8 @@ class SpecModelWidget(QWidget):
         if hasattr(self.specmodel, 'spec'):
             self.x_pos_a = min(self.specmodel.spec.dispersion)
             self.x_pos_b = max(self.specmodel.spec.dispersion)
-            self.y_pos_a = min(self.specmodel.spec.flux)
-            self.y_pos_b = max(self.specmodel.spec.flux)
+            self.y_pos_a = min(self.specmodel.spec.fluxden)
+            self.y_pos_b = max(self.specmodel.spec.fluxden)
 
         else:
             self.x_pos_a = 0

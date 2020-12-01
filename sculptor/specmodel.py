@@ -95,7 +95,7 @@ class SpecModel:
         ylim (list of float): Flux density limits for plotting
         spec (SpecOneD): Astronomical spectrum as a SpecOneD object
         redshift (float): Cosmological redshift of the astronomical object
-        use_weights (bool): Boolean to indicate whether flux errors will be
+        use_weights (bool): Boolean to indicate whether fluxden errors will be
             used as weights for the fit.
         model_list (list of Models): List of LMFIT models
         params_list (list of Parameters): List of LMFIT Parameters for all
@@ -128,14 +128,14 @@ class SpecModel:
             # Set mask describing the regions included in the fit for this model
             self.reset_fit_mask()
             self.reset_plot_limits()
-            self.model_flux = np.zeros_like(self.spec.flux)
+            self.model_fluxden = np.zeros_like(self.spec.flux)
 
         else:
             self.mask = None
 
         self.redshift = redshift
 
-        # Boolean to indicate whether the flux uncertainties will be used as
+        # Boolean to indicate whether the fluxden uncertainties will be used as
         # weights in the fit
         self.use_weights = True
 
@@ -164,7 +164,7 @@ class SpecModel:
 
         specmodel.redshift = self.redshift
 
-        # Boolean to indicate whether the flux uncertainties will be used as
+        # Boolean to indicate whether the fluxden uncertainties will be used as
         # weights in the fit
         specmodel.use_weights = self.use_weights
 
@@ -373,7 +373,7 @@ class SpecModel:
                 self.model += model
 
             # Evaluate the model with the initial parameters
-            self.model_flux = self.model.eval(self.params,
+            self.model_fluxden = self.model.eval(self.params,
                                               x=self.spec.dispersion)
 
 
@@ -390,14 +390,14 @@ class SpecModel:
 
         emcee_kws = self.specfit.emcee_kws
 
-        if len(self.spec.flux[fit_mask]) > 0:
+        if len(self.spec.fluxden[fit_mask]) > 0:
 
             if self.use_weights:
-                weights = 1./self.spec.flux_err[fit_mask]**2
+                weights = 1./self.spec.fluxden_err[fit_mask]**2
 
                 if fitting_methods[self.specfit.fitting_method] == 'emcee':
                     emcee_kws['is_weighted'] = True
-                    self.fit_result = self.model.fit(self.spec.flux[fit_mask],
+                    self.fit_result = self.model.fit(self.spec.fluxden[fit_mask],
                                                      self.params,
                                                      x=self.spec.dispersion[
                                                          fit_mask],
@@ -407,7 +407,7 @@ class SpecModel:
                                                      fit_kws =emcee_kws)
 
                 else:
-                    self.fit_result = self.model.fit(self.spec.flux[fit_mask],
+                    self.fit_result = self.model.fit(self.spec.fluxden[fit_mask],
                                                      self.params,
                                                      x=self.spec.dispersion[
                                                          fit_mask],
@@ -421,7 +421,7 @@ class SpecModel:
                 emcee_kws['is_weighted'] = False
                 if fitting_methods[self.specfit.fitting_method] == 'emcee':
                     emcee_kws['is_weighted'] = True
-                    self.fit_result = self.model.fit(self.spec.flux[fit_mask],
+                    self.fit_result = self.model.fit(self.spec.fluxden[fit_mask],
                                                      self.params,
                                                      x=self.spec.dispersion[
                                                          fit_mask],
@@ -430,14 +430,14 @@ class SpecModel:
                                                      fit_kws=emcee_kws)
 
                 else:
-                    self.fit_result = self.model.fit(self.spec.flux[fit_mask],
+                    self.fit_result = self.model.fit(self.spec.fluxden[fit_mask],
                                                      self.params,
                                                      x=self.spec.dispersion[
                                                          fit_mask],
                                                      method=fitting_methods[
                                                          self.specfit.fitting_method])
 
-            self.model_flux = self.model.eval(self.fit_result.params,
+            self.model_fluxden = self.model.eval(self.fit_result.params,
                                               x=self.spec.dispersion)
 
 
@@ -638,20 +638,20 @@ class SpecModel:
 
         data.append(self.spec.dispersion)
         columns.append('spec_dispersion')
-        data.append(self.spec.flux)
+        data.append(self.spec.fluxden)
         columns.append('spec_flux')
         data.append(self.spec.mask)
         columns.append('spec_mask')
-        if hasattr(self.spec, 'flux_err'):
-            data.append(self.spec.flux_err)
-            columns.append('spec_fluxerror')
+        if hasattr(self.spec, 'fluxden_err'):
+            data.append(self.spec.fluxden_err)
+            columns.append('spec_fluxdenerror')
 
         data.append(self.mask)
         columns.append('mask')
 
-        if hasattr(self, 'model_flux'):
-            data.append(self.model_flux)
-            columns.append('model_flux')
+        if hasattr(self, 'model_fluxden'):
+            data.append(self.model_fluxden)
+            columns.append('model_fluxden')
 
 
         df = pd.DataFrame(np.array(data).T, columns=columns)
@@ -705,20 +705,20 @@ class SpecModel:
 
         # Initialize new spectrum from data frame
         self.spec = sod.SpecOneD(dispersion=data['spec_dispersion'].values,
-                                 flux=data['spec_flux'].values,
+                                 fluxden=data['spec_fluxden'].values,
                                  mask=np.array(data['spec_mask'].values,
                                  dtype=bool),
                                  unit='f_lam')
 
-        if hasattr(data, 'spec_fluxerror'):
-            self.spec.flux_err = data['spec_fluxerror'].values
+        if hasattr(data, 'spec_fluxdenerror'):
+            self.spec.fluxden_err = data['spec_fluxdenerror'].values
 
         # Read in the specmodel mask
         self.mask = np.array(data['mask'].values, dtype=bool)
 
-        # Read in the model flux from the data frame if available
-        if hasattr(data, 'model_flux'):
-            self.model_flux = data['model_flux'].values
+        # Read in the model fluxden from the data frame if available
+        if hasattr(data, 'model_fluxden'):
+            self.model_fluxden = data['model_fluxden'].values
 
         # Read in meta data from meta data frame
         if meta.loc['use_weights', 0] == True:
@@ -781,7 +781,7 @@ class SpecModel:
             self.xlim = [min(self.spec.dispersion),
                          max(self.spec.dispersion)]
             self.ylim = [0,
-                         max(self.spec.flux) * 1.05]
+                         max(self.spec.fluxden) * 1.05]
 
     def plot(self):
         """ Plot the SpecModel
@@ -808,24 +808,24 @@ class SpecModel:
 
         spec = self.spec.copy()
 
-        # Plot the spectrum flux error
-        if spec.flux_err is not None:
+        # Plot the spectrum fluxden error
+        if spec.fluxden_err is not None:
             ax_main.plot(spec.dispersion[spec.mask],
-                         spec.flux_err[spec.mask],
+                         spec.fluxden_err[spec.mask],
                          'grey')
-        ax_main.plot(spec.dispersion[spec.mask], spec.flux[spec.mask],
+        ax_main.plot(spec.dispersion[spec.mask], spec.fluxden[spec.mask],
                      'k')
 
-        # Plot model flux
-        if hasattr(self, 'model_flux'):
+        # Plot model fluxden
+        if hasattr(self, 'model_fluxden'):
             ax_main.plot(self.spec.dispersion,
-                         self.model_flux, color=self.color, lw=3)
+                         self.model_fluxden, color=self.color, lw=3)
 
         trans = mtransforms.blended_transform_factory(
             ax_main.transData, ax_main.transAxes)
 
         # Plot spectrum mask
-        mask = np.ones_like(self.spec.flux)
+        mask = np.ones_like(self.spec.fluxden)
         mask[self.spec.mask] = -1
         ax_main.fill_between(self.spec.dispersion, 0, 1,
                              where=(mask > 0),
@@ -833,7 +833,7 @@ class SpecModel:
                              transform=trans)
 
         # Plot SpecModel mask
-        mask = np.ones_like(self.spec.flux)
+        mask = np.ones_like(self.spec.fluxden)
         mask[np.invert(self.mask)] = -1
         ax_main.fill_between(self.spec.dispersion, 0, 1,
                              where=(mask > 0),

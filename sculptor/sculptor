@@ -66,13 +66,13 @@ if __name__ == '__main__':
 
             try:
                 print('[INFO] Assuming to read spectrum from a text file with the '
-                      'columns 0=dispersion, 1=flux, 2=flux error')
+                      'columns 0=dispersion, 1=fluxden, 2=fluxden error')
 
                 data = np.genfromtxt(args.filename)
 
                 spec = SpecOneD(dispersion=data[:,0],
-                                flux=data[:,1],
-                                flux_err=data[:,2],
+                                fluxden=data[:, 1],
+                                fluxden_err=data[:, 2],
                                 unit='f_lam')
             except:
                 print('[WARNING] Spectrum could not be read!')

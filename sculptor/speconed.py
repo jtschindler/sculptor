@@ -72,21 +72,21 @@ class SpecOneD(object):
     raw_dispersion : ndarray
         A 1D array containing the original spectral dispersion data in 'float'
         type.
-    raw_flux : ndarray
-        A 1D array containing the original spectral flux data in 'float' type.
-    raw_flux_err : ndarray
-        A 1D array containing the original spectral flux error data in 'float'
+    raw_fluxden : ndarray
+        A 1D array containing the original spectral fluxden data in 'float' type.
+    raw_fluxden_err : ndarray
+        A 1D array containing the original spectral fluxden error data in 'float'
         type.
     dispersion : ndarray
         The 1D array containing the sp`ectral dispersion data in 'float' type.
-    flux : ndarray
-        A 1D array containing the spectral flux data in 'float' type.
-    flux_err : ndarray
-        A 1D array containing the spectral flux error data in 'float' type.
+    fluxden : ndarray
+        A 1D array containing the spectral fluxden data in 'float' type.
+    fluxden_err : ndarray
+        A 1D array containing the spectral fluxden error data in 'float' type.
     mask : ndarray
         A 1D mask array (boolean type).
     unit : str
-        A string specifying if the if the flux unit is per wavelength 'f_lam'
+        A string specifying if the if the fluxden unit is per wavelength 'f_lam'
         or frequency 'f_nu'.
     model_spectrum : obj:
         A lmfit Model object, which allows to fit the spectrum using lmfit
@@ -97,15 +97,17 @@ class SpecOneD(object):
         The resulting fit based on the model_spectrum and the model_pars
     fit_dispersion :
         A 1D array containing the dispersion of the fitted spectrum.
-    fit_flux : ndarray
-        A 1D arrat containing the flux values for the fitted spectrum.
+    fit_fluxden : ndarray
+        A 1D arrat containing the fluxden values for the fitted spectrum.
     header : obj
         The spectral header object, containing additional data with regard to
         the spectrum.
 
     """
 
-    def __init__(self, dispersion=None, flux=None, flux_err=None, header=None, unit=None, mask=None, raw_dispersion=None, raw_flux=None, raw_flux_err=None):
+    def __init__(self, dispersion=None, fluxden=None, fluxden_err=None, 
+                 header=None, unit=None, mask=None, raw_dispersion=None, 
+                 raw_fluxden=None, raw_fluxden_err=None):
         """The __init__ method for the SpecOneD class
 
         Parameters
@@ -113,17 +115,17 @@ class SpecOneD(object):
         dispersion : ndarray
             A 1D array providing the dispersion data of the spectrum in
             wavelength or frequency.
-        flux : ndarray
-            A 1D array providing the flux data for the spectrum.
+        fluxden : ndarray
+            A 1D array providing the fluxden data for the spectrum.
             lines are supported.
-        flux_err : ndarray
-            A 1D array providing the error on the spectrum flux
+        fluxden_err : ndarray
+            A 1D array providing the error on the spectrum fluxden
         header : obj:`dict`
             The header object file for the spectrum. This should be a python
             dictionary or a fits format header file.
         unit : str
-            A string defining the unit of the flux measurement. Currently
-            flux density per wavelength or per frequency are supported as the
+            A string defining the unit of the fluxden measurement. Currently
+            fluxden density per wavelength or per frequency are supported as the
             following
             options: 'f_lam' for wavelength, 'f_nu' for frequency.
         mask : ndarray
@@ -133,7 +135,7 @@ class SpecOneD(object):
         Raises
         ------
         ValueError
-            Raises an error when either the dispersion or flux dimension is not
+            Raises an error when either the dispersion or fluxden dimension is not
             or could not be converted to a 1D ndarray.
         ValueError
             Raises an error when the supplied header is not a dictionary.
@@ -143,12 +145,12 @@ class SpecOneD(object):
         # disperion units need to be in Angstroem
 
         try:
-            if raw_flux is None:
-                self.raw_flux = flux
+            if raw_fluxden is None:
+                self.raw_fluxden = fluxden
             else:
-                self.raw_flux = np.array(raw_flux)
+                self.raw_fluxden = np.array(raw_fluxden)
         except ValueError:
-            print("Raw flux could not be converted to 1D ndarray")
+            print("Raw fluxden could not be converted to 1D ndarray")
 
         try:
             if raw_dispersion is None:
@@ -160,13 +162,13 @@ class SpecOneD(object):
         except ValueError:
             print("Raw dispersion could not be converted to 1D ndarray")
 
-        if raw_flux_err is None:
-            self.raw_flux_err = flux_err
+        if raw_fluxden_err is None:
+            self.raw_fluxden_err = fluxden_err
         else:
-            self.raw_flux_err = np.array(raw_flux_err)
+            self.raw_fluxden_err = np.array(raw_fluxden_err)
 
-        self.flux = flux
-        self.flux_err = flux_err
+        self.fluxden = fluxden
+        self.fluxden_err = fluxden_err
         self.dispersion = dispersion
 
         if mask is not None:
@@ -180,7 +182,7 @@ class SpecOneD(object):
         self.model_spectrum = None
         self.model_pars = None
         self.fit_dispersion = None
-        self.fit_flux = None
+        self.fit_fluxden = None
         self.fit_output = None
 
 
@@ -196,8 +198,8 @@ class SpecOneD(object):
         :param filename: str
             Path/Filename of the pypeit 1D fits file
         :param unit:
-            The unit of the flux measurement in the fits file. This defaults
-            to flux per wavelength (erg/s/cm^2/Angstroem)
+            The unit of the fluxden measurement in the fits file. This defaults
+            to fluxden per wavelength (erg/s/cm^2/Angstroem)
         """
 
         # Open the fits file
@@ -210,16 +212,16 @@ class SpecOneD(object):
         self.unit = unit
         self.dispersion = hdu[exten].data['OPT_WAVE']
         self.raw_dispersion = hdu[exten].data['OPT_WAVE']
-        self.flux = hdu[exten].data['OPT_FLAM'] * 1e-17
-        self.raw_flux = hdu[exten].data['OPT_FLAM'] * 1e-17
+        self.fluxden = hdu[exten].data['OPT_FLAM'] * 1e-17
+        self.raw_fluxden = hdu[exten].data['OPT_FLAM'] * 1e-17
         self.mask = np.array(hdu[exten].data['OPT_MASK'], dtype=bool)
         self.flux_ivar = hdu[exten].data['OPT_FLAM_IVAR']
-        self.flux_err = hdu[exten].data['OPT_FLAM_SIG'] * 1e-17
-        self.raw_flux_err = self.flux_err
+        self.fluxden_err = hdu[exten].data['OPT_FLAM_SIG'] * 1e-17
+        self.raw_fluxden_err = self.fluxden_err
 
-        # Mask all pixels where the flux error is 0
+        # Mask all pixels where the fluxden error is 0
         new_mask = np.ones_like(self.mask, dtype=bool)
-        new_mask[self.flux_err == 0] = 0
+        new_mask[self.fluxden_err == 0] = 0
         self.mask = new_mask
 
 
@@ -237,8 +239,8 @@ class SpecOneD(object):
         filename : str
             A string providing the path and filename for the fits file.
         unit : str
-            The unit of the flux measurement in the fits file. This defaults
-            to flux per wavelength (erg/s/cm^2/Angstroem)
+            The unit of the fluxden measurement in the fits file. This defaults
+            to fluxden per wavelength (erg/s/cm^2/Angstroem)
 
         Raises
         ------
@@ -266,26 +268,26 @@ class SpecOneD(object):
 
         self.unit = unit
 
-        # Read in object flux
+        # Read in object fluxden
         if np.ndim(hdu[0].data) == 3:
             try:
-                self.flux = np.array(hdu[0].data[0, 0, :])
-                self.flux_err = np.array(hdu[0].data[3, 0, :])
+                self.fluxden = np.array(hdu[0].data[0, 0, :])
+                self.fluxden_err = np.array(hdu[0].data[3, 0, :])
             except:
-                self.flux = np.array(hdu[0].data[0,0,:])
-                self.flux_err = np.array(hdu[0].data[1,0,:])
+                self.fluxden = np.array(hdu[0].data[0, 0, :])
+                self.fluxden_err = np.array(hdu[0].data[1, 0, :])
         else:
-            self.flux = np.array(hdu[0].data[:])
-            self.flux_err = None
+            self.fluxden = np.array(hdu[0].data[:])
+            self.fluxden_err = None
 
 
         # Calculate dispersion axis from header information
         crval = crval - crpix
         self.dispersion = crval + np.arange(naxis) * cd
 
-        self.raw_flux = self.flux
+        self.raw_fluxden = self.fluxden
         self.mask = np.ones(self.dispersion.shape, dtype=bool)
-        self.raw_flux_err = self.flux_err
+        self.raw_fluxden_err = self.fluxden_err
         self.raw_dispersion = self.dispersion
 
         self.header = hdu[0].header
@@ -294,7 +296,7 @@ class SpecOneD(object):
         """Save a SpecOneD spectrum to a fits file.
 
         Note: This save function does not store flux_errors, masks, fits etc.
-        Only the original header, the dispersion (via the header), and the flux
+        Only the original header, the dispersion (via the header), and the fluxden
         are stored.
 
         Parameters
@@ -309,7 +311,7 @@ class SpecOneD(object):
         """
 
 
-        hdu  = fits.PrimaryHDU(self.flux)
+        hdu  = fits.PrimaryHDU(self.fluxden)
         hdu.header = self.header
 
         # Update header information
@@ -336,10 +338,10 @@ class SpecOneD(object):
 
     def save_to_hdf(self, filename, comment=None, overwrite=False):
 
-        df = pd.DataFrame(np.array([self.dispersion, self.flux]).T, columns=['dispersion', 'flux'])
+        df = pd.DataFrame(np.array([self.dispersion, self.fluxden]).T, columns=['dispersion', 'fluxden'])
 
-        if self.flux_err is not None:
-            df['flux_err'] = self.flux_err
+        if self.fluxden_err is not None:
+            df['fluxden_err'] = self.fluxden_err
 
         df.to_hdf(filename, 'data')
 
@@ -348,21 +350,28 @@ class SpecOneD(object):
         df = pd.read_hdf(filename, 'data')
 
         self.dispersion = df['dispersion'].values
-        self.flux = df['flux'].values
-        self.flux_err = df['flux_err'].values
+        # Backward compatibility with previous SpecOneD
+        if 'fluxden' in df.columns:
+            self.fluxden = df['fluxden'].values
+        else:
+            self.fluxden = df['flux'].values
+        if 'fluxden_err' in df.columns:
+            self.fluxden_err = df['fluxden_err'].values
+        else:
+            self.fluxden_err = df['flux_err'].values
         self.unit = 'f_lam'
         self.reset_mask()
         self.override_raw()
 
-        print(self.flux_err)
+        print(self.fluxden_err)
 
 
     def save_to_csv(self, filename, format='linetools'):
 
-        data = [self.dispersion, self.flux]
+        data = [self.dispersion, self.fluxden]
 
-        if self.flux_err is not None:
-            data.append(self.flux_err)
+        if self.fluxden_err is not None:
+            data.append(self.fluxden_err)
 
 
         if hasattr(self, 'telluric'):
@@ -372,14 +381,14 @@ class SpecOneD(object):
 
         if format == 'linetools':
 
-            column_names = ['wave', 'flux']
-            if self.flux_err is not None:
+            column_names = ['wave', 'fluxden']
+            if self.fluxden_err is not None:
                 column_names.append('error')
 
         else:
 
-            column_names = ['wavelength', 'flux']
-            if self.flux_err is not None:
+            column_names = ['wavelength', 'fluxden']
+            if self.fluxden_err is not None:
                 column_names.append('flux_error')
 
         if hasattr(self, 'telluric'):
@@ -411,7 +420,7 @@ class SpecOneD(object):
         :return:
         """
 
-        mask_index = self.flux / self.flux_err > signal_to_noise_limit
+        mask_index = self.fluxden / self.fluxden_err > signal_to_noise_limit
 
         new_mask = np.zeros(self.dispersion.shape, dtype=bool)
 
@@ -429,25 +438,25 @@ class SpecOneD(object):
 
     def get_ivar_from_sigma(self):
 
-        if self.flux_err is None:
+        if self.fluxden_err is None:
             self.flux_ivar = None
         else:
-            ivar = np.zeros_like(self.flux_err)
-            valid = self.flux_err > 0
-            ivar[valid] = 1./(self.flux_err[valid])**2
+            ivar = np.zeros_like(self.fluxden_err)
+            valid = self.fluxden_err > 0
+            ivar[valid] = 1. / (self.fluxden_err[valid]) ** 2
 
             self.flux_ivar = ivar
 
     def get_sigma_from_ivar(self):
 
         if self.flux_ivar is None:
-            self.flux_err = None
+            self.fluxden_err = None
         else:
             sigma = np.zeros_like(self.flux_ivar)
             valid = self.flux_ivar > 0
             sigma[valid] = 1./np.sqrt(self.flux_ivar[valid])
 
-            self.flux_err = sigma
+            self.fluxden_err = sigma
 
 
 
@@ -462,53 +471,53 @@ class SpecOneD(object):
             Returns an new SpecOneD instance populated by the original spectrum.
         """
         new_dispersion = self.dispersion.copy()
-        new_flux = self.flux.copy()
-        if self.flux_err is not None:
-            new_flux_err = self.flux_err.copy()
+        new_flux = self.fluxden.copy()
+        if self.fluxden_err is not None:
+            new_flux_err = self.fluxden_err.copy()
         else:
             new_flux_err = None
         new_header = self.header
         new_unit = self.unit
         new_mask = self.mask
         new_raw_dispersion = self.raw_dispersion
-        new_raw_flux = self.raw_flux
-        new_raw_flux_err = self.raw_flux_err
+        new_raw_flux = self.raw_fluxden
+        new_raw_flux_err = self.raw_fluxden_err
 
         return SpecOneD(dispersion=new_dispersion,
-                        flux=new_flux,
-                        flux_err=new_flux_err,
+                        fluxden=new_flux,
+                        fluxden_err=new_flux_err,
                         header=new_header,
                         unit=new_unit,
                         mask=new_mask,
                         raw_dispersion=new_raw_dispersion,
-                        raw_flux=new_raw_flux,
-                        raw_flux_err=new_raw_flux_err,
+                        raw_fluxden=new_raw_flux,
+                        raw_fluxden_err=new_raw_flux_err,
                         )
 
     def override_raw(self):
-        """ Override the raw_dispersion, raw_flux and raw_flux_err
-        variables in the SpecOneD class with the current dispersion, flux and
-        flux_err values.
+        """ Override the raw_dispersion, raw_fluxden and raw_fluxden_err
+        variables in the SpecOneD class with the current dispersion, fluxden and
+        fluxden_err values.
         """
 
         self.raw_dispersion = self.dispersion
-        self.raw_flux = self.flux
-        self.raw_flux_err = self.flux_err
+        self.raw_fluxden = self.fluxden
+        self.raw_fluxden_err = self.fluxden_err
 
     def restore(self):
-        """ Override the dispersion, flux and flux_err
-        variables in the SpecOneD class with the raw_dispersion, raw_flux and
-        raw_flux_err values.
+        """ Override the dispersion, fluxden and fluxden_err
+        variables in the SpecOneD class with the raw_dispersion, raw_fluxden and
+        raw_fluxden_err values.
         """
 
         self.dispersion = self.raw_dispersion
-        self.flux = self.raw_flux
-        self.flux_err = self.raw_flux_err
+        self.fluxden = self.raw_fluxden
+        self.fluxden_err = self.raw_fluxden_err
         self.reset_mask()
 
     def check_units(self, secondary_spectrum):
         """ This method checks if the active spectrum and a second spectrum
-        have the same flux units.
+        have the same fluxden units.
 
         Parameters
         ----------
@@ -528,13 +537,13 @@ class SpecOneD(object):
     def to_log_wavelength(self):
         """ Convert the spectrum into logarithmic wavelength units.
 
-        This method converts the dispersion and flux axis to logarithmic
+        This method converts the dispersion and fluxden axis to logarithmic
         wavelength units.
 
         Raises
         ------
         ValueError
-            Raises an error, if the dispersion/flux is arealdy in logarithmic
+            Raises an error, if the dispersion/fluxden is arealdy in logarithmic
             wavelength.
         """
 
@@ -542,7 +551,7 @@ class SpecOneD(object):
             raise ValueError('Spectrum is already in logarithmic wavelength')
 
         elif self.unit == 'f_lam':
-            self.flux = self.flux * self.dispersion
+            self.fluxden = self.fluxden * self.dispersion
             self.dispersion = np.log(self.dispersion)
 
         elif self.unit == 'f_nu':
@@ -553,57 +562,57 @@ class SpecOneD(object):
 
 
     def to_wavelength(self):
-        """ Convert the spectrum from flux per frequency to flux per
+        """ Convert the spectrum from fluxden per frequency to fluxden per
         wavenlength.
 
-        This method converts the flux from erg/s/cm^2/Hz to
+        This method converts the fluxden from erg/s/cm^2/Hz to
         erg/s/cm^2/Angstroem and the dispersion accordingly from Hz to
         Angstroem.
 
         Raises
         ------
         ValueError
-            Raises an error, if the flux is already in wavelength.
+            Raises an error, if the fluxden is already in wavelength.
         """
 
         if self.unit == 'f_lam':
             raise ValueError('Dispersion is arealdy in wavelength')
         elif self.unit == 'f_nu':
-            self.flux = self.flux * self.dispersion**2 / (const.c.value * 1e+10)
+            self.fluxden = self.fluxden * self.dispersion ** 2 / (const.c.value * 1e+10)
             self.dispersion = (const.c.value * 1e+10) / self.dispersion
 
-            self.flux = np.flip(self.flux, axis=0)
+            self.fluxden = np.flip(self.fluxden, axis=0)
             self.dispersion = np.flip(self.dispersion, axis=0)
 
         elif self.unit == 'f_loglam':
             self.dispersion = np.exp(self.dispersion)
-            self.flux = self.flux / self.dispersion
+            self.fluxden = self.fluxden / self.dispersion
         else:
             raise ValueError('Spectrum unit not recognized: ', self.unit)
 
         self.unit = 'f_lam'
 
     def to_frequency(self):
-        """ Convert the spectrum from flux per wavelength to flux per
+        """ Convert the spectrum from fluxden per wavelength to fluxden per
         frequency.
 
-        This method converts the flux from erg/s/cm^2/Angstroem to
+        This method converts the fluxden from erg/s/cm^2/Angstroem to
         erg/s/cm^2/Hz and the dispersion accordingly from Angstroem to Hz.
 
         Raises
         ------
         ValueError
-            Raises an error, if the flux is already in frequency.
+            Raises an error, if the fluxden is already in frequency.
         """
 
         if self.unit == 'f_nu':
             raise ValueError('Dispersion is already in frequency.')
 
         elif self.unit == 'f_lam':
-            self.flux = self.flux * self.dispersion**2 / (const.c.value * 1e+10)
+            self.fluxden = self.fluxden * self.dispersion ** 2 / (const.c.value * 1e+10)
             self.dispersion = (const.c.value * 1e+10) / self.dispersion
 
-            self.flux = np.flip(self.flux, axis=0)
+            self.fluxden = np.flip(self.fluxden, axis=0)
             self.dispersion = np.flip(self.dispersion, axis=0)
 
         elif self.unit == 'f_loglam':
@@ -671,7 +680,7 @@ class SpecOneD(object):
 
         Notes
         -----
-        TODO: Add flux error handling
+        TODO: Add fluxden error handling
 
         Both, primary and secondary, SpecOneD classes are modified in this
         process. The dispersion match identifies the maximum possible overlap
@@ -758,12 +767,11 @@ class SpecOneD(object):
     def add(self, secondary_spectrum, copy_header='first', force=True,
             copy_flux_err = 'No', method='interpolate'):
 
-        """Add the flux in the primary and secondary spectra.
+        """Add the fluxden in the primary and secondary spectra.
 
         Notes
         -----
-        TODO: implement correct flux error handling, test it
-        Users should be aware that in order to add the flux of the two spectra,
+        Users should be aware that in order to add the fluxden of the two spectra,
         the dispersions of the spectra need to be matched, see match_dispersions
         and beware of the caveats of dispersion interpolation.
 
@@ -790,7 +798,7 @@ class SpecOneD(object):
         """
 
         self.check_units(secondary_spectrum)
-        # flux error needs to be taken care of
+        # fluxden error needs to be taken care of
         # needs to be tested
 
         s_one = self.copy()
@@ -824,21 +832,20 @@ class SpecOneD(object):
 
 
         return SpecOneD(dispersion=s_one.dispersion,
-                        flux=new_flux,
-                        flux_err=new_flux_err,
+                        fluxden=new_flux,
+                        fluxden_err=new_flux_err,
                         header=new_header,
                         unit=s_one.unit,
                         mask=s_one.mask)
 
     def subtract(self, secondary_spectrum, copy_header='first', force=True,
                  copy_flux_err = 'No', method='interpolate'):
-        """Subtract the flux of the secondary spectrum from the primary
+        """Subtract the fluxden of the secondary spectrum from the primary
         spectrum.
 
         Notes
         -----
-        TODO: implement correct flux error handling, test it
-        Users should be aware that in order to subtract the flux,
+        Users should be aware that in order to subtract the fluxden,
         the dispersions of the spectra need to be matched, see match_dispersions
         and beware of the caveats of dispersion interpolation.
 
@@ -865,7 +872,7 @@ class SpecOneD(object):
         """
 
         self.check_units(secondary_spectrum)
-        # flux error needs to be taken care of
+        # fluxden error needs to be taken care of
         # needs to be tested
         # check for negative values?
 
@@ -899,8 +906,8 @@ class SpecOneD(object):
 
 
         return SpecOneD(dispersion=s_one.dispersion,
-                        flux=new_flux,
-                        flux_err=new_flux_err,
+                        fluxden=new_flux,
+                        fluxden_err=new_flux_err,
                         header=new_header,
                         unit=s_one.unit,
                         mask=s_one.mask)
@@ -908,12 +915,11 @@ class SpecOneD(object):
     def divide(self, secondary_spectrum, copy_header='first', force=True,
                copy_flux_err = 'No', method='interpolate'):
 
-        """Divide the flux of primary spectrum by the secondary spectrum.
+        """Divide the fluxden of primary spectrum by the secondary spectrum.
 
         Notes
         -----
-        TODO: implement correct flux error handling, test it
-        Users should be aware that in order to add the flux of the two spectra,
+        Users should be aware that in order to add the fluxden of the two spectra,
         the dispersions of the spectra need to be matched, see match_dispersions
         and beware of the caveats of dispersion interpolation.
 
@@ -972,8 +978,8 @@ class SpecOneD(object):
             new_header = s_two.header
 
         return SpecOneD(dispersion=s_one.dispersion,
-                        flux=new_flux,
-                        flux_err=new_flux_err,
+                        fluxden=new_flux,
+                        fluxden_err=new_flux_err,
                         header=new_header,
                         unit=s_one.unit,
                         mask=s_one.mask)
@@ -981,11 +987,11 @@ class SpecOneD(object):
     def multiply(self, secondary_spectrum, copy_header='first', force=True,
                  copy_flux_err = 'No', method='interpolate'):
 
-        """Multiply the flux of primary spectrum with the secondary spectrum.
+        """Multiply the fluxden of primary spectrum with the secondary spectrum.
 
         Notes
         -----
-        Users should be aware that in order to add the flux of the two spectra,
+        Users should be aware that in order to add the fluxden of the two spectra,
         the dispersions of the spectra need to be matched, see match_dispersions
         and beware of the caveats of dispersion interpolation.
 
@@ -1042,14 +1048,14 @@ class SpecOneD(object):
             new_header = s_two.header
 
         return SpecOneD(dispersion=s_one.dispersion,
-                        flux=new_flux,
-                        flux_err=new_flux_err,
+                        fluxden=new_flux,
+                        fluxden_err=new_flux_err,
                         header=new_header,
                         unit=s_one.unit,
                         mask=s_one.mask)
 
 
-    def plot(self, show_flux_err=False, show_raw_flux=False,
+    def plot(self, show_fluxden_err=False, show_raw_fluxden=False,
              mask_values=False):
 
         """Plot the spectrum
@@ -1067,12 +1073,12 @@ class SpecOneD(object):
         # Plot the Spectrum
         self.ax.axhline(y=0.0, linewidth=1.5, color='k', linestyle='--')
 
-        if show_flux_err:
-            self.ax.plot(self.dispersion[mask], self.flux_err[mask], 'grey', lw=1)
-        if show_raw_flux:
-            self.ax.plot(self.raw_dispersion[mask], self.raw_flux[mask], 'grey', lw=3)
+        if show_fluxden_err:
+            self.ax.plot(self.dispersion[mask], self.fluxden_err[mask], 'grey', lw=1)
+        if show_raw_fluxden:
+            self.ax.plot(self.raw_dispersion[mask], self.raw_fluxden[mask], 'grey', lw=3)
 
-        self.ax.plot(self.dispersion[mask], self.flux[mask], 'k', linewidth=1)
+        self.ax.plot(self.dispersion[mask], self.fluxden[mask], 'k', linewidth=1)
 
         if self.unit=='f_lam':
             self.ax.set_xlabel(r'$\rm{Wavelength}\ [\rm{\AA}]$', fontsize=15)
@@ -1099,11 +1105,7 @@ class SpecOneD(object):
 
         lim_spec = self.copy()
         ylim_min, ylim_max = lim_spec.get_specplot_ylim()
-        # lim_spec.restore()
-        # lim_spec = lim_spec.mask_sn(5)
-        # lim_spec = lim_spec.sigmaclip_flux(3, 3)
-        # ylim_min = 0
-        # ylim_max = lim_spec.flux[lim_spec.mask].max()
+
         self.ax.set_ylim(ylim_min, ylim_max)
 
         plt.show()
@@ -1111,13 +1113,9 @@ class SpecOneD(object):
     def get_specplot_ylim(self):
 
         spec = self.copy()
-        # spec = self.mask_sn(10)
-        # spec = spec.sigmaclip_flux(3, 3, niter=2)
+
         percentiles = np.percentile(spec.flux[spec.mask], [16, 84])
         median = np.median(spec.flux[spec.mask])
-        delta = np.abs(percentiles[1]-median)
-        # print('delta', delta)
-        # print('percentiles', percentiles)
 
         ylim_min = -0.5*median
         ylim_max = 4*percentiles[1]
@@ -1125,7 +1123,7 @@ class SpecOneD(object):
         return ylim_min, ylim_max
 
 
-    def pypeit_plot(self, show_flux_err=False, show_raw_flux=False,
+    def pypeit_plot(self, show_fluxden_err=False, show_raw_fluxden=False,
                     mask_values=False, ymax=None):
 
         """Plot the spectrum assuming it is a pypeit spectrum
@@ -1146,18 +1144,18 @@ class SpecOneD(object):
         # Add second axis to plot telluric model
         if hasattr(self, 'telluric'):
             telluric = self.telluric[mask] / self.telluric.max() * np.median(
-                self.flux[mask]) * 2.5
+                self.fluxden[mask]) * 2.5
             self.ax.plot(self.dispersion[mask], telluric[mask],
                          label='Telluric')
 
-        if show_flux_err:
-            self.ax.plot(self.dispersion[mask], self.flux_err[mask], 'grey',
+        if show_fluxden_err:
+            self.ax.plot(self.dispersion[mask], self.fluxden_err[mask], 'grey',
                          lw=1, label='Flux Error')
-        if show_raw_flux:
-            self.ax.plot(self.raw_dispersion[mask], self.raw_flux[mask],
+        if show_raw_fluxden:
+            self.ax.plot(self.raw_dispersion[mask], self.raw_fluxden[mask],
                          'grey', lw=3, label='Raw Flux')
 
-        self.ax.plot(self.dispersion[mask], self.flux[mask], 'k',
+        self.ax.plot(self.dispersion[mask], self.fluxden[mask], 'k',
                      linewidth=1, label='Flux')
 
         if self.unit=='f_lam':
@@ -1211,9 +1209,9 @@ class SpecOneD(object):
     def fit_model_spectrum(self, mask_values=True):
 
         if mask_values:
-            self.fit_output = self.model_spectrum.fit(self.flux[self.mask], self.model_pars, x =self.dispersion[self.mask])
+            self.fit_output = self.model_spectrum.fit(self.fluxden[self.mask], self.model_pars, x =self.dispersion[self.mask])
         else:
-            self.fit_output = self.model_spectrum.fit(self.flux, self.model_pars, x =self.dispersion)
+            self.fit_output = self.model_spectrum.fit(self.fluxden, self.model_pars, x =self.dispersion)
 
     def calculate_snr(self):
 
@@ -1249,26 +1247,26 @@ class SpecOneD(object):
 
         if inplace:
             self.dispersion = self.dispersion[lo_index:up_index]
-            self.flux = self.flux[lo_index:up_index]
+            self.fluxden = self.fluxden[lo_index:up_index]
             self.mask = self.mask[lo_index:up_index]
             if trim_err:
-                if self.flux_err is not None:
-                    self.flux_err = self.flux_err[lo_index:up_index]
+                if self.fluxden_err is not None:
+                    self.fluxden_err = self.fluxden_err[lo_index:up_index]
         else:
             spec = self.copy()
             spec.dispersion = spec.dispersion[lo_index:up_index]
-            spec.flux = spec.flux[lo_index:up_index]
+            spec.fluxden = spec.fluxden[lo_index:up_index]
             spec.mask = spec.mask[lo_index:up_index]
             if trim_err:
-                if spec.flux_err is not None:
-                    spec.flux_err = spec.flux_err[lo_index:up_index]
+                if spec.fluxden_err is not None:
+                    spec.fluxden_err = spec.fluxden_err[lo_index:up_index]
 
             return spec
 
 
     def interpolate(self, new_dispersion, kind='linear', fill_value='const'):
 
-        """Interpolate flux to new dispersion axis
+        """Interpolate fluxden to new dispersion axis
 
         Parameters
         ----------
@@ -1283,37 +1281,37 @@ class SpecOneD(object):
         """
 
         if fill_value=='extrapolate':
-            f = sp.interpolate.interp1d(self.dispersion, self.flux, kind=kind, fill_value='extrapolate')
-            if isinstance(self.flux_err, np.ndarray):
-                f_err = sp.interpolate.interp1d(self.dispersion, self.flux_err, kind=kind, fill_value='extrapolate')
+            f = sp.interpolate.interp1d(self.dispersion, self.fluxden, kind=kind, fill_value='extrapolate')
+            if isinstance(self.fluxden_err, np.ndarray):
+                f_err = sp.interpolate.interp1d(self.dispersion, self.fluxden_err, kind=kind, fill_value='extrapolate')
             print ('Warning: Values outside the original dispersion range will be extrapolated!')
         elif fill_value == 'const':
-            fill_lo = np.median(self.flux[0:10])
-            fill_hi = np.median(self.flux[-11:-1])
-            f = sp.interpolate.interp1d(self.dispersion, self.flux, kind=kind,
+            fill_lo = np.median(self.fluxden[0:10])
+            fill_hi = np.median(self.fluxden[-11:-1])
+            f = sp.interpolate.interp1d(self.dispersion, self.fluxden, kind=kind,
                                         bounds_error= False,
                                         fill_value=(fill_lo, fill_hi))
-            if isinstance(self.flux_err, np.ndarray):
-                fill_lo_err = np.median(self.flux_err[0:10])
-                fill_hi_err = np.median(self.flux_err[-11:-1])
-                f_err = sp.interpolate.interp1d(self.dispersion, self.flux_err, kind=kind, bounds_error= False,
-                                        fill_value=(fill_lo_err, fill_hi_err))
+            if isinstance(self.fluxden_err, np.ndarray):
+                fill_lo_err = np.median(self.fluxden_err[0:10])
+                fill_hi_err = np.median(self.fluxden_err[-11:-1])
+                f_err = sp.interpolate.interp1d(self.dispersion, self.fluxden_err, kind=kind, bounds_error= False,
+                                                fill_value=(fill_lo_err, fill_hi_err))
         else:
-            f = sp.interpolate.interp1d(self.dispersion, self.flux, kind=kind)
-            if isinstance(self.flux_err, np.ndarray):
-                f_err = sp.interpolate.interp1d(self.dispersion, self.flux_err, kind=kind)
+            f = sp.interpolate.interp1d(self.dispersion, self.fluxden, kind=kind)
+            if isinstance(self.fluxden_err, np.ndarray):
+                f_err = sp.interpolate.interp1d(self.dispersion, self.fluxden_err, kind=kind)
 
         self.dispersion = new_dispersion
         self.reset_mask()
-        self.flux = f(self.dispersion)
-        if isinstance(self.flux_err, np.ndarray):
-            self.flux_err = f_err(self.dispersion)
+        self.fluxden = f(self.dispersion)
+        if isinstance(self.fluxden_err, np.ndarray):
+            self.fluxden_err = f_err(self.dispersion)
 
     def smooth(self, width, kernel="boxcar", scale_sigma=True, inplace=False):
         """Smoothing the spectrum using a boxcar oder gaussian kernel.
 
         This function uses astropy.convolution to convolve the spectrum with
-        the selected kernel. If scale_sigma=True, the flux error is scaled
+        the selected kernel. If scale_sigma=True, the fluxden error is scaled
         down according to sqrt(width).
 
         :param width: int
@@ -1322,7 +1320,7 @@ class SpecOneD(object):
             String indicating whether to use the Boxcar ("boxcar") or
             Gaussian ("gaussian") kernel.
         :param scale_sigma: bool
-            Boolean to indicate whether to scale the flux error according to
+            Boolean to indicate whether to scale the fluxden error according to
             the width of the boxcar kernel.
         :param inplace: bool
             Boolean to indicate whether to modify the active spectrum or
@@ -1335,22 +1333,22 @@ class SpecOneD(object):
         elif kernel == "gaussian" or kernel == "Gaussian":
             kernel = Gaussian1DKernel(width)
 
-        new_flux = convolve(self.flux, kernel)
-        if self.flux_err is not None:
-            new_flux_err = convolve(self.flux_err, kernel)
+        new_flux = convolve(self.fluxden, kernel)
+        if self.fluxden_err is not None:
+            new_flux_err = convolve(self.fluxden_err, kernel)
             if scale_sigma:
                 new_flux_err /= np.sqrt(width)
         else:
-            new_flux_err = self.flux_err
+            new_flux_err = self.fluxden_err
 
 
         if inplace:
-            self.flux = new_flux
-            self.flux_err = new_flux_err
+            self.fluxden = new_flux
+            self.fluxden_err = new_flux_err
         else:
             spec = self.copy()
-            spec.flux = new_flux
-            spec.flux_err = new_flux_err
+            spec.fluxden= new_flux
+            spec.fluxden_err = new_flux_err
             return spec
 
 
@@ -1378,7 +1376,7 @@ class SpecOneD(object):
         # hacked the normalization here... did not fully understand why this happens
         conv = np.convolve(spec.flux, y, mode='same') / (len(new_disp)/2.)
 
-        spec.flux = conv
+        spec.fluxden= conv
 
         # Step 3 convert back to original space
         spec.to_wavelength()
@@ -1388,11 +1386,11 @@ class SpecOneD(object):
             spec.resample(self.dispersion, force=force, inplace=True)
 
         if inplace:
-            self.flux = spec.flux
+            self.fluxden = spec.flux
         else:
             return SpecOneD(dispersion=spec.dispersion,
-                            flux=spec.flux,
-                            flux_err=spec.flux_err,
+                            fluxden=spec.flux,
+                            fluxden_err=spec.fluxden_err,
                             header=spec.header,
                             unit = spec.unit)
 
@@ -1417,12 +1415,12 @@ class SpecOneD(object):
     #         raise ValueError('Specified Extinction Law not recognized')
     #
     #     if inplace:
-    #         self.flux = self.flux * 10.0**(-0.4*extinction)
+    #         self.fluxden = self.fluxden * 10.0**(-0.4*extinction)
     #     else:
-    #         flux = self.flux * 10.0**(-0.4*extinction)
+    #         fluxden = self.fluxden * 10.0**(-0.4*extinction)
     #         return SpecOneD(dispersion=self.dispersion,
-    #                         flux=flux,
-    #                         flux_err=self.flux_err,
+    #                         fluxden=fluxden,
+    #                         fluxden_err=self.fluxden_err,
     #                         header=self.header,
     #                         unit = self.unit)
     #
@@ -1446,12 +1444,12 @@ class SpecOneD(object):
     #         raise ValueError('Specified Extinction Law not recognized')
     #
     #     if inplace:
-    #         self.flux = self.flux * 10.0**(0.4*extinction)
+    #         self.fluxden = self.fluxden * 10.0**(0.4*extinction)
     #     else:
-    #         flux = self.flux * 10.0**(0.4*extinction)
+    #         fluxden = self.fluxden * 10.0**(0.4*extinction)
     #         return SpecOneD(dispersion=self.dispersion,
-    #                         flux=flux,
-    #                         flux_err=self.flux_err,
+    #                         fluxden=fluxden,
+    #                         fluxden_err=self.fluxden_err,
     #                         header=self.header,
     #                         unit = self.unit)
 
@@ -1480,15 +1478,15 @@ class SpecOneD(object):
                 "Warning: Force was set to TRUE. The spectrum might not fully fill the passband!")
 
         passband.match_dispersions(spec, force=force)
-        spec.flux = passband.flux * spec.flux
+        spec.fluxden= passband.flux * spec.flux
         total_flux = np.trapz(spec.flux, spec.dispersion)
 
         if total_flux <= 0.0:
-            raise ValueError('Integrated flux is <= 0')
+            raise ValueError('Integrated fluxden is <= 0')
         if np.isnan(total_flux):
-            raise ValueError('Integrated flux is NaN')
+            raise ValueError('Integrated fluxden is NaN')
         if np.isinf(total_flux):
-            raise ValueError('Integrated flux is infinite')
+            raise ValueError('Integrated fluxden is infinite')
 
         return total_flux
 
@@ -1521,16 +1519,16 @@ class SpecOneD(object):
 
         passband.match_dispersions(spec, force=force, method=matching)
 
-        spec.flux = passband.flux * spec.flux
+        spec.fluxden= passband.flux * spec.flux
 
         total_flux = np.trapz(spec.flux, spec.dispersion)
 
         if total_flux <= 0.0:
-            raise ValueError('Integrated flux is <= 0')
+            raise ValueError('Integrated fluxden is <= 0')
         if np.isnan(total_flux):
-            raise ValueError('Integrated flux is NaN')
+            raise ValueError('Integrated fluxden is NaN')
         if np.isinf(total_flux):
-            raise ValueError('Integrated flux is infinite')
+            raise ValueError('Integrated fluxden is infinite')
 
         flat = FlatSpectrum(spec.dispersion, unit='f_nu')
 
@@ -1557,17 +1555,17 @@ class SpecOneD(object):
             if inplace:
                 self.to_frequency
                 self.flux_scale_factor = 10**(-0.4*dmag)
-                self.flux = self.flux * 10**(-0.4*dmag)
-                if self.flux_err is not None:
-                    self.flux_err = self.flux_err * 10**(-0.4*dmag)
+                self.fluxden = self.fluxden * 10 ** (-0.4 * dmag)
+                if self.fluxden_err is not None:
+                    self.fluxden_err = self.fluxden_err * 10 ** (-0.4 * dmag)
                 self.to_wavelength
             else:
                 spec = self.copy()
                 spec.to_frequency
                 spec.flux_scale_factor = 10**(-0.4*dmag)
-                spec.flux = spec.flux * 10**(-0.4*dmag)
-                if spec.flux_err is not None:
-                    spec.flux_err = spec.flux_err * 10**(-0.4*dmag)
+                spec.fluxden= spec.fluxden* 10**(-0.4*dmag)
+                if spec.fluxden_err is not None:
+                    spec.fluxden_err = spec.fluxden_err * 10**(-0.4*dmag)
                 spec.to_wavelength
 
                 return spec
@@ -1580,7 +1578,7 @@ class SpecOneD(object):
             raise ValueError("output mode not understood")
 
     def renormalize_by_spectrum(self, spectrum, dispersion='match', trim_mode='wav', inplace=False):
-        """ Match the flux of the active spectrum to the "spectrum" given to
+        """ Match the fluxden of the active spectrum to the "spectrum" given to
         the function.
 
         Note:
@@ -1613,13 +1611,13 @@ class SpecOneD(object):
 
         if inplace:
             self.flux_scale_factor = average_spec_flux/average_self_flux
-            self.flux = self.flux * (average_spec_flux/average_self_flux)
+            self.fluxden = self.fluxden * (average_spec_flux / average_self_flux)
         else:
             spec = self.copy()
             spec.flux_scale_factor = average_spec_flux/average_self_flux
-            flux = self.flux * (average_spec_flux/average_self_flux)
+            flux = self.fluxden * (average_spec_flux / average_self_flux)
             spec.scale = self.scale
-            spec.flux = flux
+            spec.fluxden= flux
 
             return spec
 
@@ -1627,18 +1625,18 @@ class SpecOneD(object):
         pass
 
     def redshift(self, z, inplace=False):
-        # TODO Take care of flux conversion here as well!
-        # TODO Taken care of flux conversion, check how IVAR behaves
+        # TODO Take care of fluxden conversion here as well!
+        # TODO Taken care of fluxden conversion, check how IVAR behaves
 
         if inplace:
             self.dispersion = self.dispersion * (1.+z)
-            # self.flux /= (1.+z)
-            # self.flux_err /= (1.+z)
+            # self.fluxden /= (1.+z)
+            # self.fluxden_err /= (1.+z)
         else:
             spec = self.copy()
             spec.dispersion = spec.dispersion * (1.+z)
-            # spec.flux /= (1.+z)
-            # spec.flux_err /= (1.+z)
+            # spec.fluxden /= (1.+z)
+            # spec.fluxden_err /= (1.+z)
 
             return spec
 
@@ -1652,8 +1650,8 @@ class SpecOneD(object):
         :return:
         """
 
-        flux = self.flux.copy()
-        flux_err = self.flux_err.copy()
+        flux = self.fluxden.copy()
+        flux_err = self.fluxden_err.copy()
 
         median = medfilt(flux, kernel_size=binsize)
 
@@ -1676,7 +1674,7 @@ class SpecOneD(object):
 
         hbinsize = int(binsize/2)
 
-        flux = self.flux
+        flux = self.fluxden
         dispersion = self.dispersion
 
 
@@ -1691,7 +1689,7 @@ class SpecOneD(object):
             # calculating mean and std arrays
             for idx in range(len(flux[:-binsize])):
 
-                # flux subset
+                # fluxden subset
                 f_bin = flux[idx:idx+binsize]
 
                 # calculate mean and std
@@ -1713,7 +1711,7 @@ class SpecOneD(object):
             mask = (flux-n_mean < n_std*up) & (flux-n_mean > -n_std*low)
             mask_index = mask_index[mask]
 
-            # mask the flux for the next iteration
+            # mask the fluxden for the next iteration
             flux = flux[mask]
 
         mask = np.zeros(len(self.mask), dtype='bool')
@@ -1734,17 +1732,17 @@ class SpecOneD(object):
     def fit_polynomial(self, func='legendre', order=3, inplace=False):
 
         if func == 'legendre':
-            poly = Legendre.fit(self.dispersion[self.mask], self.flux[self.mask], deg=order)
+            poly = Legendre.fit(self.dispersion[self.mask], self.fluxden[self.mask], deg=order)
         elif func == 'chebyshev':
-            poly = Chebyshev.fit(self.dispersion[self.mask], self.flux[self.mask], deg=order)
+            poly = Chebyshev.fit(self.dispersion[self.mask], self.fluxden[self.mask], deg=order)
         elif func == 'polynomial':
-            poly = Polynomial.fit(self.dispersion[self.mask], self.flux[self.mask], deg=order)
+            poly = Polynomial.fit(self.dispersion[self.mask], self.fluxden[self.mask], deg=order)
         else:
             raise ValueError("Polynomial fitting function not specified")
 
         if inplace:
             self.fit_dispersion = self.dispersion
-            self.fit_flux = poly(self.dispersion)
+            self.fit_fluxden = poly(self.dispersion)
         else:
             spec = self.copy()
             spec.fit_dispersion = self.dispersion
@@ -1823,16 +1821,16 @@ class SpecOneD(object):
         -------
         spec/self : SpecOneD
             The function returns a SpecOneD class object with the new
-            dispersion and the resampled fluxes (and flux errors).
+            dispersion and the resampled fluxes (and fluxden errors).
         """
 
         # Mapping of the SpecOneD object variables to the function
         # variables
 
         old_spec_wavs = self.dispersion
-        spec_fluxes = self.flux
-        if self.flux_err is not None:
-            spec_errs = self.flux_err
+        spec_fluxes = self.fluxden
+        if self.fluxden_err is not None:
+            spec_errs = self.fluxden_err
         else:
             spec_errs = None
 
@@ -1883,7 +1881,7 @@ class SpecOneD(object):
         start = 0
         stop = 0
 
-        # Calculate new flux and uncertainty values, loop over new bins
+        # Calculate new fluxden and uncertainty values, loop over new bins
         for j in range(new_spec_wavs.shape[0]):
 
             # Find first old bin which is partially covered by the new bin
@@ -1934,9 +1932,9 @@ class SpecOneD(object):
         if inplace:
 
             self.dispersion = new_dispersion
-            self.flux = res_fluxes
+            self.fluxden = res_fluxes
             if spec_errs is not None:
-                self.flux_err = res_fluxerrs
+                self.fluxden_err = res_fluxerrs
 
             self.reset_mask()
 
@@ -1945,9 +1943,9 @@ class SpecOneD(object):
             spec = self.copy()
 
             spec.dispersion = new_dispersion
-            spec.flux = res_fluxes
+            spec.fluxden= res_fluxes
             if spec_errs is not None:
-                spec.flux_err = res_fluxerrs
+                spec.fluxden_err = res_fluxerrs
 
             spec.reset_mask()
 
@@ -1970,8 +1968,8 @@ class SpecOneD(object):
         rbins = bin_boundary[1:]
         mbins = disp[1:-1]
         dbins = rbins - lbins
-        flux = self.flux[1:-1]
-        flux_err = self.flux_err[1:-1]
+        flux = self.fluxden[1:-1]
+        flux_err = self.fluxden_err[1:-1]
         num_bins = len(mbins)
 
         num_new_bins = int((num_bins - (num_bins % npix)) / npix)
@@ -2000,8 +1998,8 @@ class SpecOneD(object):
             new_flux[idx] = _new_flux / _new_dbin
             new_flux_err[idx] = np.sqrt(_new_flux_err) / _new_dbin
 
-        return SpecOneD(dispersion=new_wave, flux=new_flux,
-                            flux_err=new_flux_err, unit='f_lam')
+        return SpecOneD(dispersion=new_wave, fluxden=new_flux,
+                        fluxden_err=new_flux_err, unit='f_lam')
 
 
 
@@ -2055,14 +2053,14 @@ def combine_spectra(filenames, method='average', file_format='fits'):
 
     if method == 'average':
         for spec in s_list:
-            comb_flux += spec.flux
-            comb_fluxerr += spec.flux_err**2/N**2
+            comb_flux += spec.fluxden
+            comb_fluxerr += spec.fluxden_err ** 2 / N ** 2
 
         comb_flux = comb_flux / N
         comb_fluxerr = np.sqrt(comb_fluxerr)
 
-        comb_spec = SpecOneD(dispersion=disp, flux=comb_flux,
-                             flux_err=comb_fluxerr, unit='f_lam',
+        comb_spec = SpecOneD(dispersion=disp, fluxden=comb_flux,
+                             fluxden_err=comb_fluxerr, unit='f_lam',
                              )
         return comb_spec
 
@@ -2073,7 +2071,7 @@ def combine_spectra(filenames, method='average', file_format='fits'):
 
 
 def pypeit_spec1d_plot(filename, show_flux_err=True, mask_values=False,
-                        ex_value='OPT', show='flux', smooth=None):
+                        ex_value='OPT', show='fluxden', smooth=None):
 
     # plot_setup
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15, 7), dpi=140)
@@ -2134,7 +2132,7 @@ def pypeit_spec1d_plot(filename, show_flux_err=True, mask_values=False,
                 ax.plot(wavelength[mask], counts_sigma[mask], color=color,
                         alpha=0.5)
 
-        elif show == 'flux':
+        elif show == 'fluxden':
             if smooth is not None:
                 flux = convolve(flux, Box1DKernel(smooth))
                 flux_sigma /= np.sqrt(smooth)
@@ -2161,7 +2159,7 @@ def pypeit_spec1d_plot(filename, show_flux_err=True, mask_values=False,
     if show == 'counts':
         ax.set_ylabel(
             r'$\rm{Counts}\ [\rm{ADU}]$', fontsize=15)
-    elif show == 'flux':
+    elif show == 'fluxden':
         ax.set_ylabel(
             r'$\rm{Flux}\ f_{\lambda}\ [\rm{erg}\,\rm{s}^{-1}\,\rm{cm}^{-2}\,'
             r'\rm{\AA}^{-1}]$',
@@ -2216,17 +2214,17 @@ def pypeit_multi_plot(filenames, show_flux_err=True, show_tellurics=False,
         # Add second axis to plot telluric model
         if show_tellurics is True:
             telluric = spec.telluric[mask] / spec.telluric.max() * np.median(
-                spec.flux[mask]) * 2.5
+                spec.fluxden[mask]) * 2.5
             ax.plot(spec.dispersion[mask], telluric[mask],
                          label='Telluric', color=color, alpha=0.5, ls='..')
 
         if show_flux_err:
-            ax.plot(spec.dispersion[mask], spec.flux_err[mask], 'grey',
-                         lw=1, label='Flux Error', color=color, alpha=0.5)
+            ax.plot(spec.dispersion[mask], spec.fluxden_err[mask], 'grey',
+                    lw=1, label='Flux Error', color=color, alpha=0.5)
 
 
-        ax.plot(spec.dispersion[mask], spec.flux[mask], 'k',
-                     linewidth=1, label=label, color=color)
+        ax.plot(spec.dispersion[mask], spec.fluxden[mask], 'k',
+                linewidth=1, label=label, color=color)
 
         # # Add OBJ model if it exists
         # if hasattr(spec, 'obj_model'):
