@@ -2,17 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c7e35728-a01d-41d7-afc8-85ed9ad835b6" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/sculptor.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/sculptor.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/models_and_masks/quasar.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/models_and_masks/quasar.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/sculptor" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/sculptor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specfit.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specfit.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specfitgui.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specfitgui.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sculptor/specmodel.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodel.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specmodelwidget.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodelwidget.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/speconed.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/speconed.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -43,20 +34,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/sculptor/specmodel.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="484">
-              <caret line="771" lean-forward="true" selection-start-line="771" selection-end-line="771" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$USER_HOME$/anaconda3/lib/python3.7/site-packages/sculptor/specmodel.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="294">
-              <caret line="783" column="46" selection-start-line="783" selection-start-column="46" selection-end-line="783" selection-end-column="46" />
+            <state relative-caret-position="223">
+              <caret line="641" column="36" selection-start-line="641" selection-start-column="36" selection-end-line="641" selection-end-column="36" />
             </state>
           </provider>
         </entry>
@@ -95,7 +77,22 @@
       </file>
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/sculptor/sculptor">
-          <provider selected="true" editor-type-id="text-editor" />
+          <provider selected="true" editor-type-id="text-editor">
+            <state>
+              <folding>
+                <element signature="e#23#33#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/anaconda3/lib/python3.7/site-packages/sculptor/specmodel.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="294">
+              <caret line="783" selection-start-line="783" selection-end-line="783" />
+            </state>
+          </provider>
         </entry>
       </file>
     </leaf>
@@ -112,9 +109,12 @@
       <find>spec.flux_err</find>
       <find>flux</find>
       <find>model_flux</find>
-      <find>read_h</find>
       <find>plot_specfit</find>
       <find>spec.flux</find>
+      <find>spec.flux)</find>
+      <find>read_h</find>
+      <find>_plot_specmodel</find>
+      <find>def save</find>
     </findStrings>
     <replaceStrings>
       <replace>spec.fluxden_err</replace>
@@ -132,11 +132,11 @@
       <list>
         <option value="$PROJECT_DIR$/example.py" />
         <option value="$PROJECT_DIR$/sculptor/specmodelwidget.py" />
-        <option value="$PROJECT_DIR$/sculptor/specmodel.py" />
         <option value="$PROJECT_DIR$/sculptor/specfitgui.py" />
         <option value="$PROJECT_DIR$/sculptor/speconed.py" />
         <option value="$PROJECT_DIR$/sculptor/specfit.py" />
         <option value="$USER_HOME$/anaconda3/lib/python3.7/site-packages/sculptor/specmodel.py" />
+        <option value="$PROJECT_DIR$/sculptor/specmodel.py" />
       </list>
     </option>
   </component>
@@ -276,9 +276,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/sculptor/sculptor">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
     <entry file="file://$PROJECT_DIR$/sculptor/speconed.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="710">
@@ -296,17 +293,26 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/sculptor/specmodel.py">
+    <entry file="file://$PROJECT_DIR$/sculptor/sculptor">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="484">
-          <caret line="771" lean-forward="true" selection-start-line="771" selection-end-line="771" />
+        <state>
+          <folding>
+            <element signature="e#23#33#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$USER_HOME$/anaconda3/lib/python3.7/site-packages/sculptor/specmodel.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="294">
-          <caret line="783" column="46" selection-start-line="783" selection-start-column="46" selection-end-line="783" selection-end-column="46" />
+          <caret line="783" selection-start-line="783" selection-end-line="783" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/specmodel.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="223">
+          <caret line="641" column="36" selection-start-line="641" selection-start-column="36" selection-end-line="641" selection-end-column="36" />
         </state>
       </provider>
     </entry>

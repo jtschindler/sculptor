@@ -128,7 +128,7 @@ class SpecModel:
             # Set mask describing the regions included in the fit for this model
             self.reset_fit_mask()
             self.reset_plot_limits()
-            self.model_fluxden = np.zeros_like(self.spec.flux)
+            self.model_fluxden = np.zeros_like(self.spec.fluxden)
 
         else:
             self.mask = None
@@ -639,7 +639,7 @@ class SpecModel:
         data.append(self.spec.dispersion)
         columns.append('spec_dispersion')
         data.append(self.spec.fluxden)
-        columns.append('spec_flux')
+        columns.append('spec_fluxden')
         data.append(self.spec.mask)
         columns.append('spec_mask')
         if hasattr(self.spec, 'fluxden_err'):
@@ -780,8 +780,7 @@ class SpecModel:
         if hasattr(self, 'spec'):
             self.xlim = [min(self.spec.dispersion),
                          max(self.spec.dispersion)]
-            self.ylim = [0,
-                         max(self.spec.fluxden) * 1.05]
+            self.ylim = [0, max(self.spec.fluxden) * 1.05]
 
     def plot(self):
         """ Plot the SpecModel
