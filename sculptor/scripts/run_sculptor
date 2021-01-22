@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
+
 import sys
 import argparse
 import numpy as np
+import pkg_resources
 from sculptor.specfitgui import SpecFitGui
 from sculptor.speconed import SpecOneD
 from PyQt5 import QtWidgets
@@ -25,6 +27,11 @@ def parse_arguments():
                         default=0,
                         help='Cosmological redshift of the astronomical object')
 
+    parser.add_argument('-ex', '--example', required=False, type=bool,
+                        default=False, help='Starting up the GUI with the '
+                                            'example spectrum. This '
+                                            'overwrites any filename keywords')
+
     return parser.parse_args()
 
 
@@ -33,40 +40,59 @@ if __name__ == '__main__':
     args = parse_arguments()
 
     spec = None
+    
+    if args.example:
+        args.filename = pkg_resources.resource_filename('sculptor',
+                                                    'data/example_spectra/J030341.04-002321.8_0.fits')
+        args.redshift = 3.227
 
     if args.filename is not None:
         spec = SpecOneD()
         # Reading the spectrum
-        if args.filename.split('.')[1] == 'fits':
+        if args.filename.split('.')[-1] == 'fits':
 
             try:
                 spec.read_from_fits(filename=args.filename, unit='f_lam')
-            except:
-                print('[WARNING] Spectrum could not be read, assuming the '
+                print('[INFO] Spectrum read in assuming the '
                       'standard IRAF format.')
-                spec = None
+            except:
+                print('[WARNING] Spectrum could not be read assuming the '
+                      'standard IRAF format.')
 
             try:
                 spec.read_pypeit_fits(filename=args.filename, unit='f_lam')
+                print('[INFO] Spectrum read in assuming the '
+                      'standard PypeIt format.')
             except:
-                print('[WARNING] Spectrum could not be read, assuming the '
+                print('[WARNING] Spectrum could not be read assuming the '
                       'PypeIt format.')
-                spec = None
 
-        elif args.filename.split('.')[1] == 'hdf5':
+            try:
+                spec.read_sdss_fits(args.filename, unit='f_lam')
+                print('[INFO] Spectrum read in assuming the '
+                      'standard SDSS format.')
+            except:
+                print('[WARNING] Spectrum could not be read assuming the '
+                      'SDSS format.')
+
+
+
+        elif args.filename.split('.')[-1] == 'hdf5':
 
             try:
                 spec.read_from_hdf(filename=args.filename)
+                print('[INFO] Spectrum read in assuming the '
+                      'standard SpecOneD hdf5 format.')
             except:
-                print('[WARNING] Spectrum could not be read, assuming the '
+                print('[WARNING] Spectrum could not be read assuming the '
                       'SpecOneD hdf5 format.')
-                spec = None
 
         else:
 
             try:
                 print('[INFO] Assuming to read spectrum from a text file with the '
-                      'columns 0=dispersion, 1=fluxden, 2=fluxden error')
+                      'columns 0=dispersion, 1=flux density , 2=flux density '
+                      'error')
 
                 data = np.genfromtxt(args.filename)
 
@@ -76,7 +102,6 @@ if __name__ == '__main__':
                                 unit='f_lam')
             except:
                 print('[WARNING] Spectrum could not be read!')
-                spec = None
 
 
         if spec is None:

@@ -2,8 +2,19 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c7e35728-a01d-41d7-afc8-85ed9ad835b6" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/sculptor.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/sculptor.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/license.md" beforeDir="false" afterPath="$PROJECT_DIR$/license.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/models_and_masks/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/models_and_masks/basic.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/models_and_masks/quasar.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/sculptor" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/scripts/run_sculptor" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/specfit.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specfit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/specfitgui.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specfitgui.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sculptor/specmodel.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/specmodelwidget.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodelwidget.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/speconed.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/speconed.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -14,83 +25,95 @@
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/sculptor/speconed.py">
+        <entry file="file://$PROJECT_DIR$/environment.yml">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="710">
-              <caret line="360" column="39" selection-start-line="360" selection-start-column="39" selection-end-line="360" selection-end-column="39" />
+            <state relative-caret-position="54">
+              <caret line="2" selection-start-line="2" selection-end-line="4" selection-end-column="10" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/conda_requirements.yml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="81">
+              <caret line="3" column="10" selection-start-line="3" selection-start-column="10" selection-end-line="3" selection-end-column="10" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/requirements.txt">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="324">
+              <caret line="12" column="12" selection-start-line="12" selection-start-column="12" selection-end-line="12" selection-end-column="12" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/PROJECTS/1901_Highz_Quasar_Selection/unWISE_VHS_DES/do_photometric_selection_step1.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state>
               <folding>
-                <element signature="e#611#620#0" expanded="true" />
+                <element signature="e#0#27#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/sculptor/specmodelwidget.py">
+        <entry file="file://$USER_HOME$/PROJECTS/1901_Highz_Quasar_Selection/unWISE_VHS_DES/lsd_query.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-13479">
-              <caret line="348" column="58" selection-start-line="348" selection-start-column="58" selection-end-line="348" selection-end-column="58" />
+            <state relative-caret-position="-5267">
+              <folding>
+                <element signature="e#0#30#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/PROJECTS/1901_Highz_Quasar_Selection/unWISE_VHS_DES/do_photometric_selection_step2.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-326">
+              <folding>
+                <element signature="e#0#27#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/PROJECTS/1901_Highz_Quasar_Selection/unWISE_VHS_DES/do_photometric_selection_step3.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state>
+              <folding>
+                <element signature="e#0#27#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/PROJECTS/1901_Highz_Quasar_Selection/unWISE_VHS_DES/download_photometry.py">
+          <provider selected="true" editor-type-id="text-editor" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/CIVBlueshiftAnalysis/matched_analysis.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="418">
+              <caret line="230" column="50" selection-start-line="230" selection-start-column="18" selection-end-line="230" selection-end-column="50" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/sculptor/specmodel.py">
+        <entry file="file://$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/CIVBlueshiftAnalysis/show_matching.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="223">
-              <caret line="641" column="36" selection-start-line="641" selection-start-column="36" selection-end-line="641" selection-end-column="36" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/sculptor/specfitgui.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="609">
-              <caret line="219" column="56" selection-start-line="219" selection-start-column="45" selection-end-line="219" selection-end-column="61" />
-              <folding>
-                <element signature="e#1#19#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/sculptor/specfitcanvas.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state>
-              <folding>
-                <element signature="e#23#54#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/sculptor/specfit.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="915">
-              <caret line="645" column="35" selection-start-line="645" selection-start-column="35" selection-end-line="645" selection-end-column="35" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/sculptor/sculptor">
-          <provider selected="true" editor-type-id="text-editor">
-            <state>
-              <folding>
-                <element signature="e#23#33#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/anaconda3/lib/python3.7/site-packages/sculptor/specmodel.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="294">
-              <caret line="783" selection-start-line="783" selection-end-line="783" />
+            <state relative-caret-position="834">
+              <caret line="235" column="54" selection-start-line="235" selection-start-column="54" selection-end-line="235" selection-end-column="54" />
             </state>
           </provider>
         </entry>
@@ -106,15 +129,36 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>spec.flux_err</find>
-      <find>flux</find>
-      <find>model_flux</find>
-      <find>plot_specfit</find>
-      <find>spec.flux</find>
-      <find>spec.flux)</find>
-      <find>read_h</find>
-      <find>_plot_specmodel</find>
-      <find>def save</find>
+      <find>master_dir</find>
+      <find>target_r</find>
+      <find>super_params</find>
+      <find>fit</find>
+      <find>def fit</find>
+      <find>read_sdss</find>
+      <find>#!/usr/bin/env python</find>
+      <find>def update_spec</find>
+      <find>def update_specmodel_plot</find>
+      <find>def reset_fit</find>
+      <find>def import</find>
+      <find>def</find>
+      <find>def __init__</find>
+      <find>def import</find>
+      <find>Reset Mas</find>
+      <find>def update_specfit</find>
+      <find>boxmaskselect</find>
+      <find>mask_preset_key</find>
+      <find>mask_presets</find>
+      <find>read_hdf</find>
+      <find>Set X</find>
+      <find>fitting_methods</find>
+      <find>N=</find>
+      <find>def import_spectrum</find>
+      <find>def setup_p</find>
+      <find>mask</find>
+      <find>min</find>
+      <find>datadir</find>
+      <find>expr_list</find>
+      <find>bins</find>
     </findStrings>
     <replaceStrings>
       <replace>spec.fluxden_err</replace>
@@ -131,12 +175,43 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/example.py" />
-        <option value="$PROJECT_DIR$/sculptor/specmodelwidget.py" />
-        <option value="$PROJECT_DIR$/sculptor/specfitgui.py" />
+        <option value="$USER_HOME$/anaconda3/lib/python3.7/site-packages/sculptor/specmodel.py" />
+        <option value="$USER_HOME$/Dropbox/Apps/Overleaf/DFG Emmy-Noether Bewerbung/get_publist_from_bibcodes.py" />
+        <option value="$USER_HOME$/Dropbox/DFG Emmy Noether Antrag/plots/bhmass_highz.py" />
+        <option value="$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/XShooter_Analysis/plots/civ_blueshift_mgii_redshift_prop.py" />
+        <option value="$USER_HOME$/PROJECTS/1609_Extremely_Bright_quasars_missed_by_SDSS/ELQS_paper_work/paper_III_figures/qlf/all_qlfs_alt_poster.py" />
+        <option value="$USER_HOME$/Dropbox/DFG Emmy Noether Antrag/plots/bhmass_z.py" />
+        <option value="$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/XShooter_Analysis/plots/mgii_blueshift_cii_redshift.py" />
+        <option value="$USER_HOME$/Software/modsView/modsView.py" />
+        <option value="$USER_HOME$/Software/PypeIt/pypeit/scripts/ql_keck_mosfire.py" />
+        <option value="$USER_HOME$/Observations/LBT/MODS/2020B/make_finding_charts.py" />
+        <option value="$USER_HOME$/Observations/LBT/MODS/2021A/January2021/LBT_MODS_script.py" />
+        <option value="$USER_HOME$/Observations/LBT/MODS/2020B/LBT_MODS_modsview.py" />
+        <option value="$USER_HOME$/Observations/LBT/MODS/2021A/January2021/LBT_MODS_modsview.py" />
+        <option value="$USER_HOME$/Observations/LBT/MODS/2020B/LBT_MODS_modsview_review.py" />
+        <option value="$USER_HOME$/Observations/LBT/MODS/2021A/January2021/LBT_MODS_guide_script.py" />
+        <option value="$USER_HOME$/Observations/LBT/MODS/2021A/January2021/LBT_MODS_modsview_review.py" />
+        <option value="$USER_HOME$/Observations/LBT/MODS/2021A/January2021/make_finding_charts.py" />
+        <option value="$PROJECT_DIR$/sculptor/sculptor" />
+        <option value="$PROJECT_DIR$/sculptor/models_and_masks/quasar.py" />
         <option value="$PROJECT_DIR$/sculptor/speconed.py" />
         <option value="$PROJECT_DIR$/sculptor/specfit.py" />
-        <option value="$USER_HOME$/anaconda3/lib/python3.7/site-packages/sculptor/specmodel.py" />
         <option value="$PROJECT_DIR$/sculptor/specmodel.py" />
+        <option value="$PROJECT_DIR$/sculptor/specfitgui.py" />
+        <option value="$PROJECT_DIR$/extensions/quasar.py" />
+        <option value="$PROJECT_DIR$/extensions/my_extension.py" />
+        <option value="$PROJECT_DIR$/sculptor/scripts/run_sculptor" />
+        <option value="$PROJECT_DIR$/setup.py" />
+        <option value="$PROJECT_DIR$/sculptor-extensions/quasar.py" />
+        <option value="$PROJECT_DIR$/sculptor/analysis.py" />
+        <option value="$PROJECT_DIR$/sculptor/specmodelwidget.py" />
+        <option value="$PROJECT_DIR$/sculptor/masksmodels.py" />
+        <option value="$PROJECT_DIR$/sculptor-extensions/my_extension.py" />
+        <option value="$PROJECT_DIR$/environment.yml" />
+        <option value="$PROJECT_DIR$/conda_requirements.yml" />
+        <option value="$PROJECT_DIR$/requirements.txt" />
+        <option value="$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/CIVBlueshiftAnalysis/matched_analysis.py" />
+        <option value="$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/CIVBlueshiftAnalysis/show_matching.py" />
       </list>
     </option>
   </component>
@@ -145,22 +220,37 @@
     <option name="height" value="1440" />
   </component>
   <component name="ProjectView">
-    <navigator proportions="" version="1">
+    <navigator currentView="Scope" currentSubView="Scope 'Project Files'; set:Project Files; class com.intellij.psi.search.scope.ProjectFilesScope" proportions="" version="1">
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
+      <pane id="Scope">
+        <subPane subId="Scope 'Project Files'; set:Project Files; class com.intellij.psi.search.scope.ProjectFilesScope">
+          <expand>
+            <path>
+              <item name="sculptor" type="3d21c010:ScopeViewTreeModel$ProjectNode" />
+              <item name="" type="442cc68d:ScopeViewTreeModel$RootNode" />
+            </path>
+            <path>
+              <item name="sculptor" type="3d21c010:ScopeViewTreeModel$ProjectNode" />
+              <item name="" type="442cc68d:ScopeViewTreeModel$RootNode" />
+              <item name="sculptor" type="9f88c78c:ScopeViewTreeModel$FileNode" />
+            </path>
+            <path>
+              <item name="sculptor" type="3d21c010:ScopeViewTreeModel$ProjectNode" />
+              <item name="" type="442cc68d:ScopeViewTreeModel$RootNode" />
+              <item name="sculptor-extensions" type="9f88c78c:ScopeViewTreeModel$FileNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
       <pane id="ProjectPane">
         <subPane>
           <expand>
             <path>
               <item name="sculptor" type="b2602c69:ProjectViewProjectNode" />
-              <item name="sculptor" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="sculptor" type="b2602c69:ProjectViewProjectNode" />
-              <item name="sculptor" type="462c0819:PsiDirectoryNode" />
-              <item name="sculptor" type="462c0819:PsiDirectoryNode" />
+              <item name="External Libraries" type="cb654da1:ExternalLibrariesNode" />
             </path>
           </expand>
           <select />
@@ -171,6 +261,11 @@
   <component name="PropertiesComponent">
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/sculptor/scripts" />
+    </key>
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -183,6 +278,34 @@
         </RuleState>
       </list>
     </option>
+  </component>
+  <component name="RunManager">
+    <configuration name="masksmodels" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="sculptor" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/sculptor" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/sculptor/masksmodels.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.masksmodels" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SvnConfiguration">
     <configuration />
@@ -211,15 +334,15 @@
     <editor active="true" />
     <layout>
       <window_info id="Favorites" order="0" side_tool="true" />
-      <window_info content_ui="combo" id="Project" order="1" visible="true" weight="0.25167388" />
+      <window_info active="true" content_ui="combo" id="Project" order="1" visible="true" weight="0.17290272" />
       <window_info id="Structure" order="2" side_tool="true" weight="0.25" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="0" visible="true" weight="0.32053176" />
+      <window_info anchor="bottom" id="Terminal" order="0" weight="0.14180207" />
       <window_info anchor="bottom" id="Event Log" order="1" side_tool="true" />
       <window_info anchor="bottom" id="Python Console" order="2" weight="0.3293944" />
       <window_info anchor="bottom" id="Message" order="3" />
       <window_info anchor="bottom" id="Find" order="4" weight="0.3293944" />
       <window_info anchor="bottom" id="Version Control" order="5" />
-      <window_info anchor="bottom" id="Run" order="6" />
+      <window_info anchor="bottom" id="Run" order="6" weight="0.3293944" />
       <window_info anchor="bottom" id="Debug" order="7" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="8" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="9" weight="0.4" />
@@ -230,15 +353,15 @@
     </layout>
     <layout-to-restore>
       <window_info id="Favorites" order="0" side_tool="true" />
-      <window_info content_ui="combo" id="Project" order="1" visible="true" weight="0.24970461" />
+      <window_info active="true" content_ui="combo" id="Project" order="1" visible="true" weight="0.17290272" />
       <window_info id="Structure" order="2" side_tool="true" weight="0.25" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="0" visible="true" weight="0.3293944" />
+      <window_info anchor="bottom" id="Terminal" order="0" weight="0.14180207" />
       <window_info anchor="bottom" id="Event Log" order="1" side_tool="true" />
-      <window_info anchor="bottom" id="Version Control" order="2" />
-      <window_info anchor="bottom" id="Python Console" order="3" weight="0.3293944" />
-      <window_info anchor="bottom" id="Message" order="4" />
-      <window_info anchor="bottom" id="Find" order="5" />
-      <window_info anchor="bottom" id="Run" order="6" />
+      <window_info anchor="bottom" id="Python Console" order="2" weight="0.3293944" />
+      <window_info anchor="bottom" id="Message" order="3" />
+      <window_info anchor="bottom" id="Find" order="4" weight="0.3293944" />
+      <window_info anchor="bottom" id="Version Control" order="5" />
+      <window_info anchor="bottom" id="Run" order="6" visible="true" weight="0.3293944" />
       <window_info anchor="bottom" id="Debug" order="7" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="8" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="9" weight="0.4" />
@@ -248,22 +371,191 @@
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
     </layout-to-restore>
   </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/sculptor/specmodel.py</url>
+          <line>1</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/sculptor/specmodelwidget.py</url>
+          <line>2</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/example.py" />
-    <entry file="file://$PROJECT_DIR$/sculptor/specmodelwidget.py">
+    <entry file="file://$USER_HOME$/Dropbox/DFG Emmy Noether Antrag/plots/bhmass_z.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-13479">
-          <caret line="348" column="58" selection-start-line="348" selection-start-column="58" selection-end-line="348" selection-end-column="58" />
+        <state relative-caret-position="913">
+          <caret line="335" selection-start-line="335" selection-end-line="335" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/XShooter_Analysis/03_create_tex_tables.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-6789" />
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/XShooter_Analysis/plots/mgii_blueshift_cii_redshift.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="321">
+          <caret line="123" column="38" selection-start-line="123" selection-start-column="38" selection-end-line="123" selection-end-column="38" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda3/lib/python3.7/site-packages/qso_toolbox/image_tools.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-3121">
+          <caret line="509" column="42" selection-start-line="509" selection-start-column="42" selection-end-line="509" selection-end-column="42" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Observations/LBT/MODS/2020B/LBT_MODS_modsview.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="6" column="67" selection-start-line="6" selection-start-column="67" selection-end-line="6" selection-end-column="67" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Observations/LBT/MODS/2020B/LBT_MODS_modsview_review.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="54">
+          <caret line="4" lean-forward="true" selection-start-line="4" selection-end-line="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/XShooter_Analysis/02_create_master_tables.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$USER_HOME$/Software/modsView/modsView.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret column="21" selection-start-column="21" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Observations/LBT/MODS/2021A/January2021/LBT_MODS_modsview_review.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="648">
+          <caret line="26" selection-start-line="26" selection-end-line="26" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Observations/LBT/MODS/2021A/January2021/make_finding_charts.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1048">
+          <caret line="52" column="36" selection-start-line="52" selection-start-column="36" selection-end-line="52" selection-end-column="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Observations/LBT/MODS/2021A/January2021/LBT_MODS_script.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1048">
+          <caret line="81" selection-start-line="81" selection-end-line="81" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Observations/LBT/MODS/2021A/January2021/LBT_MODS_guide_script.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1048">
+          <caret line="60" column="38" selection-start-line="60" selection-start-column="38" selection-end-line="60" selection-end-column="38" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Observations/LBT/MODS/2021A/January2021/LBT_MODS_modsview.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="108">
+          <caret line="5" column="69" selection-start-line="5" selection-start-column="69" selection-end-line="5" selection-end-column="69" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Software/PypeIt/pypeit/scripts/ql_keck_mosfire.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1048">
+          <caret line="227" column="41" selection-start-line="227" selection-start-column="41" selection-end-line="227" selection-end-column="41" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Observations/LBT/MODS/2020B/get_photometry.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$USER_HOME$/Observations/LBT/MODS/2020B/make_finding_charts.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1026">
+          <caret line="38" selection-start-line="38" selection-end-line="38" />
+          <folding>
+            <element signature="e#1#44#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/examples/example.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="270">
+          <caret line="10" selection-start-line="10" selection-end-line="11" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/PROJECTS/2010_JWST_BH_mass_proposal/fits/Selsing2016_outflow_G395H/analyse_sculptor.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <folding>
+            <element signature="e#1#10#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/menu_dialogs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="54">
+          <caret line="2" column="27" selection-start-line="2" selection-start-column="21" selection-end-line="2" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/models_and_masks/__init__.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/__init__.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda3/lib/python3.7/site-packages/sculptor/speconed.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="854">
+          <caret line="402" column="31" lean-forward="true" selection-start-line="402" selection-start-column="31" selection-end-line="402" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/models_and_masks/basic.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="808">
+          <caret line="157" column="40" selection-start-line="157" selection-start-column="20" selection-end-line="157" selection-end-column="40" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/models_and_masks/quasar.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-23580">
+          <caret line="15" selection-start-line="15" selection-end-line="15" selection-end-column="46" />
+          <folding>
+            <element signature="e#23#32#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/sculptor/specfitgui.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="609">
-          <caret line="219" column="56" selection-start-line="219" selection-start-column="45" selection-end-line="219" selection-end-column="61" />
-          <folding>
-            <element signature="e#1#19#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="378">
+          <caret line="14" column="40" selection-start-line="14" selection-start-column="40" selection-end-line="14" selection-end-column="40" />
         </state>
       </provider>
     </entry>
@@ -278,41 +570,197 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/sculptor/speconed.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="710">
-          <caret line="360" column="39" selection-start-line="360" selection-start-column="39" selection-end-line="360" selection-end-column="39" />
+        <state relative-caret-position="10368">
+          <caret line="384" selection-start-line="384" selection-end-line="384" />
           <folding>
             <element signature="e#611#620#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/sculptor/specfit.py">
+    <entry file="file://$PROJECT_DIR$/sculptor/specmodelcanvas.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="915">
-          <caret line="645" column="35" selection-start-line="645" selection-start-column="35" selection-end-line="645" selection-end-column="35" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/sculptor/sculptor">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
+        <state relative-caret-position="53">
+          <caret line="2" selection-start-line="2" selection-end-line="2" />
           <folding>
-            <element signature="e#23#33#0" expanded="true" />
+            <element signature="e#23#54#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/anaconda3/lib/python3.7/site-packages/sculptor/specmodel.py">
+    <entry file="file://$PROJECT_DIR$/=4.0.2">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="294">
-          <caret line="783" selection-start-line="783" selection-end-line="783" />
+        <state relative-caret-position="-250" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/specfit.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="540">
+          <caret line="20" column="6" selection-start-line="20" selection-start-column="6" selection-end-line="20" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/license.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor />
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor />
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/scripts/run_sculptor">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="489">
+          <caret line="48" column="33" selection-start-line="48" selection-start-column="33" selection-end-line="48" selection-end-column="33" />
+          <folding>
+            <element signature="e#24#34#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/sculptor/specmodel.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="223">
-          <caret line="641" column="36" selection-start-line="641" selection-start-column="36" selection-end-line="641" selection-end-column="36" />
+        <state relative-caret-position="108">
+          <caret line="4" lean-forward="true" selection-start-line="4" selection-end-line="4" selection-end-column="16" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/setup.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="523">
+          <caret line="21" column="48" selection-start-line="21" selection-start-column="48" selection-end-line="21" selection-end-column="48" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/analysis.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="515">
+          <caret line="32" lean-forward="true" selection-start-line="32" selection-end-line="32" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/masksmodels.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-111">
+          <caret line="155" column="41" selection-start-line="155" selection-start-column="41" selection-end-line="155" selection-end-column="41" />
+          <folding>
+            <element signature="e#23#32#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/specmodelwidget.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-271">
+          <caret line="820" lean-forward="true" selection-start-line="820" selection-end-line="820" />
+          <folding>
+            <element signature="e#2#20#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor-extensions/quasar.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="174">
+          <caret line="326" selection-start-line="326" selection-end-line="346" selection-end-column="24" />
+          <folding>
+            <element signature="e#23#32#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor-extensions/my_extension.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4131">
+          <caret line="153" column="47" selection-start-line="153" selection-start-column="47" selection-end-line="153" selection-end-column="47" />
+          <folding>
+            <element signature="e#23#32#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/environment.yml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="54">
+          <caret line="2" selection-start-line="2" selection-end-line="4" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/conda_requirements.yml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="81">
+          <caret line="3" column="10" selection-start-line="3" selection-start-column="10" selection-end-line="3" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/requirements.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="324">
+          <caret line="12" column="12" selection-start-line="12" selection-start-column="12" selection-end-line="12" selection-end-column="12" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/PROJECTS/1901_Highz_Quasar_Selection/unWISE_VHS_DES/do_photometric_selection_step1.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <folding>
+            <element signature="e#0#27#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/PROJECTS/1901_Highz_Quasar_Selection/unWISE_VHS_DES/lsd_query.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-5267">
+          <folding>
+            <element signature="e#0#30#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/PROJECTS/1901_Highz_Quasar_Selection/unWISE_VHS_DES/do_photometric_selection_step2.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-326">
+          <folding>
+            <element signature="e#0#27#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/PROJECTS/1901_Highz_Quasar_Selection/unWISE_VHS_DES/do_photometric_selection_step3.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <folding>
+            <element signature="e#0#27#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/PROJECTS/1901_Highz_Quasar_Selection/unWISE_VHS_DES/download_photometry.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/CIVBlueshiftAnalysis/matched_analysis.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="418">
+          <caret line="230" column="50" selection-start-line="230" selection-start-column="18" selection-end-line="230" selection-end-column="50" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/CIVBlueshiftAnalysis/show_matching.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="834">
+          <caret line="235" column="54" selection-start-line="235" selection-start-column="54" selection-end-line="235" selection-end-column="54" />
         </state>
       </provider>
     </entry>

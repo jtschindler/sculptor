@@ -292,6 +292,43 @@ class SpecOneD(object):
 
         self.header = hdu[0].header
 
+    def read_sdss_fits(self, filename, unit='f_lam'):
+        """Read a 1D SDSS fits file to populate the SpecOneD class.
+
+        Parameters
+        ----------
+        filename : str
+            A string providing the path and filename for the fits file.
+        unit : str
+            The unit of the fluxden measurement in the fits file. This defaults
+            to fluxden per wavelength (erg/s/cm^2/Angstroem)
+
+        Raises
+        ------
+        ValueError
+            Raises an error when the filename could not be read in.
+        """
+
+        # Open the fits file
+        try:
+            hdu = fits.open(filename)
+        except:
+            raise ValueError("Filename not found", str(filename))
+
+
+        self.unit = unit
+
+
+        self.fluxden = np.array(hdu[1].data['flux'], dtype=np.float64)*1e-17
+        self.dispersion = 10**np.array(hdu[1].data['loglam'], dtype=np.float64)
+        self.ivar = np.array(hdu[1].data['ivar'], dtype=np.float64)
+        self.fluxden_err = 1/np.sqrt(self.ivar)*1e-17
+
+        self.mask = np.ones(self.dispersion.shape, dtype=bool)
+
+        self.header = hdu[0].header
+
+
     def save_to_fits(self, filename, comment=None, overwrite = False):
         """Save a SpecOneD spectrum to a fits file.
 
@@ -345,6 +382,7 @@ class SpecOneD(object):
 
         df.to_hdf(filename, 'data')
 
+
     def read_from_hdf(self, filename):
 
         df = pd.read_hdf(filename, 'data')
@@ -363,7 +401,6 @@ class SpecOneD(object):
         self.reset_mask()
         self.override_raw()
 
-        print(self.fluxden_err)
 
 
     def save_to_csv(self, filename, format='linetools'):
@@ -1114,8 +1151,8 @@ class SpecOneD(object):
 
         spec = self.copy()
 
-        percentiles = np.percentile(spec.flux[spec.mask], [16, 84])
-        median = np.median(spec.flux[spec.mask])
+        percentiles = np.percentile(spec.fluxden[spec.mask], [16, 84])
+        median = np.median(spec.fluxden[spec.mask])
 
         ylim_min = -0.5*median
         ylim_max = 4*percentiles[1]

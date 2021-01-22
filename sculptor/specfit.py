@@ -398,12 +398,14 @@ class SpecFit:
             spec.read_pypeit_fits(filename)
         elif filetype == 'SpecOneD':
             spec.read_from_hdf(filename)
+        elif filetype == 'SDSS':
+            spec.read_sdss_fits(filename)
 
         self.spec = spec.copy()
 
         # Update all SpecModels
         for specmodel in self.specmodels:
-            specmodel.__init__(self.spec)
+            specmodel.__init__(self, spectrum=self.spec, redshift=self.redshift)
             specmodel.reset_plot_limits()
             specmodel.reset_fit_mask()
 

@@ -2,6 +2,7 @@
 
 import numpy as np
 import corner
+import re
 from lmfit import fit_report
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QWidget, QPushButton, \
@@ -10,7 +11,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, \
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT \
     as NavigationToolbar
 
-from sculptor.specmodel import model_func_list, \
+from sculptor.masksmodels import model_func_list, \
     model_setup_list, mask_presets
 from sculptor.specmodelcanvas import SpecModelCanvas
 
@@ -77,7 +78,7 @@ class SpecModelWidget(QWidget):
         self.hLayoutXpos = QHBoxLayout()
         self.hLayoutXpos.addWidget(self.leXposA)
         self.hLayoutXpos.addWidget(self.leXposB)
-        self.labelFluxPos = QLabel('Flux region (Shift + s/d)')
+        self.labelFluxPos = QLabel('Flux region (Shift + w/s)')
         self.leYposA = QLineEdit('{:.2e}'.format(self.specmodel.ylim[0]))
         self.leYposB = QLineEdit('{:.2e}'.format(self.specmodel.ylim[1]))
         self.hLayoutYpos = QHBoxLayout()
@@ -88,9 +89,9 @@ class SpecModelWidget(QWidget):
         for le in pos_le:
             le.returnPressed.connect(self.update_region_from_ui)
 
-        self.buttonSetX = QPushButton('Set X (x)')
+        self.buttonSetX = QPushButton('Set dispersion range (x)')
         self.buttonSetX.clicked.connect(self.set_plot_dispersion)
-        self.buttonSetY = QPushButton('Set Y (y)')
+        self.buttonSetY = QPushButton('Set flux range (y)')
         self.buttonSetY.clicked.connect(self.set_plot_flux)
         self.buttonResetPlot = QPushButton('Reset plot (r)')
         self.buttonResetPlot.clicked.connect(self.reset_plot_region)
@@ -165,7 +166,7 @@ class SpecModelWidget(QWidget):
         self.buttonUnmask = QPushButton('Unmask (u)')
         self.buttonUnmask.clicked.connect(lambda: self.update_mask(mode='unmask'))
         self.hLayoutMaskAction = QHBoxLayout()
-        self.buttonResetMask = QPushButton('Reset mask (R)')
+        self.buttonResetMask = QPushButton('Reset mask (Shift + r)')
         self.buttonResetMask.clicked.connect(lambda: self.reset_mask())
 
         self.hLayoutMaskAction.addWidget(self.buttonMask)
@@ -523,7 +524,7 @@ class SpecModelWidget(QWidget):
             groupBoxParam = QGroupBox(param)
             vLayoutGroupBoxParam = QVBoxLayout(groupBoxParam)
 
-            label = QLabel(param)
+            label = QLabel("value")
             linedit = QLineEdit('{:.4E}'.format(globalParams[param].value))
             linedit.setMaxLength(20)
             expr_linedit = QLineEdit('{}'.format(globalParams[param].expr))
@@ -599,7 +600,7 @@ class SpecModelWidget(QWidget):
             groupBoxParam = QGroupBox(param)
             vLayoutGroupBoxParam = QVBoxLayout(groupBoxParam)
 
-            label = QLabel(param)
+            label = QLabel("value")
             linedit = QLineEdit('{:.4E}'.format(params[param].value))
             linedit.setMaxLength(20)
             expr_linedit = QLineEdit('{}'.format(params[param].expr))
@@ -810,8 +811,13 @@ class SpecModelWidget(QWidget):
                         self.params_lineditlist[idx][jdx * 4 + 3].text())
                     new_vary = self.params_varybox_list[idx][jdx].isChecked()
 
-                    if new_expr == 'None':
-                        new_expr = None
+                    # Validate the new expression input
+                    old_expr = self.specmodel.params_list[idx][param].expr
+                    expr_list = re.split('\*|\)|\(|/|\+|\-|\s',new_expr)
+                    for item in expr_list:
+                        if not item or not item.isdigit():
+                            if item not in params:
+                                new_expr = old_expr
 
                     # Set the new parameter values
                     self.specmodel.params_list[idx][param].set(value=new_value,

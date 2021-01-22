@@ -15,7 +15,8 @@ from lmfit.model import save_model, load_model, save_modelresult, \
 
 from sculptor import speconed as sod
 
-
+from sculptor.masksmodels import model_func_list, model_func_dict,\
+    model_setup_list, mask_presets
 
 # For a full list of fitting method
 # https://lmfit.github.io/lmfit-py/fitting.html
@@ -49,40 +50,6 @@ fitting_methods = {'Levenberg-Marquardt': 'leastsq',
 Fitting methods available for fitting in SpecFit based on the list of methods in 
 LMFIT.
 """
-
-
-
-# Make all models and masks available to the SpecModel class
-model_func_list = []
-""" list of str: List of model names"""
-model_func_dict = {}
-""" dict: Dictionary of model functions"""
-model_setup_list = []
-""" dict: Dictionary of model setup function names"""
-mask_presets = {}
-""" dict: Dictionary of mask presets"""
-
-file_names = glob.glob(os.path.join(os.path.split(__file__)[
-                                        0] + '/models_and_masks/*.py'))
-module_names = [os.path.basename(f)[:-3] for f in file_names if
-                os.path.isfile(f) and not f.endswith('__init__.py')]
-
-for module_name in module_names:
-    print('[INFO] Import "models_and_masks" module: {}'.format(module_name))
-    module = importlib.import_module('sculptor.models_and_masks.{}'.format(
-        module_name))
-
-    if hasattr(module, 'model_func_list') and \
-            hasattr(module, 'model_func_dict') and \
-            hasattr(module, 'model_setup_list'):
-
-        if len(module.model_func_list) == len(module.model_setup_list):
-            model_func_list.extend(module.model_func_list)
-            model_func_dict.update(module.model_func_dict)
-            model_setup_list.extend(module.model_setup_list)
-
-    if hasattr(module, 'mask_presets'):
-        mask_presets.update(module.mask_presets)
 
 
 class SpecModel:
@@ -595,6 +562,7 @@ class SpecModel:
         # Save fit result if it exists
         if self.fit_result is not None:
             print("Saving fit result")
+            print(specmodel_id, self.fit_result)
             save_modelresult(self.fit_result,
                              foldername + '/{}_fitresult.json'.format(
                                  specmodel_id))

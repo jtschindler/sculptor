@@ -11,7 +11,8 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT \
     as NavigationToolbar
 
 from sculptor.specfit import SpecFit
-from sculptor.specmodel import mask_presets, fitting_methods
+from sculptor.specmodel import fitting_methods
+from sculptor.masksmodels import mask_presets
 from sculptor.specmodelwidget import SpecModelWidget
 from sculptor.specfitcanvas import SpecFitCanvas
 from sculptor.menu_dialogs import ResampleWindow, EmceeWindow
@@ -33,7 +34,6 @@ class SpecFitGui(QMainWindow):
     """
 
     """
-
 
     def __init__(self, spectrum=None, redshift=0):
 
@@ -88,19 +88,26 @@ class SpecFitGui(QMainWindow):
         importIrafSpecAction.triggered.connect(lambda: self.import_spectrum(
             mode='IRAF'))
 
-        importPypeitSpecAction = QAction('Import PypeIT spectrum', self)
+        importPypeitSpecAction = QAction('Import PypeIt spectrum', self)
         # loadAction.setShortcut('Ctrl+L')
-        importPypeitSpecAction.setStatusTip('Import IRAF Spectrum. Overrides '
+        importPypeitSpecAction.setStatusTip('Import PypeIt Spectrum. Overrides '
                                           'current spectrum')
         importPypeitSpecAction.triggered.connect(lambda: self.import_spectrum(
             mode='PypeIT'))
 
         importSodSpecAction = QAction('Import SpecOneD spectrum', self)
         # loadAction.setShortcut('Ctrl+L')
-        importSodSpecAction.setStatusTip('Import IRAF Spectrum. Overrides '
+        importSodSpecAction.setStatusTip('Import SpecOneD Spectrum. Overrides '
                                           'current spectrum')
         importSodSpecAction.triggered.connect(lambda: self.import_spectrum(
             mode='SpecOneD'))
+
+        importSDSSSpecAction = QAction('Import SDSS spectrum', self)
+        # loadAction.setShortcut('Ctrl+L')
+        importSDSSSpecAction.setStatusTip('Import SDSS Spectrum. Overrides '
+                                         'current spectrum')
+        importSDSSSpecAction.triggered.connect(lambda: self.import_spectrum(
+            mode='SDSS'))
 
         # SpecModel Actions
         addSpecModelAction = QAction('Add SpecModel', self)
@@ -145,6 +152,7 @@ class SpecFitGui(QMainWindow):
         spectrumMenu.addAction(importIrafSpecAction)
         spectrumMenu.addAction(importPypeitSpecAction)
         spectrumMenu.addAction(importSodSpecAction)
+        spectrumMenu.addAction(importSDSSSpecAction)
 
         specModelMenu = mainMenu.addMenu('&SpecModel')
         specModelMenu.addAction(addSpecModelAction)
@@ -214,9 +222,9 @@ class SpecFitGui(QMainWindow):
         for le in pos_le:
             le.returnPressed.connect(self.update_region_from_ui)
 
-        self.buttonSetX = QPushButton('Set X (x)')
+        self.buttonSetX = QPushButton('Set dispersion range (x)')
         self.buttonSetX.clicked.connect(self.set_plot_dispersion)
-        self.buttonSetY = QPushButton('Set Y (y)')
+        self.buttonSetY = QPushButton('Set flux range (y)')
         self.buttonSetY.clicked.connect(self.set_plot_fluxden)
         self.buttonResetPlot = QPushButton('Reset plot (r)')
         self.buttonResetPlot.clicked.connect(self.reset_plot_region)
@@ -255,7 +263,7 @@ class SpecFitGui(QMainWindow):
         self.buttonUnmask = QPushButton('Unmask (u)')
         self.buttonUnmask.clicked.connect(lambda: self.update_mask(mode='unmask'))
         self.hLayoutMaskAction = QHBoxLayout()
-        self.buttonResetMask = QPushButton('Reset mask (R)')
+        self.buttonResetMask = QPushButton('Reset mask (Shift + r)')
         self.buttonResetMask.clicked.connect(lambda: self.reset_mask())
 
         self.hLayoutMaskAction.addWidget(self.buttonMask)
@@ -600,7 +608,7 @@ class SpecFitGui(QMainWindow):
         self.specfit.update_specmodels()
         self.leRedshift.setText('{:.4f}'.format(self.specfit.redshift))
 
-
+        self.specFitCanvas.plot(self.specfit)
         self.specFitCanvas.setFocus()
 
     # --------------------------------------------------------------------------
@@ -780,20 +788,26 @@ class SpecFitGui(QMainWindow):
         fileName, fileFilter = QFileDialog.getOpenFileName(self, "Import "
                                                                "spectrum")
 
+        print('FILENAME', fileName, fileFilter)
+        if fileName:
+            self.specfit.import_spectrum(fileName, filetype=mode)
 
-        self.specfit.import_spectrum(fileName, filetype=mode)
+            # Re-plot main canvas -> later update fittab
+            self.reset_region()
+            self.specFitCanvas.plot(self.specfit)
 
-        # Re-plot main canvas -> later update fittab
-        self.reset_region()
-        self.specFitCanvas.plot(self.specfit)
 
-        # Re-plot all SpecModel tabs
-        for idx in range(self.tabWidget.count()-1):
 
-            self.tabWidget.setCurrentIndex(idx+1)
-            specmodel_widget = self.tabWidget.currentWidget()
-            specmodel_widget.reset_plot_region()
-            specmodel_widget.update_specmodel_plot()
+            # Re-plot all SpecModel tabs
+            for idx in range(self.tabWidget.count()-1):
+
+                self.tabWidget.setCurrentIndex(idx+1)
+                specmodel_widget = self.tabWidget.currentWidget()
+                specmodel_widget.reset_plot_region()
+                specmodel_widget.update_specmodel_plot()
+
+
+
 
     # --------------------------------------------------------------------------
     # SpecModel Actions
