@@ -1,21 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="c7e35728-a01d-41d7-afc8-85ed9ad835b6" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/sculptor.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/sculptor.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/license.md" beforeDir="false" afterPath="$PROJECT_DIR$/license.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/models_and_masks/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/models_and_masks/basic.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/models_and_masks/quasar.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/sculptor" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/scripts/run_sculptor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specfit.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specfit.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specfitgui.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specfitgui.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specmodel.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodel.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specmodelwidget.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodelwidget.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/speconed.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/speconed.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
-    </list>
+    <list default="true" id="c7e35728-a01d-41d7-afc8-85ed9ad835b6" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
