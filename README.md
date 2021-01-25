@@ -1,48 +1,34 @@
 # Sculptor
 
-## Interactive modeling of astronomic, electro-magnetic spectra
+Interactive modeling of astronomic, electro-magnetic spectra
 
-### (Version 0.1 BETA)
+##### (Version 0.1.0)
 ##### Disclaimer: Please use at your own risk. I greatly appreciate bug reports and any feedback to improve this tool further.  
- 
----
 
-The Sculptor python package provides the functionality to easily model astronomic 
-spectra using the LMFIT fitting environment. A graphical user interface allows interactive 
-modeling with a high degree of complexity. 
 
-The main modules SpecFit and SpecModel also allow to build fitting pipelines without user
-interference in an easy and intuitive way. 
+Sculptor is a high level API and Graphical User Interface around [LMFIT] tailored specifically for the analysis of astronomical spectra.
 
-### Installation & Requirements
+At the heart of this package are three python 3 modules that manipulate 1D astronomical spectra (speconed), help to construct spectral models using pre-defined or user-defined functions to fit a spectrum utilizing LMFIT (specmodel), and a higher level class that combines multiple spectral models for a complex fit of the astronomical spectrum (specfit).
 
-#### Requirements: 
-'numpy', 'matplotlib', 'scipy', 'astropy', 'pandas', 'lmfit', 'PyQt5'
 
-#### Installation:
+![Sculptor example fit][logo]
 
-Download the git repository. Change to the downloaded sculptor main directory and execute
+[logo]: https://github.com/jtschindler/sculptor/docs//images/example_fit.png "A Sculptor example fit of a quasar spectrum."
 
-python setup.py install
 
-To test if the installation was successful open a command line and type 'sculptor'. This command should open the main GUI.
 
-### Main modules (for user interaction)
+The Graphical User Interface offers interactive control to set up and combine multiple spectral models to fully fit the astronomical spectrum of choice. This includes masking of spectral features, defining fit regions, setting of fit parameter boundaries. The framework allows to add interdependent fit parameters (e.g., to couple the FWHM of multiple emission/absorption) lines.
 
-* SpecFit
-* SpecModel
-* SpecFitGui
-* SpecOneD
+If you are interested in being involved with this project, please contact Jan-Torge Schindler via github.
 
-### Masks and Models
+**Disclaimer:**
+This project is currently undergoing rapid development. Be advised that fits done with the current version may not work with a future version of the software. The first stable, well-tested release will be version 1.0.0 anticipated for summer 2021.
 
-The Sculptor GUI uses the masks and models defined in the sub-package "models_and_masks". 
- This sub-package currently holds the following modules:
- 
- *  <u>basic.py</u> : Basic models, such as a constant, a power law, a Gaussian or a Lorentzian function.
- 
- *  <u>quasar.py</u> : A large range of models for fitting quasar spectra.
- 
-### Introduction and Tutorials
 
-Coming soon!
+## Installing Sculptor and further documentation
+
+#### The documentation, including the installation instructions are host at [Sculptor's ReadTheDocs].
+
+
+[LMFIT]: https://lmfit.github.io/lmfit-py/
+[Sculptor's ReadTheDocs]: https://sculptor.readthedocs.io/en/latest/

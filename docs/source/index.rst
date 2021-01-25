@@ -16,10 +16,10 @@ At the heart of this package are three python 3 modules that manipulate 1D astro
 
 The Graphical User Interface offers interactive control to set up and combine multiple spectral models to fully fit the astronomical spectrum of choice. This includes masking of spectral features, defining fit regions, setting of fit parameter boundaries. The framework allows to add interdependent fit parameters (e.g., to couple the FWHM of multiple emission/absorption) lines.
 
- **If you are interested in being involved with this project, please contact Jan-Torge Schindler via `github <https://github.com/jtschindler/sculptor>`_.**
+If you are interested in being involved with this project, please contact Jan-Torge Schindler via `github <https://github.com/jtschindler/sculptor>`_.
 
 **Disclaimer:**
-This project is currently undergoing rapid development. Be advised that fits done with the current version may not work with a future version of the software. The first stable, well-test release will be version 1.0.0 anticipated for summer 2021.
+This project is currently undergoing rapid development. Be advised that fits done with the current version may not work with a future version of the software. The first stable, well-tested release will be version 1.0.0 anticipated for summer 2021.
 
 .. toctree::
   :maxdepth: 1
