@@ -3,8 +3,6 @@
 Interactive modeling of astronomic, electro-magnetic spectra
 
 ##### (Version 0.1.0)
-##### Disclaimer: Please use at your own risk. I greatly appreciate bug reports and any feedback to improve this tool further.  
-
 
 Sculptor is a high level API and Graphical User Interface around [LMFIT] tailored specifically for the analysis of astronomical spectra.
 
