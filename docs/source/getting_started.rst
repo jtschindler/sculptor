@@ -4,9 +4,10 @@ Getting started with the Sculptor GUI
 
 To carefully analyze small samples of astronomic spectra the Sculptor GUI offers an interactive way to put together complex spectral models. Therefore, we will start with an introduction to the GUI and its capabilities.
 
+**Disclaimer:**
+The following examples are intended to get familiar with the Sculptor GUI. The fit to the quasar spectrum in this example is exemplary and should not be considered *science grade*. Due to the rapid development of Sculptor, your current version of the GUI, might look different. 
+
 A full model fit to an astronomical spectrum is internally set up as a *SpecFit* python object. This object holds general information on the spectrum (dispersion, flux density, redshift, etc.) and also defines the optimization method used when carrying out the fit (e.g., Levenberg-Marquardt). Spectral models, *SpecModel* python objects, are then added to the SpecFit object. Each SpecModel object can hold various fit models (e.g., multiple Gaussian emission line models), which are fit simultaneously to the spectrum. The SpecModel objects are *ordered* and the model fit of the first SpecModel is subtracted before the second SpecModel is fit and so on. This information is central to the way that Sculptor works and will help to understand the GUI.
-
-
 
 
 Start by opening up the Sculptor example:

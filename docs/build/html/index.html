@@ -87,7 +87,16 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started with the Sculptor GUI</a></li>
-<li class="toctree-l1"><a class="reference internal" href="first_fit.html">First Sculptor Fit - An example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with Sculptor - An example</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Modules:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
+</ul>
+<p class="caption"><span class="caption-text">License:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
@@ -159,27 +168,30 @@
   <div class="section" id="welcome-to-sculptor-s-documentation">
 <h1>Welcome to Sculptor’s documentation!<a class="headerlink" href="#welcome-to-sculptor-s-documentation" title="Permalink to this headline">¶</a></h1>
 <p>Sculptor is a high level API and Graphical User Interface around <a class="reference external" href="https://lmfit.github.io/lmfit-py/">LMFIT</a> tailored specifically for the analysis of astronomical spectra.</p>
-<p>At the heart of this package are three python 3 modules that manipulate 1D astronomical spectra (speconed), help to construct spectral models using pre-defined or user-defined functions to fit a spectrum utilizing LMFIT (specmodel), and a higher level class that combines multiple spectral models for a full description of the astronomical spectrum (specfit).</p>
+<p>At the heart of this package are three python 3 modules that manipulate 1D astronomical spectra (speconed), help to construct spectral models using pre-defined or user-defined functions to fit a spectrum utilizing LMFIT (specmodel), and a higher level class that combines multiple spectral models for a complex fit of the astronomical spectrum (specfit).</p>
+<a class="reference internal image-reference" href="_images/example_fit.png"><img alt="Full fit of the example spectrum" src="_images/example_fit.png" style="width: 800px;" /></a>
 <p>The Graphical User Interface offers interactive control to set up and combine multiple spectral models to fully fit the astronomical spectrum of choice. This includes masking of spectral features, defining fit regions, setting of fit parameter boundaries. The framework allows to add interdependent fit parameters (e.g., to couple the FWHM of multiple emission/absorption) lines.</p>
 <p><strong>Disclaimer:</strong>
 This project is currently undergoing rapid development. Be advised that fits done with the current version may not work with a future version of the software. The first stable, well-test release will be version 1.0.0 anticipated for summer 2021.</p>
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#clone-the-github-repository">1. Clone the github repository</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#install-requirements">2. Install requirements</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#install-sculptor-from-the-cloned-repository">3. Install sculptor from the cloned repository</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#open-up-the-sculptor-gui">4. Open up the sculptor GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started with the Sculptor GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with Sculptor - An example</a></li>
 </ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started with the Sculptor GUI</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="getting_started.html#the-start-menu">1-The Start Menu</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting_started.html#the-specfit-tab">2-The SpecFit Tab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting_started.html#the-specmodel-tab">3-The SpecModel Tab</a></li>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">Modules:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
 </ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="first_fit.html">First Sculptor Fit - An example</a></li>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">License:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 </div>

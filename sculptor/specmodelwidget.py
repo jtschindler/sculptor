@@ -25,7 +25,7 @@ def update_float_variable_from_linedit(lineEdit, variable,
         lineEdit.setText(expression.format(new_value))
         return new_value
     except:
-        print('Input value is not convertable to float.')
+        print('[INFO] Input value is not convertable to float.')
         return variable
 
 
@@ -384,8 +384,6 @@ class SpecModelWidget(QWidget):
 
     def add_model_to_specmodel(self, specmodel, specfitgui):
 
-
-        print('Adding Model')
         model_name = self.boxAddModel.currentText()
         prefix = self.lePrefix.text()+'_'
 
@@ -593,7 +591,6 @@ class SpecModelWidget(QWidget):
         varyboxlist = []
 
         for jdx, param in enumerate(params):
-            print(param)
 
             widgetlist = []
 
@@ -779,10 +776,6 @@ class SpecModelWidget(QWidget):
                                                        min=new_min,
                                                        max=new_max,
                                                        vary=new_vary)
-            # except:
-            #     print(
-            #         "Input does not conform to string or float limitations!")
-
 
         self.specmodel.update_model_params_for_global_params()
         self.rebuild_global_params_tab()
@@ -827,7 +820,8 @@ class SpecModelWidget(QWidget):
                                                              vary=new_vary)
                 except:
                     print(
-                        "Input does not conform to string or float limitations!")
+                        "[ERROR] Input does not conform to string or float "
+                        "limitations!")
 
         self.specmodel.build_model()
 

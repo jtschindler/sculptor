@@ -38,7 +38,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="First Sculptor Fit - An example" href="first_fit.html" />
+    <link rel="next" title="Spectral fitting with Sculptor - An example" href="first_fit.html" />
     <link rel="prev" title="Installation" href="installation.html" /> 
 </head>
 
@@ -115,7 +115,16 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="first_fit.html">First Sculptor Fit - An example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with Sculptor - An example</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Modules:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
+</ul>
+<p class="caption"><span class="caption-text">License:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
@@ -187,6 +196,8 @@
   <div class="section" id="getting-started-with-the-sculptor-gui">
 <h1>Getting started with the Sculptor GUI<a class="headerlink" href="#getting-started-with-the-sculptor-gui" title="Permalink to this headline">¶</a></h1>
 <p>To carefully analyze small samples of astronomic spectra the Sculptor GUI offers an interactive way to put together complex spectral models. Therefore, we will start with an introduction to the GUI and its capabilities.</p>
+<p><strong>Disclaimer:</strong>
+The following examples are intended to get familiar with the Sculptor GUI. The fit to the quasar spectrum in this example is exemplary and should not be considered <em>science grade</em>. Due to the rapid development of Sculptor, your current version of the GUI, might look different.</p>
 <p>A full model fit to an astronomical spectrum is internally set up as a <em>SpecFit</em> python object. This object holds general information on the spectrum (dispersion, flux density, redshift, etc.) and also defines the optimization method used when carrying out the fit (e.g., Levenberg-Marquardt). Spectral models, <em>SpecModel</em> python objects, are then added to the SpecFit object. Each SpecModel object can hold various fit models (e.g., multiple Gaussian emission line models), which are fit simultaneously to the spectrum. The SpecModel objects are <em>ordered</em> and the model fit of the first SpecModel is subtracted before the second SpecModel is fit and so on. This information is central to the way that Sculptor works and will help to understand the GUI.</p>
 <p>Start by opening up the Sculptor example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run_sculptor</span> <span class="o">--</span><span class="n">example</span><span class="o">=</span><span class="kc">True</span>
@@ -286,7 +297,7 @@ However, the <em>redshift parameter</em> sets the rest-frame axis on top of the 
 For each parameter the user can now control the initial <em>Value</em>, the parameter range set by <em>min</em> and <em>max</em> and whether the parameter should be varied during the fit (<em>vary</em> toggle switch).</p>
 <p>The field that currently shows the text <em>None</em> is the expression field. It allows to use mathematical constraints on the parameters. The LMFIT documentation for this topic is found <a class="reference external" href="https://lmfit.github.io/lmfit-py/constraints.html">here</a>.</p>
 <p>In the global parameter example above we described that we want to set the FWHM of multiple gaussian emission lines to our super parameter <em>FWHM_common</em>. This done via the expression field by entering the name of the global parameter and applying the change with <em>Enter</em>.</p>
-<p>The expressions can only contain numbers, names of other parameters in the model and +, -, /, *, (, ).</p>
+<p>The expressions can only contain numbers, names of other parameters in the model and +, -, /, *, (, ). If the expression is invalid the input will not be forwarded to the model and the text field will reset to previous expression after fitting the spectrum.</p>
 </div>
 </div>
 </div>
@@ -297,7 +308,7 @@ For each parameter the user can now control the initial <em>Value</em>, the para
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="first_fit.html" class="btn btn-neutral float-right" title="First Sculptor Fit - An example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="first_fit.html" class="btn btn-neutral float-right" title="Spectral fitting with Sculptor - An example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 

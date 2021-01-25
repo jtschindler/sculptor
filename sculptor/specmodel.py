@@ -161,15 +161,10 @@ class SpecModel:
 
         :return: None
         """
-        # TODO FIX THIS SHIT IS BROKEN!!!!
-        print('MODEL LIST!!!')
-        print(self.model_list)
-        print(len(self.model_list))
 
         prefix_list = []
         for existing_model in self.model_list:
             prefix_list.append(existing_model.prefix)
-        print('PREFIX LIST', prefix_list)
 
         if len(self.model_list) > 0:
 
@@ -232,7 +227,7 @@ class SpecModel:
         :return:
         """
 
-        print('Manual mask range', disp_x1, disp_x2)
+        print('[INFO] Manual mask range', disp_x1, disp_x2)
 
         if hasattr(self, 'spec'):
             mask_between = np.sort(np.array([disp_x1, disp_x2]))
@@ -556,12 +551,12 @@ class SpecModel:
             specmodel_id))
 
         for file in model_list:
-            print("Removing old model file: {}".format(file))
+            print("[INFO] Removing old model file: {}".format(file))
             os.remove(file)
 
         # Save fit result if it exists
         if self.fit_result is not None:
-            print("Saving fit result")
+            print("[INFO] Saving fit result")
             print(specmodel_id, self.fit_result)
             save_modelresult(self.fit_result,
                              foldername + '/{}_fitresult.json'.format(
@@ -578,7 +573,7 @@ class SpecModel:
         for model in self.model_list:
             model_file = foldername+'/{}_{}_model.json'.format(specmodel_id,
                                                                model.prefix)
-            print("Saving new model file: {}".format(model_file))
+            print("[INFO] Saving new model file: {}".format(model_file))
             save_model(model, model_file)
 
         # Save SpecModel data to fit.hdf5 file

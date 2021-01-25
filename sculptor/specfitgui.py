@@ -25,7 +25,7 @@ def update_float_variable_from_linedit(lineEdit, variable,
         lineEdit.setText(expression.format(new_value))
         return new_value
     except:
-        print('Input value is not convertable to float.')
+        print('[INFO] Input value is not convertable to float.')
         return variable
 
 
@@ -788,7 +788,6 @@ class SpecFitGui(QMainWindow):
         fileName, fileFilter = QFileDialog.getOpenFileName(self, "Import "
                                                                "spectrum")
 
-        print('FILENAME', fileName, fileFilter)
         if fileName:
             self.specfit.import_spectrum(fileName, filetype=mode)
 

@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>First Sculptor Fit - An example &mdash; Sculptor 0.1.0 documentation</title>
+  <title>Spectral fitting with Sculptor - An example &mdash; Sculptor 0.1.0 documentation</title>
   
 
   
@@ -38,7 +38,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="License" href="license.html" />
+    <link rel="next" title="The SpecOneD Module" href="speconed.html" />
     <link rel="prev" title="Getting started with the Sculptor GUI" href="getting_started.html" /> 
 </head>
 
@@ -88,7 +88,39 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started with the Sculptor GUI</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">First Sculptor Fit - An example</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Spectral fitting with Sculptor - An example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#the-quasar-continuum-model">1-The quasar continuum model</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#steps">Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#modeling-the-siiv-emission-line">2-Modeling the SiIV emission line</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#modeling-the-civ-emission-line">3-Modeling the CIV emission line</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#saving-and-loading-model-fits">4-Saving and loading model fits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#fitting-the-siiv-line-redshift">5-Fitting the SiIV line redshift</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#a-full-fit-of-the-example-spectrum">6-A full fit of the example spectrum</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Modules:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
+</ul>
+<p class="caption"><span class="caption-text">License:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
@@ -138,7 +170,7 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li>First Sculptor Fit - An example</li>
+      <li>Spectral fitting with Sculptor - An example</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -157,8 +189,112 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="first-sculptor-fit-an-example">
-<h1>First Sculptor Fit - An example<a class="headerlink" href="#first-sculptor-fit-an-example" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="spectral-fitting-with-sculptor-an-example">
+<h1>Spectral fitting with Sculptor - An example<a class="headerlink" href="#spectral-fitting-with-sculptor-an-example" title="Permalink to this headline">¶</a></h1>
+<p>In this example we will fit the SDSS spectrum of quasar J030341.04-002321.8 at redshift z=3.227 step by step. The example is aimed at first time user to provide insight into the Sculptor workflow and is designed to present a starting point.</p>
+<p>We will begin by starting up sculptor with the example spectrum already imported:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run_sculptor</span> <span class="o">--</span><span class="n">example</span><span class="o">=</span><span class="kc">True</span>
+</pre></div>
+</div>
+<p>The GUI will start with the SpecFit tab open displaying the quasar spectrum.</p>
+<a class="reference internal image-reference" href="_images/example_specfit_0.png"><img alt="SpecFitTab_example" src="_images/example_specfit_0.png" style="width: 800px;" /></a>
+<div class="section" id="the-quasar-continuum-model">
+<h2>1-The quasar continuum model<a class="headerlink" href="#the-quasar-continuum-model" title="Permalink to this headline">¶</a></h2>
+<p>In this example we will be working with the Sculptor basic models and the models defined in the Sculptor extension <em>my_extension.py</em>, which were specifically included for this example.</p>
+<div class="section" id="steps">
+<h3>Steps<a class="headerlink" href="#steps" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Start by adding a <em>SpecModel</em> and naming it <em>Continuum</em>.</p></li>
+<li><p>Select the mask <em>QSO Cont. VP06</em>, which refers to quasar continuum regions according to the paper by Vestergaard &amp; Peterson 2006.</p></li>
+<li><p>Add the <em>Power Law &#64;2500A (amp, slope, z)</em> model with the prefix <em>pl</em></p></li>
+<li><p>Click on <em>Fit SpecModel</em> for a first fit.</p></li>
+</ul>
+<p>At this point the GUI showing <em>SpecModel</em> tab named <em>Continuum</em> should look like this:</p>
+<a class="reference internal image-reference" href="_images/fit_example_cont_0.png"><img alt="FitExample_Continuum" src="_images/fit_example_cont_0.png" style="width: 800px;" /></a>
+<p>Now we can interactively adjust the masked-in fit regions to exclude absorption and emission features and refit the spectrum again. Our final fit looks slightly better now:</p>
+<a class="reference internal image-reference" href="_images/fit_example_cont_1.png"><img alt="Improved FitExample_Continuum" src="_images/fit_example_cont_1.png" style="width: 800px;" /></a>
+</div>
+</div>
+<div class="section" id="modeling-the-siiv-emission-line">
+<h2>2-Modeling the SiIV emission line<a class="headerlink" href="#modeling-the-siiv-emission-line" title="Permalink to this headline">¶</a></h2>
+<p>As the next step we will model the SiIV emission line at ~5900A observed frame with one Gaussian.</p>
+<div class="section" id="id1">
+<h3>Steps<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Start by adding a another <em>SpecModel</em> and naming it <em>SiIV line</em>.</p></li>
+<li><p>Manually enter 5700 / 6150 into the dispersion region windows and apply with <em>Enter</em>.</p></li>
+<li><p>Click <em>m</em> to mask the specified dispersion region.</p></li>
+<li><p>Add the <em>Gaussian (amp, cen, FWHM, vshift, z)</em> model with the prefix <em>SiIV</em>.</p></li>
+<li><p>Enter 1399.8 into the <em>SiIV_cen</em> value field and apply the change with <em>Enter</em>.</p></li>
+<li><p>Click on <em>Fit SpecModel</em> to fit the line.</p></li>
+</ul>
+<p>Note that the redshift (<em>SiIV_z</em>) and the velocity shift (<em>SiIV_vshift</em>) parameters have set default values used in the fit, but will not be fit themselves by default (<em>vary</em> checkmar not enabled). Feel free to change this if you want. However, if more than one of the three parameters (<em>SiIV_z</em>, <em>SiIV_cen</em>, <em>SiIV_vshift</em>) is set to <em>vary</em>, this will cause problems with the fit as they are degenerate.</p>
+<p>The final SiIV fit will look something like this:</p>
+<a class="reference internal image-reference" href="_images/fit_example_line_SiIV.png"><img alt="FitExample_LineSiIV" src="_images/fit_example_line_SiIV.png" style="width: 800px;" /></a>
+</div>
+</div>
+<div class="section" id="modeling-the-civ-emission-line">
+<h2>3-Modeling the CIV emission line<a class="headerlink" href="#modeling-the-civ-emission-line" title="Permalink to this headline">¶</a></h2>
+<p>We have now successfully modeled the SiIV line. Let us do the same for the CIV line, but this time we will approximate it using 2 Gaussian models.</p>
+<div class="section" id="id2">
+<h3>Steps<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Start by adding a another <em>SpecModel</em> and naming it <em>CIV line</em>.</p></li>
+<li><p>Manually enter 6210 / 6810 into the dispersion region windows and apply with <em>Enter</em>.</p></li>
+<li><p>Click <em>m</em> to mask the specified dispersion region.</p></li>
+<li><p>Add the <em>Gaussian (amp, cen, FWHM, vshift, z)</em> model with the prefix <em>CIVb</em> (broad).</p></li>
+<li><p>Add the <em>Gaussian (amp, cen, FWHM, vshift, z)</em> model with the prefix <em>CIVn</em> (narrow).</p></li>
+<li><p>Enter 1549.06 into the <em>CIV_cen</em> value field for both models and apply the changes with <em>Enter</em>.</p></li>
+<li><p>Navigate into the <em>CIVb_</em> model tab and restrict the <em>CIVb_FWHM</em> values in the range of 2000 to 10000, then hit <em>Enter</em> to apply.</p></li>
+<li><p>Navigate into the <em>CIVn_</em> model tab and restrict the <em>CIVb_FWHM</em> values in the range of 300 to 3000, then hit <em>Enter</em> to apply.</p></li>
+<li><p>Click on <em>Fit SpecModel</em> to fit the line.</p></li>
+<li><p><strong>Check the fit results, specifically the FWHM values. You will find that the fit reached the maximum value you specified. This means that you should probably relax the upper FWHM boundary.Choose *CIVb_FWHM* max=30000, and *CIVn_FWHM max=8000* for now an click on *Fit SpecModel* again. The resulting fit should be a better approximation of the line.</strong></p></li>
+</ul>
+<p>The final fit of the CIV SpecModel will look similar to this:</p>
+<a class="reference internal image-reference" href="_images/fit_example_line_SiIV.png"><img alt="FitExample_LineSiIV" src="_images/fit_example_line_SiIV.png" style="width: 800px;" /></a>
+<p>You can also navigate to the <em>SpecFit</em> tab (<em>“Fit”</em>) and look at the total fit to the quasar spectrum:</p>
+<a class="reference internal image-reference" href="_images/fit_example_full.png"><img alt="FitExample full fit" src="_images/fit_example_full.png" style="width: 800px;" /></a>
+<p>In the lower panel of the figure in the SpecFit tab you will also see the fit residual after all your models have been subtracted.</p>
+</div>
+</div>
+<div class="section" id="saving-and-loading-model-fits">
+<h2>4-Saving and loading model fits<a class="headerlink" href="#saving-and-loading-model-fits" title="Permalink to this headline">¶</a></h2>
+<p>If you are happy with your first fit, you can save the model and the fit results.</p>
+<div class="section" id="id3">
+<h3>Steps<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>In the start menu click <em>File</em>-&gt;*Save*. This will open an file dialog.</p></li>
+<li><p>Create a new directory (e.g., you can name it <em>myfirstfit</em>)</p></li>
+<li><p>Save your model by clicking <em>Open</em> in the file dialog bottom right corner.</p></li>
+<li><p>Following this example Scuptor created four model files (<em>[SpecModel Index]_[prefix]*_model.json *) for the *pl_</em>, the <em>SiIV_</em>, the <em>CIVb_</em>, and the <em>CIVn_</em> model as well as three result files (<em>[SpecModel Index]_fitresult.json</em>). The SpecModel Index in our example runs from 0-2 over the “Continuum”, “SiIV line”, “CIV line” SpecModels. The <em>fit.hdf5</em> file holds further information important for the SpecFit class and the SpecModel classes, including the spectrum itself.</p></li>
+</ul>
+<p>You can now try to exit Sculptor and then open the Sculptor again:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run_sculptor</span>
+</pre></div>
+</div>
+<p>This should bring up an empty Sculptor GUI. To <strong>load</strong> your previously saved model click <em>File</em>-&gt;*Load* and select the folder, where you saved the model.</p>
+</div>
+</div>
+<div class="section" id="fitting-the-siiv-line-redshift">
+<h2>5-Fitting the SiIV line redshift<a class="headerlink" href="#fitting-the-siiv-line-redshift" title="Permalink to this headline">¶</a></h2>
+<p>Previously we have allowed the central wavelength of the SiIV line to be the varying parameter. To calculate the redshift of the SiIV line we can calculate the offset between the fitted central wavelength and 1399.8 A. However, with the Gaussian model we have used, we can directly fit the redshift parameter.</p>
+<div class="section" id="id4">
+<h3>Steps<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Navigate to the <em>SiIV line</em> SpecModel tab and to the <em>Model SiIV_</em> parameters at the bottom.</p></li>
+<li><p>Set the value for <em>SiIV_cen</em> to 1399.8 and disable <em>vary</em> for the parameter.</p></li>
+<li><p>Then enable vary for the <em>SiIV_z</em> parameter.</p></li>
+<li><p>Click on <em>Fit SpecModel</em> to fit the line.</p></li>
+</ul>
+<p>Now the redshift parameter was fit, while the central wavelength was considered constant:</p>
+<a class="reference internal image-reference" href="_images/fit_example_line_SiIV_2.png"><img alt="FitExample_LineSiIV" src="_images/fit_example_line_SiIV_2.png" style="width: 800px;" /></a>
+</div>
+</div>
+<div class="section" id="a-full-fit-of-the-example-spectrum">
+<h2>6-A full fit of the example spectrum<a class="headerlink" href="#a-full-fit-of-the-example-spectrum" title="Permalink to this headline">¶</a></h2>
+<p>We provide a full fit of the example spectrum in the <em>sculptor/examples</em> directory with the name <em>example_spectrum_fit</em>. We invite you to load this fit into Sculptor and explore the use of the <em>Global parameters</em> as well as the fitting of absorption lines.</p>
+<a class="reference internal image-reference" href="_images/example_fit.png"><img alt="Full fit of the example spectrum" src="_images/example_fit.png" style="width: 800px;" /></a>
+</div>
 </div>
 
 
@@ -167,7 +303,7 @@
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="license.html" class="btn btn-neutral float-right" title="License" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="speconed.html" class="btn btn-neutral float-right" title="The SpecOneD Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="getting_started.html" class="btn btn-neutral float-left" title="Getting started with the Sculptor GUI" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 

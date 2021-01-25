@@ -1,0 +1,1 @@
+{"__class__": "Tuple", "value": [{"__class__": "Tuple", "value": ["gaussian_fwhm_km_s_z", null, "gaussian_fwhm_km_s_z", "AbsA_", {"__class__": "List", "value": ["x"]}, {"__class__": "List", "value": ["z", "amp", "cen", "fwhm_km_s", "shift_km_s"]}, {"__class__": "Dict"}, "raise", {"__class__": "Dict"}]}, null, null]}

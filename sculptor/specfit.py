@@ -307,6 +307,10 @@ class SpecFit:
 
         n_specmodels = meta.loc['n_specmodels', 0]
 
+        # Compatibility if statements for older versions without these
+        # meta parameters.
+        if 'redshift' in meta.index:
+            self.redshift = meta.loc['redshift', 0]
         if 'xlim' in meta.index:
             self.xlim = meta.loc['xlim', 0]
         if 'ylim' in meta.index:
@@ -366,6 +370,8 @@ class SpecFit:
         columns.append('xlim')
         data.append([self.ylim])
         columns.append('ylim')
+        data.append([self.redshift])
+        columns.append('redshift')
 
         df = pd.DataFrame(np.array(data), index=columns)
         df.to_hdf(foldername + '/fit.hdf5', key='specfit_meta')
@@ -415,8 +421,6 @@ class SpecFit:
 
         spec = self.spec.copy()
 
-        print(spec.fluxden_err)
-
         if not hasattr(spec, 'fluxden_err'):
             raise ValueError("The spectrum does not have usable fluxden errors.")
 
@@ -452,7 +456,6 @@ class SpecFit:
             new_specfit.fit()
             # Retrieve fit results
             result_dict = self.get_result_dict()
-            print(result_dict)
             # Store them in the output array
             result_array[idx, :] = np.array(list(result_dict.values()))
 
