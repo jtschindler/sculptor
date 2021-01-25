@@ -1,33 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="c7e35728-a01d-41d7-afc8-85ed9ad835b6" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/doctrees/environment.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/doctrees/environment.pickle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/doctrees/first_fit.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/doctrees/first_fit.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/doctrees/getting_started.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/doctrees/getting_started.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/doctrees/index.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/doctrees/index.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/_sources/first_fit.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/_sources/first_fit.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/_sources/getting_started.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/_sources/getting_started.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/_sources/index.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/_sources/index.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/first_fit.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/first_fit.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/genindex.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/genindex.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/getting_started.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/getting_started.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/installation.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/installation.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/intro.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/intro.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/license.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/license.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/objects.inv" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/objects.inv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/search.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/search.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/build/html/searchindex.js" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/searchindex.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/first_fit.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/first_fit.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/getting_started.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/getting_started.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specfit.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specfit.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specfitgui.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specfitgui.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specmodel.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodel.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specmodelwidget.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodelwidget.py" afterDir="false" />
-    </list>
+    <list default="true" id="c7e35728-a01d-41d7-afc8-85ed9ad835b6" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

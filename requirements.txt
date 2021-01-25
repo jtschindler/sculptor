@@ -9,5 +9,5 @@ PyQt5>=5.9.2
 scipy>=1.5.0
 corner>=2.1.0
 lmfit>=1.0.1
-pytables>=3.6.1
+tables>=3.6.1
 emcee>=3.0.0
