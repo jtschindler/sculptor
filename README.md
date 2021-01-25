@@ -13,7 +13,7 @@ At the heart of this package are three python 3 modules that manipulate 1D astro
 
 ![Sculptor example fit][logo]
 
-[logo]: https://github.com/jtschindler/sculptor/docs//images/example_fit.png "A Sculptor example fit of a quasar spectrum."
+[logo]: https://github.com/jtschindler/sculptor/blob/master/docs/images/example_fit.png "A Sculptor example fit of a quasar spectrum."
 
 
 
