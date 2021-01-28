@@ -1,20 +1,17 @@
 #!/usr/bin/env python
 
-"""The specfit module.
+"""
 
-This module introduces the SpecOneD class, it's functions and the related
-FlatSpectrum and QuasarSpectrum classes.
-The main purpose of the SpecOneD class and it's children classes is to provide
-python functionality for the manipulation of 1D spectral data in astronomy.
+This module introduces the SpecFit class and its functionality. The SpecFit
+class is designed to facilitate complex model fits to astronomical spectra.
 
-
-Example
--------
-Examples are provided in a range of jupyter notebooks accompanying the module.
+It is initialized with the supplied astronomical spectrum and can hold
+multiple SpecModel objects, which themselves hold the fit models and their
+parameters.
 
 Notes
 -----
-    This module is in active development and its contents will therefore change.
+    This module is in active development.
 
 """
 
@@ -35,13 +32,14 @@ from sculptor.specmodel import SpecModel
 
 
 class SpecFit:
-    """ Base class for fitting of astronomical sepctroscopic data
+    """ Base class for fitting of astronomical spectroscopic data.
 
     The SpecFit class takes a SpecOneD object of an astronomical spectrum and
     allows complex models to be fit to it using the LMFIT module.
 
-    SpecModel objects hold a collection of models, which are
-    fit to the spectrum and then subtracted from it.
+    SpecModel objects will be added to the SpecFit class to hold information
+    on the different models and parameters. Each SpecModel object will be
+    consecutively fit to the astronomical spectrum.
 
     Attributes:
         spec (SpecOneD): Astronomical spectrum as a SpecOneD object
@@ -62,11 +60,10 @@ class SpecFit:
     def __init__(self, spectrum=None, redshift=0):
         """Init method for the SpecFit class
 
-        Parameters:
-            :param  (SpecOneD) spectrum: Astronomical spectrum in form of a
-            SpecOneD
-                object
-            :param (float) redshift: Cosmological redshift of the astronomical
+        :param  (SpecOneD) spectrum: Astronomical spectrum in form of a
+        SpecOneD
+            object
+        :param (float) redshift: Cosmological redshift of the astronomical
            object
 
         :return : None
@@ -100,8 +97,11 @@ class SpecFit:
 
 
     def copy(self):
+        """
+        Copy the SpecFit objects
 
-        # TODO Check and see if this works as intended
+        :return: SpecFit
+        """
 
         specfit = SpecFit(spectrum=self.spec,
                           redshift=self.redshift)
@@ -116,9 +116,10 @@ class SpecFit:
         return specfit
 
     def add_specmodel(self):
-        """ Add SpecModel to the SpecFit class
+        """
+        Add a SpecModel to the SpecFit class
 
-        :return : None
+        :return: None
         """
 
         if hasattr(self, 'spec'):
@@ -151,12 +152,13 @@ class SpecFit:
         self._update_colors()
 
     def delete_specmodel(self, index=None):
-        """ Delete SpecModel from SpecFit
+        """
+        Delete the latest SpecModel or the one indicated by the index keyword
+        argument from the SpecFit class.
 
-        Parameters:
-            :param (int) index: Index of the SpecModel to delete in specmodels
+        :param (int) index: Index of the SpecModel to delete in specmodels
 
-        :return : None
+        :return: None
         """
 
         # If index is None last SpecModel will be removed otherwise the
@@ -172,13 +174,18 @@ class SpecFit:
             self._update_colors()
 
     def update_specmodels(self):
-        """ Update SpecFit parameters in all SpecModels  """
+        """
+        Update SpecFit parameters in all SpecModels
+
+        """
 
         for specmodel in self.specmodels:
             specmodel.redshift = self.redshift
 
+
     def update_specmodel_spectra(self):
-        """ Update all SpecModel spectra
+        """
+        Update all SpecModel spectra
 
         This function updates the SpecModel spectra consecutively. Model fits
         from each SpecModel will be automatically subtracted.
@@ -186,7 +193,7 @@ class SpecFit:
         Note: Not only the dispersion and the fluxden, but also the mask will be
         updated.
 
-        :return : None
+        :return:  None
         """
 
         if self.spec is not None and len(self.specmodels) > 0:
@@ -204,22 +211,19 @@ class SpecFit:
                     self.specmodels[idx+1].spec = previous_spec.copy()
                     self.specmodels[idx + 1].spec.fluxden -= previous_model_fluxden
 
-
-
     def add_super_param(self, param_name, value=None, vary=True,
                          min=-np.inf, max=np.inf, expr=None):
-        """ Adding a "Super Parameter" to the SpecFit object
+        """ Adding a "Super Parameter" to the SpecFit object.
 
-        :param (str) param_name: Name of the super parameter
-        :param (float, optional) value: Initial value of the super parameter
-        :param (bool, optional) vary: Boolean to indicate whether the super
+        :param str param_name: Name of the super parameter
+        :param float,optional value: Initial value of the super parameter
+        :param bool,optional vary: Boolean to indicate whether the super
+        parameter should be varied during the fit
+        :param float,optional min: Minimum value for the super parameter
+        :param float,optional max: Maximum value for the super parameter
+        :param str,optional expr: Optional expression for the super
         parameter
-            should be varied during the fit
-        :param (float, optional) min: Minimum value for the super parameter
-        :param (float, optional) max: Maximum value for the super parameter
-        :param (str, optional) expr: Optional expression for the super
-            parameter
-            
+
         :return: None
         """
 
@@ -235,11 +239,10 @@ class SpecFit:
                                            expr=expr)
 
     def remove_super_param(self, param_name):
-        """ Remove "Super Parameter" from SpecFit object
+        """ Remove "Super Parameter" from SpecFit object.
 
-        Parameters
-        :param (str) param_name: Parameter name of the super parameter to
-            remove.
+        :param str param_name: Parameter name of the super parameter to
+        remove.
             
         :return: None
         """
@@ -254,9 +257,9 @@ class SpecFit:
     def fit(self, save_results=False, foldername='.'):
         """ Fit all SpecModels consecutively 
         
-        :param (bool) save_results: Boolean to indicate whether fit results
+        :param bool save_results: Boolean to indicate whether fit results
             will be saved 
-        :param (str, optional) foldername: If "save_results==True" the fit
+        :param str,optional foldername: If "save_results==True" the fit
             results will be saved to the folder specified in foldername. This 
             variable defaults to the current folder. If set to "None" fit 
             results will not be saved.
@@ -286,8 +289,11 @@ class SpecFit:
 
     def load(self, foldername):
         """ Load a full spectral fit (SpecFit) from a folder
+
+        This function overwrites all SpecModels, SpecFit parameters, and the
+        astronomical spectrum.
         
-        :param (str) foldername: Folder from which the SpecFit class will be
+        :param str foldername: Folder from which the SpecFit class will be
             loaded.
              
         :return: None 
@@ -335,9 +341,9 @@ class SpecFit:
         self._update_colors()
 
     def save(self, foldername):
-        """ Save the spectral fit (SpecFit) to a folder
+        """ Save the spectral fit (SpecFit) to a folder.
         
-        :param (str) foldername: Folder to which the SpecFit class will be
+        :param str foldername: Folder to which the SpecFit class will be
             saved.
             
         :return: None 
@@ -387,10 +393,17 @@ class SpecFit:
             specmodel.save(foldername, idx)
 
     def import_spectrum(self, filename, filetype='IRAF'):
-        """ Import astronomical spectrum into SpecFit class
+        """ Import an astronomical spectrum into SpecFit class
+
+        Currently the allowed 'filetype' options are:
+        'IRAF', 'PypeIt', 'SpecOneD', 'SDSS'
+
+        Note that the SpecFit class can be initialized a SpecOneD spectrum
+        object, that can be constructed manually from the spectral format of
+        choice.
         
-        :param (str) filename: Full file name of the astronomical spectrum
-        :param (str) filetype: String specifying the type of the spectrum to
+        :param str filename: Full file name of the astronomical spectrum
+        :param str filetype: String specifying the type of the spectrum to
             select the appropriate read method.
 
         :return: None
@@ -418,6 +431,38 @@ class SpecFit:
 
     def resample(self, n_samples=100, save_result_plots=True,
                  foldername='.', seed=1234):
+        """
+        Resample and fit the spectrum.
+
+        Resample the spectral flux on a pixel by pixel basis by assuming a
+        Gaussian distribution of flux values around the measured flux value
+        with a sigma equal to the flux uncertainty.
+
+        Fit all SpecModels to the resampled spectrum and record the best-fit
+        values of all fit parameters. The fits are initialized with the
+        current parameter values from all SpecModels.
+
+        All n_samples results for each parameter are saved in a hdf5 file
+        with the filename 'resampled_fitting_results_[n_samples]_raw.hdf5'.
+        Median, lower (15.9 percentile) and upper (84.1 percentile) values are
+        calculated from each parameter distribution and saved in a csv/hdf5
+        file with the name 'resampled_fitting_results_[n_samples].hdf5/.csv'.
+
+        If fit result plots are enabled ('save_result_plots=True') then the
+        best-fie value distributions for each parameters, including their
+        median, lower and upper values are saved to
+        '[foldername]/[parameter name]_results.pdf'.
+
+        :param int n_samples: Number of samples to draw
+        :param bool save_result_plots: Boolean indicating whether
+        histograms for all parameters should be saved in the specified folder.
+        :param str foldername: Path to the folder where the result plots
+        will be saved. This defaults to '.'.
+        :param int seed: Random seed for initializing the numpy random
+        number generator
+
+        :return: None
+        """
 
         spec = self.spec.copy()
 
@@ -510,7 +555,11 @@ class SpecFit:
                 plt.savefig(foldername + '/{}_results.pdf'.format(col))
 
     def get_result_dict(self):
-        """Get the best-fit parameter values and return them as a dictionary"""
+        """Get the best-fit parameter values and return them as a dictionary
+
+        :return: (dict) result_dict
+            Dictionary with best-fit parameter values.
+        """
 
         result_dict = {}
 

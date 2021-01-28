@@ -1,8 +1,3 @@
-.. Sculptor documentation master file, created by
-   sphinx-quickstart on Fri Jan 15 10:47:50 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to Sculptor's documentation!
 ====================================
 
@@ -21,9 +16,10 @@ If you are interested in being involved with this project, please contact Jan-To
 **Disclaimer:**
 This project is currently undergoing rapid development. Be advised that fits done with the current version may not work with a future version of the software. The first stable, well-tested release will be version 1.0.0 anticipated for summer 2021.
 
+
 .. toctree::
   :maxdepth: 1
-  :caption: Contents:
+  :caption: Getting Started:
 
   installation
   getting_started

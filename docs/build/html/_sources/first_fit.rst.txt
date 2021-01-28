@@ -1,6 +1,6 @@
-===========================================
-Spectral fitting with Sculptor - An example
-===========================================
+======================================
+Spectral fitting with the Sculptor GUI
+======================================
 
 In this example we will fit the SDSS spectrum of quasar J030341.04-002321.8 at redshift z=3.227 step by step. The example is aimed at first time user to provide insight into the Sculptor workflow and is designed to present a starting point.
 

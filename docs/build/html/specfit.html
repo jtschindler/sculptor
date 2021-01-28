@@ -84,11 +84,11 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Getting Started:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started with the Sculptor GUI</a></li>
-<li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with Sculptor - An example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">The Sculptor GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Modules:</span></p>
 <ul class="current">
@@ -166,9 +166,356 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="the-specfit-module">
-<h1>The SpecFit Module<a class="headerlink" href="#the-specfit-module" title="Permalink to this headline">¶</a></h1>
-<p>TBD</p>
+  <div class="section" id="module-sculptor.specfit">
+<span id="the-specfit-module"></span><h1>The SpecFit Module<a class="headerlink" href="#module-sculptor.specfit" title="Permalink to this headline">¶</a></h1>
+<p>This module introduces the SpecFit class and its functionality. The SpecFit
+class is designed to facilitate complex model fits to astronomical spectra.</p>
+<p>It is initialized with the supplied astronomical spectrum and can hold
+multiple SpecModel objects, which themselves hold the fit models and their
+parameters.</p>
+<p class="rubric">Notes</p>
+<p>This module is in active development.</p>
+<dl class="py class">
+<dt id="sculptor.specfit.SpecFit">
+<em class="property">class </em><code class="sig-prename descclassname">sculptor.specfit.</code><code class="sig-name descname">SpecFit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectrum</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">redshift</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for fitting of astronomical spectroscopic data.</p>
+<p>The SpecFit class takes a SpecOneD object of an astronomical spectrum and
+allows complex models to be fit to it using the LMFIT module.</p>
+<p>SpecModel objects will be added to the SpecFit class to hold information
+on the different models and parameters. Each SpecModel object will be
+consecutively fit to the astronomical spectrum.</p>
+<dl class="py attribute">
+<dt id="sculptor.specfit.SpecFit.spec">
+<code class="sig-name descname">spec</code><a class="headerlink" href="#sculptor.specfit.SpecFit.spec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Astronomical spectrum as a SpecOneD object</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="speconed.html#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD">SpecOneD</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="sculptor.specfit.SpecFit.xlim">
+<code class="sig-name descname">xlim</code><a class="headerlink" href="#sculptor.specfit.SpecFit.xlim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wavelength limits for plotting</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>list of float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="sculptor.specfit.SpecFit.ylim">
+<code class="sig-name descname">ylim</code><a class="headerlink" href="#sculptor.specfit.SpecFit.ylim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flux density limits for plotting</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>list of float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="sculptor.specfit.SpecFit.redshift">
+<code class="sig-name descname">redshift</code><a class="headerlink" href="#sculptor.specfit.SpecFit.redshift" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cosmological redshift of the astronomical object</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="sculptor.specfit.SpecFit.fitting_method">
+<code class="sig-name descname">fitting_method</code><a class="headerlink" href="#sculptor.specfit.SpecFit.fitting_method" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fitting method (default: ‘Levenberg-Marquardt’)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="sculptor.specfit.SpecFit.colors">
+<code class="sig-name descname">colors</code><a class="headerlink" href="#sculptor.specfit.SpecFit.colors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Float values to set colors for
+plotting</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>numpy.ndarray of floats</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="sculptor.specfit.SpecFit.super_params">
+<code class="sig-name descname">super_params</code><a class="headerlink" href="#sculptor.specfit.SpecFit.super_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parameter list of “Super
+Parameters”, which are global for the specfit class and are added
+as “Global Parameters” to all SpecModels</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>lmfit.parameters</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="sculptor.specfit.SpecFit.specmodels">
+<code class="sig-name descname">specmodels</code><a class="headerlink" href="#sculptor.specfit.SpecFit.specmodels" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of SpecModel objects added to the
+SpecFit class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>list of SpecModel</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.add_specmodel">
+<code class="sig-name descname">add_specmodel</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.add_specmodel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a SpecModel to the SpecFit class</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.add_super_param">
+<code class="sig-name descname">add_super_param</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">param_name</span></em>, <em class="sig-param"><span class="n">value</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">vary</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">min</span><span class="o">=</span><span class="default_value">- inf</span></em>, <em class="sig-param"><span class="n">max</span><span class="o">=</span><span class="default_value">inf</span></em>, <em class="sig-param"><span class="n">expr</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.add_super_param" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adding a “Super Parameter” to the SpecFit object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>param_name</strong> (<em>str</em>) – Name of the super parameter</p></li>
+<li><p><strong>value</strong> (<em>float</em><em>,</em><em>optional</em>) – Initial value of the super parameter</p></li>
+<li><p><strong>vary</strong> (<em>bool</em><em>,</em><em>optional</em>) – Boolean to indicate whether the super</p></li>
+</ul>
+</dd>
+</dl>
+<p>parameter should be varied during the fit
+:param float,optional min: Minimum value for the super parameter
+:param float,optional max: Maximum value for the super parameter
+:param str,optional expr: Optional expression for the super
+parameter</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copy the SpecFit objects</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>SpecFit</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.delete_specmodel">
+<code class="sig-name descname">delete_specmodel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">index</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.delete_specmodel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete the latest SpecModel or the one indicated by the index keyword
+argument from the SpecFit class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>index</strong> (<em>(</em><em>int</em><em>)</em>) – Index of the SpecModel to delete in specmodels</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.fit">
+<code class="sig-name descname">fit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save_results</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">foldername</span><span class="o">=</span><span class="default_value">'.'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit all SpecModels consecutively</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>save_results</strong> (<em>bool</em>) – Boolean to indicate whether fit results
+will be saved</p></li>
+<li><p><strong>foldername</strong> (<em>str</em><em>,</em><em>optional</em>) – If “save_results==True” the fit
+results will be saved to the folder specified in foldername. This
+variable defaults to the current folder. If set to “None” fit
+results will not be saved.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.get_result_dict">
+<code class="sig-name descname">get_result_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.get_result_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the best-fit parameter values and return them as a dictionary</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>(dict) result_dict
+Dictionary with best-fit parameter values.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.import_spectrum">
+<code class="sig-name descname">import_spectrum</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">filetype</span><span class="o">=</span><span class="default_value">'IRAF'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.import_spectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Import an astronomical spectrum into SpecFit class</p>
+<p>Currently the allowed ‘filetype’ options are:
+‘IRAF’, ‘PypeIt’, ‘SpecOneD’, ‘SDSS’</p>
+<p>Note that the SpecFit class can be initialized a SpecOneD spectrum
+object, that can be constructed manually from the spectral format of
+choice.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>str</em>) – Full file name of the astronomical spectrum</p></li>
+<li><p><strong>filetype</strong> (<em>str</em>) – String specifying the type of the spectrum to
+select the appropriate read method.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.load">
+<code class="sig-name descname">load</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">foldername</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a full spectral fit (SpecFit) from a folder</p>
+<p>This function overwrites all SpecModels, SpecFit parameters, and the
+astronomical spectrum.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>foldername</strong> (<em>str</em>) – Folder from which the SpecFit class will be
+loaded.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.plot">
+<code class="sig-name descname">plot</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the astronomical spectrum with all SpecModels</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.remove_super_param">
+<code class="sig-name descname">remove_super_param</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">param_name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.remove_super_param" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove “Super Parameter” from SpecFit object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>param_name</strong> (<em>str</em>) – Parameter name of the super parameter to</p>
+</dd>
+</dl>
+<p>remove.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.resample">
+<code class="sig-name descname">resample</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">n_samples</span><span class="o">=</span><span class="default_value">100</span></em>, <em class="sig-param"><span class="n">save_result_plots</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">foldername</span><span class="o">=</span><span class="default_value">'.'</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">1234</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.resample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resample and fit the spectrum.</p>
+<p>Resample the spectral flux on a pixel by pixel basis by assuming a
+Gaussian distribution of flux values around the measured flux value
+with a sigma equal to the flux uncertainty.</p>
+<p>Fit all SpecModels to the resampled spectrum and record the best-fit
+values of all fit parameters. The fits are initialized with the
+current parameter values from all SpecModels.</p>
+<p>All n_samples results for each parameter are saved in a hdf5 file
+with the filename ‘resampled_fitting_results_[n_samples]_raw.hdf5’.
+Median, lower (15.9 percentile) and upper (84.1 percentile) values are
+calculated from each parameter distribution and saved in a csv/hdf5
+file with the name ‘resampled_fitting_results_[n_samples].hdf5/.csv’.</p>
+<p>If fit result plots are enabled (‘save_result_plots=True’) then the
+best-fie value distributions for each parameters, including their
+median, lower and upper values are saved to
+‘[foldername]/[parameter name]_results.pdf’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_samples</strong> (<em>int</em>) – Number of samples to draw</p></li>
+<li><p><strong>save_result_plots</strong> (<em>bool</em>) – Boolean indicating whether</p></li>
+</ul>
+</dd>
+</dl>
+<p>histograms for all parameters should be saved in the specified folder.
+:param str foldername: Path to the folder where the result plots
+will be saved. This defaults to ‘.’.
+:param int seed: Random seed for initializing the numpy random
+number generator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.save">
+<code class="sig-name descname">save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">foldername</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the spectral fit (SpecFit) to a folder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>foldername</strong> (<em>str</em>) – Folder to which the SpecFit class will be
+saved.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.update_specmodel_spectra">
+<code class="sig-name descname">update_specmodel_spectra</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.update_specmodel_spectra" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update all SpecModel spectra</p>
+<p>This function updates the SpecModel spectra consecutively. Model fits
+from each SpecModel will be automatically subtracted.</p>
+<p>Note: Not only the dispersion and the fluxden, but also the mask will be
+updated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sculptor.specfit.SpecFit.update_specmodels">
+<code class="sig-name descname">update_specmodels</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specfit.SpecFit.update_specmodels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update SpecFit parameters in all SpecModels</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

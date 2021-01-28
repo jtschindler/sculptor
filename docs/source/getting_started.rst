@@ -1,6 +1,6 @@
-=====================================
-Getting started with the Sculptor GUI
-=====================================
+================
+The Sculptor GUI
+================
 
 To carefully analyze small samples of astronomic spectra the Sculptor GUI offers an interactive way to put together complex spectral models. Therefore, we will start with an introduction to the GUI and its capabilities.
 

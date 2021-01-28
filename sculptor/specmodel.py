@@ -1,3 +1,18 @@
+#!/usr/bin/env python
+
+"""
+
+This module introduces the SpecModel class and its functionality. The SpecModel
+class is designed to fit models to an astronomical spectrum using LMFIT.
+
+The SpecModel is always associated with a SpecFit object, which provides the
+foundational functionality for the fitting. 
+
+Notes
+-----
+    This module is in active development.
+
+"""
 
 import os
 import glob
@@ -51,7 +66,6 @@ Fitting methods available for fitting in SpecFit based on the list of methods in
 LMFIT.
 """
 
-
 class SpecModel:
     """ Class holding information on models for the SpecFit class
 
@@ -80,8 +94,14 @@ class SpecModel:
     """
 
     def __init__(self, specfit, spectrum=None, redshift=0):
-        """ Initialisation of the SpecModel object """
+        """ Initialize the SpecModel objects
 
+        :param SpecFit specfit: SpecFit object the SpecModel belongs to
+        :param SpecOneD spectrum: Astronomical spectrum passed as a SpecOneD
+        object. Initializes 'None' by default.
+        :param float redshift: Redshift of the astronomical spectrum. '0'
+        initialized by default.
+        """
 
         self.xlim = [0, 1]
         self.ylim = [0, 1]
@@ -122,7 +142,11 @@ class SpecModel:
 
 
     def _copy(self, specfit):
-        # TODO Test this function and make sure it copies and not links
+        """ Copy the SpecModel object to a new SpecFit class.
+
+        :param specfit:
+        :return: SpecModel
+        """
 
         specmodel = SpecModel(specfit, spectrum=self.spec,
                               redshift=self.redshift)
@@ -155,9 +179,8 @@ class SpecModel:
         """ Add a model to the SpecModel object
 
         :param (Model) model: LMFIT Model to be added to the model list.
-        :param (Parameters) params: LMFIT Parameters to be added
-        to the
-            parameter list.
+        :param (Parameters) params: LMFIT Parameters to be added to the
+        parameter list.
 
         :return: None
         """
@@ -198,7 +221,7 @@ class SpecModel:
 
         :param (int) index: Index of model to remove from model_list and
             Parameters to remove from params_list (default index=="None"). If
-            the index is None the last model will be removed.
+            the index is None the last added model will be removed.
 
         :return: None
         """
@@ -237,7 +260,10 @@ class SpecModel:
             self.mask[lo_index:up_index] = True
 
     def reset_fit_mask(self):
-        """ Reset the fit mask based on the supplied astronomical spectrum."""
+        """Reset the fit mask based on the supplied astronomical spectrum.
+
+        :return: None
+        """
 
         self.mask = np.zeros_like(self.spec.dispersion, dtype='bool')
 
@@ -268,17 +294,15 @@ class SpecModel:
                          min=-np.inf, max=np.inf, expr=None):
         """ Adding a "Global Parameter" to the SpecModel object
 
-        :param (str) param_name: Name of the global parameter
-        :param (float, optional) value: Initial value of the
-        global
+        :param str param_name: Name of the global parameter
+        :param float,optional value: Initial value of the
+        global parameter
+        :param bool,optional vary: Boolean to indicate whether the global
+        parameter should be varied during the fit
+        :param float,optional min: Minimum value for the global parameter
+        :param float,optional max: Maximum value for the global parameter
+        :param str, optional expr: Optional expression for the global
         parameter
-        :param (bool, optional) vary: Boolean to indicate whether the global
-        parameter
-            should be varied during the fit
-        :param (float, optional) min: Minimum value for the global parameter
-        :param (float, optional) max: Maximum value for the global parameter
-        :param (str, optional) expr: Optional expression for the global
-            parameter
 
         :return: None
         """
@@ -292,9 +316,8 @@ class SpecModel:
     def remove_global_param(self, param_name):
         """ Remove "Global Parameter" from SpecModel object
 
-        Parameters
-        :param (str) param_name: Parameter name of the global parameter to
-            remove.
+        :param str param_name: Parameter name of the global parameter to
+        remove.
 
         :return: None
         """
@@ -498,11 +521,11 @@ class SpecModel:
     def save_fit_report(self, foldername, specmodel_id=None, show=False):
         """ Save the fit report to a file in the specified folder
 
-        :param (str) foldername: Specified folder in which the fit report will
+        :param str foldername: Specified folder in which the fit report will
             be saved.
-        :param (str) specmodel_id: Unique SpecModel identifier used in creating
+        :param str specmodel_id: Unique SpecModel identifier used in creating
             the filename for the fit report.
-        :param (bool) show:  Boolean to indicate whether the fit report
+        :param bool show:  Boolean to indicate whether the fit report
         should
             also be printed to the screen.
 
@@ -533,9 +556,9 @@ class SpecModel:
     def save(self, foldername, specmodel_id=0):
         """ Save the SpecModel object to a specified folder
 
-        :param (str) foldername: Specified folder in which the SpecModel will
+        :param str foldername: Specified folder in which the SpecModel will
             be saved.
-        :param (str) specmodel_id: Unique SpecModel identifier used in creating
+        :param str specmodel_id: Unique SpecModel identifier used in creating
             the filenames for the save files.
 
         :return: None
@@ -653,9 +676,9 @@ class SpecModel:
     def load(self, foldername, specmodel_id):
         """ Load a SpecModel from the specified folder.
 
-        :param (str) foldername: Specified folder in which the SpecModel will
+        :param str foldername: Specified folder in which the SpecModel will
             be saved.
-        :param (str) specmodel_id: Unique SpecModel identifier used in creating
+        :param str specmodel_id: Unique SpecModel identifier used in creating
             the filenames for the save files.
 
         :return: None
@@ -763,7 +786,7 @@ class SpecModel:
     def _plot_specmodel(self, ax_main):
         """  Internal plotting function to plot the SpecModel
 
-        :param (matplotlib.axes.Axes) ax_main: Axis for main plot
+        :param matplotlib.axes.Axes ax_main: Axis for main plot
 
         :return: None
         """

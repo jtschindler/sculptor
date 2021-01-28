@@ -3,4 +3,5 @@ The SpecFit Module
 ==================
 
 
-TBD
+.. automodule:: sculptor.specfit
+    :members:

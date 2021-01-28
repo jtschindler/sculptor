@@ -3,4 +3,5 @@ The SpecModel Module
 ====================
 
 
-TBD
+.. automodule:: sculptor.specmodel
+    :members:

@@ -25,7 +25,7 @@ This project is currently undergoing rapid development. Be advised that fits don
 
 ## Installing Sculptor and further documentation
 
-#### The documentation, including the installation instructions are host at [Sculptor's ReadTheDocs].
+#### The documentation, including the installation instructions are hosted at [Sculptor's ReadTheDocs].
 
 
 [LMFIT]: https://lmfit.github.io/lmfit-py/

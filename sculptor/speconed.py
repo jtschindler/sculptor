@@ -1,20 +1,15 @@
 #!/usr/bin/env python
 
-"""The speconed module.
-
+"""
 This module introduces the SpecOneD class, it's functions and the related
 FlatSpectrum and QuasarSpectrum classes.
 The main purpose of the SpecOneD class and it's children classes is to provide
 python functionality for the manipulation of 1D spectral data in astronomy.
 
 
-Example
--------
-Examples are provided in a range of jupyter notebooks accompanying the module.
-
 Notes
 -----
-    This module is in active development and its contents will therefore change.
+    The documentation for this module is not yet completed.
 
 
 Attributes
@@ -55,11 +50,11 @@ datadir = os.path.split(__file__)[0]
 datadir = os.path.split(datadir)[0] + '/data/'
 
 
-def gaussian(x, amp, cen, sigma, shift):
-    """ 1-D Gaussian function"""
-    central = cen + shift
-
-    return (amp / (np.sqrt(2*np.pi) * sigma)) * np.exp(-(x-central)**2 / (2*sigma**2))
+# def gaussian(x, amp, cen, sigma, shift):
+#     """ 1-D Gaussian function"""
+#     central = cen + shift
+#
+#     return (amp / (np.sqrt(2*np.pi) * sigma)) * np.exp(-(x-central)**2 / (2*sigma**2))
 
 
 class SpecOneD(object):
@@ -952,17 +947,19 @@ class SpecOneD(object):
     def divide(self, secondary_spectrum, copy_header='first', force=True,
                copy_flux_err = 'No', method='interpolate'):
 
-        """Divide the fluxden of primary spectrum by the secondary spectrum.
+        """Divide the fluxden of the primary spectrum by the fluxden
+        of the secondary spectrum.
 
         Notes
         -----
-        Users should be aware that in order to add the fluxden of the two spectra,
-        the dispersions of the spectra need to be matched, see match_dispersions
-        and beware of the caveats of dispersion interpolation.
+        Users should be aware that in order to divide the fluxden of the two
+        spectra, the dispersions of the spectra need to be matched,
+        (see match_dispersions) and beware of the caveats of dispersion
+        interpolation.
 
         Parameters
         ----------
-        secondary_spectrum : obj:`SpecOneD`
+        secondary_spectrum : obj: SpecOneD
             Secondary spectrum
         copy_header : 'str'
             A string indicating whether the primary('first') spectrum header or
@@ -978,7 +975,7 @@ class SpecOneD(object):
 
         Returns
         -------
-        obj:`SpecOneD`
+        obj: SpecOneD
             Returns a SpecOneD object in the default case, "inplace==False".
         """
 
@@ -1838,7 +1835,7 @@ class SpecOneD(object):
         uncertainties) onto a new wavelength basis.
 
         This code is copied from
-        https: // github.com / ACCarnall / SpectRes
+        https://github.com/ACCarnall/SpectRes
         by Adam Carnall - damc@roe.ac.uk
 
         and adapted by Jan-Torge Schindler for functionality within

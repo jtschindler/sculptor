@@ -3,4 +3,5 @@ The SpecOneD Module
 ===================
 
 
-TBD
+.. automodule:: sculptor.speconed
+    :members:
