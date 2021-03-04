@@ -426,7 +426,6 @@ class SpecModel:
             self.model_fluxden = self.model.eval(self.fit_result.params,
                                               x=self.spec.dispersion)
 
-
             self.update_params_from_fit_result()
 
 
@@ -518,6 +517,54 @@ class SpecModel:
 
         else:
             raise ValueError("No fit result available")
+
+    def save_mcmc_chain(self, foldername, specmodel_id=None):
+        """
+        Save the values of the MCMC flat chain as an hdf5 file.
+
+        Fixed parameters in the model fit will be automatically added to the
+        output file.
+
+        :param str foldername: Specified folder in which the fit report will
+            be saved.
+        :param str specmodel_id: Unique SpecModel identifier used in creating
+            the filename for the fit report.
+        :return: None
+        """
+
+        if self.fit_result.flatchain is not None:
+
+            # Returns the flat MCMC chain as a pandas dataframe
+            chain_df = self.fit_result.flatchain
+
+            # Add the fixed parameters to the mcmc chain dataframe
+            for idx, model in enumerate(self.model_list):
+                params = self.params_list[idx]
+
+                for jdx, param in enumerate(params):
+                    if self.params_list[idx][param].vary == False:
+                        chain_df[param] = self.params_list[idx][param].value
+
+            if specmodel_id is None:
+                specmodel_id = self.name
+
+            # Check if folder exists otherwise create it
+            if not os.path.exists(foldername):
+                os.makedirs(foldername)
+
+            # Save dataframe to specified folder
+            chain_df.to_hdf(foldername+
+                            '/specmodel'
+                            '_{}_mcmc_chain.hdf5'.format(specmodel_id),
+                            'data')
+
+        else:
+            print('[ERROR] The model has not yet been fit with the MCMC '
+                  'method.')
+            print('[ERROR] Set the general fitting method to "Maximum '
+                  'likelihood via Monte-Carlo Markov Chain" and refit the'
+                  ' model.')
+
 
     def save_fit_report(self, foldername, specmodel_id=None, show=False):
         """ Save the fit report to a file in the specified folder
