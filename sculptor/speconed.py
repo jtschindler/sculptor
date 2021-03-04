@@ -50,11 +50,11 @@ datadir = os.path.split(__file__)[0]
 datadir = os.path.split(datadir)[0] + '/data/'
 
 
-# def gaussian(x, amp, cen, sigma, shift):
-#     """ 1-D Gaussian function"""
-#     central = cen + shift
-#
-#     return (amp / (np.sqrt(2*np.pi) * sigma)) * np.exp(-(x-central)**2 / (2*sigma**2))
+def gaussian(x, amp, cen, sigma, shift):
+    """ 1-D Gaussian function"""
+    central = cen + shift
+
+    return (amp / (np.sqrt(2*np.pi) * sigma)) * np.exp(-(x-central)**2 / (2*sigma**2))
 
 
 class SpecOneD(object):
@@ -1408,7 +1408,7 @@ class SpecOneD(object):
         cen = (max(new_disp)-min(new_disp))/2. + min(new_disp)
         y = gaussian(new_disp, 1.0, cen, stddev/300000, 0)
         # hacked the normalization here... did not fully understand why this happens
-        conv = np.convolve(spec.flux, y, mode='same') / (len(new_disp)/2.)
+        conv = np.convolve(spec.fluxden, y, mode='same') / (len(new_disp)/2.)
 
         spec.fluxden= conv
 
@@ -1423,10 +1423,10 @@ class SpecOneD(object):
             self.fluxden = spec.flux
         else:
             return SpecOneD(dispersion=spec.dispersion,
-                            fluxden=spec.flux,
+                            fluxden=spec.fluxden,
                             fluxden_err=spec.fluxden_err,
                             header=spec.header,
-                            unit = spec.unit)
+                            unit=spec.unit)
 
 
     # def redden(self, a_v, r_v, extinction_law='ccm89', inplace=False):
@@ -2036,6 +2036,20 @@ class SpecOneD(object):
                         fluxden_err=new_flux_err, unit='f_lam')
 
 
+    def average_fluxden(self, disp_range=None):
+
+        if disp_range is None:
+            return np.average(self.fluxden)
+        else:
+            return np.average(self.trim_dispersion(disp_range).fluxden)
+
+    def peak_fluxden(self):
+
+        return np.max(self.fluxden)
+
+    def peak_dispersion(self):
+
+        return self.dispersion[np.argmax(self.fluxden)]
 
 
 class FlatSpectrum(SpecOneD):

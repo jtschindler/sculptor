@@ -389,7 +389,7 @@ class SpecModel:
                                                      weights=weights,
                                                      method=fitting_methods[
                                                          self.specfit.fitting_method],
-                                                     fit_kws =emcee_kws)
+                                                     fit_kws=emcee_kws)
 
                 else:
                     self.fit_result = self.model.fit(self.spec.fluxden[fit_mask],
@@ -405,7 +405,8 @@ class SpecModel:
             else:
                 emcee_kws['is_weighted'] = False
                 if fitting_methods[self.specfit.fitting_method] == 'emcee':
-                    emcee_kws['is_weighted'] = True
+                    # TODO: Check why is weighted is set to TRUE here!!!
+                    emcee_kws['is_weighted'] = False
                     self.fit_result = self.model.fit(self.spec.fluxden[fit_mask],
                                                      self.params,
                                                      x=self.spec.dispersion[

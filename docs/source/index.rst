@@ -9,7 +9,7 @@ At the heart of this package are three python 3 modules that manipulate 1D astro
   :width: 800
   :alt: Full fit of the example spectrum
 
-The Graphical User Interface offers interactive control to set up and combine multiple spectral models to fully fit the astronomical spectrum of choice. This includes masking of spectral features, defining fit regions, setting of fit parameter boundaries. The framework allows to add interdependent fit parameters (e.g., to couple the FWHM of multiple emission/absorption) lines.
+The Graphical User Interface offers interactive control to set up and combine multiple spectral models to fully fit the astronomical spectrum of choice. This includes masking of spectral features, defining fit regions, setting of fit parameter boundaries. The framework allows to add interdependent fit parameters (e.g., to couple the FWHM of multiple emission/absorption lines).
 
 If you are interested in being involved with this project, please contact Jan-Torge Schindler via `github <https://github.com/jtschindler/sculptor>`_.
 
