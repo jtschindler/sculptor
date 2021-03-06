@@ -444,6 +444,20 @@ class SpecModel:
                     # Add param to model Parameters
                     model_params.add(self.global_params[param])
 
+    def update_param_values_from_input_series(self, input_param_series):
+
+        # Prepare parameter name lists
+        input_params_list = list(input_param_series.index)
+        params_list_keys = []
+        for params in self.params_list:
+            params_list_keys.extend(list(params.keys()))
+
+        # Update all parameters values if they are all within the input series
+        if set(params_list_keys).issubset(input_params_list):
+            for params in self.params_list:
+                for param in params:
+                    params[param].value = input_param_series[param]
+
 
     def update_params_from_fit_result(self):
         """Update all parameter values in the parameter list based on the
@@ -849,7 +863,14 @@ class SpecModel:
         ax_main.plot(spec.dispersion[spec.mask], spec.fluxden[spec.mask],
                      'k')
 
-        # Plot model fluxden
+        # Plot individual models
+        for idx, model in enumerate(self.model_list):
+            params = self.params_list[idx]
+            ax_main.plot(self.spec.dispersion,
+                                 model.eval(params, x=self.spec.dispersion),
+                                 color='r', lw=1.5)
+
+        # Plot total model fluxden
         if hasattr(self, 'model_fluxden'):
             ax_main.plot(self.spec.dispersion,
                          self.model_fluxden, color=self.color, lw=3)

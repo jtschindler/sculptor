@@ -425,7 +425,6 @@ class SpecModelWidget(QWidget):
         # Rebuild all model tabs
         self.rebuild_model_tabs()
 
-
     def update_specmodel(self, specfitgui):
         """
         Only update the specmodel from the internal tab. External updating is
@@ -447,7 +446,6 @@ class SpecModelWidget(QWidget):
         specfitgui.tabWidget.setTabText(current_tab_index, specmodel_name)
 
         self.specModelCanvas.setFocus()
-
 
     def update_specmodel_plot(self):
 
@@ -867,6 +865,7 @@ class SpecModelWidget(QWidget):
 
         if foldername:
             self.specmodel.save_fit_report(foldername)
+            self.specmodel.save_mcmc_chain(foldername)
             self.specModelCanvas.fig.savefig(foldername +
                              '/SpecModel_{}.png'.format(self.specmodel.name))
         else:

@@ -2,13 +2,19 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c7e35728-a01d-41d7-afc8-85ed9ad835b6" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/specfit.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specfit.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sculptor/specmodel.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/specmodelwidget.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodelwidget.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FavoritesManager">
+    <favorites_list name="sculptor" />
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
@@ -32,8 +38,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/sculptor/specfit.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="422">
-              <caret line="440" column="62" selection-start-line="440" selection-start-column="59" selection-end-line="440" selection-end-column="62" />
+            <state relative-caret-position="406">
+              <caret line="83" column="37" selection-start-line="83" selection-start-column="37" selection-end-line="83" selection-end-column="37" />
               <folding>
                 <element signature="e#400#409#0" expanded="true" />
               </folding>
@@ -44,8 +50,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/sculptor/specmodelwidget.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="422">
-              <caret line="854" selection-start-line="854" selection-end-line="858" selection-end-column="34" />
+            <state relative-caret-position="358">
+              <caret line="428" column="14" selection-start-line="428" selection-start-column="4" selection-end-line="428" selection-end-column="14" />
               <folding>
                 <element signature="e#2#20#0" expanded="true" />
               </folding>
@@ -54,10 +60,22 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/sculptor/analysis.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="390">
+              <caret line="646" column="60" selection-start-line="646" selection-start-column="60" selection-end-line="646" selection-end-column="60" />
+              <folding>
+                <element signature="e#23#32#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/sculptor/specmodel.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="292">
-              <caret line="531" column="21" selection-start-line="531" selection-start-column="21" selection-end-line="531" selection-end-column="21" />
+            <state relative-caret-position="701">
+              <caret line="446" column="45" selection-start-line="446" selection-start-column="8" selection-end-line="446" selection-end-column="45" />
               <folding>
                 <element signature="e#365#374#0" expanded="true" />
               </folding>
@@ -68,7 +86,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/examples/example_fit_script.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="646">
+            <state relative-caret-position="890">
               <caret line="46" column="42" selection-start-line="46" selection-start-column="42" selection-end-line="46" selection-end-column="42" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
@@ -80,8 +98,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/examples/example_analysis.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="540">
-              <caret line="20" column="34" selection-start-line="20" selection-start-column="34" selection-end-line="20" selection-end-column="34" />
+            <state relative-caret-position="625">
+              <caret line="69" column="40" selection-start-line="69" selection-start-column="40" selection-end-line="69" selection-end-column="40" />
               <folding>
                 <element signature="e#1#19#0" expanded="true" />
               </folding>
@@ -107,18 +125,6 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/PROJECTS/2102_ELQS_host_galaxies/plots/submm.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-477">
-              <caret line="128" column="25" selection-start-line="128" selection-start-column="25" selection-end-line="128" selection-end-column="25" />
-              <folding>
-                <element signature="e#24#55#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
     </leaf>
   </component>
   <component name="FileTemplateManagerImpl">
@@ -130,13 +136,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>c_</find>
-      <find>c_km_s</find>
-      <find>line_flux</find>
-      <find>model</find>
-      <find>isnan</find>
-      <find>MgII</find>
-      <find>insert_qso</find>
       <find>print(</find>
       <find>sigma</find>
       <find>JOIN</find>
@@ -158,8 +157,15 @@
       <find>weight</find>
       <find>emcee_kws</find>
       <find>def fit</find>
-      <find>corner</find>
       <find>flatchain</find>
+      <find>def save_fit</find>
+      <find>def save_mcmc</find>
+      <find>def save_fit_result</find>
+      <find>emfeat_dict</find>
+      <find>def plot</find>
+      <find>corner</find>
+      <find>def update</find>
+      <find>disp_range:</find>
     </findStrings>
     <replaceStrings>
       <replace>spec.fluxden_err</replace>
@@ -167,6 +173,9 @@
       <replace>fluxden</replace>
       <replace>spec.fluxden</replace>
       <replace>model_fluxden</replace>
+      <replace>emfeat_meas</replace>
+      <replace>l_wav</replace>
+      <replace>appmag</replace>
     </replaceStrings>
   </component>
   <component name="Git.Settings">
@@ -195,11 +204,9 @@
         <option value="$PROJECT_DIR$/../qso_toolbox/examples/imviewgui_example.py" />
         <option value="$PROJECT_DIR$/environment.yml" />
         <option value="$PROJECT_DIR$/sculptor/specfitgui.py" />
-        <option value="$PROJECT_DIR$/sculptor/specmodelwidget.py" />
         <option value="$PROJECT_DIR$/docs/source/conf.py" />
         <option value="$PROJECT_DIR$/docs/source/speconed.rst" />
         <option value="$PROJECT_DIR$/docs/source/specfit.rst" />
-        <option value="$PROJECT_DIR$/sculptor/specfit.py" />
         <option value="$PROJECT_DIR$/docs/source/specmodel.rst" />
         <option value="$PROJECT_DIR$/docs/source/getting_started.rst" />
         <option value="$PROJECT_DIR$/docs/source/first_fit.rst" />
@@ -217,15 +224,17 @@
         <option value="$PROJECT_DIR$/sculptor/sculptor.py" />
         <option value="$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/CIVBlueshiftAnalysis/matched_analysis.py" />
         <option value="$USER_HOME$/PROJECTS/1908 XShooter ALMA Quasar Sample/CIVBlueshiftAnalysis/vshift_median_test.py" />
-        <option value="$PROJECT_DIR$/sculptor/analysis.py" />
         <option value="$USER_HOME$/PROJECTS/2101_Redshift6QLF/ps1_photometry_exploration/assess_photometric_errors.py" />
         <option value="$USER_HOME$/PROJECTS/2102_ELQS_host_galaxies/plots/coevolution.py" />
         <option value="$USER_HOME$/PROJECTS/1803_BHMF/ELQS_BHMF_Analysis/plots/bhmass_lbol_prop.py" />
         <option value="$USER_HOME$/PROJECTS/1803_BHMF/ELQS_BHMF_Analysis/plots/qso_M1450_z_prop.py" />
         <option value="$USER_HOME$/PROJECTS/2102_ELQS_host_galaxies/plots/spectrum_and_maps.py" />
-        <option value="$PROJECT_DIR$/examples/example_analysis.py" />
         <option value="$PROJECT_DIR$/examples/example_fit_script.py" />
+        <option value="$PROJECT_DIR$/sculptor/specmodelwidget.py" />
+        <option value="$PROJECT_DIR$/sculptor/specfit.py" />
         <option value="$PROJECT_DIR$/sculptor/specmodel.py" />
+        <option value="$PROJECT_DIR$/examples/example_analysis.py" />
+        <option value="$PROJECT_DIR$/sculptor/analysis.py" />
       </list>
     </option>
   </component>
@@ -364,10 +373,10 @@
     <frame x="0" y="0" width="2560" height="1440" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info id="Favorites" order="0" side_tool="true" />
-      <window_info active="true" content_ui="combo" id="Project" order="1" visible="true" weight="0.17290272" />
-      <window_info id="Structure" order="2" side_tool="true" weight="0.25" />
-      <window_info anchor="bottom" id="Terminal" order="0" weight="0.14180207" />
+      <window_info id="Favorites" order="0" sideWeight="0.5008606" side_tool="true" weight="0.17290272" />
+      <window_info active="true" content_ui="combo" id="Project" order="1" sideWeight="0.49913943" visible="true" weight="0.17290272" />
+      <window_info id="Structure" order="2" sideWeight="0.5008606" side_tool="true" weight="0.17290272" />
+      <window_info anchor="bottom" id="Terminal" order="0" visible="true" weight="0.14180207" />
       <window_info anchor="bottom" id="Event Log" order="1" side_tool="true" />
       <window_info anchor="bottom" id="Python Console" order="2" weight="0.3293944" />
       <window_info anchor="bottom" id="Message" order="3" />
@@ -687,16 +696,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/sculptor/analysis.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="794">
-          <caret line="34" column="45" lean-forward="true" selection-start-line="34" selection-start-column="45" selection-end-line="34" selection-end-column="45" />
-          <folding>
-            <element signature="e#23#41#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/PROJECTS/2101_Redshift6QLF/ps1_photometry_exploration/assess_photometric_errors.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="835">
@@ -748,16 +747,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/sculptor/specfit.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="422">
-          <caret line="440" column="62" selection-start-line="440" selection-start-column="59" selection-end-line="440" selection-end-column="62" />
-          <folding>
-            <element signature="e#400#409#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="SPLIT">
@@ -778,10 +767,20 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/specfit.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="406">
+          <caret line="83" column="37" selection-start-line="83" selection-start-column="37" selection-end-line="83" selection-end-column="37" />
+          <folding>
+            <element signature="e#400#409#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/sculptor/specmodelwidget.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="422">
-          <caret line="854" selection-start-line="854" selection-end-line="858" selection-end-column="34" />
+        <state relative-caret-position="358">
+          <caret line="428" column="14" selection-start-line="428" selection-start-column="4" selection-end-line="428" selection-end-column="14" />
           <folding>
             <element signature="e#2#20#0" expanded="true" />
           </folding>
@@ -790,8 +789,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/examples/example_analysis.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="540">
-          <caret line="20" column="34" selection-start-line="20" selection-start-column="34" selection-end-line="20" selection-end-column="34" />
+        <state relative-caret-position="625">
+          <caret line="69" column="40" selection-start-line="69" selection-start-column="40" selection-end-line="69" selection-end-column="40" />
           <folding>
             <element signature="e#1#19#0" expanded="true" />
           </folding>
@@ -800,7 +799,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/examples/example_fit_script.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="646">
+        <state relative-caret-position="890">
           <caret line="46" column="42" selection-start-line="46" selection-start-column="42" selection-end-line="46" selection-end-column="42" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
@@ -810,10 +809,20 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/sculptor/specmodel.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="292">
-          <caret line="531" column="21" selection-start-line="531" selection-start-column="21" selection-end-line="531" selection-end-column="21" />
+        <state relative-caret-position="701">
+          <caret line="446" column="45" selection-start-line="446" selection-start-column="8" selection-end-line="446" selection-end-column="45" />
           <folding>
             <element signature="e#365#374#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/analysis.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="390">
+          <caret line="646" column="60" selection-start-line="646" selection-start-column="60" selection-end-line="646" selection-end-column="60" />
+          <folding>
+            <element signature="e#23#32#0" expanded="true" />
           </folding>
         </state>
       </provider>

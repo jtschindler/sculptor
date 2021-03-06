@@ -82,7 +82,6 @@ class SpecFit:
         self.redshift = redshift
         self.fitting_method = 'Levenberg-Marquardt'
         self.colors = np.array([0.5])
-        self.colors = np.array([0.5])
         self.super_params = Parameters()
         self.specmodels = []
 
