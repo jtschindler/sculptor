@@ -3,9 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="c7e35728-a01d-41d7-afc8-85ed9ad835b6" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specfit.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specfit.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specmodel.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodel.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/specmodelwidget.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodelwidget.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/analysis.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -38,7 +36,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/sculptor/specfit.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="406">
+            <state relative-caret-position="738">
               <caret line="83" column="37" selection-start-line="83" selection-start-column="37" selection-end-line="83" selection-end-column="37" />
               <folding>
                 <element signature="e#400#409#0" expanded="true" />
@@ -50,8 +48,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/sculptor/specmodelwidget.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="358">
-              <caret line="428" column="14" selection-start-line="428" selection-start-column="4" selection-end-line="428" selection-end-column="14" />
+            <state relative-caret-position="5978">
+              <caret line="426" lean-forward="true" selection-start-line="426" selection-end-line="426" />
               <folding>
                 <element signature="e#2#20#0" expanded="true" />
               </folding>
@@ -62,11 +60,20 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/sculptor/analysis.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="390">
-              <caret line="646" column="60" selection-start-line="646" selection-start-column="60" selection-end-line="646" selection-end-column="60" />
+            <state relative-caret-position="1190">
+              <caret line="974" lean-forward="true" selection-start-line="974" selection-end-line="974" />
               <folding>
                 <element signature="e#23#32#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../astrotools/astrotools/speconed/qsofit.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-433">
+              <caret line="1637" column="58" lean-forward="true" selection-start-line="1634" selection-start-column="8" selection-end-line="1637" selection-end-column="58" />
             </state>
           </provider>
         </entry>
@@ -98,20 +105,11 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/examples/example_analysis.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="625">
-              <caret line="69" column="40" selection-start-line="69" selection-start-column="40" selection-end-line="69" selection-end-column="40" />
+            <state relative-caret-position="697">
+              <caret line="160" column="35" selection-start-line="160" selection-start-column="35" selection-end-line="160" selection-end-column="35" />
               <folding>
                 <element signature="e#1#19#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/PROJECTS/2102_ELQS_host_galaxies/plots/spectrum_and_maps.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="392">
-              <caret line="71" column="23" selection-start-line="71" selection-start-column="23" selection-end-line="71" selection-end-column="23" />
             </state>
           </provider>
         </entry>
@@ -136,8 +134,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>print(</find>
-      <find>sigma</find>
       <find>JOIN</find>
       <find>r_line</find>
       <find>Mdyn</find>
@@ -145,7 +141,6 @@
       <find>value</find>
       <find>CIV</find>
       <find>get_aver</find>
-      <find>abmag</find>
       <find>def get_aver</find>
       <find>ELQS\ sam</find>
       <find>dblue</find>
@@ -163,9 +158,12 @@
       <find>def save_fit_result</find>
       <find>emfeat_dict</find>
       <find>def plot</find>
-      <find>corner</find>
-      <find>def update</find>
       <find>disp_range:</find>
+      <find>abmag</find>
+      <find>corner</find>
+      <find>def _anal</find>
+      <find>:param disp_</find>
+      <find>def update</find>
     </findStrings>
     <replaceStrings>
       <replace>spec.fluxden_err</replace>
@@ -230,9 +228,9 @@
         <option value="$USER_HOME$/PROJECTS/1803_BHMF/ELQS_BHMF_Analysis/plots/qso_M1450_z_prop.py" />
         <option value="$USER_HOME$/PROJECTS/2102_ELQS_host_galaxies/plots/spectrum_and_maps.py" />
         <option value="$PROJECT_DIR$/examples/example_fit_script.py" />
-        <option value="$PROJECT_DIR$/sculptor/specmodelwidget.py" />
         <option value="$PROJECT_DIR$/sculptor/specfit.py" />
         <option value="$PROJECT_DIR$/sculptor/specmodel.py" />
+        <option value="$PROJECT_DIR$/sculptor/specmodelwidget.py" />
         <option value="$PROJECT_DIR$/examples/example_analysis.py" />
         <option value="$PROJECT_DIR$/sculptor/analysis.py" />
       </list>
@@ -423,16 +421,6 @@
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$USER_HOME$/anaconda3/lib/python3.7/site-packages/qso_toolbox/imview_gui.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="8343">
-          <caret line="309" column="10" selection-start-line="309" selection-start-column="10" selection-end-line="309" selection-end-column="44" />
-          <folding>
-            <element signature="e#1#11#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/anaconda3/lib/python3.7/site-packages/qso_toolbox/image_tools.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="279">
@@ -769,7 +757,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/sculptor/specfit.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="406">
+        <state relative-caret-position="738">
           <caret line="83" column="37" selection-start-line="83" selection-start-column="37" selection-end-line="83" selection-end-column="37" />
           <folding>
             <element signature="e#400#409#0" expanded="true" />
@@ -777,20 +765,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/sculptor/specmodelwidget.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="358">
-          <caret line="428" column="14" selection-start-line="428" selection-start-column="4" selection-end-line="428" selection-end-column="14" />
-          <folding>
-            <element signature="e#2#20#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/examples/example_analysis.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="625">
-          <caret line="69" column="40" selection-start-line="69" selection-start-column="40" selection-end-line="69" selection-end-column="40" />
+        <state relative-caret-position="697">
+          <caret line="160" column="35" selection-start-line="160" selection-start-column="35" selection-end-line="160" selection-end-column="35" />
           <folding>
             <element signature="e#1#19#0" expanded="true" />
           </folding>
@@ -817,10 +795,27 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/sculptor/specmodelwidget.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="5978">
+          <caret line="426" lean-forward="true" selection-start-line="426" selection-end-line="426" />
+          <folding>
+            <element signature="e#2#20#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../astrotools/astrotools/speconed/qsofit.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-433">
+          <caret line="1637" column="58" lean-forward="true" selection-start-line="1634" selection-start-column="8" selection-end-line="1637" selection-end-column="58" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/sculptor/analysis.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="390">
-          <caret line="646" column="60" selection-start-line="646" selection-start-column="60" selection-end-line="646" selection-end-column="60" />
+        <state relative-caret-position="1190">
+          <caret line="974" lean-forward="true" selection-start-line="974" selection-end-line="974" />
           <folding>
             <element signature="e#23#32#0" expanded="true" />
           </folding>
