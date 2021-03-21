@@ -2,10 +2,9 @@
 
 """
 This module introduces the SpecOneD class, it's functions and the related
-FlatSpectrum and QuasarSpectrum classes.
+FlatSpectrum class.
 The main purpose of the SpecOneD class and it's children classes is to provide
 python functionality for the manipulation of 1D spectral data in astronomy.
-
 
 Notes
 -----
@@ -22,6 +21,8 @@ import os
 import numpy as np
 import scipy as sp
 import pandas as pd
+
+import h5py
 
 from astropy.io import fits
 from astropy import constants as const
@@ -90,19 +91,20 @@ class SpecOneD(object):
         model_spectrum.
     fit_output : obj:
         The resulting fit based on the model_spectrum and the model_pars
-    fit_dispersion :
-        A 1D array containing the dispersion of the fitted spectrum.
-    fit_fluxden : ndarray
-        A 1D arrat containing the fluxden values for the fitted spectrum.
+    # fit_dispersion :
+    #     A 1D array containing the dispersion of the fitted spectrum.
+    # fit_fluxden : ndarray
+    #     A 1D arrat containing the fluxden values for the fitted spectrum.
     header : obj
         The spectral header object, containing additional data with regard to
         the spectrum.
 
     """
 
-    def __init__(self, dispersion=None, fluxden=None, fluxden_err=None, 
-                 header=None, unit=None, mask=None, raw_dispersion=None, 
-                 raw_fluxden=None, raw_fluxden_err=None):
+    def __init__(self, dispersion=None, fluxden=None, fluxden_err=None,
+                 fluxden_ivar=None, header=None, unit=None,
+                 dispersion_unit=None, fluxden_unit=None, obj_model=None,
+                 telluric=None, mask=None):
         """The __init__ method for the SpecOneD class
 
         Parameters
@@ -126,75 +128,90 @@ class SpecOneD(object):
         mask : ndarray
             A 1D boolean array can be specified to provide a mask for the
             spectrum.
+        dispersion_unit:
+        fluxden_unit:
 
         Raises
         ------
         ValueError
-            Raises an error when either the dispersion or fluxden dimension is not
+            Raises an error when either the dispersion or fluxden dimension is
+            not
             or could not be converted to a 1D ndarray.
         ValueError
             Raises an error when the supplied header is not a dictionary.
 
         """
 
-        # disperion units need to be in Angstroem
-
-        try:
-            if raw_fluxden is None:
-                self.raw_fluxden = fluxden
-            else:
-                self.raw_fluxden = np.array(raw_fluxden)
-        except ValueError:
-            print("Raw fluxden could not be converted to 1D ndarray")
-
-        try:
-            if raw_dispersion is None:
-                self.raw_dispersion = dispersion
-            else:
-                self.raw_dispersion = np.array(raw_dispersion)
-                # if dispersion.ndim != 1:
-                #     raise ValueError("Flux dimension is not 1")
-        except ValueError:
-            print("Raw dispersion could not be converted to 1D ndarray")
-
-        if raw_fluxden_err is None:
-            self.raw_fluxden_err = fluxden_err
-        else:
-            self.raw_fluxden_err = np.array(raw_fluxden_err)
-
         self.fluxden = fluxden
         self.fluxden_err = fluxden_err
         self.dispersion = dispersion
+        self.fluxden_ivar = fluxden_ivar
 
-        if mask is not None:
-            self.mask = mask
-        elif self.dispersion is None:
-            self.mask = None
-        else:
+        if self.dispersion is not None and mask is None:
             self.mask = np.ones(self.dispersion.shape, dtype=bool)
+        else:
+            self.mask = mask
 
         self.unit = unit
-        self.model_spectrum = None
-        self.model_pars = None
-        self.fit_dispersion = None
-        self.fit_fluxden = None
-        self.fit_output = None
 
-
-        if header == None:
-            self.header = dict()
+        if fluxden is not None \
+            and (isinstance(dispersion_unit, u.Unit) or
+                 isinstance(dispersion_unit, u.Quantity)) \
+            and (isinstance(fluxden_unit, u.Unit) or
+                 isinstance(fluxden_unit, u.Quantity)):
+            self.dispersion_unit = dispersion_unit
+            self.fluxden_unit = fluxden_unit
+        elif fluxden is None:
+            self.dispersion_unit = None
+            self.fluxden_unit = None
         else:
-            self.header = header
+            print('[WARNING] Flux density and dispersion units are '
+                  'not specified or not their types are not '
+                  'supported. Any '
+                  'astropy.units.Unit or astropy.units.Quantity '
+                  'object is allowed. As a default the units will '
+                  'be populated with erg/s/cm^2/AA and AA')
 
+            self.dispersion_unit = 1.*u.AA
+            self.fluxden_unit = 1.*u.erg/u.s/u.cm**2/u.AA
+
+        if isinstance(header, pd.DataFrame):
+            self.header = header
+        elif header is None:
+            self.header = pd.DataFrame(columns=['value'])
+        elif isinstance(header, fits.Header):
+            self.header = pd.DataFrame(list(header.items()),
+                                       index=list(header.keys()),
+                                       columns=['property', 'value'])
+            self.header.drop(columns='property', inplace=True)
+        else:
+            raise ValueError('[ERROR] Header is not a pandas DataFrame.')
+
+        # Additional definition for handling of fits data and pypeit spectra
+        self.fits_header = None
+        self.obj_model = obj_model
+        self.telluric = telluric
+
+# ------------------------------------------------------------------------------
+# READ AND WRITE
+# ------------------------------------------------------------------------------
 
     def read_pypeit_fits(self, filename, unit='f_lam', exten=1):
-        """ Read a 1D fits pypeit fits file to populate the SpecOneD class.
+        """Read in a pypeit fits spectrum as a SpecOneD object.
 
-        :param filename: str
-            Path/Filename of the pypeit 1D fits file
-        :param unit:
-            The unit of the fluxden measurement in the fits file. This defaults
-            to fluxden per wavelength (erg/s/cm^2/Angstroem)
+        :param filename: Filename of the fits file.
+        :type filename: string
+        :param unit: (Deprecated) Unit of the flux density and dispersion in
+        the fits file. This defaults to fluxden per wavelength
+        (erg/s/cm^2/Angstroem).
+        :type unit: str
+        :param exten: Extension of the pypeit fits file to read. This
+        defaults to exten=1.
+        :type exten: int
+        :return:
+
+        :raises ValueError: Raises an error when the filename could not be
+        read in.
         """
 
         # Open the fits file
@@ -203,44 +220,49 @@ class SpecOneD(object):
         except:
             raise ValueError("Filename not found", str(filename))
 
-        self.header = hdu[0].header
+        # Add header information to SpecOneD
+        header_df = pd.DataFrame(list(hdu[0].header.items()),
+                                 index=list(hdu[0].header.keys()),
+                                 columns=['property', 'value'])
+        header_df.drop(columns='property', inplace=True)
+        self.header = header_df
+
+        # Retain fits header in SpecOneD
+        self.fits_header = hdu[0].header
+
         self.unit = unit
         self.dispersion = hdu[exten].data['OPT_WAVE']
-        self.raw_dispersion = hdu[exten].data['OPT_WAVE']
-        self.fluxden = hdu[exten].data['OPT_FLAM'] * 1e-17
-        self.raw_fluxden = hdu[exten].data['OPT_FLAM'] * 1e-17
+        self.fluxden = hdu[exten].data['OPT_FLAM']
         self.mask = np.array(hdu[exten].data['OPT_MASK'], dtype=bool)
-        self.flux_ivar = hdu[exten].data['OPT_FLAM_IVAR']
-        self.fluxden_err = hdu[exten].data['OPT_FLAM_SIG'] * 1e-17
-        self.raw_fluxden_err = self.fluxden_err
+        self.fluxden_ivar = hdu[exten].data['OPT_FLAM_IVAR']
+        self.fluxden_err = hdu[exten].data['OPT_FLAM_SIG']
 
         # Mask all pixels where the fluxden error is 0
         new_mask = np.ones_like(self.mask, dtype=bool)
         new_mask[self.fluxden_err == 0] = 0
         self.mask = new_mask
 
+        self.dispersion_unit = 1. * u.AA
+        self.fluxden_unit = 1e-17*u.erg/u.s/u.cm**2/u.AA
 
         if 'TELLURIC' in hdu[exten].columns.names:
             self.telluric = hdu[exten].data['TELLURIC']
         if 'OBJ_MODEL' in hdu[exten].columns.names:
-            self.obj_model = hdu[exten].data['OBJ_MODEL']*1e-17
-
+            self.obj_model = hdu[exten].data['OBJ_MODEL']
 
     def read_from_fits(self, filename, unit='f_lam'):
-        """Read a 1D fits file to populate the SpecOneD class.
+        """Read in an iraf fits spectrum as a SpecOneD object.
 
-        Parameters
-        ----------
-        filename : str
-            A string providing the path and filename for the fits file.
-        unit : str
-            The unit of the fluxden measurement in the fits file. This defaults
-            to fluxden per wavelength (erg/s/cm^2/Angstroem)
+        :param filename: Filename of the fits file.
+        :type filename: str
+        :param unit: (Deprecated) Unit of the flux density and dispersion in
+        the fits file. This defaults to fluxden per wavelength
+        (erg/s/cm^2/Angstroem).
+        :type unit: str
+        :return:
 
-        Raises
-        ------
-        ValueError
-            Raises an error when the filename could not be read in.
+        :raises ValueError: Raises an error when the filename could not be
+        read in.
         """
 
         # Open the fits file
@@ -260,7 +282,6 @@ class SpecOneD(object):
         crpix = hdu[0].header['CRPIX1']
         naxis = hdu[0].header['NAXIS1']
 
-
         self.unit = unit
 
         # Read in object fluxden
@@ -275,33 +296,33 @@ class SpecOneD(object):
             self.fluxden = np.array(hdu[0].data[:])
             self.fluxden_err = None
 
-
         # Calculate dispersion axis from header information
         crval = crval - crpix
         self.dispersion = crval + np.arange(naxis) * cd
 
-        self.raw_fluxden = self.fluxden
         self.mask = np.ones(self.dispersion.shape, dtype=bool)
-        self.raw_fluxden_err = self.fluxden_err
-        self.raw_dispersion = self.dispersion
 
+        # Add header information to SpecOneD
+        header_df = pd.DataFrame(list(hdu[0].header.items()),
+                                 index=list(hdu[0].header.keys()),
+                                 columns=['property','value'])
+        header_df.drop(columns='property', inplace=True)
         self.header = hdu[0].header
+        self.fits_header = hdu[0].header
 
     def read_sdss_fits(self, filename, unit='f_lam'):
-        """Read a 1D SDSS fits file to populate the SpecOneD class.
+        """Read in an SDSS/BOSS fits spectrum as a SpecOneD object.
 
-        Parameters
-        ----------
-        filename : str
-            A string providing the path and filename for the fits file.
-        unit : str
-            The unit of the fluxden measurement in the fits file. This defaults
-            to fluxden per wavelength (erg/s/cm^2/Angstroem)
+        :param filename: Filename of the fits file.
+        :type filename: str
+        :param unit: (Deprecated) Unit of the flux density and dispersion in
+        the fits file. This defaults to fluxden per wavelength
+        (erg/s/cm^2/Angstroem).
+        :type unit: str
+        :return:
 
-        Raises
-        ------
-        ValueError
-            Raises an error when the filename could not be read in.
+        :raises ValueError: Raises an error when the filename could not be
+        read in.
         """
 
         # Open the fits file
@@ -310,149 +331,252 @@ class SpecOneD(object):
         except:
             raise ValueError("Filename not found", str(filename))
 
-
         self.unit = unit
 
-
-        self.fluxden = np.array(hdu[1].data['flux'], dtype=np.float64)*1e-17
+        self.fluxden = np.array(hdu[1].data['flux'], dtype=np.float64)
         self.dispersion = 10**np.array(hdu[1].data['loglam'], dtype=np.float64)
         self.ivar = np.array(hdu[1].data['ivar'], dtype=np.float64)
-        self.fluxden_err = 1/np.sqrt(self.ivar)*1e-17
+        self.fluxden_err = 1/np.sqrt(self.ivar)
 
         self.mask = np.ones(self.dispersion.shape, dtype=bool)
 
-        self.header = hdu[0].header
+        # Add header information to SpecOneD
+        header_df = pd.DataFrame(list(hdu[0].header.items()),
+                                 index=list(hdu[0].header.keys()),
+                                 columns=['property', 'value'])
+        header_df.drop(columns='property', inplace=True)
+        self.header = header_df
+        self.fits_header = hdu[0].header
 
+        self.dispersion_unit = 1. * u.AA
+        self.fluxden_unit = 1e-17 * u.erg / u.s / u.cm ** 2 / u.AA
 
-    def save_to_fits(self, filename, comment=None, overwrite = False):
-        """Save a SpecOneD spectrum to a fits file.
+    def save_to_hdf(self, filename):
+        """
+        Save a SpecOneD object to a hdf5 file.
 
-        Note: This save function does not store flux_errors, masks, fits etc.
-        Only the original header, the dispersion (via the header), and the fluxden
-        are stored.
+        SpecOneD hdf5 files have three extensions:
+        - data: holding the array spectral information like dispersion,
+        flux density, flux density error, flux density inverse variance, or mask
+        - spec_meta: holding information on the spectral meta data, currently
+        this includes the units of the dispersion and flux density axis.
+        - header: If a header exists, it will be saved here.
 
-        Parameters
-        ----------
-        filename : str
-            A string providing the path and filename for the fits file.
-
-        Raises
-        ------
-        ValueError
-            Raises an error when the filename exists and overwrite = False
+        :param filename: Filename to save the current SpecOneD object to.
+        :type filename: str
+        :return:
         """
 
-
-        hdu  = fits.PrimaryHDU(self.fluxden)
-        hdu.header = self.header
-
-        # Update header information
-        crval = self.dispersion[0]
-        cd = self.dispersion[1]-self.dispersion[0]
-        crpix = 1
-
-        hdu.header['CRVAL1'] = crval
-        hdu.header['CD1_1'] = cd
-        hdu.header['CDELT1'] = cd
-        hdu.header['CRPIX1'] = crpix
-
-        hdu.header['HISTORY'] = '1D spectrum generated with SpecOneD'
-
-        if comment:
-            hdu.header['HISTORY'] = comment
-
-        hdul = fits.HDUList([hdu])
-
-        try:
-            hdul.writeto(filename, overwrite = overwrite)
-        except:
-            raise ValueError("Spectrum could not be saved. Maybe a file with the same name already exists and overwrite is False")
-
-    def save_to_hdf(self, filename, comment=None, overwrite=False):
-
-        df = pd.DataFrame(np.array([self.dispersion, self.fluxden]).T, columns=['dispersion', 'fluxden'])
+        df = pd.DataFrame(np.array([self.dispersion, self.fluxden]).T,
+                          columns=['dispersion', 'fluxden'])
 
         if self.fluxden_err is not None:
             df['fluxden_err'] = self.fluxden_err
+        if self.fluxden_ivar is not None:
+            df['fluxden_ivar'] = self.fluxden_err
+        if self.mask is not None:
+            df['mask'] = self.mask
 
         df.to_hdf(filename, 'data')
 
+        # Save the spectrum meta data
+        dispersion_unit_str = self.dispersion_unit.to_string()
+        fluxden_unit_str = self.fluxden_unit.to_string()
+        df = pd.DataFrame({'dispersion_unit': dispersion_unit_str,
+                           'fluxden_unit': fluxden_unit_str},
+                          index=['value'])
+
+        df.to_hdf(filename, 'spec_meta')
+
+        # If a header exists, save it
+        if self.header is not None:
+            self.header.to_hdf(filename, 'header')
 
     def read_from_hdf(self, filename):
+        """
+        Read in a SpecOneD object from a hdf5 file.
 
-        df = pd.read_hdf(filename, 'data')
+        :param filename: Filename from which to read the new SpecOneD object in.
+        :type filename: str
+        :return:
+        """
 
-        self.dispersion = df['dispersion'].values
-        # Backward compatibility with previous SpecOneD
-        if 'fluxden' in df.columns:
-            self.fluxden = df['fluxden'].values
+        h5file = h5py.File(filename, 'r')
+        if 'data' in h5file.keys():
+
+            df = pd.read_hdf(filename, 'data')
+
+            self.dispersion = df['dispersion'].values
+            # Backward compatibility with previous SpecOneD
+            if 'fluxden' in df.columns:
+                self.fluxden = df['fluxden'].values
+            else:
+                self.fluxden = df['flux'].values
+            if 'fluxden_err' in df.columns:
+                self.fluxden_err = df['fluxden_err'].values
+            else:
+                self.fluxden_err = df['flux_err'].values
+
+            if 'mask' in df.columns:
+                self.mask = df['mask'].values
+            else:
+                self.reset_mask()
         else:
-            self.fluxden = df['flux'].values
-        if 'fluxden_err' in df.columns:
-            self.fluxden_err = df['fluxden_err'].values
+            raise ValueError('[ERROR] No spectral data found in hdf5 file.')
+
+        if 'spec_meta' in h5file.keys():
+            df = pd.read_hdf(filename, 'spec_meta')
+
+            dispersion_unit = u.Quantity(df.loc['value', 'dispersion_unit'])
+                                            # format='cds')
+            fluxden_unit = u.Quantity(df.loc['value', 'fluxden_unit'])
+                                         # format='cds')
+            self.dispersion_unit = dispersion_unit
+            self.fluxden_unit = fluxden_unit
         else:
-            self.fluxden_err = df['flux_err'].values
+            raise ValueError('[ERROR] No spectral meta data found in hdf5 '
+                             'file.')
+
+        if 'header' in h5file.keys():
+            df = pd.read_hdf(filename, 'header')
+            self.header = df
+        else:
+            self.header = None
+
+        # Deprecated, will be removed
         self.unit = 'f_lam'
-        self.reset_mask()
-        self.override_raw()
 
+    def save_to_csv(self, filename, outputformat='linetools'):
+        """Save SpecOneD object to a csv file.
 
+        Output formats:
+        - default: All array-like SpecOneD data will be saved to the csv
+        file. Standard columns include dispersion, flux density, and flux
+        density error. Additional columns can be telluric or object model
+        from spectra reduced with pypeit.
+        - "linetools": In the linetool format dispersion, flux density and
+        flux density error (if exists) are saved in three columns with names
+        'wave', 'flux', and 'error'.
 
-    def save_to_csv(self, filename, format='linetools'):
+        WARNING: At present the SpecOneD data will be saved independent of
+        its physical units. They will not be automatically converted to a
+        common format. User discretion is advised as unit information might
+        get lost if saving to csv.
+
+        :param filename: Filename to save the SpecOneD object to.
+        :type filename: str
+        :param outputformat: Format of the csv file. Possible formats include
+        "linetools". All other inputs will save it to the default format.
+        :type outputformat: str
+        :return:
+        """
 
         data = [self.dispersion, self.fluxden]
 
         if self.fluxden_err is not None:
             data.append(self.fluxden_err)
-
-
-        if hasattr(self, 'telluric'):
+        if self.telluric is not None:
             data.append(self.telluric)
-        if hasattr(self, 'obj_model'):
+        if self.obj_model is not None:
             data.append(self.obj_model)
 
-        if format == 'linetools':
+        if outputformat == 'linetools':
 
-            column_names = ['wave', 'fluxden']
+            column_names = ['wave', 'flux']
             if self.fluxden_err is not None:
                 column_names.append('error')
 
         else:
-
             column_names = ['wavelength', 'fluxden']
             if self.fluxden_err is not None:
                 column_names.append('flux_error')
 
-        if hasattr(self, 'telluric'):
+        if self.telluric is not None:
             column_names.append('telluric')
-        if hasattr(self, 'obj_model'):
+        if self.obj_model is not None:
             column_names.append('obj_model')
 
         df = pd.DataFrame(np.array(data).T, columns=column_names)
 
-
         df.to_csv(filename, index=False)
 
+# ------------------------------------------------------------------------------
+# BASIC CLASS FUNCTIONALITY
+# ------------------------------------------------------------------------------
 
+    def copy(self):
+        """Copy the current SpecOneD object to a new instance and return it.
 
+        :return:
+        :rtype: SpecOneD
+        """
+
+        dispersion = self.dispersion.copy()
+        fluxden = self.fluxden.copy()
+        if self.fluxden_err is not None:
+            flux_err = self.fluxden_err.copy()
+        else:
+            flux_err = self.fluxden_err
+        if self.fluxden_ivar is not None:
+            fluxden_ivar = self.fluxden_ivar.copy()
+        else:
+            fluxden_ivar = self.fluxden_ivar
+        if self.mask is not None:
+            mask = self.mask.copy()
+        else:
+            mask = self.mask
+        if self.obj_model is not None:
+            obj_model = self.obj_model.copy()
+        else:
+            obj_model = None
+        if self.telluric is not None:
+            telluric = self.telluric.copy()
+        else:
+            telluric = self.telluric
+
+        if self.header is not None:
+            header = self.header.copy(deep=True)
+        else:
+            header = self.header
+
+        unit = self.unit
+        dispersion_unit = self.dispersion_unit
+        fluxden_unit = self.fluxden_unit
+
+        return SpecOneD(dispersion=dispersion,
+                        fluxden=fluxden,
+                        fluxden_err=flux_err,
+                        fluxden_ivar=fluxden_ivar,
+                        header=header,
+                        unit=unit,
+                        mask=mask,
+                        dispersion_unit=dispersion_unit,
+                        fluxden_unit=fluxden_unit,
+                        obj_model=obj_model,
+                        telluric=telluric
+                        )
 
     def reset_mask(self):
-        """Reset the spectrum mask by repopulating it with a 1D array of
-        boolean 1 = "True" values.
-        """
+        """Reset the spectrum mask.
 
-        self.mask = np.ones(self.dispersion.shape, dtype=bool)
-
-
-    def mask_sn(self, signal_to_noise_limit, inplace=False):
-        """
-
-        :param signal_to_noise_limit:
-        :param inplace:
         :return:
         """
+        self.mask = np.ones(self.dispersion.shape, dtype=bool)
 
-        mask_index = self.fluxden / self.fluxden_err > signal_to_noise_limit
+    def mask_by_snr(self, signal_to_noise_ratio, inplace=False):
+        """Mask all regions with a signal to noise below the specified limit
+
+        :param signal_to_noise_ratio: All regions of the spectrum with a
+        value below this limit will be masked.
+        :type signal_to_noise_ratio: float
+        :param inplace: Boolean to indicate whether the active SpecOneD
+        object will be modified or a new SpecOneD object will be created and
+        returned.
+        :type inplace: bool
+        :return: SpecOneD
+        """
+
+        mask_index = self.fluxden / self.fluxden_err > signal_to_noise_ratio
 
         new_mask = np.zeros(self.dispersion.shape, dtype=bool)
 
@@ -468,103 +592,173 @@ class SpecOneD(object):
             spec.mask = new_mask
             return spec
 
-    def get_ivar_from_sigma(self):
+    def mask_between(self, limits, inplace=False):
+        """Mask spectrum between specified dispersion limits.
+
+        :param limits: A list of two floats indicating the lower and upper
+        dispersion limit to mask between.
+        :type limits: [float, float]
+        :param inplace: Boolean to indicate whether the active SpecOneD
+        object will be modified or a new SpecOneD object will be created and
+        returned.
+        :type inplace: bool
+        :return:
+        """
+
+        lo_index = np.argmin(np.abs(self.dispersion - limits[0]))
+        up_index = np.argmin(np.abs(self.dispersion - limits[1]))
+
+        self.mask[lo_index:up_index] = 0
+
+        if inplace:
+            self.mask[lo_index:up_index] = 0
+        else:
+            spec = self.copy()
+            spec.mask[lo_index:up_index] = 0
+
+            return spec
+
+    def get_ivar_from_fluxden_error(self):
+        """Calculate inverse variance of the flux density from the flux
+        density 1-sigma error.
+
+        :return:
+        """
 
         if self.fluxden_err is None:
-            self.flux_ivar = None
+            self.fluxden_ivar = None
         else:
             ivar = np.zeros_like(self.fluxden_err)
             valid = self.fluxden_err > 0
             ivar[valid] = 1. / (self.fluxden_err[valid]) ** 2
 
-            self.flux_ivar = ivar
+            self.fluxden_ivar = ivar
 
-    def get_sigma_from_ivar(self):
+    def get_fluxden_error_from_ivar(self):
+        """Calculate the flux density 1-sigma error from the inverse variance
+        of the flux density/
 
-        if self.flux_ivar is None:
+        :return:
+        """
+
+        if self.fluxden_ivar is None:
             self.fluxden_err = None
         else:
-            sigma = np.zeros_like(self.flux_ivar)
-            valid = self.flux_ivar > 0
-            sigma[valid] = 1./np.sqrt(self.flux_ivar[valid])
+            sigma = np.zeros_like(self.fluxden_ivar)
+            valid = self.fluxden_ivar > 0
+            sigma[valid] = 1./np.sqrt(self.fluxden_ivar[valid])
 
             self.fluxden_err = sigma
 
+# ------------------------------------------------------------------------------
+# SPECTRAL UNIT CONVERSION
+# ------------------------------------------------------------------------------
 
+    def check_units(self, spectrum):
+        """Raise a ValueError if current and input spectrum have different
+        dispersion of flux density units.
 
-    def copy(self):
-        """Create a new SpecOneD instance, populate it with the values
-        from the active spectrum and return it.
-
-
-        Returns
-        -------
-        obj:'SpecOneD'
-            Returns an new SpecOneD instance populated by the original spectrum.
-        """
-        new_dispersion = self.dispersion.copy()
-        new_flux = self.fluxden.copy()
-        if self.fluxden_err is not None:
-            new_flux_err = self.fluxden_err.copy()
-        else:
-            new_flux_err = None
-        new_header = self.header
-        new_unit = self.unit
-        new_mask = self.mask
-        new_raw_dispersion = self.raw_dispersion
-        new_raw_flux = self.raw_fluxden
-        new_raw_flux_err = self.raw_fluxden_err
-
-        return SpecOneD(dispersion=new_dispersion,
-                        fluxden=new_flux,
-                        fluxden_err=new_flux_err,
-                        header=new_header,
-                        unit=new_unit,
-                        mask=new_mask,
-                        raw_dispersion=new_raw_dispersion,
-                        raw_fluxden=new_raw_flux,
-                        raw_fluxden_err=new_raw_flux_err,
-                        )
-
-    def override_raw(self):
-        """ Override the raw_dispersion, raw_fluxden and raw_fluxden_err
-        variables in the SpecOneD class with the current dispersion, fluxden and
-        fluxden_err values.
+        :param spectrum:
+        :type spectrum: SpecOneD
+        :return:
         """
 
-        self.raw_dispersion = self.dispersion
-        self.raw_fluxden = self.fluxden
-        self.raw_fluxden_err = self.fluxden_err
+        if self.fluxden_unit != spectrum.fluxden_unit or \
+           self.dispersion_unit != spectrum.dispersion_unit:
+            raise ValueError('[ERROR] Current and supplied spectrum have '
+                             'different dispersion and/or flux density units.')
 
-    def restore(self):
-        """ Override the dispersion, fluxden and fluxden_err
-        variables in the SpecOneD class with the raw_dispersion, raw_fluxden and
-        raw_fluxden_err values.
+    def convert_spectral_units(self, new_dispersion_unit, new_fluxden_unit):
+        """Conver the spectrum to new physical dispersion and flux density
+        units.
+
+        WARNING: NEW FUNCTIONALITY, NOT FULLY TESTED!
+
+        The function converts the flux density, the dispersion, the flux
+        density error and the inverse variance.
+        Object model and telluric if they exist will not be converted.
+
+        :param new_dispersion_unit:
+        :param new_fluxden_unit:
+        :return:
         """
 
-        self.dispersion = self.raw_dispersion
-        self.fluxden = self.raw_fluxden
-        self.fluxden_err = self.raw_fluxden_err
-        self.reset_mask()
+        # Setup physical spectral properties
+        fluxden = self.fluxden * self.fluxden_unit
+        dispersion = self.dispersion * self.dispersion_unit
+        fluxden_err = self.fluxden_err * self.fluxden_unit
 
-    def check_units(self, secondary_spectrum):
-        """ This method checks if the active spectrum and a second spectrum
-        have the same fluxden units.
+        # Convert flux density
+        new_fluxden = fluxden.to(new_fluxden_unit,
+                                 equivalencies=u.spectral_density(dispersion))
 
-        Parameters
-        ----------
-        secondary_spectrum : obj:`SpecOneD`
-            Secondary spectrum to compare units with.
+        # Convert flux density 1-sigma errors
+        new_fluxden_err = fluxden_err.to(new_fluxden_unit,
+                                         equivalencies=u.spectral_density(
+                                                       dispersion))
 
-        Raises
-        ------
-        ValueError
-            Raises an Error when the spectra are in different units.
+        # Convert dispersion axis
+        new_dispersion = dispersion.to(new_dispersion_unit,
+                                       equivalencies=u.spectral())
 
+        self.fluxden = new_fluxden.value
+        self.fluxden_err = new_fluxden_err.value
+        self.get_ivar_from_fluxden_error()
+        self.fluxden_unit = new_fluxden.unit
+        self.dispersion = new_dispersion.value
+        self.dispersion_unit = new_dispersion.unit
+
+    def to_fluxden_per_unit_frequency_cgs(self):
+        """Convert SpecOneD spectrum to flux density per unit frequency (Hz) in
+        cgs units.
+
+        :return:
         """
 
-        if self.unit != secondary_spectrum.unit:
-            raise ValueError('Spectra are in different units!')
+        new_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.Hz
+        new_dispersion_unit = u.Hz
+
+        self.convert_spectral_units(new_dispersion_unit,
+                                    new_fluxden_unit)
+
+    def to_fluxden_per_unit_frequency_jy(self):
+        """Convert SpecOneD spectrum to flux density per unit frequency (Hz) in
+        Jy.
+
+        :return:
+        """
+
+        new_fluxden_unit = u.Jy
+        new_dispersion_unit = u.Hz
+
+        self.convert_spectral_units(new_dispersion_unit,
+                                    new_fluxden_unit)
+
+    def to_fluxden_per_unit_frequency_si(self):
+        """Convert SpecOneD spectrum to flux density per unit frequency (Hz) in
+        SI units.
+
+        :return:
+        """
+
+        new_fluxden_unit = u.Watt / u.m ** 2 / u.Hz
+        new_dispersion_unit = u.Hz
+
+        self.convert_spectral_units(new_dispersion_unit,
+                                    new_fluxden_unit)
+
+    def to_fluxden_per_unit_wavelength_cgs(self):
+        """Convert SpecOneD spectrum to flux density per unit wavelength (
+        Angstroem) in cgs units.
+
+        :return:
+        """
+
+        new_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
+        new_dispersion_unit = u.AA
+
+        self.convert_spectral_units(new_dispersion_unit,
+                                    new_fluxden_unit)
 
     def to_log_wavelength(self):
         """ Convert the spectrum into logarithmic wavelength units.
@@ -590,8 +784,7 @@ class SpecOneD(object):
             self.to_wavelength()
             self.to_log_wavelength()
 
-        self.unit='f_loglam'
-
+        self.unit = 'f_loglam'
 
     def to_wavelength(self):
         """ Convert the spectrum from fluxden per frequency to fluxden per
@@ -655,6 +848,10 @@ class SpecOneD(object):
 
         self.unit = 'f_nu'
 
+# ------------------------------------------------------------------------------
+# CLASS FUNCTIONALITY
+# ------------------------------------------------------------------------------
+
     def check_dispersion_overlap(self, secondary_spectrum):
         """Check the overlap between the active spectrum and the
         supplied secondary spectrum.
@@ -662,26 +859,24 @@ class SpecOneD(object):
         This method determines whether the active spectrum (primary) and the
         supplied spectrum (secondary) have overlap in their dispersions.
         Possible cases include:
-        i) The primary spectrum is fully overlapping with the secondary.
-        ii) The secondary is fully overlapping with this priamy spectrum, but
-        not vice versa.
-        iii) and iv) There is partial overlap between the spectra.
-        v) There is no overlap between the spectra.
+        i) The current spectrum dispersion is fully within the dispersion
+        range of the 'secondary' spectrum -> 'primary' overlap.
+        ii) The secondary spectrum dispersion is fully within the dispersion
+        range of the current spectrum -> 'secondary' overlap.
+        iii) and iv) There is only partial overlap between the spectra ->
+        'partial' overlap.
+        v) There is no overlap between the spectra -> 'none' overlap. In the
+        case of no overlap np.NaN values are returned for the minimum and
+        maximum dispersion limits.
 
-        Parameters
-        ----------
-        secondary_spectrum : obj:`SpecOneD`
-            Secondary spectrum
-
-        Returns
-        -------
-        overlap : str
-            A string indicating what the dispersion overlap between the spectra
-            is according to the cases above.
-        overlap_min : float
-            The minimum value of the overlap region of the two spectra.
-        overlap_max : float
-            The maximum value of the overlap region of the two spectra.
+        :param secondary_spectrum:
+        :type secondary_spectrum: SpecOneD
+        :return: overlap, overlap_min, overlap_max
+            Returns a string indicating the dispersion
+            overlap type according to the cases above 'overlap and the
+            minimum and maximum dispersion value of the overlap region of the
+            two spectra.
+        :rtype: (str, float, float)
         """
 
         self.check_units(secondary_spectrum)
@@ -696,59 +891,61 @@ class SpecOneD(object):
             return 'primary', spec_min, spec_max
         elif spec_min < secondary_min and spec_max > secondary_max:
             return 'secondary', secondary_min, secondary_max
-        elif spec_min <= secondary_min and secondary_min <= spec_max <= secondary_max:
+        elif spec_min <= secondary_min and secondary_min <= spec_max <= \
+                secondary_max:
             return 'partial', secondary_min, spec_max
-        elif secondary_max >= spec_min >= secondary_min and spec_max >= secondary_max:
+        elif secondary_max >= spec_min >= secondary_min and spec_max >= \
+                secondary_max:
             return 'partial', spec_min, secondary_max
         else:
             return 'none', np.NaN, np.NaN
 
     def match_dispersions(self, secondary_spectrum, match_secondary=True,
-                          force=False, interp_kind='linear',
-                          method='interpolate'):
-        """Match the dispersion of the primary and the supplied secondary
+                          force=False, method='interpolate',
+                          interp_method='linear'):
+        """Match the dispersion of the current spectrum and the secondary
         spectrum.
 
-
-        Notes
-        -----
         TODO: Add fluxden error handling
 
-        Both, primary and secondary, SpecOneD classes are modified in this
+        Both, current and secondary, SpecOneD objects are modified in this
         process. The dispersion match identifies the maximum possible overlap
-        in the dispersion direction of both spectra and trims them to that
-        range.
+        in the dispersion direction of both spectra and automatically trims
+        them to that range.
 
-        If the primary spectrum overlaps fully with the secondary spectrum the
-        dispersion of the secondary will be interpolated/resampled to the
-        primary dispersion.
+        If the current (primary) spectrum overlaps fully with the secondary
+        spectrum the dispersion of the secondary will be interpolated/resampled
+        to the primary dispersion.
+
         If the secondary spectrum overlaps fully with the primary, the primary
         spectrum will be interpolated/resampled on the secondary spectrum
-        resolution, but
-        this happens only if 'force==True' and 'match_secondary==False'.
+        resolution, but this will only be executed if 'force==True' and
+        'match_secondary==False'.
+
         If there is partial overlap between the spectra and 'force==True'
-        the secondary spectrum will be interpolated to match the
+        the secondary spectrum will be interpolated/resampled to match the
         dispersion values of the primary spectrum.
+
         If there is no overlap a ValueError will be raised.
 
-        Parameters
-        ----------
-        secondary_spectrum : obj:`SpecOneD`
-            Secondary spectrum
-        match_secondary : boolean
-            The boolean indicates whether the secondary will always be matched
-            to the primary or whether reverse matching, primary to secondary is
-            allowed.
-        force : boolean
-            The boolean sets whether the dispersions are matched if only
-            partial overlap between the spectral dispersions exists.
+        :param secondary_spectrum: Secondary spectrum
+        :type secondary_spectrum: SpecOneD
+        :param match_secondary: The boolean indicates whether the secondary
+        will always be matched to the primary or whether reverse matching,
+        primary to secondary is allowed.
+        :type match_secondary: bool
+        :param force: he boolean sets whether the dispersions are matched if
+        only partial overlap between the spectral dispersions exists.
+        :type force: bool
+        :param method:
+        :type method: str
+        :param interp_method:
+        :type interp_method: str
+        :return:
 
-        Raises
-        ------
-        ValueError
-            A ValueError will be raised if there is no overlap between the
+        :raise ValueError: A ValueError will be raised if there is no overlap
+        between the
             spectra.
-
         """
 
         self.check_units(secondary_spectrum)
@@ -757,505 +954,69 @@ class SpecOneD(object):
 
         if overlap == 'primary':
             if method == 'interpolate':
-                secondary_spectrum.interpolate(self.dispersion, kind=interp_kind)
+                secondary_spectrum.interpolate(self.dispersion,
+                                               kind=interp_method)
             elif method == 'resample':
                 secondary_spectrum.resample(self.dispersion, force=force,
-                inplace=True)
+                                            inplace=True)
 
-
-        elif (overlap == 'secondary' and match_secondary is False and force is
-        True):
+        elif (overlap == 'secondary' and match_secondary is False and force
+              is True):
             if method == 'interpolate':
-                self.interpolate(secondary_spectrum.dispersion, kind=interp_kind)
+                self.interpolate(secondary_spectrum.dispersion,
+                                 kind=interp_method)
             elif method == 'resample':
                 self.resample(secondary_spectrum.dispersion, force=force,
                               inplace=True)
 
         elif (overlap == 'secondary' and match_secondary is True and force is
-        True):
-            self.trim_dispersion(limits=[s_min, s_max], mode='wav', inplace=True)
+              True):
+            self.trim_dispersion(limits=[s_min, s_max], mode='wav',
+                                 inplace=True)
             if method == 'interpolate':
-                secondary_spectrum.interpolate(self.dispersion, kind=interp_kind)
+                secondary_spectrum.interpolate(self.dispersion,
+                                               kind=interp_method)
             elif method == 'resample':
                 secondary_spectrum.resample(self.dispersion, force=force,
                                             inplace=True)
 
         elif overlap == 'partial' and force is True:
-            self.trim_dispersion(limits=[s_min, s_max], mode='wav', inplace=True)
+            self.trim_dispersion(limits=[s_min, s_max], mode='wav',
+                                 inplace=True)
             if method == 'interpolate':
-                secondary_spectrum.interpolate(self.dispersion, kind=interp_kind)
+                secondary_spectrum.interpolate(self.dispersion,
+                                               kind=interp_method)
             elif method == 'resample':
                 secondary_spectrum.resample(self.dispersion, force=force,
                                             inplace=True)
 
-        elif force is False and (overlap == 'secondary' or overlap == 'partial'):
-            raise ValueError('There is overlap between the spectra but force is False.')
+        elif force is False and (overlap == 'secondary' or overlap ==
+                                 'partial'):
+            raise ValueError('[ERROR] There is secondary or partial overlap '
+                             'between the spectra but force is False. Current '
+                             'spectrum will not be modified')
 
         elif overlap == 'none':
-            raise ValueError('There is no overlap between the primary and \
-                             secondary spectrum.')
+            raise ValueError('[ERROR] There is no overlap between the current '
+                             'and the secondary spectrum.')
 
+    def trim_dispersion(self, limits, mode='physical', inplace=False):
+        """Trim the spectrum according to the dispersion limits specified.
 
-    def add(self, secondary_spectrum, copy_header='first', force=True,
-            copy_flux_err = 'No', method='interpolate'):
-
-        """Add the fluxden in the primary and secondary spectra.
-
-        Notes
-        -----
-        Users should be aware that in order to add the fluxden of the two spectra,
-        the dispersions of the spectra need to be matched, see match_dispersions
-        and beware of the caveats of dispersion interpolation.
-
-        Parameters
-        ----------
-        secondary_spectrum : obj:`SpecOneD`
-            Secondary spectrum
-        copy_header : 'str'
-            A string indicating whether the primary('first') spectrum header or
-            the secondary('last') spectrum header should be copied to the
-            resulting spectrum.
-        force : boolean
-            The boolean sets whether the dispersions are matched if only
-            partial overlap between the spectral dispersions exist.
-        inplace : boolean
-            The boolean indicates whether the resulting spectrum will overwrite
-            the primary spectrum or whether it will be returned as a new
-            spectrum argument by the method.
-
-        Returns
-        -------
-        obj:`SpecOneD`
-            Returns a SpecOneD object in the default case, "inplace==False".
+        :param limits: A list of two floats indicating the lower and upper
+        dispersion limit to trim the dispersion axis to.
+        :type limits: [float, float] or [int, int]
+        :param mode: A string specifying whether the limits are in 'physical'
+        values of the dispersion axis (e.g. Angstroem) or in pixel values.
+        :type mode: str
+        :param inplace: Boolean to indicate whether the active SpecOneD
+        object will be modified or a new SpecOneD object will be created and
+        returned.
+        :type inplace: bool
+        :return:
         """
 
-        self.check_units(secondary_spectrum)
-        # fluxden error needs to be taken care of
-        # needs to be tested
-
-        s_one = self.copy()
-        s_two = secondary_spectrum.copy()
-
-
-        if not np.array_equal(s_one.dispersion, s_two.dispersion):
-            print ("Warning: Dispersion does not match.")
-            print ("Warning: Flux will be interpolated/resampled.")
-
-            s_one.match_dispersions(s_two, force=force,
-                                   method=method)
-
-        new_flux = s_one.flux + s_two.flux
-
-        if copy_flux_err == 'No' and isinstance(s_one.flux_err,
-                                                np.ndarray) and \
-                isinstance(s_two.flux_err, np.ndarray):
-            new_flux_err = np.sqrt(s_one.flux_err**2 + s_two.flux_err**2)
-        elif copy_flux_err == 'first':
-            new_flux_err = s_one.flux_err
-        elif copy_flux_err == 'second':
-            new_flux_err = s_two.flux_err
-        else:
-            new_flux_err = None
-
-        if copy_header == 'first':
-            new_header = s_one.header
-        elif copy_header == 'last':
-            new_header = s_two.header
-
-
-        return SpecOneD(dispersion=s_one.dispersion,
-                        fluxden=new_flux,
-                        fluxden_err=new_flux_err,
-                        header=new_header,
-                        unit=s_one.unit,
-                        mask=s_one.mask)
-
-    def subtract(self, secondary_spectrum, copy_header='first', force=True,
-                 copy_flux_err = 'No', method='interpolate'):
-        """Subtract the fluxden of the secondary spectrum from the primary
-        spectrum.
-
-        Notes
-        -----
-        Users should be aware that in order to subtract the fluxden,
-        the dispersions of the spectra need to be matched, see match_dispersions
-        and beware of the caveats of dispersion interpolation.
-
-        Parameters
-        ----------
-        secondary_spectrum : obj:`SpecOneD`
-            Secondary spectrum
-        copy_header : 'str'
-            A string indicating whether the primary('first') spectrum header or
-            the secondary('last') spectrum header should be copied to the
-            resulting spectrum.
-        force : boolean
-            The boolean sets whether the dispersions are matched if only
-            partial overlap between the spectral dispersions exist.
-        inplace : boolean
-            The boolean indicates whether the resulting spectrum will overwrite
-            the primary spectrum or whether it will be returned as a new
-            spectrum argument by the method.
-
-        Returns
-        -------
-        obj:`SpecOneD`
-            Returns a SpecOneD object in the default case, "inplace==False".
-        """
-
-        self.check_units(secondary_spectrum)
-        # fluxden error needs to be taken care of
-        # needs to be tested
-        # check for negative values?
-
-        s_one = self.copy()
-        s_two = secondary_spectrum.copy()
-
-        if not np.array_equal(s_one.dispersion, s_two.dispersion):
-            print ("Warning: Dispersion does not match.")
-            print ("Warning: Flux will be interpolated.")
-
-            s_one.match_dispersions(s_two, force=force,
-                                   method=method)
-
-        new_flux = s_one.flux - s_two.flux
-
-        if copy_flux_err == 'No' and isinstance(s_one.flux_err,
-                                                np.ndarray) and \
-                isinstance(s_two.flux_err, np.ndarray):
-            new_flux_err = np.sqrt(s_one.flux_err**2 + s_two.flux_err**2)
-        elif copy_flux_err == 'first':
-            new_flux_err = s_one.flux_err
-        elif copy_flux_err == 'second':
-            new_flux_err = s_two.flux_err
-        else:
-            new_flux_err = None
-
-        if copy_header == 'first':
-            new_header = s_one.header
-        elif copy_header == 'last':
-            new_header = s_two.header
-
-
-        return SpecOneD(dispersion=s_one.dispersion,
-                        fluxden=new_flux,
-                        fluxden_err=new_flux_err,
-                        header=new_header,
-                        unit=s_one.unit,
-                        mask=s_one.mask)
-
-    def divide(self, secondary_spectrum, copy_header='first', force=True,
-               copy_flux_err = 'No', method='interpolate'):
-
-        """Divide the fluxden of the primary spectrum by the fluxden
-        of the secondary spectrum.
-
-        Notes
-        -----
-        Users should be aware that in order to divide the fluxden of the two
-        spectra, the dispersions of the spectra need to be matched,
-        (see match_dispersions) and beware of the caveats of dispersion
-        interpolation.
-
-        Parameters
-        ----------
-        secondary_spectrum : obj: SpecOneD
-            Secondary spectrum
-        copy_header : 'str'
-            A string indicating whether the primary('first') spectrum header or
-            the secondary('last') spectrum header should be copied to the
-            resulting spectrum.
-        force : boolean
-            The boolean sets whether the dispersions are matched if only
-            partial overlap between the spectral dispersions exist.
-        inplace : boolean
-            The boolean indicates whether the resulting spectrum will overwrite
-            the primary spectrum or whether it will be returned as a new
-            spectrum argument by the method.
-
-        Returns
-        -------
-        obj: SpecOneD
-            Returns a SpecOneD object in the default case, "inplace==False".
-        """
-
-        self.check_units(secondary_spectrum)
-
-        s_one = self.copy()
-        s_two = secondary_spectrum.copy()
-
-        if not np.array_equal(self.dispersion, s_two.dispersion):
-            print ("Warning: Dispersion does not match.")
-            print ("Warning: Flux will be interpolated.")
-
-            s_one.match_dispersions(s_two, force=force,
-                                   match_secondary=False, method=method)
-
-        new_flux = s_one.flux / s_two.flux
-        print(copy_flux_err)
-        if copy_flux_err == 'No' and isinstance(s_one.flux_err,
-                                               np.ndarray) and \
-                isinstance(s_two.flux_err, np.ndarray):
-                new_flux_err = np.sqrt( (s_one.flux_err/ s_two.flux)**2  + (new_flux/s_two.flux*s_two.flux_err)**2 )
-        elif copy_flux_err == 'first':
-            new_flux_err = s_one.flux_err
-        elif copy_flux_err == 'second':
-            new_flux_err = s_two.flux_err
-        else:
-            new_flux_err = None
-
-        print(new_flux_err, s_one.flux_err)
-
-        if copy_header == 'first':
-            new_header = s_one.header
-        elif copy_header == 'last':
-            new_header = s_two.header
-
-        return SpecOneD(dispersion=s_one.dispersion,
-                        fluxden=new_flux,
-                        fluxden_err=new_flux_err,
-                        header=new_header,
-                        unit=s_one.unit,
-                        mask=s_one.mask)
-
-    def multiply(self, secondary_spectrum, copy_header='first', force=True,
-                 copy_flux_err = 'No', method='interpolate'):
-
-        """Multiply the fluxden of primary spectrum with the secondary spectrum.
-
-        Notes
-        -----
-        Users should be aware that in order to add the fluxden of the two spectra,
-        the dispersions of the spectra need to be matched, see match_dispersions
-        and beware of the caveats of dispersion interpolation.
-
-        Parameters
-        ----------
-        secondary_spectrum : obj:`SpecOneD`
-            Secondary spectrum
-        copy_header : 'str'
-            A string indicating whether the primary('first') spectrum header or
-            the secondary('last') spectrum header should be copied to the
-            resulting spectrum.
-        force : boolean
-            The boolean sets whether the dispersions are matched if only
-            partial overlap between the spectral dispersions exist.
-        inplace : boolean
-            The boolean indicates whether the resulting spectrum will overwrite
-            the primary spectrum or whether it will be returned as a new
-            spectrum argument by the method.
-
-        Returns
-        -------
-        obj;`SpecOneD`
-            Returns a SpecOneD object in the default case, "inplace==False".
-        """
-
-        self.check_units(secondary_spectrum)
-
-        s_one = self.copy()
-        s_two = secondary_spectrum.copy()
-
-        if not np.array_equal(s_one.dispersion, s_two.dispersion):
-            print ("Warning: Dispersion does not match.")
-            print ("Warning: Flux will be interpolated.")
-
-            s_one.match_dispersions(s_two, force=force,
-                                   method=method)
-
-        new_flux = s_one.flux * s_two.flux
-
-        if copy_flux_err == 'No' and isinstance(s_one.flux_err,
-                                                np.ndarray) and \
-                isinstance(s_two.flux_err, np.ndarray):
-            new_flux_err = np.sqrt(s_two.flux**2 * s_one.flux_err**2 + s_one.flux**2 * s_two.flux_err**2)
-        elif copy_flux_err == 'first':
-            new_flux_err = s_one.flux_err
-        elif copy_flux_err == 'second':
-            new_flux_err = s_two.flux_err
-        else:
-            new_flux_err = None
-
-        if copy_header == 'first':
-            new_header = s_one.header
-        elif copy_header == 'last':
-            new_header = s_two.header
-
-        return SpecOneD(dispersion=s_one.dispersion,
-                        fluxden=new_flux,
-                        fluxden_err=new_flux_err,
-                        header=new_header,
-                        unit=s_one.unit,
-                        mask=s_one.mask)
-
-
-    def plot(self, show_fluxden_err=False, show_raw_fluxden=False,
-             mask_values=False):
-
-        """Plot the spectrum
-
-        """
-
-        if mask_values:
-            mask = self.mask
-        else:
-            mask = np.ones(self.dispersion.shape, dtype=bool)
-
-        self.fig, self.ax = plt.subplots(nrows=1, ncols=1, figsize=(15,7), dpi = 140)
-        self.fig.subplots_adjust(left=0.09, right=0.97, top=0.89, bottom=0.16)
-
-        # Plot the Spectrum
-        self.ax.axhline(y=0.0, linewidth=1.5, color='k', linestyle='--')
-
-        if show_fluxden_err:
-            self.ax.plot(self.dispersion[mask], self.fluxden_err[mask], 'grey', lw=1)
-        if show_raw_fluxden:
-            self.ax.plot(self.raw_dispersion[mask], self.raw_fluxden[mask], 'grey', lw=3)
-
-        self.ax.plot(self.dispersion[mask], self.fluxden[mask], 'k', linewidth=1)
-
-        if self.unit=='f_lam':
-            self.ax.set_xlabel(r'$\rm{Wavelength}\ [\rm{\AA}]$', fontsize=15)
-            self.ax.set_ylabel(r'$\rm{Flux}\ f_{\lambda}\ [\rm{erg}\,\rm{s}^{-1}\,\rm{cm}^{2}\,\rm{\AA}^{-1}]$', fontsize=15)
-
-        elif self.unit =='f_nu':
-            self.ax.set_xlabel(r'$\rm{Frequency}\ [\rm{Hz}]$', fontsize=15)
-            self.ax.set_ylabel(r'$\rm{Flux}\ f_{\nu}\ [\rm{erg}\,\rm{s}^{-1}\,\rm{cm}^{2}\,\rm{Hz}^{-1}]$', fontsize=15)
-
-        elif self.unit =='f_loglam':
-            self.ax.set_xlabel(r'$\log\rm{Wavelength}\ [\log\rm{\AA}]$', fontsize=15)
-            self.ax.set_ylabel(r'$\rm{Flux}\ f_{\lambda}\ [\rm{erg}\,\rm{s}^{-1}\,\rm{cm}^{2}\,(\log\rm{\AA})^{-1}]$', fontsize=15)
-
-        else:
-            raise ValueError("Unrecognized units")
-
-        # If a model spectrum exists, print it
-        if self.model_spectrum:
-            model_flux = self.model_spectrum.eval(self.model_pars, x=self.dispersion)
-            self.ax.plot(self.dispersion[mask], model_flux[mask])
-
-        if self.fit_output:
-            self.ax.plot(self.dispersion[mask], self.fit_output.best_fit[mask])
-
-        lim_spec = self.copy()
-        ylim_min, ylim_max = lim_spec.get_specplot_ylim()
-
-        self.ax.set_ylim(ylim_min, ylim_max)
-
-        plt.show()
-
-    def get_specplot_ylim(self):
-
-        spec = self.copy()
-
-        percentiles = np.percentile(spec.fluxden[spec.mask], [16, 84])
-        median = np.median(spec.fluxden[spec.mask])
-
-        ylim_min = -0.5*median
-        ylim_max = 4*percentiles[1]
-
-        return ylim_min, ylim_max
-
-
-    def pypeit_plot(self, show_fluxden_err=False, show_raw_fluxden=False,
-                    mask_values=False, ymax=None):
-
-        """Plot the spectrum assuming it is a pypeit spectrum
-
-        """
-
-        if mask_values:
-            mask = self.mask
-        else:
-            mask = np.ones(self.dispersion.shape, dtype=bool)
-
-        self.fig, self.ax = plt.subplots(nrows=1, ncols=1, figsize=(15,7), dpi = 140)
-        self.fig.subplots_adjust(left=0.09, right=0.97, top=0.89, bottom=0.16)
-
-        # Plot the Spectrum
-        self.ax.axhline(y=0.0, linewidth=1.5, color='k', linestyle='--')
-
-        # Add second axis to plot telluric model
-        if hasattr(self, 'telluric'):
-            telluric = self.telluric[mask] / self.telluric.max() * np.median(
-                self.fluxden[mask]) * 2.5
-            self.ax.plot(self.dispersion[mask], telluric[mask],
-                         label='Telluric')
-
-        if show_fluxden_err:
-            self.ax.plot(self.dispersion[mask], self.fluxden_err[mask], 'grey',
-                         lw=1, label='Flux Error')
-        if show_raw_fluxden:
-            self.ax.plot(self.raw_dispersion[mask], self.raw_fluxden[mask],
-                         'grey', lw=3, label='Raw Flux')
-
-        self.ax.plot(self.dispersion[mask], self.fluxden[mask], 'k',
-                     linewidth=1, label='Flux')
-
-        if self.unit=='f_lam':
-            self.ax.set_xlabel(r'$\rm{Wavelength}\ [\rm{\AA}]$', fontsize=15)
-            self.ax.set_ylabel(r'$\rm{Flux}\ f_{\lambda}\ [\rm{erg}\,\rm{s}^{'
-                               r'-1}\,\rm{cm}^{-2}\,\rm{\AA}^{-1}]$', fontsize=15)
-
-        elif self.unit =='f_nu':
-            self.ax.set_xlabel(r'$\rm{Frequency}\ [\rm{Hz}]$', fontsize=15)
-            self.ax.set_ylabel(r'$\rm{Flux}\ f_{\nu}\ [\rm{erg}\,\rm{s}^{'
-                               r'-1}\,\rm{cm}^{-2}\,\rm{Hz}^{-1}]$', fontsize=15)
-
-        elif self.unit =='f_loglam':
-            self.ax.set_xlabel(r'$\log\rm{Wavelength}\ [\log\rm{\AA}]$', fontsize=15)
-            self.ax.set_ylabel(r'$\rm{Flux}\ f_{\lambda}\ [\rm{erg}\,\rm{s}^{'
-                               r'-1}\,\rm{cm}^{-2}\,(\log\rm{\AA})^{-1}]$', fontsize=15)
-
-        else:
-            raise ValueError("Unrecognized units")
-
-        # If a model spectrum exists, plot it
-        if self.model_spectrum:
-            model_flux = self.model_spectrum.eval(self.model_pars, x=self.dispersion)
-            self.ax.plot(self.dispersion[mask], model_flux[mask])
-
-        if self.fit_output:
-            self.ax.plot(self.dispersion[mask], self.fit_output.best_fit[mask])
-
-
-        # Add OBJ model if it exists
-        if hasattr(self, 'obj_model'):
-            self.ax.plot(self.dispersion[mask], self.obj_model, label='Obj '
-                                                                      'model')
-
-
-        lim_spec = self.copy()
-        lim_spec.restore()
-        lim_spec = lim_spec.mask_sn(5)
-        lim_spec = lim_spec.sigmaclip_flux(3, 3)
-        ylim_min = 0
-        if ymax == None:
-            ylim_max = lim_spec.flux[lim_spec.mask].max()
-        else:
-            ylim_max = ymax
-        self.ax.set_ylim(ylim_min, ylim_max)
-
-        self.ax.legend()
-        plt.show()
-
-
-    def fit_model_spectrum(self, mask_values=True):
-
-        if mask_values:
-            self.fit_output = self.model_spectrum.fit(self.fluxden[self.mask], self.model_pars, x =self.dispersion[self.mask])
-        else:
-            self.fit_output = self.model_spectrum.fit(self.fluxden, self.model_pars, x =self.dispersion)
-
-    def calculate_snr(self):
-
-        pass
-
-    def trim_dispersion(self, limits, mode='wav', trim_err=True, inplace=False):
-
-        #change names of modes.... physical, pixel ?
-
-        if mode == "wavelength" or mode == "wav":
+        if mode == "physical":
 
             lo_index = np.argmin(np.abs(self.dispersion - limits[0]))
             up_index = np.argmin(np.abs(self.dispersion - limits[1]))
@@ -1263,18 +1024,24 @@ class SpecOneD(object):
             # Warnings
             if limits[0] < self.dispersion[0]:
                 print(self.dispersion[0], limits[0])
-                print("WARNING: Lower limit is below the lowest dispersion value. The lower limit is set to the minimum dispersion value.")
+                print("[WARNING] Lower limit is below the lowest dispersion "
+                      "value. The lower limit is set to the minimum "
+                      "dispersion value.")
             if limits[1] > self.dispersion[-1]:
-                print("WARNING: Upper limit is above the highest dispersion value. The upper limit is set to the maximum dispersion value.")
+                print("[WARNING] Upper limit is above the highest dispersion "
+                      "value. The upper limit is set to the maximum "
+                      "dispersion value.")
 
+        elif mode == "pixel":
 
-
-        else:
-            # Warnings
             if limits[0] < self.dispersion[0]:
-                print("WARNING: Lower limit is below the lowest dispersion value. The lower limit is set to the minimum dispersion value.")
+                print("[WARNING] Lower limit is below the lowest pixel "
+                      "value. The lower limit is set to the minimum "
+                      "pixel value.")
             if limits[1] > self.dispersion[-1]:
-                print("WARNING: Upper limit is above the highest dispersion value. The upper limit is set to the maximum dispersion value.")
+                print("[WARNING] Upper limit is above the highest pixel "
+                      "value. The upper limit is set to the maximum "
+                      "pixel value.")
 
             lo_index = limits[0]
             up_index = limits[1]
@@ -1283,63 +1050,92 @@ class SpecOneD(object):
             self.dispersion = self.dispersion[lo_index:up_index]
             self.fluxden = self.fluxden[lo_index:up_index]
             self.mask = self.mask[lo_index:up_index]
-            if trim_err:
-                if self.fluxden_err is not None:
-                    self.fluxden_err = self.fluxden_err[lo_index:up_index]
+            if self.fluxden_err is not None:
+                self.fluxden_err = self.fluxden_err[lo_index:up_index]
+            if self.fluxden_ivar is not None:
+                self.fluxden_ivar = self.fluxden_ivar[lo_index:up_index]
+            if self.telluric is not None:
+                self.telluric = self.telluric[lo_index:up_index]
+            if self.obj_model is not None:
+                self.obj_model = self.obj_model[lo_index:up_index]
         else:
             spec = self.copy()
             spec.dispersion = spec.dispersion[lo_index:up_index]
             spec.fluxden = spec.fluxden[lo_index:up_index]
             spec.mask = spec.mask[lo_index:up_index]
-            if trim_err:
-                if spec.fluxden_err is not None:
-                    spec.fluxden_err = spec.fluxden_err[lo_index:up_index]
+            if spec.fluxden_err is not None:
+                spec.fluxden_err = spec.fluxden_err[lo_index:up_index]
+            if spec.fluxden_ivar is not None:
+                spec.fluxden_ivar = spec.fluxden_ivar[lo_index:up_index]
+            if spec.telluric is not None:
+                spec.telluric = spec.telluric[lo_index:up_index]
+            if spec.obj_model is not None:
+                spec.obj_model = spec.obj_model[lo_index:up_index]
 
             return spec
 
-
     def interpolate(self, new_dispersion, kind='linear', fill_value='const'):
+        """Interpolate spectrum to a new dispersion axis.
 
-        """Interpolate fluxden to new dispersion axis
+        The interpolation is done using scipy.interpolate.interp1d.
 
-        Parameters
-        ----------
-        new_dispersion : ndarray
-            1D array with the new dispersion axis
-        kind : str
-            String that indicates the interpolation function
-        fill_value : str
-            A string indicating whether values outside the dispersion range
-            will be extrapolated ('extrapolate') or filled with a constant
-            value ('const') based on the median of the 10 values at the edge.
+        :param new_dispersion: 1D array with the new dispersion axis
+        :type new_dispersion: numpy.ndarray
+        :param kind: String that indicates the interpolation function (
+        default: 'linear')
+        :type kind: str
+        :param fill_value: A string indicating whether values outside the
+        dispersion range will be extrapolated ('extrapolate') or filled with
+        a constant value ('const') based on the median of the 10 values at
+        the edge.
+        :type fill_value: str
+        :return:
         """
 
-        if fill_value=='extrapolate':
-            f = sp.interpolate.interp1d(self.dispersion, self.fluxden, kind=kind, fill_value='extrapolate')
+        # Test if values outside original range
+
+        # Add support for ivar, obj_model, telluric etc.
+
+        if fill_value == 'extrapolate':
+            f = sp.interpolate.interp1d(self.dispersion, self.fluxden,
+                                        kind=kind, fill_value='extrapolate')
             if isinstance(self.fluxden_err, np.ndarray):
-                f_err = sp.interpolate.interp1d(self.dispersion, self.fluxden_err, kind=kind, fill_value='extrapolate')
-            print ('Warning: Values outside the original dispersion range will be extrapolated!')
+                f_err = sp.interpolate.interp1d(self.dispersion,
+                                                self.fluxden_err,
+                                                kind=kind,
+                                                fill_value='extrapolate')
+            print('[Warning] Values outside the original dispersion range '
+                  'will be extrapolated!')
+
         elif fill_value == 'const':
             fill_lo = np.median(self.fluxden[0:10])
             fill_hi = np.median(self.fluxden[-11:-1])
-            f = sp.interpolate.interp1d(self.dispersion, self.fluxden, kind=kind,
-                                        bounds_error= False,
+            f = sp.interpolate.interp1d(self.dispersion, self.fluxden,
+                                        kind=kind,
+                                        bounds_error=False,
                                         fill_value=(fill_lo, fill_hi))
             if isinstance(self.fluxden_err, np.ndarray):
                 fill_lo_err = np.median(self.fluxden_err[0:10])
                 fill_hi_err = np.median(self.fluxden_err[-11:-1])
-                f_err = sp.interpolate.interp1d(self.dispersion, self.fluxden_err, kind=kind, bounds_error= False,
-                                                fill_value=(fill_lo_err, fill_hi_err))
+                f_err = sp.interpolate.interp1d(self.dispersion,
+                                                self.fluxden_err,
+                                                kind=kind,
+                                                bounds_error=False,
+                                                fill_value=(fill_lo_err,
+                                                            fill_hi_err))
         else:
-            f = sp.interpolate.interp1d(self.dispersion, self.fluxden, kind=kind)
+            f = sp.interpolate.interp1d(self.dispersion,
+                                        self.fluxden, kind=kind)
             if isinstance(self.fluxden_err, np.ndarray):
-                f_err = sp.interpolate.interp1d(self.dispersion, self.fluxden_err, kind=kind)
+                f_err = sp.interpolate.interp1d(self.dispersion,
+                                                self.fluxden_err, kind=kind)
 
         self.dispersion = new_dispersion
         self.reset_mask()
         self.fluxden = f(self.dispersion)
         if isinstance(self.fluxden_err, np.ndarray):
             self.fluxden_err = f_err(self.dispersion)
+
 
     def smooth(self, width, kernel="boxcar", scale_sigma=True, inplace=False):
         """Smoothing the spectrum using a boxcar oder gaussian kernel.
@@ -1385,6 +1181,114 @@ class SpecOneD(object):
             spec.fluxden_err = new_flux_err
             return spec
 
+# ------------------------------------------------------------------------------
+# PLOT FUNCTIONALITY
+# ------------------------------------------------------------------------------
+
+    def plot(self, show_fluxden_err=True, mask_values=False, ymin=None,
+             ymax=None):
+        """Plot the spectrum.
+
+        This plot is aimed for a quick visualization of the spectrum not for
+        publication grade figures.
+
+        :param show_fluxden_err: Boolean to indicate whether the error will
+        be plotted or not (default:True).
+        :type show_fluxden_err: bool
+        :param mask_values: Boolean to indicate whether the mask will be
+        applied when plotting the spectrum (default:True).
+        :param ymin: Minimum value for the y-axis of the plot (flux density
+        axis). This defaults to 'None'. If either ymin or ymax are 'None' the
+        y-axis range will be determined automatically.
+        :type ymin: float
+        :param ymax: Maximum value for the y-axis of the plot (flux density
+        axis). This defaults to 'None'. If either ymin or ymax are 'None' the
+        y-axis range will be determined automatically.
+        :type ymax: float
+        :type mask_values: bool
+        :return:
+        """
+
+        if mask_values:
+            mask = self.mask
+        else:
+            mask = np.ones(self.dispersion.shape, dtype=bool)
+
+        fig, ax = plt.subplots(nrows=1, ncols=1,
+                               figsize=(15, 7),
+                               dpi=140)
+        fig.subplots_adjust(left=0.09, right=0.97, top=0.89, bottom=0.16)
+
+        # Plot the Spectrum
+        ax.axhline(y=0.0, linewidth=1.5, color='k', linestyle=':',
+                   label='Line of 0 flux density')
+
+        if show_fluxden_err:
+            ax.plot(self.dispersion[mask], self.fluxden_err[mask], 'grey',
+                    lw=1, label='Flux density error')
+
+        ax.plot(self.dispersion[mask], self.fluxden[mask], 'k',
+                linewidth=1, label='Flux density')
+
+        # Additional plotting functionality for spectra with obj_models
+        if self.obj_model is not None:
+            ax.plot(self.dispersion[mask], self.obj_model[mask],
+                    color=vermillion,
+                    label='Object model')
+        # Additional plotting functionality for spectra with telluric models
+        if self.telluric is not None:
+            ax2 = ax.twinx()
+            ax2.plot(self.dispersion[mask], self.telluric[mask], color=dblue,
+                    label='Atmospheric model')
+            ax2.set_ylabel('Atmospheric model transmission', fontsize=14)
+            ax2.legend(loc=2, fontsize=14)
+
+
+        ax.set_xlabel('Dispersion ({})'.format(
+            self.dispersion_unit.to_string(format='latex')), fontsize=14)
+
+        ax.set_ylabel('Flux density ({})'.format(
+            self.fluxden_unit.to_string(format='latex')), fontsize=14)
+
+        if ymin is None or ymax is None:
+            lim_spec = self.copy()
+            ylim_min, ylim_max = lim_spec.get_specplot_ylim()
+
+        ax.set_ylim(ylim_min, ylim_max)
+
+        ax.legend(loc=1, fontsize=14)
+
+        plt.show()
+
+    def get_specplot_ylim(self):
+        """Calculate the minimum and maximum flux density values for plotting
+         the spectrum.
+
+         The minimum value is set to -0.5 * median of the flux density. The
+         maximum value is set 4 times the 84-percentile value of the flux
+         density.
+         This is an 'approximate guess' for a quick visualization of the
+         spectrum and may not be optimal for all purposes. For pulication
+         grade plots, the user should devise their own plots.
+
+        :return: (ylim_min, ylim_max) Return the minimum and maximum values
+        for the flux density (y-axis) for the plot function.
+        :rtype: (float, float)
+        """
+
+        spec = self.copy()
+
+        percentiles = np.percentile(spec.fluxden[spec.mask], [16, 84])
+        median = np.median(spec.fluxden[spec.mask])
+
+        ylim_min = -0.5*median
+        ylim_max = 4*percentiles[1]
+
+        return ylim_min, ylim_max
+
+# ------------------------------------------------------------------------------
+# ADVANCED CLASS FUNCTIONALITY
+# ------------------------------------------------------------------------------
 
     def convolve_loglam(self, fwhm, method='interpolate', inplace=False,
                         force=False):
@@ -1763,41 +1667,7 @@ class SpecOneD(object):
 
             return spec
 
-    def fit_polynomial(self, func='legendre', order=3, inplace=False):
 
-        if func == 'legendre':
-            poly = Legendre.fit(self.dispersion[self.mask], self.fluxden[self.mask], deg=order)
-        elif func == 'chebyshev':
-            poly = Chebyshev.fit(self.dispersion[self.mask], self.fluxden[self.mask], deg=order)
-        elif func == 'polynomial':
-            poly = Polynomial.fit(self.dispersion[self.mask], self.fluxden[self.mask], deg=order)
-        else:
-            raise ValueError("Polynomial fitting function not specified")
-
-        if inplace:
-            self.fit_dispersion = self.dispersion
-            self.fit_fluxden = poly(self.dispersion)
-        else:
-            spec = self.copy()
-            spec.fit_dispersion = self.dispersion
-            spec.fit_flux = poly(self.dispersion)
-
-            return spec
-
-    def mask_between(self, limits, inplace=False):
-
-        lo_index = np.argmin(np.abs(self.dispersion - limits[0]))
-        up_index = np.argmin(np.abs(self.dispersion - limits[1]))
-
-        self.mask[lo_index:up_index] = 0
-
-        if inplace:
-            self.mask[lo_index:up_index] = 0
-        else:
-            spec = self.copy()
-            spec.mask[lo_index:up_index] = 0
-
-            return spec
 
     def create_dispersion_by_resolution(self, resolution):
         """
@@ -2069,9 +1939,9 @@ class FlatSpectrum(SpecOneD):
             fill_value = 3.631e-20
 
         self.flux = np.full(flat_dispersion.shape, fill_value)
-        self.raw_flux = self.flux
+        # self.raw_flux = self.flux
         self.dispersion = flat_dispersion
-        self.raw_dispersion = self.dispersion
+        # self.raw_dispersion = self.dispersion
 
 def combine_spectra(filenames, method='average', file_format='fits'):
 
@@ -2352,3 +2222,439 @@ def comparison_plot(spectrum_a, spectrum_b, spectrum_result,
         raise ValueError("Unrecognized units")
 
     plt.show()
+
+
+
+# ------------------------------------------------------------------------------
+# OLD DEPRECATED CAPABILITIES, IN PART REPLACED OR IMPROVED
+# ------------------------------------------------------------------------------
+    # def save_to_speconed_fits(self, filename, comment=None, overwrite = False):
+    #     """Save a SpecOneD spectrum to a fits file.
+    #
+    #     Note: This save function does not store flux_errors, masks, fits etc.
+    #     Only the original header, the dispersion (via the header), and the fluxden
+    #     are stored.
+    #
+    #     Parameters
+    #     ----------
+    #     filename : str
+    #         A string providing the path and filename for the fits file.
+    #
+    #     Raises
+    #     ------
+    #     ValueError
+    #         Raises an error when the filename exists and overwrite = False
+    #     """
+    #
+    #     df = pd.DataFrame(np.array([self.dispersion, self.fluxden]).T,
+    #                       columns=['dispersion', 'fluxden'])
+    #
+    #     if self.fluxden_err is not None:
+    #         df['fluxden_err'] = self.fluxden_err
+    #
+    #     hdu = fits.PrimaryHDU(df)
+    #
+    #     if self.fits_header is not None:
+    #         hdu.header = self.fits_header
+    #
+    #
+    #     hdu.header['FLUXDEN_UNIT'] = self.unit[1].to_string(format='fits')
+    #     hdu.header['DISP_UNIT'] = self.unit[0].to_string(format='fits')
+    #
+    #     hdu.header['HISTORY'] = '1D spectrum saved in SpecOneD format'
+    #
+    #     if comment:
+    #         hdu.header['HISTORY'] = comment
+    #
+    #     hdul = fits.HDUList([hdu])
+    #
+    #     try:
+    #         hdul.writeto(filename, overwrite=overwrite)
+    #     except:
+    #         raise ValueError("Spectrum could not be saved. Maybe a file with the same name already exists and overwrite is False")
+
+    # def override_raw(self):
+    #     """ Override the raw_dispersion, raw_fluxden and raw_fluxden_err
+    #     variables in the SpecOneD class with the current dispersion, fluxden and
+    #     fluxden_err values.
+    #     """
+    #
+    #     self.raw_dispersion = self.dispersion
+    #     self.raw_fluxden = self.fluxden
+    #     self.raw_fluxden_err = self.fluxden_err
+    #
+    # def restore(self):
+    #     """ Override the dispersion, fluxden and fluxden_err
+    #     variables in the SpecOneD class with the raw_dispersion, raw_fluxden and
+    #     raw_fluxden_err values.
+    #     """
+    #
+    #     self.dispersion = self.raw_dispersion
+    #     self.fluxden = self.raw_fluxden
+    #     self.fluxden_err = self.raw_fluxden_err
+    #     self.reset_mask()
+    #
+    # def add(self, secondary_spectrum, copy_header='first', force=True,
+    #         copy_flux_err = 'No', method='interpolate'):
+    #
+    #     """Add the fluxden in the primary and secondary spectra.
+    #
+    #     Notes
+    #     -----
+    #     Users should be aware that in order to add the fluxden of the two spectra,
+    #     the dispersions of the spectra need to be matched, see match_dispersions
+    #     and beware of the caveats of dispersion interpolation.
+    #
+    #     Parameters
+    #     ----------
+    #     secondary_spectrum : obj:`SpecOneD`
+    #         Secondary spectrum
+    #     copy_header : 'str'
+    #         A string indicating whether the primary('first') spectrum header or
+    #         the secondary('last') spectrum header should be copied to the
+    #         resulting spectrum.
+    #     force : boolean
+    #         The boolean sets whether the dispersions are matched if only
+    #         partial overlap between the spectral dispersions exist.
+    #     inplace : boolean
+    #         The boolean indicates whether the resulting spectrum will overwrite
+    #         the primary spectrum or whether it will be returned as a new
+    #         spectrum argument by the method.
+    #
+    #     Returns
+    #     -------
+    #     obj:`SpecOneD`
+    #         Returns a SpecOneD object in the default case, "inplace==False".
+    #     """
+    #
+    #     self.check_units(secondary_spectrum)
+    #     # fluxden error needs to be taken care of
+    #     # needs to be tested
+    #
+    #     s_one = self.copy()
+    #     s_two = secondary_spectrum.copy()
+    #
+    #
+    #     if not np.array_equal(s_one.dispersion, s_two.dispersion):
+    #         print("Warning: Dispersion does not match.")
+    #         print("Warning: Flux will be interpolated/resampled.")
+    #
+    #         s_one.match_dispersions(s_two, force=force,
+    #                                method=method)
+    #
+    #     new_flux = s_one.flux + s_two.flux
+    #
+    #     if copy_flux_err == 'No' and isinstance(s_one.flux_err,
+    #                                             np.ndarray) and \
+    #             isinstance(s_two.flux_err, np.ndarray):
+    #         new_flux_err = np.sqrt(s_one.flux_err**2 + s_two.flux_err**2)
+    #     elif copy_flux_err == 'first':
+    #         new_flux_err = s_one.flux_err
+    #     elif copy_flux_err == 'second':
+    #         new_flux_err = s_two.flux_err
+    #     else:
+    #         new_flux_err = None
+    #
+    #     if copy_header == 'first':
+    #         new_header = s_one.header
+    #     elif copy_header == 'last':
+    #         new_header = s_two.header
+    #
+    #
+    #     return SpecOneD(dispersion=s_one.dispersion,
+    #                     fluxden=new_flux,
+    #                     fluxden_err=new_flux_err,
+    #                     header=new_header,
+    #                     unit=s_one.unit,
+    #                     mask=s_one.mask)
+    #
+    # def subtract(self, secondary_spectrum, copy_header='first', force=True,
+    #              copy_flux_err = 'No', method='interpolate'):
+    #     """Subtract the fluxden of the secondary spectrum from the primary
+    #     spectrum.
+    #
+    #     Notes
+    #     -----
+    #     Users should be aware that in order to subtract the fluxden,
+    #     the dispersions of the spectra need to be matched, see match_dispersions
+    #     and beware of the caveats of dispersion interpolation.
+    #
+    #     Parameters
+    #     ----------
+    #     secondary_spectrum : obj:`SpecOneD`
+    #         Secondary spectrum
+    #     copy_header : 'str'
+    #         A string indicating whether the primary('first') spectrum header or
+    #         the secondary('last') spectrum header should be copied to the
+    #         resulting spectrum.
+    #     force : boolean
+    #         The boolean sets whether the dispersions are matched if only
+    #         partial overlap between the spectral dispersions exist.
+    #     inplace : boolean
+    #         The boolean indicates whether the resulting spectrum will overwrite
+    #         the primary spectrum or whether it will be returned as a new
+    #         spectrum argument by the method.
+    #
+    #     Returns
+    #     -------
+    #     obj:`SpecOneD`
+    #         Returns a SpecOneD object in the default case, "inplace==False".
+    #     """
+    #
+    #     self.check_units(secondary_spectrum)
+    #     # fluxden error needs to be taken care of
+    #     # needs to be tested
+    #     # check for negative values?
+    #
+    #     s_one = self.copy()
+    #     s_two = secondary_spectrum.copy()
+    #
+    #     if not np.array_equal(s_one.dispersion, s_two.dispersion):
+    #         print ("Warning: Dispersion does not match.")
+    #         print ("Warning: Flux will be interpolated.")
+    #
+    #         s_one.match_dispersions(s_two, force=force,
+    #                                method=method)
+    #
+    #     new_flux = s_one.flux - s_two.flux
+    #
+    #     if copy_flux_err == 'No' and isinstance(s_one.flux_err,
+    #                                             np.ndarray) and \
+    #             isinstance(s_two.flux_err, np.ndarray):
+    #         new_flux_err = np.sqrt(s_one.flux_err**2 + s_two.flux_err**2)
+    #     elif copy_flux_err == 'first':
+    #         new_flux_err = s_one.flux_err
+    #     elif copy_flux_err == 'second':
+    #         new_flux_err = s_two.flux_err
+    #     else:
+    #         new_flux_err = None
+    #
+    #     if copy_header == 'first':
+    #         new_header = s_one.header
+    #     elif copy_header == 'last':
+    #         new_header = s_two.header
+    #
+    #
+    #     return SpecOneD(dispersion=s_one.dispersion,
+    #                     fluxden=new_flux,
+    #                     fluxden_err=new_flux_err,
+    #                     header=new_header,
+    #                     unit=s_one.unit,
+    #                     mask=s_one.mask)
+    #
+    # def divide(self, secondary_spectrum, copy_header='first', force=True,
+    #            copy_flux_err = 'No', method='interpolate'):
+    #
+    #     """Divide the fluxden of the primary spectrum by the fluxden
+    #     of the secondary spectrum.
+    #
+    #     Notes
+    #     -----
+    #     Users should be aware that in order to divide the fluxden of the two
+    #     spectra, the dispersions of the spectra need to be matched,
+    #     (see match_dispersions) and beware of the caveats of dispersion
+    #     interpolation.
+    #
+    #     Parameters
+    #     ----------
+    #     secondary_spectrum : obj: SpecOneD
+    #         Secondary spectrum
+    #     copy_header : 'str'
+    #         A string indicating whether the primary('first') spectrum header or
+    #         the secondary('last') spectrum header should be copied to the
+    #         resulting spectrum.
+    #     force : boolean
+    #         The boolean sets whether the dispersions are matched if only
+    #         partial overlap between the spectral dispersions exist.
+    #     inplace : boolean
+    #         The boolean indicates whether the resulting spectrum will overwrite
+    #         the primary spectrum or whether it will be returned as a new
+    #         spectrum argument by the method.
+    #
+    #     Returns
+    #     -------
+    #     obj: SpecOneD
+    #         Returns a SpecOneD object in the default case, "inplace==False".
+    #     """
+    #
+    #     self.check_units(secondary_spectrum)
+    #
+    #     s_one = self.copy()
+    #     s_two = secondary_spectrum.copy()
+    #
+    #     if not np.array_equal(self.dispersion, s_two.dispersion):
+    #         print ("Warning: Dispersion does not match.")
+    #         print ("Warning: Flux will be interpolated.")
+    #
+    #         s_one.match_dispersions(s_two, force=force,
+    #                                match_secondary=False, method=method)
+    #
+    #     new_flux = s_one.flux / s_two.flux
+    #     print(copy_flux_err)
+    #     if copy_flux_err == 'No' and isinstance(s_one.flux_err,
+    #                                            np.ndarray) and \
+    #             isinstance(s_two.flux_err, np.ndarray):
+    #             new_flux_err = np.sqrt( (s_one.flux_err/ s_two.flux)**2  + (new_flux/s_two.flux*s_two.flux_err)**2 )
+    #     elif copy_flux_err == 'first':
+    #         new_flux_err = s_one.flux_err
+    #     elif copy_flux_err == 'second':
+    #         new_flux_err = s_two.flux_err
+    #     else:
+    #         new_flux_err = None
+    #
+    #     print(new_flux_err, s_one.flux_err)
+    #
+    #     if copy_header == 'first':
+    #         new_header = s_one.header
+    #     elif copy_header == 'last':
+    #         new_header = s_two.header
+    #
+    #     return SpecOneD(dispersion=s_one.dispersion,
+    #                     fluxden=new_flux,
+    #                     fluxden_err=new_flux_err,
+    #                     header=new_header,
+    #                     unit=s_one.unit,
+    #                     mask=s_one.mask)
+    #
+    # def multiply(self, secondary_spectrum, copy_header='first', force=True,
+    #              copy_flux_err = 'No', method='interpolate'):
+    #
+    #     """Multiply the fluxden of primary spectrum with the secondary spectrum.
+    #
+    #     Notes
+    #     -----
+    #     Users should be aware that in order to add the fluxden of the two spectra,
+    #     the dispersions of the spectra need to be matched, see match_dispersions
+    #     and beware of the caveats of dispersion interpolation.
+    #
+    #     Parameters
+    #     ----------
+    #     secondary_spectrum : obj:`SpecOneD`
+    #         Secondary spectrum
+    #     copy_header : 'str'
+    #         A string indicating whether the primary('first') spectrum header or
+    #         the secondary('last') spectrum header should be copied to the
+    #         resulting spectrum.
+    #     force : boolean
+    #         The boolean sets whether the dispersions are matched if only
+    #         partial overlap between the spectral dispersions exist.
+    #     inplace : boolean
+    #         The boolean indicates whether the resulting spectrum will overwrite
+    #         the primary spectrum or whether it will be returned as a new
+    #         spectrum argument by the method.
+    #
+    #     Returns
+    #     -------
+    #     obj;`SpecOneD`
+    #         Returns a SpecOneD object in the default case, "inplace==False".
+    #     """
+    #
+    #     self.check_units(secondary_spectrum)
+    #
+    #     s_one = self.copy()
+    #     s_two = secondary_spectrum.copy()
+    #
+    #     if not np.array_equal(s_one.dispersion, s_two.dispersion):
+    #         print ("Warning: Dispersion does not match.")
+    #         print ("Warning: Flux will be interpolated.")
+    #
+    #         s_one.match_dispersions(s_two, force=force,
+    #                                method=method)
+    #
+    #     new_flux = s_one.flux * s_two.flux
+    #
+    #     if copy_flux_err == 'No' and isinstance(s_one.flux_err,
+    #                                             np.ndarray) and \
+    #             isinstance(s_two.flux_err, np.ndarray):
+    #         new_flux_err = np.sqrt(s_two.flux**2 * s_one.flux_err**2 + s_one.flux**2 * s_two.flux_err**2)
+    #     elif copy_flux_err == 'first':
+    #         new_flux_err = s_one.flux_err
+    #     elif copy_flux_err == 'second':
+    #         new_flux_err = s_two.flux_err
+    #     else:
+    #         new_flux_err = None
+    #
+    #     if copy_header == 'first':
+    #         new_header = s_one.header
+    #     elif copy_header == 'last':
+    #         new_header = s_two.header
+    #
+    #     return SpecOneD(dispersion=s_one.dispersion,
+    #                     fluxden=new_flux,
+    #                     fluxden_err=new_flux_err,
+    #                     header=new_header,
+    #                     unit=s_one.unit,
+    #                     mask=s_one.mask)
+    #
+    #
+    # def pypeit_plot(self, show_fluxden_err=False, show_raw_fluxden=False,
+    #                 mask_values=False, ymax=None):
+    #
+    #     """Plot the spectrum assuming it is a pypeit spectrum
+    #
+    #     """
+    #
+    #     if mask_values:
+    #         mask = self.mask
+    #     else:
+    #         mask = np.ones(self.dispersion.shape, dtype=bool)
+    #
+    #     self.fig, self.ax = plt.subplots(nrows=1, ncols=1, figsize=(15,7), dpi = 140)
+    #     self.fig.subplots_adjust(left=0.09, right=0.97, top=0.89, bottom=0.16)
+    #
+    #     # Plot the Spectrum
+    #     self.ax.axhline(y=0.0, linewidth=1.5, color='k', linestyle='--')
+    #
+    #     # Add second axis to plot telluric model
+    #
+    #
+    #     if show_fluxden_err:
+    #         self.ax.plot(self.dispersion[mask], self.fluxden_err[mask], 'grey',
+    #                      lw=1, label='Flux Error')
+    #     if show_raw_fluxden:
+    #         self.ax.plot(self.raw_dispersion[mask], self.raw_fluxden[mask],
+    #                      'grey', lw=3, label='Raw Flux')
+    #
+    #     self.ax.plot(self.dispersion[mask], self.fluxden[mask], 'k',
+    #                  linewidth=1, label='Flux')
+    #
+    #     if self.unit=='f_lam':
+    #         self.ax.set_xlabel(r'$\rm{Wavelength}\ [\rm{\AA}]$', fontsize=15)
+    #         self.ax.set_ylabel(r'$\rm{Flux}\ f_{\lambda}\ [\rm{erg}\,\rm{s}^{'
+    #                            r'-1}\,\rm{cm}^{-2}\,\rm{\AA}^{-1}]$', fontsize=15)
+    #
+    #     elif self.unit =='f_nu':
+    #         self.ax.set_xlabel(r'$\rm{Frequency}\ [\rm{Hz}]$', fontsize=15)
+    #         self.ax.set_ylabel(r'$\rm{Flux}\ f_{\nu}\ [\rm{erg}\,\rm{s}^{'
+    #                            r'-1}\,\rm{cm}^{-2}\,\rm{Hz}^{-1}]$', fontsize=15)
+    #
+    #     elif self.unit =='f_loglam':
+    #         self.ax.set_xlabel(r'$\log\rm{Wavelength}\ [\log\rm{\AA}]$', fontsize=15)
+    #         self.ax.set_ylabel(r'$\rm{Flux}\ f_{\lambda}\ [\rm{erg}\,\rm{s}^{'
+    #                            r'-1}\,\rm{cm}^{-2}\,(\log\rm{\AA})^{-1}]$', fontsize=15)
+    #
+    #     else:
+    #         raise ValueError("Unrecognized units")
+    #
+    #
+    #     # Add OBJ model if it exists
+    #
+    #
+    #
+    #     lim_spec = self.copy()
+    #     lim_spec.restore()
+    #     lim_spec = lim_spec.mask_sn(5)
+    #     lim_spec = lim_spec.sigmaclip_flux(3, 3)
+    #     ylim_min = 0
+    #     if ymax == None:
+    #         ylim_max = lim_spec.flux[lim_spec.mask].max()
+    #     else:
+    #         ylim_max = ymax
+    #     self.ax.set_ylim(ylim_min, ylim_max)
+    #
+    #     self.ax.legend()
+    #     plt.show()
+    #
+    # def calculate_snr(self):
+    #
+    #     pass

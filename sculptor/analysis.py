@@ -856,9 +856,11 @@ def calc_absolute_mag_from_fluxden(fluxden, fluxden_unit, dispersion,
     :param kcorrection: Boolean to indicate whether the magnitude should be
     k-corrected assuming a power law spectrum. This keyword argument defaults
     to 'True'.
+    :type bool
     :param a_nu: Power law slope as a function of frequency for the
     k-correction. This defaults to '0', appropriate for monochromatic
     measurements.
+    :type float
     :return: Absolute AB magnitude (monochromatic)
     :rtype: float
     """
