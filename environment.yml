@@ -14,6 +14,7 @@ dependencies:
 - scipy>=1.5.0
 - pytables>=3.6.1
 - emcee>=3.0.0
+- extinction
 - pip:
   - lmfit>=1.0.1
   - corner>=2.1.0

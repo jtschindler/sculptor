@@ -209,15 +209,6 @@ class EmceeWindow(QWidget):
             self.specfitgui.statusBar().showMessage(
                 '[ERROR] Input needs to be an integer value.')
 
-        # try:
-        #     self.specfitgui.specfit.emcee_kws['workers'] = int(
-        #         self.leWorkers.text())
-        # except:
-        #     self.leWorkers.setText('{}'.format(
-        #         self.specfitgui.specfit.emcee_kws['workers']))
-        #     self.specfitgui.statusBar().showMessage(
-        #         '[ERROR] Input needs to be an integer value.')
-
     def apply(self):
         self.update_emcee_kws()
         self.close()
