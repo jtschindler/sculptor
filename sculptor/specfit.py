@@ -299,13 +299,19 @@ class SpecFit:
         """
 
         # Load main SpecFit data
-        df = pd.read_hdf(foldername+'/fit.hdf5', key='specfit')
-        self.spec = sod.SpecOneD(dispersion=df['dispersion'].values,
-                                 fluxden=df['fluxden'].values,
-                                 mask=np.array(df['mask'].values, dtype=bool),
-                                 unit='f_lam')
-        if hasattr(df, 'flux_error'):
-            self.spec.fluxden_err = df['flux_error'].values
+
+        # Load the spectrum as a SpecOneD object
+        self.spec = sod.SpecOneD()
+        self.spec.read_from_hdf(foldername+'/spectrum.hdf5')
+
+        # DEPRECATED READ IN METHOD
+        # df = pd.read_hdf(foldername+'/fit.hdf5', key='specfit')
+        # self.spec = sod.SpecOneD(dispersion=df['dispersion'].values,
+        #                          fluxden=df['fluxden'].values,
+        #                          mask=np.array(df['mask'].values, dtype=bool),
+        #                          unit='f_lam')
+        # if hasattr(df, 'flux_error'):
+        #     self.spec.fluxden_err = df['flux_error'].values
 
         #  Load SpecFit meta data
         meta = pd.read_hdf(foldername + '/fit.hdf5', key='specfit_meta')
@@ -352,18 +358,23 @@ class SpecFit:
         if not os.path.exists(foldername):
             os.makedirs(foldername)
 
+
+        # Save the spectrum as a hdf5 file
+        self.spec.save_to_hdf(foldername+'/spectrum.hdf5')
+
+        # OLD SPECTRUM SAVING DEPRECATED
         # Create an hdf5 file with information on the SpecFit data
-        data = [self.spec.dispersion,
-                self.spec.fluxden,
-                self.spec.mask]
-        columns = ['dispersion', 'fluxden', 'mask']
-
-        if hasattr(self.spec, 'fluxden_err'):
-            data.append(self.spec.fluxden_err)
-            columns.append('flux_error')
-
-        df = pd.DataFrame(np.array(data).T, columns=columns)
-        df.to_hdf(foldername+'/fit.hdf5', key='specfit')
+        # data = [self.spec.dispersion,
+        #         self.spec.fluxden,
+        #         self.spec.mask]
+        # columns = ['dispersion', 'fluxden', 'mask']
+        #
+        # if hasattr(self.spec, 'fluxden_err'):
+        #     data.append(self.spec.fluxden_err)
+        #     columns.append('flux_error')
+        #
+        # df = pd.DataFrame(np.array(data).T, columns=columns)
+        # df.to_hdf(foldername+'/fit.hdf5', key='specfit')
 
         # Create an hdf5 file with information on the SpecFit meta
         data = []
@@ -646,9 +657,6 @@ class SpecFit:
             if hasattr(specmodel, 'model_fluxden'):
                 ax_main.plot(specmodel.spec.dispersion,
                              specmodel.model_fluxden, color=color, lw=3)
-            #
-            # trans = mtransforms.blended_transform_factory(
-            #     ax_main.transData, ax_main.transAxes)
 
             mask = np.ones_like(self.spec.fluxden)
             mask[np.invert(specmodel.mask)] = -1
@@ -681,24 +689,23 @@ class SpecFit:
 
             ax_main_rest = ax_main.secondary_xaxis('top',
                                                    functions=(forward, inverse))
-            ax_main_rest.set_xlabel(r'$\rm{Rest-frame\ wavelength}\ (\rm{'
-                                    r'\AA})$')
-        ax_resid.set_xlabel(r'$\rm{Observed-frame\ wavelength}\ (\rm{'
-                                    r'\AA})$')
+            ax_main_rest.set_xlabel(r'Rest-frame dispersion ({})'.format(
+                self.spec.dispersion_unit.to_string(format='latex')),
+                fontsize=14)
 
-        ax_resid.set_ylabel(r'$\rm{Fit\ residual}$')
+        ax_resid.set_xlabel(r'Dispersion ({})'.format(
+            self.spec.dispersion_unit.to_string(format='latex')), fontsize=14)
 
-        # ax_main.set_ylabel(r'$\rm{Flux\ density}\ f_{\lambda}\ ('
-        #                     r'\rm{'
-        #                     r'erg}\,\rm{s}^{'
-        #                     r'-1}\,\rm{cm}^{-2}\,\rm{\AA}^{'
-        #                     r'-1})$')
+        ax_resid.set_ylabel(r'Fit residual', fontsize=14)
 
-        ax_main.set_ylabel(r'$\rm{Flux\ density}\ \rm{(arbitrary\ units)}$')
+        ax_main.set_ylabel(r'Flux density ({})'.format(
+            self.spec.fluxden_unit.to_string(format='latex')), fontsize=14)
 
         ylim = [0, max(spec.fluxden)]
 
         ax_main.set_ylim(ylim)
+
+
 
 
 

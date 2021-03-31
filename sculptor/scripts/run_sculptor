@@ -52,7 +52,7 @@ if __name__ == '__main__':
         if args.filename.split('.')[-1] == 'fits':
 
             try:
-                spec.read_from_fits(filename=args.filename, unit='f_lam')
+                spec.read_from_fits(filename=args.filename)
                 print('[INFO] Spectrum read in assuming the '
                       'standard IRAF format.')
             except:
@@ -60,7 +60,7 @@ if __name__ == '__main__':
                       'standard IRAF format.')
 
             try:
-                spec.read_pypeit_fits(filename=args.filename, unit='f_lam')
+                spec.read_pypeit_fits(filename=args.filename)
                 print('[INFO] Spectrum read in assuming the '
                       'standard PypeIt format.')
             except:
@@ -68,14 +68,12 @@ if __name__ == '__main__':
                       'PypeIt format.')
 
             try:
-                spec.read_sdss_fits(args.filename, unit='f_lam')
+                spec.read_sdss_fits(args.filename)
                 print('[INFO] Spectrum read in assuming the '
                       'standard SDSS format.')
             except:
                 print('[WARNING] Spectrum could not be read assuming the '
                       'SDSS format.')
-
-
 
         elif args.filename.split('.')[-1] == 'hdf5':
 

@@ -666,12 +666,14 @@ class SpecModel:
         save_file = foldername+'/fit.hdf5'
         key = 'specmodel_{}'.format(specmodel_id)
 
-        df = self._specmodel_data_to_df()
-        df.to_hdf(save_file, key=key)
+        # Deprecated with new SpecOneD functionality
+        self.spec.mask = self.mask
+        self.spec.save_to_hdf('{}/{}_spectrum.hdf5'.format(foldername, key))
+        # df = self._specmodel_data_to_df()
+        # df.to_hdf(save_file, key=key)
 
         df = self._specmodel_meta_to_df()
         df.to_hdf(save_file, key=key+'_meta')
-
 
     def _specmodel_data_to_df(self):
         """ Create a DataFrame with all SpecModel data
@@ -700,7 +702,6 @@ class SpecModel:
         if hasattr(self, 'model_fluxden'):
             data.append(self.model_fluxden)
             columns.append('model_fluxden')
-
 
         df = pd.DataFrame(np.array(data).T, columns=columns)
 
@@ -748,25 +749,27 @@ class SpecModel:
 
         # Read in data frames
         key = 'specmodel_{}'.format(specmodel_id)
-        data = pd.read_hdf('{}/fit.hdf5'.format(foldername), key=key)
+        # data = pd.read_hdf('{}/fit.hdf5'.format(foldername), key=key)
         meta = pd.read_hdf('{}/fit.hdf5'.format(foldername), key=key+'_meta')
 
         # Initialize new spectrum from data frame
-        self.spec = sod.SpecOneD(dispersion=data['spec_dispersion'].values,
-                                 fluxden=data['spec_fluxden'].values,
-                                 mask=np.array(data['spec_mask'].values,
-                                 dtype=bool),
-                                 unit='f_lam')
-
-        if hasattr(data, 'spec_fluxdenerror'):
-            self.spec.fluxden_err = data['spec_fluxdenerror'].values
-
+        self.spec = sod.SpecOneD()
+        self.spec.read_from_hdf('{}/{}_spectrum.hdf5'.format(foldername, key))
+        # self.spec = sod.SpecOneD(dispersion=data['spec_dispersion'].values,
+        #                          fluxden=data['spec_fluxden'].values,
+        #                          mask=np.array(data['spec_mask'].values,
+        #                          dtype=bool),
+        #                          unit='f_lam')
+        #
+        # if hasattr(data, 'spec_fluxdenerror'):
+        #     self.spec.fluxden_err = data['spec_fluxdenerror'].values
+        #
         # Read in the specmodel mask
-        self.mask = np.array(data['mask'].values, dtype=bool)
+        self.mask = self.spec.mask
 
         # Read in the model fluxden from the data frame if available
-        if hasattr(data, 'model_fluxden'):
-            self.model_fluxden = data['model_fluxden'].values
+        # if hasattr(data, 'model_fluxden'):
+        #     self.model_fluxden = data['model_fluxden'].values
 
         # Read in meta data from meta data frame
         if meta.loc['use_weights', 0] == True:
@@ -894,13 +897,8 @@ class SpecModel:
                              facecolor=self.color, alpha=0.3,
                              transform=trans)
 
-        ax_main.set_xlabel(r'$\rm{Observed-frame\ wavelength}\ (\rm{'
-                           r'\AA})$')
+        ax_main.set_xlabel('Dispersion ({})'.format(
+            spec.dispersion_unit.to_string(format='latex')), fontsize=14)
 
-        # ax_main.set_ylabel(r'$\rm{Flux\ density}\ f_{\lambda}\ ('
-        #                    r'\rm{'
-        #                    r'erg}\,\rm{s}^{'
-        #                    r'-1}\,\rm{cm}^{-2}\,\rm{\AA}^{'
-        #                    r'-1})$')
-
-        ax_main.set_ylabel(r'$\rm{Flux\ density}\ \rm{(arbitrary\ units)}$')
+        ax_main.set_ylabel('Flux density ({})'.format(
+            spec.fluxden_unit.to_string(format='latex')), fontsize=14)

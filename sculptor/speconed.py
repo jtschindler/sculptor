@@ -46,9 +46,6 @@ purple = (204/255., 121/255., 167/255.)
 
 color_list = [vermillion, dblue, green, purple, yellow, orange, blue]
 
-# datadir = os.path.split(__file__)[0]
-# datadir = os.path.split(datadir)[0] + '/data/'
-
 ln_AA = u.def_unit('ln(Angstroem)')
 
 def gaussian(x, amp, cen, sigma, shift):
@@ -59,46 +56,13 @@ def gaussian(x, amp, cen, sigma, shift):
 
 
 class SpecOneD(object):
+    """The SpecOneD class provides a data structure for 1D astronomical
+    spectra with extensive capabilities for spectrum analysis and manipulation.
 
-    """The SpecOneD class stores 1D spectral information and allows it's
-    manipulation with built-in functions.
+    Attributes:
 
-    Attributes
-    ----------
-    raw_dispersion : ndarray
-        A 1D array containing the original spectral dispersion data in 'float'
-        type.
-    raw_fluxden : ndarray
-        A 1D array containing the original spectral fluxden data in 'float' type.
-    raw_fluxden_err : ndarray
-        A 1D array containing the original spectral fluxden error data in 'float'
-        type.
-    dispersion : ndarray
-        The 1D array containing the sp`ectral dispersion data in 'float' type.
-    fluxden : ndarray
-        A 1D array containing the spectral fluxden data in 'float' type.
-    fluxden_err : ndarray
-        A 1D array containing the spectral fluxden error data in 'float' type.
-    mask : ndarray
-        A 1D mask array (boolean type).
-    unit : str
-        A string specifying if the if the fluxden unit is per wavelength 'f_lam'
-        or frequency 'f_nu'.
-    model_spectrum : obj:
-        A lmfit Model object, which allows to fit the spectrum using lmfit
-    model_pars : obj:
-        A lmfit parameter object containing the parameters for the
-        model_spectrum.
-    fit_output : obj:
-        The resulting fit based on the model_spectrum and the model_pars
-    # fit_dispersion :
-    #     A 1D array containing the dispersion of the fitted spectrum.
-    # fit_fluxden : ndarray
-    #     A 1D arrat containing the fluxden values for the fitted spectrum.
-    header : obj
-        The spectral header object, containing additional data with regard to
-        the spectrum.
-
+    - :class:`np.ndarray` dispersion: A 1D array providing the dispersion axis of the spectrum.
+    - :class:`np.ndarray` fluxden: A 1D array providing the flux density data of the spectrum.
     """
 
     def __init__(self, dispersion=None, fluxden=None, fluxden_err=None,
@@ -689,12 +653,12 @@ class SpecOneD(object):
         else:
             self_fluxden_unit = self.fluxden_unit
         if isinstance(spectrum.fluxden_unit, u.Quantity):
-            spectrum_fluxden_unit = self.fluxden_unit.unit
+            spectrum_fluxden_unit = spectrum.fluxden_unit.unit
         else:
-            spectrum_fluxden_unit = self.fluxden_unit
+            spectrum_fluxden_unit = spectrum.fluxden_unit
 
         if spectrum_fluxden_unit != u.dimensionless_unscaled and \
-            self_fluxden_unit != u.dimensionless_unscaled:
+           self_fluxden_unit != u.dimensionless_unscaled:
             if self.fluxden_unit != spectrum.fluxden_unit or \
                self.dispersion_unit != spectrum.dispersion_unit:
                 raise ValueError('[ERROR] Current and supplied spectrum have '
@@ -919,8 +883,6 @@ class SpecOneD(object):
         """Match the dispersion of the current spectrum and the secondary
         spectrum.
 
-        TODO: Add fluxden error handling
-
         Both, current and secondary, SpecOneD objects are modified in this
         process. The dispersion match identifies the maximum possible overlap
         in the dispersion direction of both spectra and automatically trims
@@ -957,8 +919,7 @@ class SpecOneD(object):
         :return:
 
         :raise ValueError: A ValueError will be raised if there is no overlap
-        between the
-            spectra.
+        between the spectra.
         """
 
         self.check_units(secondary_spectrum)
@@ -1041,7 +1002,6 @@ class SpecOneD(object):
 
             # Warnings
             if limits[0] < self.dispersion[0]:
-                print(self.dispersion[0], limits[0])
                 print("[WARNING] Lower limit is below the lowest dispersion "
                       "value. The lower limit is set to the minimum "
                       "dispersion value.")
@@ -1822,7 +1782,27 @@ class SpecOneD(object):
     # CONTINUE DCOUMENTATION AND STUFF FROM HERE!!!!
 
     def calculate_passband_flux(self, passband,
-                                match_method='resample', force=False):
+                                match_method='interpolate', force=False):
+        """Calculate the integrated flux in the specified passband.
+
+        Disclaimer: This function is written for passbands in quantum
+        efficiency. Therefore, the (h*nu)^-1 term is not included in the
+        integral.
+
+        :param passband: The astronomical passband with throughput in quantum
+        efficiencies.
+        :type passband: PassBand
+        :param match_method: Method for matching the dispersion axis of the
+        spectrum to the passband.
+        :type match_method: str
+        :param force: Boolean to indicate if they spectra will be forced to
+        match if the spectrum does not fully cover the passband. The
+        forced match will result in an inner match of the spectrum's and the
+        passband's dispersion axes. User discretion is advised.
+        :type force: bool
+        :return: Integrated spectrum flux in the passband
+        :rtype: Quantity
+        """
 
         # Copy spectrum
         spec = self.copy()
@@ -1854,10 +1834,30 @@ class SpecOneD(object):
 
         return total_flux
 
-    def calculate_passband_ab_magnitude(self, passband, force=False,
-                                        match_method='interpolate'):
-        # This function is written for passbands in quantum efficiency
-        # Therefore, the (h*nu)^-1 term is not included in the integral
+    def calculate_passband_ab_magnitude(self, passband,
+                                        match_method='interpolate',
+                                        force=False):
+        """Calculate the AB magnitude of the spectrum in the given passband.
+
+        Disclaimer: This function is written for passbands in quantum
+        efficiency. Therefore, the (h*nu)^-1 term is not included in the
+        integral.
+
+        :param passband: The astronomical passband with throughput in quantum
+        efficiencies.
+        :type passband: PassBand
+        :param match_method: Method for matching the dispersion axis of the
+        spectrum to the passband.
+        :type match_method: str
+        :param force: Boolean to indicate if they spectra will be forced to
+        match if the spectrum does not fully cover the passband. The
+        forced match will result in an inner match of the spectrum's and the
+        passband's dispersion axes. User discretion is advised.
+        :type force: bool
+        :return: AB magnitude of the spectrum in the specified passband
+        :rtype: float
+        """
+        #
 
         spec = self.copy()
         spec.to_fluxden_per_unit_frequency_cgs()
@@ -1874,39 +1874,57 @@ class SpecOneD(object):
         return -2.5 * np.log10(spectrum_flux / passband_flux)
 
     def renormalize_by_ab_magnitude(self, magnitude, passband,
-                                    force=False, match_method='interpolate',
-                                    output='spectrum', inplace=False):
+                                    match_method='interpolate', force=False,
+                                    output_mode='spectrum', inplace=False):
+        """Scale the spectrum flux density and 1-sigma errors to the specified
+        magnitude in the provided passband.
 
-        # dipsersion_unit = self.dispersion_unit
-        # fluxden_unit = self.fluxden_unit
+        :param magnitude: Magnitude to scale the spectrum to.
+        :type magnitude: float
+        :param passband: The astronomical passband with throughput in quantum
+        efficiencies.
+        :type passband: PassBand
+        :param match_method: Method for matching the dispersion axis of the
+        spectrum to the passband.
+        :type match_method: str
+        :param force: Boolean to indicate if they spectra will be forced to
+        match if the spectrum does not fully cover the passband. The
+        forced match will result in an inner match of the spectrum's and the
+        passband's dispersion axes. User discretion is advised.
+        :type force: bool
+        :param output_mode: Output mode of the function. The default mode
+        "Spectrum" returns the rescaled spectrum as a SpecOneD object or if
+        inplace=True updates the provided spectrum. The alternative output mode
+        "flux_factor" returns the factor to scale the flux with as a float.
+        :type output_mode: str
+        :param inplace: Boolean to indicate whether the active SpecOneD
+        object will be modified or a new SpecOneD object will be created and
+        returned.
+        :type inplace: bool
+        :return: Normalized spectrum or flux density normalization factor
+        """
 
         spec_mag = self.calculate_passband_ab_magnitude(passband,
                                                         force=force,
-                                                        match_method=match_method)
+                                                        match_method=
+                                                        match_method)
 
         dmag = magnitude - spec_mag
 
-        if output == 'spectrum':
+        if output_mode == 'spectrum':
 
             if inplace:
-                # self.to_fluxden_per_unit_frequency_cgs()
-                # self.to_fluxden_per_unit_wavelength_cgs()
                 self.fluxden = self.fluxden * 10 ** (-0.4 * dmag)
                 if self.fluxden_err is not None:
                     self.fluxden_err = self.fluxden_err * 10 ** (-0.4 * dmag)
-                # self.convert_spectral_units(dipsersion_unit, fluxden_unit)
             else:
                 spec = self.copy()
-                # spec.to_fluxden_per_unit_wavelength_cgs()
-                # spec.to_fluxden_per_unit_frequency_cgs()
                 spec.fluxden = spec.fluxden * 10**(-0.4*dmag)
                 if spec.fluxden_err is not None:
                     spec.fluxden_err = spec.fluxden_err * 10**(-0.4*dmag)
-                # spec.convert_spectral_units(dipsersion_unit, fluxden_unit)
-
                 return spec
 
-        elif output == 'flux_factor':
+        elif output_mode == 'flux_factor':
 
             return 10**(-0.4*dmag)
 
@@ -1915,162 +1933,136 @@ class SpecOneD(object):
                              "Output modes are 'spectrum' or "
                              "'flux_factor'.".format(output))
 
+    def renormalize_by_spectrum(self, spectrum, dispersion_limits=None,
+                                output_mode='spectrum', inplace=False):
+        """Scale the spectrum flux density and 1-sigma errors to match the
+        provided spectrum in the full overlap region or in a specified
+        dispersion range.
 
+        The original SpecOneD spectrum and the normalization spectrum should be
+        in the same units. If this is not the case, the normalization spectrum
+        will be converted to the same units as the original SpecOneD spectrum.
 
-    def renormalize_by_spectrum(self, spectrum, dispersion='match',
-                                trim_mode='physical', inplace=False):
-        """ Match the fluxden of the active spectrum to the "spectrum" given to
-        the function.
+        The dispersion limits are unitless (list of two floats) but need to
+        be in the same units as the SpecOneD dispersion axis (dispersion_unit).
 
-        Note:
-        Both spectra will be copied to dummy variables:
-        spec = active spectrum
-        spec2 = supplied spectrum
+        :param spectrum: The provided spectrum to scale the SpecOneD spectrum
+        to.
+        :type spectrum: SpecOneD
+        :param dispersion_limits: A list of two floats indicating the lower and
+        upper dispersion limits between which the spectra are normalized.
+        :type dispersion_limits: (float, float)
+        :param output_mode: Output mode of the function. The default mode
+        "Spectrum" returns the rescaled spectrum as a SpecOneD object or if
+        inplace=True updates the provided spectrum. The alternative output mode
+        "flux_factor" returns the factor to scale the flux with as a float.
+        :type output_mode: str
+        :param inplace: Boolean to indicate whether the active SpecOneD
+        object will be modified or a new SpecOneD object will be created and
+        returned.
+        :type inplace: bool
+        :return:
         """
 
+        # Convert the spectra to dummy variables
         spec = self.copy()
         spec2 = spectrum.copy()
 
+        # Convert the renormalization spectrum to the same units as the
+        # target spectrum.
+        spec2.convert_spectral_units(spec.dispersion_unit, spec.fluxden_unit)
 
-
-        if dispersion == "match":
+        if dispersion_limits is None:
             spec.match_dispersions(spec2, match_secondary=False,
-                                  force=True, interp_kind='linear')
-        elif isinstance(dispersion,(list,)):
-            spec.trim_dispersion(dispersion, mode=trim_mode,inplace=True)
-            spec2.trim_dispersion(dispersion, mode=trim_mode,inplace=True)
+                                   method='interpolate', force=True,
+                                   interp_method='linear')
+        elif isinstance(dispersion_limits, (list,)):
+            spec.trim_dispersion(dispersion_limits, mode='physical',
+                                 inplace=True)
+            spec2.trim_dispersion(dispersion_limits, mode='physical',
+                                  inplace=True)
         else:
-            print("Spectra will be normalized but dispersion ranges do not necessarily match!")
+            raise ValueError('[ERROR] Specified dispersion limits type not '
+                             'understood. The function can take None or a '
+                             'list of two floats.')
 
+        average_self_flux = np.trapz(spec.fluxden, spec.dispersion)
+        average_spec_flux = np.trapz(spec2.fluxden, spec2.dispersion)
 
+        scale_factor = (average_spec_flux/average_self_flux)
 
-        average_self_flux = np.trapz(spec.flux, spec.dispersion)
+        if output_mode == 'spectrum':
+            if inplace:
+                self.fluxden = self.fluxden * scale_factor
+                if self.fluxden_err is not None:
+                    self.fluxden_err = self.fluxden_err * scale_factor
+            else:
+                spec = self.copy()
+                spec.fluxden = spec.fluxden * scale_factor
+                if spec.fluxden_err is not None:
+                    spec.fluxden_err = spec.fluxden_err * scale_factor
 
-        average_spec_flux = np.trapz(spec2.flux, spec2.dispersion)
+                return spec
+        elif output_mode == 'flux_factor':
+            return scale_factor
 
-        self.scale = (average_spec_flux/average_self_flux)
+    def redshift(self, z, method='doppler', inplace=False):
+        """Redshift the spectrum.
 
-        if inplace:
-            self.flux_scale_factor = average_spec_flux/average_self_flux
-            self.fluxden = self.fluxden * (average_spec_flux / average_self_flux)
-        else:
-            spec = self.copy()
-            spec.flux_scale_factor = average_spec_flux/average_self_flux
-            flux = self.fluxden * (average_spec_flux / average_self_flux)
-            spec.scale = self.scale
-            spec.fluxden= flux
-
-            return spec
-
-    def doppler_shift(self, z, method='redshift', inplace=False):
+        :param z:
+        :param method:
+        :param inplace:
+        :return:
+        """
         pass
 
+    def blueshift(self, z, method='doppler', inplace=False):
+        """Blueshift the spectrum.
 
-
-
-    def medianclip_flux(self, sigma=3, binsize=11, inplace=False):
-        """
-        Quick hack for sigma clipping using a running median
-        :param sigma:
-        :param binsize:
+        :param z:
+        :param method:
         :param inplace:
         :return:
         """
 
-        flux = self.fluxden.copy()
-        flux_err = self.fluxden_err.copy()
-
-        median = medfilt(flux, kernel_size=binsize)
-
-        diff = np.abs(flux-median)
-
-        mask = self.mask.copy()
-
-        mask[diff > sigma * flux_err] = 0
-
-        if inplace:
-            self.mask = mask
-        else:
-            spec = self.copy()
-            spec.mask = mask
-
-            return spec
-
-
-    def sigmaclip_flux(self, low=3, up=3, binsize=120, niter=5, inplace=False):
-
-        hbinsize = int(binsize/2)
-
-        flux = self.fluxden
-        dispersion = self.dispersion
-
-
-        mask_index = np.arange(dispersion.shape[0])
-
-        # loop over sigma-clipping iterations
-        for jdx in range(niter):
-
-            n_mean = np.zeros(flux.shape[0])
-            n_std = np.zeros(flux.shape[0])
-
-            # calculating mean and std arrays
-            for idx in range(len(flux[:-binsize])):
-
-                # fluxden subset
-                f_bin = flux[idx:idx+binsize]
-
-                # calculate mean and std
-                mean = np.median(f_bin)
-                std = np.std(f_bin)
-
-                # set array value
-                n_mean[idx+hbinsize] = mean
-                n_std[idx+hbinsize] = std
-
-            # fill zeros at end and beginning
-            # with first and last values
-            n_mean[:hbinsize] = n_mean[hbinsize]
-            n_mean[-hbinsize:] = n_mean[-hbinsize-1]
-            n_std[:hbinsize] = n_std[hbinsize]
-            n_std[-hbinsize:] = n_std[-hbinsize-1]
-
-            # create index array with included pixels ("True" values)
-            mask = (flux-n_mean < n_std*up) & (flux-n_mean > -n_std*low)
-            mask_index = mask_index[mask]
-
-            # mask the fluxden for the next iteration
-            flux = flux[mask]
-
-        mask = np.zeros(len(self.mask), dtype='bool')
-
-        # mask = self.mask
-        mask[:] = False
-        mask[mask_index] = True
-        mask = mask * np.array(self.mask, dtype=bool)
-
-        if inplace:
-            self.mask = mask
-        else:
-            spec = self.copy()
-            spec.mask = mask
-
-            return spec
+        pass
 
 
 class PassBand(SpecOneD):
+    """The PassBand class, a child of the SpecOneD class, is a data structure
+    for storing and manipulating astronomical filter transmission curves.
+    """
 
     def __init__(self, passband_name=None, dispersion=None, fluxden=None,
                  fluxden_err=None, header=None, dispersion_unit=None,
                  fluxden_unit=None):
-        """
+        """Initialize the PassBand object.
 
-        :param passband_name:
-        :param dispersion:
-        :param fluxden:
-        :param fluxden_err:
-        :param header:
-        :param dispersion_unit:
-        :param fluxden_unit:
+        :param passband_name: Name of the passband. The passband names
+        provided with the Sculptor package are in the format [
+        INSTRUMENT]-[BAND] and can be found in the Sculptor data folder.
+        :type passband_name: str
+        :param dispersion: A 1D array providing the dispersion axis of the
+        passband.
+        :type dispersion: numpy.ndarray
+        :param fluxden: A 1D array providing the transmission data of the
+        spectrum in quantum efficiency.
+        :type fluxden: numpy.ndarray
+        :param fluxden_err: A 1D array providing the 1-sigma error of the
+        passband's transmission curve.
+        :type fluxden_err: numpy.ndarray
+        :param header: A pandas DataFrame containing additional information
+        on the spectrum.
+        :type header: pandas.DataFrame
+        :param dispersion_unit: The physical unit (including normalization
+        factors) of the dispersion axis of the passband.
+        :type dispersion_unit: u.Unit or u.Quantity or u.CompositeUnit or
+        u.IrreducibleUnit
+        :param fluxden_unit: The physical unit (including normalization
+        factors) of the transmission curve and associated properties (e.g. flux
+        density error) of the spectrum.
+        :type fluxden_unit: u.Unit or u.Quantity or u.CompositeUnit or
+        u.IrreducibleUnit
         """
 
         if passband_name is not None:
@@ -2149,7 +2141,6 @@ class PassBand(SpecOneD):
 
         self.dispersion_unit = 1 * u.AA
         self.fluxden_unit = 1 * u.dimensionless_unscaled
-
 
     def convert_spectral_units(self, new_dispersion_unit):
         """Convert the passband to new physical dispersion units.
@@ -2767,6 +2758,95 @@ class PassBand(SpecOneD):
     #     print(spectrum_flux , passband_flux)
     #
     #     return -2.5 * np.log10(spectrum_flux / passband_flux)
+
+
+    # def medianclip_flux(self, sigma=3, binsize=11, inplace=False):
+    #     """
+    #     Quick hack for sigma clipping using a running median
+    #     :param sigma:
+    #     :param binsize:
+    #     :param inplace:
+    #     :return:
+    #     """
+    #
+    #     flux = self.fluxden.copy()
+    #     flux_err = self.fluxden_err.copy()
+    #
+    #     median = medfilt(flux, kernel_size=binsize)
+    #
+    #     diff = np.abs(flux-median)
+    #
+    #     mask = self.mask.copy()
+    #
+    #     mask[diff > sigma * flux_err] = 0
+    #
+    #     if inplace:
+    #         self.mask = mask
+    #     else:
+    #         spec = self.copy()
+    #         spec.mask = mask
+    #
+    #         return spec
+    #
+    #
+    # def sigmaclip_flux(self, low=3, up=3, binsize=120, niter=5, inplace=False):
+    #
+    #     hbinsize = int(binsize/2)
+    #
+    #     flux = self.fluxden
+    #     dispersion = self.dispersion
+    #
+    #
+    #     mask_index = np.arange(dispersion.shape[0])
+    #
+    #     # loop over sigma-clipping iterations
+    #     for jdx in range(niter):
+    #
+    #         n_mean = np.zeros(flux.shape[0])
+    #         n_std = np.zeros(flux.shape[0])
+    #
+    #         # calculating mean and std arrays
+    #         for idx in range(len(flux[:-binsize])):
+    #
+    #             # fluxden subset
+    #             f_bin = flux[idx:idx+binsize]
+    #
+    #             # calculate mean and std
+    #             mean = np.median(f_bin)
+    #             std = np.std(f_bin)
+    #
+    #             # set array value
+    #             n_mean[idx+hbinsize] = mean
+    #             n_std[idx+hbinsize] = std
+    #
+    #         # fill zeros at end and beginning
+    #         # with first and last values
+    #         n_mean[:hbinsize] = n_mean[hbinsize]
+    #         n_mean[-hbinsize:] = n_mean[-hbinsize-1]
+    #         n_std[:hbinsize] = n_std[hbinsize]
+    #         n_std[-hbinsize:] = n_std[-hbinsize-1]
+    #
+    #         # create index array with included pixels ("True" values)
+    #         mask = (flux-n_mean < n_std*up) & (flux-n_mean > -n_std*low)
+    #         mask_index = mask_index[mask]
+    #
+    #         # mask the fluxden for the next iteration
+    #         flux = flux[mask]
+    #
+    #     mask = np.zeros(len(self.mask), dtype='bool')
+    #
+    #     # mask = self.mask
+    #     mask[:] = False
+    #     mask[mask_index] = True
+    #     mask = mask * np.array(self.mask, dtype=bool)
+    #
+    #     if inplace:
+    #         self.mask = mask
+    #     else:
+    #         spec = self.copy()
+    #         spec.mask = mask
+    #
+    #         return spec
 
 # def combine_spectra(filenames, method='average', file_format='fits'):
 #
