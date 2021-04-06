@@ -329,6 +329,8 @@ class SpecOneD(object):
             df['fluxden_ivar'] = self.fluxden_err
         if self.mask is not None:
             df['mask'] = self.mask
+        if self.obj_model is not None:
+            df['obj_model'] = self.obj_model
 
         df.to_hdf(filename, 'data')
 
@@ -370,6 +372,8 @@ class SpecOneD(object):
             else:
                 self.fluxden_err = df['flux_err'].values
 
+            if 'obj_model' in df.columns:
+                self.obj_model = df['obj_model'].values
             if 'mask' in df.columns:
                 self.mask = df['mask'].values
             else:
@@ -489,8 +493,23 @@ class SpecOneD(object):
         else:
             header = self.header
 
-        dispersion_unit = self.dispersion_unit
-        fluxden_unit = self.fluxden_unit
+        if isinstance(self.dispersion_unit, u.Unit) or \
+                isinstance(self.dispersion_unit, u.CompositeUnit) or \
+                isinstance(self.dispersion_unit, u.IrreducibleUnit):
+            dispersion_unit = u.Quantity(1.,
+                                         self.dispersion_unit)
+        else:
+            dispersion_unit = u.Quantity(self.dispersion_unit.value,
+                                         self.dispersion_unit.unit)
+
+        if isinstance(self.dispersion_unit, u.Unit) or \
+                isinstance(self.dispersion_unit, u.CompositeUnit) or \
+                isinstance(self.dispersion_unit, u.IrreducibleUnit):
+            fluxden_unit = u.Quantity(1.,
+                                      self.fluxden_unit)
+        else:
+            fluxden_unit = u.Quantity(self.fluxden_unit.value,
+                                  self.fluxden_unit.unit)
 
         return SpecOneD(dispersion=dispersion,
                         fluxden=fluxden,
@@ -613,7 +632,7 @@ class SpecOneD(object):
         if dispersion_range is None:
             return np.average(self.fluxden)
         else:
-            return np.average(self.trim_dispersion(disp_range).fluxden)
+            return np.average(self.trim_dispersion(dispersion_range).fluxden)
 
     def peak_fluxden(self):
         """Return the maximum flux density value in the spectrum.
@@ -824,6 +843,104 @@ class SpecOneD(object):
         # Convert the flux density
         self.fluxden = self.fluxden / self.dispersion
         self.fluxden_unit = self.fluxden_unit / (1 * u.AA)
+
+    def normalize_fluxden_by_error(self, inplace=False):
+        """Normalize the flux density, flux density error and object model
+        numerical values by the median value of the flux density error array.
+
+        The flux density unit will be scaled accordingly. Hence,
+        this normalization does not affect the physical values of the flux
+        density and only serves to normalize the values in the flux density
+        array.
+
+        This enables more efficient calculations on the flux density array by
+        avoiding small numerical values.
+
+        :param inplace: Boolean to indicate whether the active SpecOneD
+        object will be modified or a new SpecOneD object will be created and
+        returned.
+        :type inplace: bool
+        :return: SpecOneD
+        """
+
+        scale_factor = np.median(self.fluxden_err[self.mask])
+
+        spec = self.normalize_fluxden_by_factor(scale_factor, inplace=inplace)
+
+        return spec
+
+    def normalize_fluxden_to_factor(self, factor, inplace=False):
+        """Normalize the flux density, flux density error and object model
+        numerical values to the specified unit factor.
+
+        The flux density unit will be scaled accordingly. Hence,
+        this normalization does not affect the physical values of the flux
+        density and only serves to normalize the values in the flux density
+        array.
+
+        For example normalizing the flux density to a factor 1e-17 will
+        assure that the flux density unit is 1e-17 times the original unit of
+        the flux density.
+
+        This enables more efficient calculations on the flux density array by
+        avoiding small numerical values.
+
+        :param factor: Scale factor by which the flux density, flux density
+        error and object model will be divided and the flux density unit will be
+        multiplied with.
+        :type factor: float
+        :param inplace: Boolean to indicate whether the active SpecOneD
+        object will be modified or a new SpecOneD object will be created and
+        returned.
+        :type inplace: bool
+        :return: SpecOneD
+        """
+
+        scale_factor = factor / self.fluxden_unit.value
+        spec = self.normalize_fluxden_by_factor(scale_factor, inplace=inplace)
+
+        return spec
+
+    def normalize_fluxden_by_factor(self, factor, inplace=False):
+        """Normalize the flux density, flux density error and object model
+        numerical values by the specified numerical factor.
+
+        The flux density unit will be scaled accordingly. Hence,
+        this normalization does not affect the physical values of the flux
+        density and only serves to normalize the values in the flux density
+        array.
+
+        This enables more efficient calculations on the flux density array by
+        avoiding small numerical values.
+
+        :param factor: Scale factor by which the flux density, flux density
+        error and object model will be divided and the flux density unit will be
+        multiplied with.
+        :type factor: float
+        :param inplace: Boolean to indicate whether the active SpecOneD
+        object will be modified or a new SpecOneD object will be created and
+        returned.
+        :type inplace: bool
+        :return: SpecOneD
+        """
+
+        if inplace:
+            for attr in ['fluxden', 'fluxden_err', 'obj_model']:
+                if self.__dict__[attr] is not None:
+                    self.__dict__[attr] /= factor
+            self.get_ivar_from_fluxden_error()
+            self.fluxden_unit *= factor
+        else:
+            spec = self.copy()
+            for attr in ['fluxden', 'fluxden_err', 'obj_model']:
+                if spec.__dict__[attr] is not None:
+                    spec.__dict__[attr] /= factor
+            spec.get_ivar_from_fluxden_error()
+            spec.fluxden_unit *= factor
+
+            return spec
+
+
 
 # ------------------------------------------------------------------------------
 # CLASS FUNCTIONALITY

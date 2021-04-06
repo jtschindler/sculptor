@@ -304,15 +304,6 @@ class SpecFit:
         self.spec = sod.SpecOneD()
         self.spec.read_from_hdf(foldername+'/spectrum.hdf5')
 
-        # DEPRECATED READ IN METHOD
-        # df = pd.read_hdf(foldername+'/fit.hdf5', key='specfit')
-        # self.spec = sod.SpecOneD(dispersion=df['dispersion'].values,
-        #                          fluxden=df['fluxden'].values,
-        #                          mask=np.array(df['mask'].values, dtype=bool),
-        #                          unit='f_lam')
-        # if hasattr(df, 'flux_error'):
-        #     self.spec.fluxden_err = df['flux_error'].values
-
         #  Load SpecFit meta data
         meta = pd.read_hdf(foldername + '/fit.hdf5', key='specfit_meta')
 
@@ -358,23 +349,12 @@ class SpecFit:
         if not os.path.exists(foldername):
             os.makedirs(foldername)
 
+        # Remove existing spectrum file in the folder
+        if os.path.isfile(foldername+'/spectrum.hdf5'):
+            os.remove(foldername+'/spectrum.hdf5')
 
         # Save the spectrum as a hdf5 file
         self.spec.save_to_hdf(foldername+'/spectrum.hdf5')
-
-        # OLD SPECTRUM SAVING DEPRECATED
-        # Create an hdf5 file with information on the SpecFit data
-        # data = [self.spec.dispersion,
-        #         self.spec.fluxden,
-        #         self.spec.mask]
-        # columns = ['dispersion', 'fluxden', 'mask']
-        #
-        # if hasattr(self.spec, 'fluxden_err'):
-        #     data.append(self.spec.fluxden_err)
-        #     columns.append('flux_error')
-        #
-        # df = pd.DataFrame(np.array(data).T, columns=columns)
-        # df.to_hdf(foldername+'/fit.hdf5', key='specfit')
 
         # Create an hdf5 file with information on the SpecFit meta
         data = []
@@ -388,6 +368,10 @@ class SpecFit:
         columns.append('ylim')
         data.append([self.redshift])
         columns.append('redshift')
+
+        # Remove existing fit file in the folder
+        if os.path.isfile(foldername + '/fit.hdf5'):
+            os.remove(foldername + '/fit.hdf5')
 
         df = pd.DataFrame(np.array(data), index=columns)
         df.to_hdf(foldername + '/fit.hdf5', key='specfit_meta')
@@ -438,6 +422,62 @@ class SpecFit:
             specmodel.reset_plot_limits()
             specmodel.reset_fit_mask()
 
+    def normalize_spectrum_by_error(self):
+        """Normalize the flux density, flux density error and object model
+        arrays of the spectrum by the median value of the flux density error
+        array.
+
+        The flux density unit will be scaled accordingly. Hence,
+        this normalization does not affect the physical values of the flux
+        density and only serves to normalize the values in the flux density
+        array.
+
+        This enables more efficient calculations on the flux density array by
+        avoiding small numerical values.
+
+        :return:
+        """
+
+        self.spec.normalize_fluxden_by_error(inplace=True)
+        self.update_specmodel_spectra()
+
+    def normalize_spectrum_to_factor(self, factor):
+        """Normalize the flux density, flux density error and object model
+        arrays of the spectrum to the specified unit factor.
+
+        The flux density unit will be scaled accordingly. Hence,
+        this normalization does not affect the physical values of the flux
+        density and only serves to normalize the values in the flux density
+        array.
+
+        This enables more efficient calculations on the flux density array by
+        avoiding small numerical values.
+
+        :param factor:
+        :return:
+        """
+
+        self.spec.normalize_fluxden_to_factor(factor, inplace=True)
+        self.update_specmodel_spectra()
+
+    def normalize_spectrum_by_factor(self, factor):
+        """Normalize the flux density, flux density error and object model
+        arrays of the spectrum by the specified numerical factor.
+
+        The flux density unit will be scaled accordingly. Hence,
+        this normalization does not affect the physical values of the flux
+        density and only serves to normalize the values in the flux density
+        array.
+
+        This enables more efficient calculations on the flux density array by
+        avoiding small numerical values.
+
+        :param factor:
+        :return:
+        """
+
+        self.spec.normalize_fluxden_by_factor(factor, inplace=True)
+        self.update_specmodel_spectra()
 
     def resample(self, n_samples=100, save_result_plots=True,
                  foldername='.', seed=1234):

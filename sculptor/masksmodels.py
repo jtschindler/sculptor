@@ -12,8 +12,6 @@ from lmfit import Model, Parameters
 c_km_s = const.c.to('km/s').value
 
 
-
-
 def constant(x, amp):
     """ Return constant
 
@@ -63,7 +61,8 @@ def gaussian(x, amp, cen, sigma, shift):
     """
 
     central = cen + shift
-    return (amp / (np.sqrt(2*np.pi) * sigma)) * np.exp(-(x-central)**2 / (2*sigma**2))
+    # return (amp / (np.sqrt(2*np.pi) * sigma)) * np.exp(-(x-central)**2 / (2*sigma**2))
+    return amp * np.exp(-(x-central)**2 / (2*sigma**2))
 
 
 def lorentzian(x, amp, cen, gamma, shift):
@@ -97,8 +96,7 @@ def gausshermite4(x, a, b, c, d):
     return np.polynomial.hermite.Hermite(coef=[a, b, c, d]).__call__(x)
 
 
-def setup_power_law(prefix, amplitude=1e-10, **kwargs):
-
+def setup_power_law(prefix, amplitude=2, **kwargs):
 
     params = Parameters()
 
@@ -110,7 +108,7 @@ def setup_power_law(prefix, amplitude=1e-10, **kwargs):
     return model, params
 
 
-def setup_gaussian(prefix, amplitude=1e-10, **kwargs):
+def setup_gaussian(prefix, amplitude=5, **kwargs):
 
     params = Parameters()
 
@@ -124,7 +122,7 @@ def setup_gaussian(prefix, amplitude=1e-10, **kwargs):
     return model, params
 
 
-def setup_constant(prefix, amplitude=1e-10, **kwargs):
+def setup_constant(prefix, amplitude=1, **kwargs):
 
     params = Parameters()
 
@@ -135,7 +133,7 @@ def setup_constant(prefix, amplitude=1e-10, **kwargs):
     return model, params
 
 
-def setup_lorentzian(prefix, amplitude=1e-10, **kwargs):
+def setup_lorentzian(prefix, amplitude=5, **kwargs):
 
     params = Parameters()
 
@@ -171,14 +169,11 @@ model_setup_list = [setup_constant,
 mask_presets = {}
 
 
-
 extension_path = pkg_resources.resource_filename('sculptor',
                                                  '../sculptor-extensions')
 
-
-
 file_names = glob.glob(extension_path+'/*.py')
-print(file_names)
+
 module_names = [os.path.basename(f)[:-3] for f in file_names if
                 os.path.isfile(f) and not f.endswith('__init__.py')]
 

@@ -69,7 +69,7 @@ def gaussian_fwhm_km_s_z(x, z, amp, cen, fwhm_km_s, shift_km_s):
     fwhm = fwhm_km_s / c_km_s * central
     sigma = fwhm / np.sqrt(8*np.log(2))
 
-    return (amp / (np.sqrt(2*np.pi) * sigma)) * np.exp(-(x-central)**2 / (2*sigma**2))
+    return amp * np.exp(-(x-central)**2 / (2*sigma**2))
 
 
 # ------------------------------------------------------------------------------

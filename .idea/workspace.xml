@@ -3,9 +3,27 @@
   <component name="ChangeListManager">
     <list default="true" id="c7e35728-a01d-41d7-afc8-85ed9ad835b6" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/scripts/run_sculptor" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/scripts/run_sculptor" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/0_fitresult.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/0_fitresult.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/1_SiIV__model.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/1_fitresult.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/1_fitresult.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/2_fitresult.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/2_fitresult.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/3_AlIII__model.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/3_CIII__model.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/3_CIII__model.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/3_SiIII__model.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/3_fitresult.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/3_fitresult.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/3_global_params.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/4_AbsA__model.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/4_AbsB__model.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/4_fitresult.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/4_fitresult.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/fit.hdf5" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/fit.hdf5" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor-extensions/my_extension.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor-extensions/my_extension.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/analysis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/masksmodels.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/masksmodels.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/menu_dialogs.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/menu_dialogs.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sculptor/specfit.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specfit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/specfitgui.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specfitgui.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sculptor/specmodel.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sculptor/specmodelwidget.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/specmodelwidget.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sculptor/speconed.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/speconed.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -105,7 +123,7 @@
       <option name="presentableId" value="Default" />
       <updated>1591360373781</updated>
       <workItem from="1616498126687" duration="22060000" />
-      <workItem from="1616784368179" duration="25857000" />
+      <workItem from="1616784368179" duration="54432000" />
     </task>
     <servers />
   </component>
@@ -120,6 +138,12 @@
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="945" y="331" width="670" height="676" key="search.everywhere.popup" timestamp="1617721550009">
+      <screen x="0" y="0" width="2560" height="1440" />
+    </state>
+    <state x="945" y="331" width="670" height="676" key="search.everywhere.popup/0.0.2560.1440@0.0.2560.1440" timestamp="1617721550009" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

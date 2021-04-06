@@ -15,7 +15,8 @@ from sculptor.specmodel import fitting_methods
 from sculptor.masksmodels import mask_presets
 from sculptor.specmodelwidget import SpecModelWidget
 from sculptor.specfitcanvas import SpecFitCanvas
-from sculptor.menu_dialogs import ResampleWindow, EmceeWindow
+from sculptor.menu_dialogs import ResampleWindow, EmceeWindow, NormalizeWindow
+from sculptor.menu_dialogs import ResampleWindow, EmceeWindow, NormalizeWindow
 
 def update_float_variable_from_linedit(lineEdit, variable,
                                        expression='{:.2f}'):
@@ -80,6 +81,7 @@ class SpecFitGui(QMainWindow):
         loadAction.setStatusTip('Load from SpecFit Folder')
         loadAction.triggered.connect(self.load)
 
+        # Spectrum actions
         # Add import spectrum action
         importIrafSpecAction = QAction('Import IRAF spectrum', self)
         # loadAction.setShortcut('Ctrl+L')
@@ -93,7 +95,7 @@ class SpecFitGui(QMainWindow):
         importPypeitSpecAction.setStatusTip('Import PypeIt Spectrum. Overrides '
                                           'current spectrum')
         importPypeitSpecAction.triggered.connect(lambda: self.import_spectrum(
-            mode='PypeIT'))
+            mode='PypeIt'))
 
         importSodSpecAction = QAction('Import SpecOneD spectrum', self)
         # loadAction.setShortcut('Ctrl+L')
@@ -108,6 +110,26 @@ class SpecFitGui(QMainWindow):
                                          'current spectrum')
         importSDSSSpecAction.triggered.connect(lambda: self.import_spectrum(
             mode='SDSS'))
+
+        normalizeByErrorAction = QAction('Normalize by error', self)
+        normalizeByErrorAction.setStatusTip('Normalize the flux density, '
+                                            'flux density, and object model '
+                                            'numerical values by the median '
+                                            'value of the flux density error.'
+                                            ' The physical flux properties will'
+                                            ' be unchanged.')
+        normalizeByErrorAction.triggered.connect(
+            lambda: self.normalize_spectrum_by_error())
+
+        normalizeByFactorAction = QAction('Open normalization menu', self)
+        normalizeByFactorAction.setStatusTip('Normalize the flux density, '
+                                             'flux density, and object model '
+                                             'numerical values by/to a '
+                                             'specified factor. The physical '
+                                             'flux properties will be '
+                                             'unchanged.')
+        normalizeByFactorAction.triggered.connect(
+            lambda: self.open_normalize_dialog())
 
         # SpecModel Actions
         addSpecModelAction = QAction('Add SpecModel', self)
@@ -153,6 +175,9 @@ class SpecFitGui(QMainWindow):
         spectrumMenu.addAction(importPypeitSpecAction)
         spectrumMenu.addAction(importSodSpecAction)
         spectrumMenu.addAction(importSDSSSpecAction)
+        spectrumMenu.addSeparator()
+        spectrumMenu.addAction(normalizeByErrorAction)
+        spectrumMenu.addAction(normalizeByFactorAction)
 
         specModelMenu = mainMenu.addMenu('&SpecModel')
         specModelMenu.addAction(addSpecModelAction)
@@ -667,6 +692,39 @@ class SpecFitGui(QMainWindow):
         self.specFitCanvas.setFocus()
 
     # --------------------------------------------------------------------------
+    # Spectrum Actions
+    # --------------------------------------------------------------------------
+
+    def normalize_spectrum_by_error(self):
+
+        self.specfit.normalize_spectrum_by_error()
+        current_widget = self.tabWidget.currentWidget()
+        if self.tabWidget.currentIndex() > 0:
+            current_widget.reset_plot_region()
+        else:
+            self.reset_plot_region()
+
+    def normalize_spectrum_to_factor(self, factor):
+
+        self.specfit.normalize_spectrum_to_factor(factor)
+        current_widget = self.tabWidget.currentWidget()
+        if self.tabWidget.currentIndex() > 0:
+            current_widget.reset_plot_region()
+        else:
+            self.reset_plot_region()
+
+    def normalize_spectrum_by_factor(self, factor):
+
+        self.specfit.normalize_spectrum_by_factor(factor)
+        current_widget = self.tabWidget.currentWidget()
+        if self.tabWidget.currentIndex() > 0:
+            current_widget.reset_plot_region()
+        else:
+            self.reset_plot_region()
+
+
+
+    # --------------------------------------------------------------------------
     # Fit Actions
     # --------------------------------------------------------------------------
 
@@ -708,13 +766,18 @@ class SpecFitGui(QMainWindow):
                                   seed=self.resample_seed)
 
     def open_resample_dialog(self):
+
         self.resampleDialog = ResampleWindow(self)
         self.resampleDialog.show()
 
-
     def open_emcee_dialog(self):
+
         self.emceeDialog = EmceeWindow(self)
         self.emceeDialog.show()
+
+    def open_normalize_dialog(self):
+        self.normalizeDialog = NormalizeWindow(self)
+        self.normalizeDialog.show()
 
     # --------------------------------------------------------------------------
     # File Actions

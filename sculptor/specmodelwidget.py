@@ -118,8 +118,7 @@ class SpecModelWidget(QWidget):
 
         self.buttonAddModel = QPushButton('Add')
         self.buttonAddModel.clicked.connect(lambda:
-                                            self.add_model_to_specmodel(
-                                                specmodel, specfitgui))
+                                            self.add_model_to_specmodel())
         self.hLayoutAddModel = QHBoxLayout()
         self.hLayoutAddModel.addWidget(self.boxAddModel)
         self.hLayoutAddModel.addWidget(self.buttonAddModel)
@@ -382,16 +381,20 @@ class SpecModelWidget(QWidget):
         self.specModelCanvas.setFocus()
 
 
-    def add_model_to_specmodel(self, specmodel, specfitgui):
+    def add_model_to_specmodel(self):
+        """Add spectral model to the SpecModel object.
+
+        :return:
+        """
 
         model_name = self.boxAddModel.currentText()
         prefix = self.lePrefix.text()+'_'
 
         # Check if chosen prefix already exists. If so, change the prefix_flag
         prefix_flag = True
-        for model in specmodel.model_list:
+        for model in self.specmodel.model_list:
             if prefix == model.prefix:
-                specfitgui.statusBar().showMessage("Model with same "
+                self.specfitgui.statusBar().showMessage("Model with same "
                                                "prefix"
                                              " exists already! Please choose a"
                                              " different prefix.", 5000)
@@ -400,27 +403,7 @@ class SpecModelWidget(QWidget):
         # If the pre_fix already exists abort, otherwise add model to
         # continuum model list including parameters.
         if prefix_flag:
-
-            for idx, model_func in enumerate(model_func_list):
-                if model_name == model_func:
-
-                    if specfitgui.specfit.redshift is not None:
-                        model, params = model_setup_list[idx](prefix,
-                                          redshift=specfitgui.specfit.redshift)
-
-                        # Add global params to params
-                        if self.specmodel.global_params:
-                            params.update(self.specmodel.global_params)
-
-                        specmodel.add_model(model, params)
-                    else:
-                        model, params = model_setup_list[idx](prefix)
-
-                        # Add global params to params
-                        if self.specmodel.global_params:
-                            params.update(self.specmodel.global_params)
-
-                        specmodel.add_model(model, params)
+            self.specmodel.add_model(model_name, prefix)
 
         # Rebuild all model tabs
         self.rebuild_model_tabs()
@@ -847,13 +830,15 @@ class SpecModelWidget(QWidget):
             msg.setText(fit_report(self.specmodel.fit_result))
             x = msg.exec_()
 
-
             if self.specmodel.specfit.fitting_method == 'Maximum likelihood ' \
                                                        'via Monte-Carlo Markov Chain':
-                corner_plot = corner.corner(self.specmodel.fit_result.flatchain,
+                data = self.specmodel.fit_result.flatchain.to_numpy()
+                corner_plot = corner.corner(data,
                                             labels=self.specmodel.fit_result.var_names,
-                                            truths=list(
-                                                self.specmodel.fit_result.params.valuesdict().values()))
+                                            quantiles=[0.16, 0.5, 0.84],
+                                            show_titles=True,
+                                            title_kwargs={"fontsize": 12},
+                                           )
                 corner_plot.show()
 
 

@@ -141,15 +141,14 @@ class EmceeWindow(QWidget):
         hLayoutThin.addWidget(self.labelThin)
         hLayoutThin.addWidget(self.leThin)
 
-        # self.labelWorkers = QLabel('Workers')
-        # self.leWorkers = QLineEdit('{}'.format(
-        #     self.specfitgui.specfit.emcee_kws['workers']))
-        # self.leWorkers.returnPressed.connect(self.update_emcee_kws)
-        #
-        # hLayoutWorkers = QHBoxLayout()
-        # hLayoutWorkers.addWidget(self.labelWorkers)
-        # hLayoutWorkers.addWidget(self.leWorkers)
+        self.labelWorkers = QLabel('Workers')
+        self.leWorkers = QLineEdit('{}'.format(
+            self.specfitgui.specfit.emcee_kws['workers']))
+        self.leWorkers.returnPressed.connect(self.update_emcee_kws)
 
+        hLayoutWorkers = QHBoxLayout()
+        hLayoutWorkers.addWidget(self.labelWorkers)
+        hLayoutWorkers.addWidget(self.leWorkers)
 
         self.hLayoutButtons = QHBoxLayout()
         self.applyButton = QPushButton('Apply')
@@ -165,7 +164,7 @@ class EmceeWindow(QWidget):
         mainLayout.addLayout(hLayoutWalkers)
         mainLayout.addLayout(hLayoutBurn)
         mainLayout.addLayout(hLayoutThin)
-        # mainLayout.addLayout(hLayoutWorkers)
+        mainLayout.addLayout(hLayoutWorkers)
         mainLayout.addLayout(self.hLayoutButtons)
 
         self.setLayout(mainLayout)
@@ -211,4 +210,49 @@ class EmceeWindow(QWidget):
 
     def apply(self):
         self.update_emcee_kws()
+        self.close()
+
+
+
+class NormalizeWindow(QWidget):
+    def __init__(self, specfitgui):
+        super().__init__()
+
+        mainLayout = QVBoxLayout()
+
+        self.specfitgui = specfitgui
+        self.setWindowTitle("Normalize spectrum")
+
+        self.labelFactor = QLabel('Normalization factor')
+        self.leFactor = QLineEdit('{}'.format('1e-17'))
+
+        hLayoutFactor = QHBoxLayout()
+        hLayoutFactor.addWidget(self.labelFactor)
+        hLayoutFactor.addWidget(self.leFactor)
+
+        self.normalizeToButton = QPushButton('Normalize to factor')
+        self.normalizeToButton.clicked.connect(self.normalize_to)
+        self.normalizeByButton = QPushButton('Normalize by factor')
+        self.normalizeByButton.clicked.connect(self.normalize_by)
+        self.closeButton = QPushButton('Close')
+        self.closeButton.clicked.connect(self.close)
+
+        hLayoutButtons = QHBoxLayout()
+        hLayoutButtons.addWidget(self.normalizeToButton)
+        hLayoutButtons.addWidget(self.normalizeByButton)
+        hLayoutButtons.addWidget(self.closeButton)
+
+        mainLayout.addLayout(hLayoutFactor)
+        mainLayout.addLayout(hLayoutButtons)
+
+        self.setLayout(mainLayout)
+
+    def normalize_to(self):
+        factor = float(self.leFactor.text())
+        self.specfitgui.normalize_spectrum_to_factor(factor)
+        self.close()
+
+    def normalize_by(self):
+        factor = float(self.leFactor.text())
+        self.specfitgui.normalize_spectrum_by_factor(factor)
         self.close()

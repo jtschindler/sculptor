@@ -33,42 +33,45 @@ def analyze_emission_feature(specfit, feature_name, model_names,
     """Calculate measurements of an emission feature for a spectral fit (
     SpecFit object).
 
+    # UPDATE TO USE SPECTRUM UNITS!
+    # ADD MODE TO RETURN LIST OF VALUES AND LIST OF UNITS  FOR MCMC/RESAMPLE
+    functions.
     At present this analysis assumes that the spectra are in the following
     units:
     flux density - erg/s/cm^2/AA
-    dispersipn - AA
+    dispersion - AA
 
     :param specfit: SpecFit class object to extract the model flux from
-    :type sf.SpecFit
+    :type specfit: sf.SpecFit
     :param feature_name: Name of the emission feature, which will be used to
     name the resulting measurements in the output dictionary.
-    :type string
+    :type feature_name: string
     :param model_names: List of model names to create the emission feature flux
     from.
-    :type list
+    :type model_names: list
     :param rest_frame_wavelength: Rest-frame wavelength of the emission feature
-    :type float
+    :type rest_frame_wavelength: float
     :param cont_model_names:  List of model names to create the continuum
     flux model from. The continuum spectrum is for example used in the
     calculation of some emission feature properties (e.g. equivalent width).
-    :type sod.SpecOneD
+    :type cont_model_names: list
     :param redshift: Redshift of the object. This keyword argument defaults
     to 'None', in which case the redshift from the SpecFit object is used.
-    :type float
+    :type redshift: float
     :param dispersion: This keyword argument allows to input a dispersion
     axis (e.g., wavelengths) for which the model fluxes are calculated. The
     value defaults to 'None', in which case the dispersion from the SpecFit
     spectrum is being used.
-    :type np.array
+    :type dispersion: np.array
     :param emfeat_meas: This keyword argument allows to specify the list of
     emission feature measurements.
     Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
     'FWHM', 'flux']. The value defaults to 'None' in which all measurements
     are calculated
-    :type list
+    :type emfeat_meas: list
     :param disp_range: 2 element list holding the lower and upper dispersion
     boundaries for the integration
-    :type list
+    :type disp_range: list
     :return: Dictionary with measurement results (without units)
     :rtype dict
     """
@@ -90,12 +93,13 @@ def analyze_emission_feature(specfit, feature_name, model_names,
 
     if 'peak_fluxden' in emfeat_meas:
         result_dict.update({feature_name+'_peak_fluxden':
-                            np.max(model_spec.fluxden)})
+                            np.max(model_spec.fluxden) *
+                            model_spec.fluxden_unit})
 
     if 'peak_redsh' in emfeat_meas:
         result_dict.update({feature_name + '_peak_redsh':
                             get_peak_redshift(model_spec,
-                                                    rest_frame_wavelength)})
+                                              rest_frame_wavelength)})
     if 'EW' in emfeat_meas and cont_model_names is not None:
         ew = get_equivalent_width(cont_spec, model_spec,
                                         redshift=redshift)
@@ -162,7 +166,7 @@ def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
     cont_spec = build_model_flux(specfit, model_names, dispersion=dispersion)
 
     # Define unit for flux density
-    fluxden_unit = units.erg / units.s / units.cm ** 2 / units.AA
+    fluxden_unit = cont_spec.fluxden_unit
 
     # Analyze the continuum
     if cont_meas is None:
@@ -176,29 +180,30 @@ def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
     for wave in rest_frame_wavelengths:
 
         wave_name = str(wave)
+        fluxden_avg = get_average_fluxden(cont_spec, wave,
+                                          redshift=redshift,
+                                          width=width)
 
         if 'fluxden_avg' in cont_meas:
-            fluxden_avg = get_average_fluxden(cont_spec, wave,
-                                              redshift=redshift,
-                                              width=width)
-            result_dict.update({wave_name+'_fluxden_avg': fluxden_avg})
+            result_dict.update({wave_name+'_fluxden_avg':
+                                fluxden_avg*cont_spec.fluxden_unit})
 
         if 'Lwav' in cont_meas:
             lwav = calc_Lwav_from_fwav(fluxden_avg, fluxden_unit,
                                        redshift=redshift,
                                        cosmology=cosmology)
-            result_dict.update({wave_name+'_Lwav': lwav.value})
+            result_dict.update({wave_name+'_Lwav': lwav})
 
         if 'appmag' in cont_meas:
             appmag = calc_apparent_mag_from_fluxden(fluxden_avg,
                                                     fluxden_unit,
                                                     wave*(1.+redshift)*units.AA)
-            result_dict.update({wave_name + '_appmag': appmag.value})
+            result_dict.update({wave_name + '_appmag': appmag})
 
         if 'absmag' in cont_meas:
             absmag = calc_absolute_mag_from_monochromatic_luminosity(
                     lwav.value, lwav.unit, wave*units.AA)
-            result_dict.update({wave_name + '_absmag': absmag.value})
+            result_dict.update({wave_name + '_absmag': absmag})
 
 
     return result_dict
@@ -397,8 +402,8 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
             feature_name = emission_feature_dict['feature_name']
             model_names = emission_feature_dict['model_names']
             rest_frame_wavelength = emission_feature_dict['rest_frame_wavelength']
-            if 'disp_range' in emission_feat_dict:
-                disp_range = emission_feat_dict['disp_range']
+            if 'disp_range' in emission_feature_dict:
+                disp_range = emission_feature_dict['disp_range']
             else:
                 disp_range = None
 
@@ -409,7 +414,7 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
                                          redshift=redshift,
                                          dispersion=dispersion,
                                          emfeat_meas=emfeat_meas,
-                                         disp_range = disp_range)
+                                         disp_range=disp_range)
         if mode == 'both' or mode == 'cont':
             cont_result_dict = \
                 analyze_continuum(specfit,
@@ -552,7 +557,8 @@ def build_model_flux(specfit, model_list, dispersion=None):
                                             x=dispersion)
 
     model_spec = sod.SpecOneD(dispersion=dispersion, fluxden=model_fluxden,
-                              unit='f_lambda')
+                              dispersion_unit=specfit.spec.dispersion_unit,
+                              fluxden_unit=specfit.spec.fluxden_unit)
 
     return model_spec
 
@@ -583,7 +589,8 @@ def get_integrated_flux(input_spec, disp_range=None):
     else:
         spec = input_spec.copy()
 
-    return np.trapz(spec.fluxden, x=spec.dispersion)
+    return np.trapz(spec.fluxden, x=spec.dispersion) * spec.dispersion_unit *\
+           spec.fluxden_unit
 
 
 def get_average_fluxden(input_spec, dispersion, width=10, redshift=0):
@@ -609,7 +616,7 @@ def get_average_fluxden(input_spec, dispersion, width=10, redshift=0):
     disp_range = [(dispersion - width / 2.)*(1.+redshift),
                   (dispersion + width / 2.)*(1.+redshift)]
     
-    return input_spec.average_fluxden(disp_range=disp_range)
+    return input_spec.average_fluxden(dispersion_range=disp_range)
         
 
 # ------------------------------------------------------------------------------
@@ -668,7 +675,7 @@ def get_equivalent_width(cont_spec, line_spec, disp_range=None,
         ew = np.trapz((rest_line_flux) / rest_cont_flux,
                       rest_dispersion)
 
-    return ew
+    return ew * cont_spec.dispersion_unit
 
 
 def get_fwhm(input_spec, disp_range=None, resolution=None):
@@ -730,17 +737,20 @@ def get_fwhm(input_spec, disp_range=None, resolution=None):
                c_km_s
 
         if resolution is None:
-            return fwhm[0]
+            return fwhm[0] * units.km/units.s
         else:
             print('[INFO] FWHM is corrected for the provided '
                   'resolution of R={}'.format(resolution))
             resolution_km_s = c_km_s/resolution
-            return np.sqrt(fwhm ** 2 - resolution_km_s ** 2)[0]
+            return np.sqrt(fwhm ** 2 - resolution_km_s ** 2)[0] * \
+                   units.km/units.s
 
 # non-parametric width measurement
 
+
 def get_centroid_wavelength():
     pass
+
 
 def get_centroid_redshift():
     pass
@@ -796,11 +806,12 @@ def calc_integrated_luminosity(input_spec, fluxden_unit, redshift,
     # Cconvert to rest-frame flux and dispersion
     rest_dispersion = input_spec.dispersion / (1. + redshift)
     rest_fluxden = calc_Lwav_from_fwav(input_spec.fluxden,
-                                       fluxden_unit, redshift,
+                                       input_spec.fluxden_unit, redshift,
                                        cosmology)
     rest_frame_spec = sod.SpecOneD(dispersion=rest_dispersion,
-                                fluxden=rest_fluxden.value,
-                        unit='f_lam')
+                                   dispersion_unit=input_spec.dispersion_unit,
+                                   fluxden=rest_fluxden.value,
+                                   fluxden_unit=rest_fluxden.unit)
 
     # Only integrate part of the model spectrum if disp_range is specified
     if disp_range is not None:
@@ -810,7 +821,10 @@ def calc_integrated_luminosity(input_spec, fluxden_unit, redshift,
     integrated_line_luminosity = np.trapz(rest_frame_spec.fluxden,
                                           x=rest_frame_spec.dispersion)
     
-    return integrated_line_luminosity * rest_fluxden.unit * units.AA
+    return integrated_line_luminosity * \
+           rest_frame_spec.fluxden_unit * \
+           rest_frame_spec.dispersion_unit
+
 
 def calc_apparent_mag_from_fluxden(fluxden, fluxden_unit, dispersion):
     """Calculate the apparent AB magnitude from the monochromatic flux
@@ -836,6 +850,7 @@ def calc_apparent_mag_from_fluxden(fluxden, fluxden_unit, dispersion):
 #  following functions should be updated.
 # TODO: In a future update consider allowing to specify a custom k-correction
 #  function to allow for arbitrary k-corrections.
+
 
 def calc_absolute_mag_from_fluxden(fluxden, fluxden_unit, dispersion,
                                    cosmology, redshift, kcorrection=True,
@@ -894,7 +909,7 @@ def calc_absolute_mag_from_monochromatic_luminosity(l_wav, l_wav_unit,
 
 
 def calc_absolute_mag_from_apparent_mag(appmag, cosmology, redshift,
-                                        kcorrection=False, a_nu=0):
+                                        kcorrection=True, a_nu=0):
     """Calculate the absolute magnitude from the apparent magnitude using a
     power law k-correction.
 
@@ -924,6 +939,7 @@ def calc_absolute_mag_from_apparent_mag(appmag, cosmology, redshift,
     print(lum_dist, distmod, kcorr)
 
     return appmag - distmod.value - kcorr
+
 
 def k_correction_pl(redshift, a_nu):
     """Calculate the k-correction for a power law spectrum with spectral

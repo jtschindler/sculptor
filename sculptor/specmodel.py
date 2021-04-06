@@ -66,6 +66,7 @@ Fitting methods available for fitting in SpecFit based on the list of methods in
 LMFIT.
 """
 
+
 class SpecModel:
     """ Class holding information on models for the SpecFit class
 
@@ -175,8 +176,35 @@ class SpecModel:
 
         return specmodel
 
-    def add_model(self, model, params):
-        """ Add a model to the SpecModel object
+    def add_model(self, model_name, prefix, **kwargs):
+        """Add a model to the SpecModel by using the built-in Sculptor models.
+
+        :param model_name:
+        :param prefix:
+        :return:
+        """
+
+        model_idx = model_func_list.index(model_name)
+        redshift = kwargs.pop('redshift', None)
+
+        if self.specfit.redshift is not None and redshift is None:
+            model, params = model_setup_list[model_idx](
+                prefix, redshift=self.specfit.redshift, **kwargs)
+        elif redshift is not None:
+            model, params = model_setup_list[model_idx](
+                prefix, redshift=redshift, **kwargs)
+        else:
+            model, params = model_setup_list[model_idx](prefix, **kwargs)
+
+        # Add global params to params
+        if self.global_params:
+            params.update(self.global_params)
+
+        self._add_model(model, params)
+
+
+    def _add_model(self, model, params):
+        """ Add an LMFIT model and LMFIT parameters to the SpecModel object
 
         :param (Model) model: LMFIT Model to be added to the model list.
         :param (Parameters) params: LMFIT Parameters to be added to the
@@ -215,7 +243,6 @@ class SpecModel:
                 self.model_list.append(model)
                 self.params_list.append(params)
 
-
     def delete_model(self, index=None):
         """ Delete model (Model, Parameters) from the SpecModel object.
 
@@ -237,7 +264,6 @@ class SpecModel:
             # Delete the Model and Parameter objects
             del model_to_delete
             del params_to_delete
-
 
     def add_wavelength_range_to_fit_mask(self, disp_x1, disp_x2):
         """ Adding a wavelength region to the fit mask.
@@ -270,8 +296,9 @@ class SpecModel:
     def add_mask_preset_to_fit_mask(self, mask_preset_key):
         """ Adding a preset mask from the models_and_masks module to the fit.
 
-        :param mask_preset_key (str): Name of the preset mask in the
+        :param mask_preset_key: Name of the preset mask in the
             mask_preset dictionary.
+        :type mask_preset_key: str
 
         :return: None
         """
@@ -312,7 +339,6 @@ class SpecModel:
 
         self.update_model_params_for_global_params()
 
-
     def remove_global_param(self, param_name):
         """ Remove "Global Parameter" from SpecModel object
 
@@ -328,7 +354,6 @@ class SpecModel:
         for params in self.params_list:
             if param_name in params:
                 params.pop(param_name)
-
 
     def build_model(self):
         """ Build the Specmodel model and parameters for the fit
@@ -358,9 +383,9 @@ class SpecModel:
                 self.model += model
 
             # Evaluate the model with the initial parameters
-            self.model_fluxden = self.model.eval(self.params,
-                                              x=self.spec.dispersion)
-
+            self.model_fluxden = self.model.eval(
+                self.params,
+                x=self.spec.dispersion)
 
     def fit(self):
         """ Fit the SpecModel to the astronomical spectrum
@@ -382,52 +407,54 @@ class SpecModel:
 
                 if fitting_methods[self.specfit.fitting_method] == 'emcee':
                     emcee_kws['is_weighted'] = True
-                    self.fit_result = self.model.fit(self.spec.fluxden[fit_mask],
-                                                     self.params,
-                                                     x=self.spec.dispersion[
-                                                         fit_mask],
-                                                     weights=weights,
-                                                     method=fitting_methods[
-                                                         self.specfit.fitting_method],
-                                                     fit_kws=emcee_kws)
+                    self.fit_result = self.model.fit(
+                        self.spec.fluxden[fit_mask],
+                        self.params,
+                        x=self.spec.dispersion[
+                             fit_mask],
+                        weights=weights,
+                        method=fitting_methods[
+                             self.specfit.fitting_method],
+                        fit_kws=emcee_kws)
 
                 else:
-                    self.fit_result = self.model.fit(self.spec.fluxden[fit_mask],
-                                                     self.params,
-                                                     x=self.spec.dispersion[
-                                                         fit_mask],
-                                                     weights=weights,
-                                                     method=fitting_methods[
-                                                         self.specfit.fitting_method])
-
-
+                    self.fit_result = self.model.fit(
+                        self.spec.fluxden[fit_mask],
+                        self.params,
+                        x=self.spec.dispersion[
+                             fit_mask],
+                        weights=weights,
+                        method=fitting_methods[
+                             self.specfit.fitting_method])
 
             else:
                 emcee_kws['is_weighted'] = False
                 if fitting_methods[self.specfit.fitting_method] == 'emcee':
                     # TODO: Check why is weighted is set to TRUE here!!!
                     emcee_kws['is_weighted'] = False
-                    self.fit_result = self.model.fit(self.spec.fluxden[fit_mask],
-                                                     self.params,
-                                                     x=self.spec.dispersion[
-                                                         fit_mask],
-                                                     method=fitting_methods[
-                                                         self.specfit.fitting_method],
-                                                     fit_kws=emcee_kws)
+                    self.fit_result = self.model.fit(
+                        self.spec.fluxden[fit_mask],
+                        self.params,
+                        x=self.spec.dispersion[
+                             fit_mask],
+                        method=fitting_methods[
+                            self.specfit.fitting_method],
+                        fit_kws=emcee_kws)
 
                 else:
-                    self.fit_result = self.model.fit(self.spec.fluxden[fit_mask],
-                                                     self.params,
-                                                     x=self.spec.dispersion[
-                                                         fit_mask],
-                                                     method=fitting_methods[
-                                                         self.specfit.fitting_method])
+                    self.fit_result = self.model.fit(
+                        self.spec.fluxden[fit_mask],
+                        self.params,
+                        x=self.spec.dispersion[
+                             fit_mask],
+                        method=fitting_methods[
+                             self.specfit.fitting_method])
 
-            self.model_fluxden = self.model.eval(self.fit_result.params,
-                                              x=self.spec.dispersion)
+            self.model_fluxden = self.model.eval(
+                self.fit_result.params,
+                x=self.spec.dispersion)
 
             self.update_params_from_fit_result()
-
 
     def update_model_params_for_global_params(self):
         """ Global parameters are added to the Model parameters.
@@ -457,7 +484,6 @@ class SpecModel:
             for params in self.params_list:
                 for param in params:
                     params[param].value = input_param_series[param]
-
 
     def update_params_from_fit_result(self):
         """Update all parameter values in the parameter list based on the
@@ -579,7 +605,6 @@ class SpecModel:
                   'likelihood via Monte-Carlo Markov Chain" and refit the'
                   ' model.')
 
-
     def save_fit_report(self, foldername, specmodel_id=None, show=False):
         """ Save the fit report to a file in the specified folder
 
@@ -661,51 +686,53 @@ class SpecModel:
             print("[INFO] Saving new model file: {}".format(model_file))
             save_model(model, model_file)
 
-        # Save SpecModel data to fit.hdf5 file
-        # Previous data is overwritten
+        # Save SpecModel meta to fit.hdf5 file
         save_file = foldername+'/fit.hdf5'
         key = 'specmodel_{}'.format(specmodel_id)
-
-        # Deprecated with new SpecOneD functionality
-        self.spec.mask = self.mask
-        self.spec.save_to_hdf('{}/{}_spectrum.hdf5'.format(foldername, key))
-        # df = self._specmodel_data_to_df()
-        # df.to_hdf(save_file, key=key)
 
         df = self._specmodel_meta_to_df()
         df.to_hdf(save_file, key=key+'_meta')
 
-    def _specmodel_data_to_df(self):
-        """ Create a DataFrame with all SpecModel data
+        # Save spectral data (incl. specmodel mask and model flux density) to
+        # SpecOneD object
+        # Remove existing specmodel specdata hdf5 file in the folder
+        if os.path.isfile('{}/{}_specdata.hdf5'.format(foldername, key)):
+            os.remove('{}/{}_specdata.hdf5'.format(foldername, key))
+        self.spec.mask = self.mask
+        self.spec.obj_model = self.model_fluxden
+        self.spec.save_to_hdf('{}/{}_specdata.hdf5'.format(foldername, key))
 
-        This function is used internally to save the SpecModel data to a file.
-
-        :return: df (pandas.DataFrame)
-        """
-
-        data = []
-        columns = []
-
-        data.append(self.spec.dispersion)
-        columns.append('spec_dispersion')
-        data.append(self.spec.fluxden)
-        columns.append('spec_fluxden')
-        data.append(self.spec.mask)
-        columns.append('spec_mask')
-        if hasattr(self.spec, 'fluxden_err'):
-            data.append(self.spec.fluxden_err)
-            columns.append('spec_fluxdenerror')
-
-        data.append(self.mask)
-        columns.append('mask')
-
-        if hasattr(self, 'model_fluxden'):
-            data.append(self.model_fluxden)
-            columns.append('model_fluxden')
-
-        df = pd.DataFrame(np.array(data).T, columns=columns)
-
-        return df
+    # def _specmodel_data_to_df(self):
+    #     """ Create a DataFrame with all SpecModel data
+    #
+    #     This function is used internally to save the SpecModel data to a file.
+    #
+    #     :return: df (pandas.DataFrame)
+    #     """
+    #
+    #     data = []
+    #     columns = []
+    #
+    #     data.append(self.spec.dispersion)
+    #     columns.append('spec_dispersion')
+    #     data.append(self.spec.fluxden)
+    #     columns.append('spec_fluxden')
+    #     data.append(self.spec.mask)
+    #     columns.append('spec_mask')
+    #     if hasattr(self.spec, 'fluxden_err'):
+    #         data.append(self.spec.fluxden_err)
+    #         columns.append('spec_fluxdenerror')
+    #
+    #     data.append(self.mask)
+    #     columns.append('mask')
+    #
+    #     if hasattr(self, 'model_fluxden'):
+    #         data.append(self.model_fluxden)
+    #         columns.append('model_fluxden')
+    #
+    #     df = pd.DataFrame(np.array(data).T, columns=columns)
+    #
+    #     return df
 
 
     def _specmodel_meta_to_df(self):
@@ -754,22 +781,12 @@ class SpecModel:
 
         # Initialize new spectrum from data frame
         self.spec = sod.SpecOneD()
-        self.spec.read_from_hdf('{}/{}_spectrum.hdf5'.format(foldername, key))
-        # self.spec = sod.SpecOneD(dispersion=data['spec_dispersion'].values,
-        #                          fluxden=data['spec_fluxden'].values,
-        #                          mask=np.array(data['spec_mask'].values,
-        #                          dtype=bool),
-        #                          unit='f_lam')
-        #
-        # if hasattr(data, 'spec_fluxdenerror'):
-        #     self.spec.fluxden_err = data['spec_fluxdenerror'].values
-        #
+        self.spec.read_from_hdf('{}/{}_specdata.hdf5'.format(foldername, key))
+
         # Read in the specmodel mask
         self.mask = self.spec.mask
-
-        # Read in the model fluxden from the data frame if available
-        # if hasattr(data, 'model_fluxden'):
-        #     self.model_fluxden = data['model_fluxden'].values
+        # Read in the model flux density
+        self.model_fluxden = self.spec.obj_model
 
         # Read in meta data from meta data frame
         if meta.loc['use_weights', 0] == True:
@@ -821,17 +838,26 @@ class SpecModel:
             # Update the parameters of the model functions with the fit results
             self.update_params_from_fit_result()
 
+    def reset_plot_limits(self, fluxden=True, dispersion=True):
+        """ Reset the plot limits based on the dispersion and flux density
+        ranges of the spectrum.
 
-    def reset_plot_limits(self):
-        """ Reset the plot limits based on the astronomical spectrum.
-
+        :param fluxden: Boolean to indicate whether to reset the flux density
+        axis limits (default: True).
+        :type fluxden: boolean
+        :param dispersion: Boolean to indicate whether to reset the dispersion
+        axis limits (default: True).
+        :type dispersion: boolean
         :return: None
         """
 
         if hasattr(self, 'spec'):
-            self.xlim = [min(self.spec.dispersion),
-                         max(self.spec.dispersion)]
-            self.ylim = [0, max(self.spec.fluxden) * 1.05]
+            if fluxden:
+                self.xlim = [min(self.spec.dispersion),
+                             max(self.spec.dispersion)]
+            if dispersion:
+                self.ylim = [-0.2*max(self.spec.fluxden),
+                             max(self.spec.fluxden) * 1.05]
 
     def plot(self):
         """ Plot the SpecModel
