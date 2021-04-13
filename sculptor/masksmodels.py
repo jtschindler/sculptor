@@ -11,75 +11,83 @@ from lmfit import Model, Parameters
 
 c_km_s = const.c.to('km/s').value
 
+# ------------------------------------------------------------------------------
+# Model functions
+# ------------------------------------------------------------------------------
 
 def constant(x, amp):
-    """ Return constant
+    """ Constant model
 
-    :param x:
-    :param amp:
-    :return:
+    :param x: Dispersion
+    :type x: np.ndarray
+    :param amp: Amplitude of the constant model
+    :type amp: float
+    :return: Constant model
+    :rtype: np.ndarray
     """
 
     return amp + 0 * x
 
 
 def power_law(x, amp, slope):
-    """ Calculate power law
+    """
 
-    Parameters:
-    -----------
-    :param x: ndarray
-        x-Axis of the power law
-    :param amp: float
-        Amplitude of the power law
-    :param slope: float
-        Slope of the power law
-
-    Returns:
-    --------
-    :return: ndarray
+    :param x: Dispersion
+    :type x: np.ndarray
+    :param amp: Amplitude of the power law
+    :type amp: float
+    :param slope: Slope of the power law
+    :type slope: float
+    :return: Power law model
+    :rtype: np.ndarray
     """
 
     return amp*(x**slope)
 
 
 def gaussian(x, amp, cen, sigma, shift):
-    """ Calculate 1-D Gaussian
+    """ Basic Gaussian line model
 
-    :param x: ndarray
-         x-Axis of the Gaussian
-    :param amp: float
-        Amplitude of the Gaussian
-    :param cen: float
-        Central x-value of the Gaussian
-    :param sigma: float
-        Standard deviation of the Gaussian
-    :param shift: float
-        x-Axis shift of the Gaussian
-    :return: ndarray
+    The Gaussian is not normalized.
 
+    :param x: Dispersion
+    :type x: np.ndarray
+    :param amp: Amplitude of the Gaussian
+    :type amp: float
+    :param cen: Central dispersion of the Gaussian
+    :type cen: float
+    :param sigma: Width of the Gaussian in sigma
+    :type sigma: float
+    :param shift: Shift of the Gaussian in dispersion units
+    :type shift: float
+    :return: Gaussian line model
+    :rtype: np.ndarray
     """
 
     central = cen + shift
-    # return (amp / (np.sqrt(2*np.pi) * sigma)) * np.exp(-(x-central)**2 / (2*sigma**2))
+
     return amp * np.exp(-(x-central)**2 / (2*sigma**2))
 
 
 def lorentzian(x, amp, cen, gamma, shift):
-    """ Calculate 1-D Lorentzian (normalised)
+    """ Basic Lorentzian line model
 
-    :param x:
-    :param amp:
-    :param cen:
-    :param gamma:
-    :param shift:
-    :return:
+    :param x: Dispersion
+    :type x: np.ndarray
+    :param amp: Amplitude of the Lorentzian
+    :type amp: float
+    :param cen: Central dispersion of the Lorentzian
+    :type cen: float
+    :param gamma: Lorentzian Gamma parameter
+    :param shift: Shift of the Lorentzian in dispersion units
+    :type shift: float
+    :return: Gaussian line model
+    :rtype: np.ndarray
     """
-
 
     central = cen + shift
 
-    return amp * 1 / (np.pi * gamma * (1 + ((x-central) / (gamma))**2))
+    return amp * 1 / (np.pi * gamma * (1 + ((x-central) / gamma)**2))
 
 
 def gausshermite4(x, a, b, c, d):
@@ -96,7 +104,14 @@ def gausshermite4(x, a, b, c, d):
     return np.polynomial.hermite.Hermite(coef=[a, b, c, d]).__call__(x)
 
 
-def setup_power_law(prefix, amplitude=2, **kwargs):
+# ------------------------------------------------------------------------------
+# Model functions
+# ------------------------------------------------------------------------------
+
+
+def setup_power_law(prefix,  **kwargs):
+
+    amplitude = kwargs.pop('amplitude', 2)
 
     params = Parameters()
 
@@ -108,7 +123,9 @@ def setup_power_law(prefix, amplitude=2, **kwargs):
     return model, params
 
 
-def setup_gaussian(prefix, amplitude=5, **kwargs):
+def setup_gaussian(prefix, **kwargs):
+
+    amplitude = kwargs.pop('amplitude', 5)
 
     params = Parameters()
 
@@ -122,7 +139,9 @@ def setup_gaussian(prefix, amplitude=5, **kwargs):
     return model, params
 
 
-def setup_constant(prefix, amplitude=1, **kwargs):
+def setup_constant(prefix, **kwargs):
+
+    amplitude = kwargs.pop('amplitude', 5)
 
     params = Parameters()
 
@@ -133,7 +152,9 @@ def setup_constant(prefix, amplitude=1, **kwargs):
     return model, params
 
 
-def setup_lorentzian(prefix, amplitude=5, **kwargs):
+def setup_lorentzian(prefix, **kwargs):
+
+    amplitude = kwargs.pop('amplitude', 5)
 
     params = Parameters()
 
@@ -178,7 +199,7 @@ module_names = [os.path.basename(f)[:-3] for f in file_names if
                 os.path.isfile(f) and not f.endswith('__init__.py')]
 
 for module_name in module_names:
-    print('[INFO] Import "sculptor-extensions" packages: {}'.format(
+    print('[INFO] Import "sculptor-extensions" package: {}'.format(
         module_name))
     module = importlib.import_module('sculptor-extensions.{}'.format(
         module_name))

@@ -1,66 +1,45 @@
 #!/usr/bin/env python
 
-import os
 import numpy as np
-import scipy as sp
-
+from lmfit import Model, Parameters
 from astropy import constants as const
-from astropy.modeling.blackbody import blackbody_lambda
 
 from sculptor import speconed as sod
-
-from lmfit import Model, Parameters
-
-c_km_s = const.c.to('km/s').value
-
-
-def add_redshift_param(redshift, params, prefix):
-
-    z_min = min(redshift*1.05, 1080)
-    z_max = max(1.0, redshift * 0.95)
-
-    params.add(prefix+'z', value=redshift, min=z_min, max=z_max, vary=False)
-
 
 # ------------------------------------------------------------------------------
 # Model functions
 # ------------------------------------------------------------------------------
 
-def power_law_at_2500A(x, amp, slope, z):
-    """ Power law anchored at 2500 Angstroem
+def my_model(x, z, amp, cen, fwhm_km_s, shift_km_s):
+    """ Gaussian line model as an example for a model
 
-    Parameters:
-    -----------
-    :param x: ndarray
-        x-Axis of the power law
-    :param amp: float
-        Amplitude of the power law anchored at 2500 (Angstroem)
-    :param slope: float
-        Slope of the power law
+    The central wavelength of the Gaussian line model is determined by the
+    central wavelength cen, the redshift, z, and the velocity shift
+    shift_km_s (in km/s). These parameters are degenerate in a line fit and
+    it is adviseable to fix two of them (to predetermined values e.g., the
+    redshift or the central wavelength).
 
-    Returns:
-    --------
-    :return: ndarray
+    The width of the line is set by the FWHM in km/s.
+
+    The Gaussian is not normalized.
+
+    :param x: Dispersion of the continuum model
+    :type x: np.ndarray
+    :param z: Redshift
+    :type z: float
+    :param amp: Amplitude of the Gaussian
+    :type amp: float
+    :param cen: Central wavelength
+    :type cen: float
+    :param fwhm_km_s: FWHM of the Gaussian in km/s
+    :type fwhm_km_s: float
+    :param shift_km_s: Doppler velocity shift of the central wavelength
+    :type shift_km_s: float
+    :return: Gaussian line model
+    :rtype: np.ndarray
     """
 
-    return amp * (x / (2500. * (z+1.)))**slope
-
-
-def gaussian_fwhm_km_s_z(x, z, amp, cen, fwhm_km_s, shift_km_s):
-    """ Calculate 1-D Gaussian using fwhm for in km/s instead sigma
-
-    :param x: ndarray
-        x-Axis of the Gaussian
-    :param amp: float
-        Amplitude of the Gaussian
-    :param cen: float
-        Central x-value of the Gaussian
-    :param fwhm_km_s: float
-        Full Width at Half Maximum (FWHM) of the Gaussian in km/s
-    :param shift_km_s: float
-        x-Axis shift of the Gaussian in km/s
-    :return: ndarray
-    """
+    c_km_s = const.c.to('km/s').value
 
     cen = cen * (1+z)
 
@@ -71,64 +50,59 @@ def gaussian_fwhm_km_s_z(x, z, amp, cen, fwhm_km_s, shift_km_s):
 
     return amp * np.exp(-(x-central)**2 / (2*sigma**2))
 
-
 # ------------------------------------------------------------------------------
 # Model setups
 # ------------------------------------------------------------------------------
 
 
-def setup_power_law_at_2500A(prefix, **kwargs):
-    """ Set up the power law model anchored at 2500 Angstroem
+def setup_my_model(prefix, **kwargs):
+    """Example of a model setup function for the Gaussian emission line model.
 
-    :param prefix: string
-        Model prefix
-    :param kwargs:
-    :return:
+    The 'prefix' argument needs to be included. You can use a variety of
+    keyword arguments as you can see below.
+
+    :param prefix: Model prefix
+    :type prefix: string
+    :param kwargs: Keyword arguments
+    :return: LMFIT model and parameters
+    :rtype: (lmfit.Model, lmfit.Parameters)
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1e-17)
-
-    params = Parameters()
-
-    add_redshift_param(redshift, params, prefix)
-
-    params.add(prefix + 'amp', value=amplitude)
-    params.add(prefix + 'slope', value=-1.5, min=-2.5, max=-0.3)
-
-    model = Model(power_law_at_2500A, prefix=prefix)
-
-    return model, params
-
-
-def setup_gaussian_fwhm_km_s_z(prefix, **kwargs):
-
     params = Parameters()
 
     redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1e-14)
-    cenwave = kwargs.pop('cenwave', 1215)
+    amplitude = kwargs.pop('amplitude', 100)
+    cenwave = kwargs.pop('cenwave', 1450)
     fwhm = kwargs.pop('fwhm', 2500)
     vshift = kwargs.pop('vshift', 0)
 
+    z_min = min(redshift * 1.05, 1080)
+    z_max = max(1.0, redshift * 0.95)
 
-    add_redshift_param(redshift, params, prefix)
+    params.add(prefix + 'z', value=redshift, min=z_min, max=z_max, vary=False)
 
     params.add(prefix + 'amp', value=amplitude)
-    params.add(prefix + 'cen', value=cenwave, min=0, max=25000)
-    params.add(prefix + 'fwhm_km_s', value=fwhm, min=0, max=2E+4)
+    params.add(prefix + 'cen', value=cenwave)
+    params.add(prefix + 'fwhm_km_s', value=fwhm)
     params.add(prefix + 'shift_km_s', value=vshift, vary=False)
 
-    model = Model(gaussian_fwhm_km_s_z, prefix=prefix)
+    model = Model(my_model, prefix=prefix)
 
     return model, params
+
 
 # ------------------------------------------------------------------------------
 # Masks
 # ------------------------------------------------------------------------------
 
+""" When youy define a mask you need to specify the name under which it will 
+appear in the Sculptor GUI, the rest_frame keyword and the mask ranges to 
+that will be included in the SpecModel masking or excluded in the SpecFit 
+masking. With rest_frame=True the mask regions will automatically be adjusted 
+for the object redshift specified in the SpecFit class. With rest-frame=False 
+the mask will not be redshifted."""
 
-qso_cont_VP06 = {'name': 'QSO Cont. VP06' ,
+my_mask = {'name': 'My mask',
                  'rest_frame': True,
                  'mask_ranges': [[1265, 1290], [1340, 1375], [1425, 1470],
                                  [1680, 1705], [1905, 2050]]}
@@ -140,19 +114,14 @@ qso_cont_VP06 = {'name': 'QSO Cont. VP06' ,
 # user-defined models and masks to the GUI
 # ------------------------------------------------------------------------------
 
+""" dict: Dictionary of model functions"""
+model_func_dict = {'my_model': my_model}
 
 """ list of str: List of model names"""
-model_func_list = ['Power Law @2500A (amp, slope, z)',
-                   'Gaussian (amp, cen, FWHM, vshift, z)'
-                   ]
-""" dict: Dictionary of model functions"""
-model_func_dict = {'power_law_at_2500A': power_law_at_2500A,
-                   'gaussian_fwhm_km_s_z': gaussian_fwhm_km_s_z,
-                   }
+model_func_list = ['My Model']
+
 """ dict: Dictionary of model setup function names"""
-model_setup_list = [setup_power_law_at_2500A,
-                    setup_gaussian_fwhm_km_s_z,
-                    ]
+model_setup_list = [setup_my_model]
 """ dict: Dictionary of mask presets"""
-mask_presets = {'QSO Cont. VP06': qso_cont_VP06,
+mask_presets = {'My mask': my_mask,
                 }

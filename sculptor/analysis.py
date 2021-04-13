@@ -6,8 +6,11 @@ import numpy as np
 import pandas as pd
 from sculptor import specfit as sf
 from sculptor import speconed as sod
+from astropy.table import QTable, hstack
 from astropy import constants as const
 from astropy import units
+from astropy.cosmology import FlatLambdaCDM
+
 from scipy.interpolate import UnivariateSpline
 import matplotlib.pyplot as plt
 
@@ -23,13 +26,14 @@ emfeat_measures_default = ['peak_fluxden',
                            'peak_redsh',
                            'EW',
                            'FWHM',
-                           'flux']
+                           'flux',
+                           'lum']
 
 
 def analyze_emission_feature(specfit, feature_name, model_names,
                              rest_frame_wavelength, cont_model_names=None,
                              redshift=None, dispersion=None,
-                             emfeat_meas=None, disp_range=None):
+                             emfeat_meas=None, disp_range=None, cosmology=None):
     """Calculate measurements of an emission feature for a spectral fit (
     SpecFit object).
 
@@ -72,7 +76,9 @@ def analyze_emission_feature(specfit, feature_name, model_names,
     :param disp_range: 2 element list holding the lower and upper dispersion
     boundaries for the integration
     :type disp_range: list
-    :return: Dictionary with measurement results (without units)
+    :param cosmology: Cosmology for calculating luminosities
+    :type cosmology: astropy.cosmology class
+    :return: Dictionary with measurement results (with units)
     :rtype dict
     """
 
@@ -91,27 +97,43 @@ def analyze_emission_feature(specfit, feature_name, model_names,
     if redshift is None:
         redshift = specfit.redshift
 
+    if cosmology is None:
+        cosmology = FlatLambdaCDM(H0=70, Om0=0.3, Tcmb0=2.725)
+        print('[WARNING] No Cosmology specified. Assuming default '
+              'FlatLambdaCDM cosmology with H0=70, Om0=0.3, Tcmb0=2.725.')
+
     if 'peak_fluxden' in emfeat_meas:
+        # Calculate the peak flux density
         result_dict.update({feature_name+'_peak_fluxden':
                             np.max(model_spec.fluxden) *
                             model_spec.fluxden_unit})
 
     if 'peak_redsh' in emfeat_meas:
+        # Calculate the peak redshift
         result_dict.update({feature_name + '_peak_redsh':
                             get_peak_redshift(model_spec,
                                               rest_frame_wavelength)})
     if 'EW' in emfeat_meas and cont_model_names is not None:
+        # Calculate the rest-frame equivalent width
         ew = get_equivalent_width(cont_spec, model_spec,
                                         redshift=redshift)
         result_dict.update({feature_name + '_EW': ew})
 
     if 'FWHM' in emfeat_meas:
+        # Calculate the (composite) line model FWHM.
         fwhm = get_fwhm(model_spec)
         result_dict.update({feature_name+'_FWHM': fwhm})
 
     if 'flux' in emfeat_meas:
+        # Calculate the integrated line flux
         flux = get_integrated_flux(model_spec, disp_range=disp_range)
         result_dict.update({feature_name+'_flux': flux})
+
+    if 'lum' in emfeat_meas:
+        # Calculate the integrated line luminosity
+        lum = calc_integrated_luminosity(model_spec, model_spec.fluxden_unit,
+                                         redshift=redshift, cosmology=cosmology)
+        result_dict.update({feature_name + '_lum': lum})
 
     return result_dict
 
@@ -158,7 +180,7 @@ def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
     :param width: Window width in dispersion units to calculate the average
     flux density in.
     :type list
-    :return: Dictionary with measurement results (without units)
+    :return: Dictionary with measurement results (with units)
     :rtype dict
     """
 
@@ -383,7 +405,8 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
     # Set up continuum model variables
     cont_model_names = continuum_dict['model_names']
 
-    result_df = None
+    # result_df = None
+    result_table = None
 
     for idx in mcmc_df.index:
         # Work on a copy of the SpecFit object, not on the original
@@ -414,7 +437,8 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
                                          redshift=redshift,
                                          dispersion=dispersion,
                                          emfeat_meas=emfeat_meas,
-                                         disp_range=disp_range)
+                                         disp_range=disp_range,
+                                         cosmology=cosmology)
         if mode == 'both' or mode == 'cont':
             cont_result_dict = \
                 analyze_continuum(specfit,
@@ -431,22 +455,43 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
         if emfeat_result_dict is not None:
             result_dict.update(emfeat_result_dict)
 
-        if result_df is None:
-            result_df = pd.DataFrame(data=result_dict, index=range(1))
-        else:
-            result_df = result_df.append(result_dict, ignore_index=True)
+        # if result_df is None:
+        #     result_df = pd.DataFrame(data=result_dict, index=range(1))
+        # else:
+        #     result_df = result_df.append(result_dict, ignore_index=True)
+
+        if result_table is None:
+            # Initialize QTable for results
+            # Initialize column names
+            result_table = QTable(names=result_dict.keys())
+            # Initialize column units
+            for column in result_table.columns:
+                if (isinstance(result_dict[column], units.Quantity) or
+                   isinstance(result_dict[column], units.IrreducibleUnit) or
+                   isinstance(result_dict[column], units.CompositeUnit)):
+                    result_table[column].unit = result_dict[column].unit
+
+        result_table.add_row(result_dict)
 
     if concatenate:
-        result = pd.concat([mcmc_df, result_df], axis=1)
+        mcmc_table = QTable.from_pandas(mcmc_df)
+        result = hstack([mcmc_table, result_table])
+        # result = pd.concat([mcmc_df, result_df], axis=1)
     else:
-        result = result_df
+        result = result_table
 
     if cont_result_dict is None:
-        result.to_csv('mcmc_analysis_{}.csv'.format(feature_name))
+        # result.to_csv('mcmc_analysis_{}.csv'.format(feature_name))
+        result.write('mcmc_analysis_{}.csv'.format(feature_name),
+                           format='ascii.ecsv', overwrite=True)
     elif emfeat_result_dict is None:
-        result.to_csv('mcmc_analysis_cont.csv')
+        # result.to_csv('mcmc_analysis_cont.csv')
+        result.write('mcmc_analysis_cont.csv',
+                           format='ascii.ecsv', overwrite=True)
     else:
-        result.to_csv('mcmc_analysis_cont_{}.csv'.format(feature_name))
+        # result.to_csv('mcmc_analysis_cont_{}.csv'.format(feature_name))
+        result.write('mcmc_analysis_cont_{}.csv'.format(feature_name),
+                           format='ascii.ecsv', overwrite=True)
 
 
 def analyse_resampled_results(specfit, resampled_df, continuum_dict,
@@ -476,7 +521,6 @@ def analyse_resampled_results(specfit, resampled_df, continuum_dict,
         print('[ERROR] Resampled results do NOT contain necessary column '
               'information.')
         print('[ERROR] Please double check if the correct file was supplied.')
-
 
 
 def _resampled_analyze(specfit, resampled_df, continuum_dict,
@@ -599,7 +643,7 @@ def get_average_fluxden(input_spec, dispersion, width=10, redshift=0):
     the specified dispersion and with a given width.
 
     The central dispersion and width can be specified in the rest-frame and
-    the redshifted to the observed frame using the redsh keyword argument.
+    then are redshifted to the observed frame using the redsh keyword argument.
 
     :param input_spec: Input spectrum
     :type sod.SpecOneD
@@ -612,6 +656,8 @@ def get_average_fluxden(input_spec, dispersion, width=10, redshift=0):
     :return: Average flux density
     :rtype: float
     """
+
+    # TODO: Implement frequency unit support.
 
     disp_range = [(dispersion - width / 2.)*(1.+redshift),
                   (dispersion + width / 2.)*(1.+redshift)]
@@ -634,6 +680,7 @@ def get_peak_redshift(input_spec, rest_wave):
     :return: Redshift of the peak flux density
     :rtype: float
     """
+    # TODO: Implement frequency unit support.
 
     return input_spec.peak_dispersion()/rest_wave - 1
 
@@ -837,14 +884,14 @@ def calc_apparent_mag_from_fluxden(fluxden, fluxden_unit, dispersion):
     :param dispersion: Dispersion value (usually in wavelength).
     :type float
     :return: Returns apparent AB magnitude.
-    :rtype: float
+    :rtype: astropy.units.Quantity
     """
 
     f_nu = fluxden * fluxden_unit * (dispersion)**2 / const.c
 
     value = (f_nu/units.ABflux).decompose()
 
-    return -2.5*np.log10(value)
+    return -2.5*np.log10(value) * units.mag
 
 # TODO: In a future update that includes astrophysical unit support the
 #  following functions should be updated.
@@ -905,7 +952,7 @@ def calc_absolute_mag_from_monochromatic_luminosity(l_wav, l_wav_unit,
 
     value = (l_nu / units.ABflux / (10 * units.pc)**2).decompose()
 
-    return -2.5 * np.log10(value)
+    return -2.5 * np.log10(value) * units.mag
 
 
 def calc_absolute_mag_from_apparent_mag(appmag, cosmology, redshift,
@@ -931,14 +978,11 @@ def calc_absolute_mag_from_apparent_mag(appmag, cosmology, redshift,
     if kcorrection == True:
         kcorr = k_correction_pl(redshift, a_nu)
     else:
-        kcorr = 0
+        kcorr = 0 * units.mag
 
-    lum_dist = cosmology.luminosity_distance(redshift)
     distmod = cosmology.distmod(redshift)
 
-    print(lum_dist, distmod, kcorr)
-
-    return appmag - distmod.value - kcorr
+    return appmag - distmod - kcorr
 
 
 def k_correction_pl(redshift, a_nu):
@@ -953,230 +997,8 @@ def k_correction_pl(redshift, a_nu):
     :rtype: float
     """
     # Hogg 1999, eq. 27
-    return -2.5 * (1. + a_nu) * np.log10(1.+redshift)
+    return -2.5 * (1. + a_nu) * np.log10(1.+redshift) * units.mag
 
-# ------------------------------------------------------------------------------
-# Quasar/AGN specific function - Will be moved to separate module
-# ------------------------------------------------------------------------------
-
-
-def calc_velocity_shifts():
-
-    # calculate blueshift compared to given rest_wavelength
-    dv = lu.dv_from_z(line_z, redshift, rel=True).value
-
-    pass
-
-
-def calc_iron_over_mgII_ratio():
-
-    feII_over_mgII = result_dict['FeII_flux'] / result_dict['MgII_flux']
-    result_dict['FeII_over_MgII'] = feII_over_mgII
-    feII_over_mgII_L = result_dict['FeII_L'] / result_dict['MgII_L']
-    result_dict['FeII_over_MgII_L'] = feII_over_mgII_L
-
-    pass
-
-
-def calc_eddington_ratio():
-
-    edd_lum = calc_Edd_luminosity(bhmass)
-    edd_lum_name = name + '_EddLumR_' + str(wave) + '_' + ref
-    result_dict[edd_lum_name] = L_bol / edd_lum
-
-    pass
-
-
-def calc_black_hole_mass(emline_width, emline_name, cont_Lwav, cont_wav,
-                         verbosity=2, emline_L=None, scaling_relation=None):
-
-
-    zp = None
-    reference = None
-    result_dict = {}
-
-    if emline_name == 'MgII':
-        if scaling_relation is None or scaling_relation == 'VW09':
-            # See equation(1) in Vestergaard & Osmer 2009 for MgII
-            reference = 'VW09'
-
-            if cont_wav == 1350:
-                zp = 6.72
-            elif cont_wav == 2100:
-                zp = 6.79
-            elif cont_wav == 3000:
-                zp = 6.86
-            elif cont_wav == 5100:
-                zp = 6.96
-
-        else:
-            if verbosity > 1:
-                print('[ERROR] Continuum wavelength of {} does not '
-                      'allow for BH mass calculation from the {} '
-                      'emission line using the {} scaling relation.'.format(
-                       cont_wav, emline_name, reference))
-        if zp is not None:
-            bhmass = 10 ** zp * (emline_width / 1000.) ** 2 * (
-                        cont_wav * cont_Lwav / 10 ** 44) ** (0.5)
-            result_dict.update({'BHmass_{}_{}'.format(reference, str(cont_Lwav))
-                               : bhmass})
-
-    elif emline_name == 'Hbeta':
-        if scaling_relation is None or scaling_relation == 'VO06':
-            # See equations (5, 7) in Vestergaard & Peterson for Hbeta and CIV
-            reference = "VO06"
-
-            if cont_wav == 5100:
-                bhmass = 10**6.91 * (emline_width/1000.)**2 \
-                        * (cont_wav * cont_Lwav / 10**44)**0.5
-                result_dict.update(
-                    {'BHmass_{}_{}'.format(reference, str(cont_Lwav))
-                     : bhmass})
-
-            else:
-                if verbosity > 1:
-                    print('[ERROR] Continuum wavelength of {} does not '
-                          'allow for BH mass calculation from the {} '
-                          'emission line using the {} scaling relation.'.format(
-                        cont_wav, emline_name, reference))
-
-        if scaling_relation is None or scaling_relation == 'MJ02':
-            reference = 'MJ02'
-
-            if wav == 5100:
-                zp = np.log10(4.74E+6)
-                bhmass = 10 ** zp * (emline_width / 1000.) ** 2 * (
-                        cont_wav * cont_Lwav / 10 ** 44) ** 0.61
-                result_dict.update(
-                    {'BHmass_{}_{}'.format(reference, str(cont_Lwav))
-                     : bhmass})
-            else:
-                if verbosity > 1:
-                    print('[ERROR] Continuum wavelength of {} does not '
-                          'allow for BH mass calculation from the {} '
-                          'emission line using the {} scaling relation.'.format(
-                        cont_wav, emline_name, reference))
-
-
-    elif emline_name == 'CIV':
-        if scaling_relation is None or scaling_relation == 'VO06':
-            # See equations (5, 7) in Vestergaard & Peterson for Hbeta and CIV
-            reference = 'VO06'
-
-            if wav == 1350:
-                bhmass = 10**6.66 * (emline_width/1000.)**2 *\
-                         (cont_wav * cont_Lwav / 10**44)**0.53
-                result_dict.update(
-                    {'BHmass_{}_{}'.format(reference, str(cont_Lwav))
-                     : bhmass})
-
-        else:
-            if verbosity > 1:
-                print('[ERROR] Continuum wavelength of {} does not '
-                      'allow for BH mass calculation from the {} '
-                      'emission line using the {} scaling relation.'.format(
-                       cont_wav, emline_name, reference))
-
-        if scaling_relation is None or scaling_relation == 'Co17':
-            reference = 'Co17'
-
-            if wav == 1350:
-                bhmass = 10 ** 6.71 * (emline_width / 1000.) ** 2 * (
-                        cont_wav * cont_Lwav / 10 ** 44) ** 0.53
-                result_dict.update(
-                    {'BHmass_{}_{}'.format(reference, str(cont_Lwav))
-                     : bhmass})
-
-            else:
-                if verbosity > 1:
-                    print('[ERROR] Continuum wavelength of {} does not '
-                          'allow for a BH mass calculation from the {} '
-                          'emission line using the {} scaling relation.'.format(
-                        cont_wav, emline_name, reference))
-
-    elif emline_name == 'Halpha':
-        reference = 'GH05'
-
-        if scaling_relation is None or scaling_relation == 'GH05':
-
-            if (not np.isnan(emline_L) or emline_L is not None):
-                bhmass =  2.0 * 1e+6 * (emline_width / 1000) ** 2.06 \
-                          * (emline_L /10 ** 42) ** 0.55
-                result_dict.update(
-                    {'BHmass_{}_{}'.format(reference, str(cont_Lwav))
-                     : bhmass})
-
-        else:
-            if verbosity > 1:
-                print('[ERROR] Emission line luminosity {} does not'
-                      'allow for a BH mass calculation from the {} '
-                      'emission line using the {} scaling relation.'.format(
-                    emline_L, emline_name, reference))
-
-    return result_dict
-
-
-def calc_bolometric_luminosity(cont_Lwav, cont_wav, reference=None):
-
-    result_dict = {}
-
-    if cont_wav == 3000 and (reference is None or reference == 'Shen2011'):
-        # Should the reference be Shen2001 or Richards2006
-        Lbol = cont_Lwav * 5.15
-        result_dict.update({'Lbol_{}_{}'.format(reference, str(cont_wav)):
-                                Lbol})
-
-    if reference is None or reference == 'Ne19':
-        # Derive bolometric luminosities for quasars using the Netzer 2019
-        # bolometric corrections.Values are taken from Table 1 in Netzer 2019.
-        # Possibly only valid for fainter AGN!
-
-        if cont_wav in [1400, 3000, 5100]:
-
-            if cont_wav == 1400:
-                c = 7
-                d = -0.1
-            elif cont_wav == 3000:
-                c = 19
-                d = -0.2
-            elif cont_wav == 5100:
-                c = 40
-                d = -0.2
-
-            k_bol = c * (cont_Lwav / 10 ** 42) ** d
-
-            Lbol = cont_Lwav * k_bol
-            result_dict.update({'Lbol_{}_{}'.format(reference, str(cont_wav)):
-                                    Lbol})
-
-        else:
-            print('[ERROR] Bolometric correction for specified wavelength not '
-                  'available.')
-
-    # Add Shen 2020 bolometric corrections (?)
-
-    return result_dict
-
-
-def calc_Edd_luminosity(bh_mass):
-
-    factor = (4 * np.pi * const.G * const.c * const.m_p) / const.sigma_T
-    factor = factor.to(units.erg / units.s / units.Msun).value
-
-    return factor * bh_mass
-
-def correct_CIV_fwhm(fwhm, blueshift):
-    """
-    Correct the CIV FWHM according to Coatman et al. 2017 Eq. 4
-
-    :param fwhm: float
-        CIV FWHM in km/s
-    :param blueshift: float
-        CIV blueshift in km/s (not velocity shift, use correct sign)
-    :return:
-    """
-
-    return fwhm / (0.41 * blueshift/1000 + 0.62)
 
 
 #

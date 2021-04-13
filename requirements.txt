@@ -11,4 +11,6 @@ corner>=2.1.0
 lmfit>=1.0.1
 tables>=3.6.1
 emcee>=3.0.0
+PyYAML>=5.4.1
+spectres
 extinction

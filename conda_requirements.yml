@@ -12,6 +12,9 @@ dependencies:
 - python>=3.8.5
 - scipy>=1.5.0
 - pytables>=3.6.1
+- extinction
+- pyyaml
 - pip:
   - lmfit>=1.0.1
   - corner>=2.1.0
+  - spectres
