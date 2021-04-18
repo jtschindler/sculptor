@@ -1,25 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="c7e35728-a01d-41d7-afc8-85ed9ad835b6" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/conda_requirements.yml" beforeDir="false" afterPath="$PROJECT_DIR$/conda_requirements.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/environment.yml" beforeDir="false" afterPath="$PROJECT_DIR$/environment.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/0_PL__model.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/0_PL__model.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/0_fitresult.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/0_fitresult.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/1_fitresult.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/1_fitresult.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/2_CIV_A__model.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/2_CIV_A__model.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/2_CIV_B__model.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/2_CIV_B__model.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/2_fitresult.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/2_fitresult.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/3_fitresult.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/3_fitresult.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/4_fitresult.json" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/4_fitresult.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/example_spectrum_fit/fit.hdf5" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example_spectrum_fit/fit.hdf5" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor-extensions/my_extension.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor-extensions/my_extension.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/analysis.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/masksmodels.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/masksmodels.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sculptor/speconed.py" beforeDir="false" afterPath="$PROJECT_DIR$/sculptor/speconed.py" afterDir="false" />
-    </list>
+    <list default="true" id="c7e35728-a01d-41d7-afc8-85ed9ad835b6" name="Default Changelist" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -119,6 +101,7 @@
       <updated>1591360373781</updated>
       <workItem from="1616498126687" duration="22060000" />
       <workItem from="1616784368179" duration="91597000" />
+      <workItem from="1618323767324" duration="13544000" />
     </task>
     <servers />
   </component>
