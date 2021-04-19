@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+"""
+The SpecAnalysis module provides a range of functions for spectral analsysis
+in the context of the Sculptor packages SpecOneD, SpecFit, and SpecModel
+classes.
+"""
+
+
 import os
 import glob
 import numpy as np
@@ -37,49 +44,46 @@ def analyze_emission_feature(specfit, feature_name, model_names,
     """Calculate measurements of an emission feature for a spectral fit (
     SpecFit object).
 
-    # UPDATE TO USE SPECTRUM UNITS!
-    # ADD MODE TO RETURN LIST OF VALUES AND LIST OF UNITS  FOR MCMC/RESAMPLE
-    functions.
     At present this analysis assumes that the spectra are in the following
     units:
     flux density - erg/s/cm^2/AA
     dispersion - AA
 
     :param specfit: SpecFit class object to extract the model flux from
-    :type specfit: sf.SpecFit
+    :type specfit: sculptor.specfit.SpecFit
     :param feature_name: Name of the emission feature, which will be used to
-    name the resulting measurements in the output dictionary.
+        name the resulting measurements in the output dictionary.
     :type feature_name: string
     :param model_names: List of model names to create the emission feature flux
-    from.
+        from.
     :type model_names: list
     :param rest_frame_wavelength: Rest-frame wavelength of the emission feature
     :type rest_frame_wavelength: float
     :param cont_model_names:  List of model names to create the continuum
-    flux model from. The continuum spectrum is for example used in the
-    calculation of some emission feature properties (e.g. equivalent width).
+        flux model from. The continuum spectrum is for example used in the
+        calculation of some emission feature properties (e.g. equivalent width).
     :type cont_model_names: list
     :param redshift: Redshift of the object. This keyword argument defaults
-    to 'None', in which case the redshift from the SpecFit object is used.
+        to 'None', in which case the redshift from the SpecFit object is used.
     :type redshift: float
     :param dispersion: This keyword argument allows to input a dispersion
-    axis (e.g., wavelengths) for which the model fluxes are calculated. The
-    value defaults to 'None', in which case the dispersion from the SpecFit
-    spectrum is being used.
+        axis (e.g., wavelengths) for which the model fluxes are calculated. The
+        value defaults to 'None', in which case the dispersion from the SpecFit
+        spectrum is being used.
     :type dispersion: np.array
     :param emfeat_meas: This keyword argument allows to specify the list of
-    emission feature measurements.
-    Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
-    'FWHM', 'flux']. The value defaults to 'None' in which all measurements
-    are calculated
+        emission feature measurements.
+        Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
+        'FWHM', 'flux']. The value defaults to 'None' in which all measurements
+        are calculated
     :type emfeat_meas: list
     :param disp_range: 2 element list holding the lower and upper dispersion
-    boundaries for the integration
+        boundaries for the integration
     :type disp_range: list
     :param cosmology: Cosmology for calculating luminosities
     :type cosmology: astropy.cosmology class
     :return: Dictionary with measurement results (with units)
-    :rtype dict
+    :rtype: dict
     """
 
     # Build the model flux
@@ -156,32 +160,34 @@ def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
     dispersipn - AA
 
     :param specfit: SpecFit class object to extract the model flux from
-    :type sf.SpecFit
+    :type specfit: sculptor.specfit.SpecFit
     :param model_names: List of model names to create the emission feature flux
-    from.
-    :type list
+        from.
+    :type model_names: list(string)
     :param rest_frame_wavelengths: Rest-frame wavelength of the emission feature
-    :type float
+    :type rest_frame_wavelengths: list(float)
     :param cosmology: Astropy Cosmology object
-    :type astropy.cosmology.Cosmology
+    :type cosmology: astropy.cosmology.Cosmology
     :param redshift: Redshift of the object. This keyword argument defaults
-    to 'None', in which case the redshift from the SpecFit object is used.
-    :type float
+        to 'None', in which case the redshift from the SpecFit object is used.
+    :type redshift: float
     :param dispersion: This keyword argument allows to input a dispersion
-    axis (e.g., wavelengths) for which the model fluxes are calculated. The
-    value defaults to 'None', in which case the dispersion from the SpecFit
-    spectrum is being used.
-    :type np.array
+        axis (e.g., wavelengths) for which the model fluxes are calculated. The
+        value defaults to 'None', in which case the dispersion from the SpecFit
+        spectrum is being used.
+    :type dispersion: np.array
     :param cont_meas: This keyword argument allows to specify the list of
-    emission feature measurements.
-    Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
-    'FWHM', 'flux']. The value defaults to 'None' in which all measurements
-    are calculated
+        emission feature measurements.
+        Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
+        'FWHM', 'flux']. The value defaults to 'None' in which all measurements
+        are calculated
+    :type cont_meas: list(string)
     :param width: Window width in dispersion units to calculate the average
-    flux density in.
-    :type list
+        flux density in.
+    :type width: [float, float]
     :return: Dictionary with measurement results (with units)
-    :rtype dict
+    :rtype: dict
+
     """
 
     # Build the continuum model spectrum
@@ -231,7 +237,7 @@ def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
     return result_dict
 
 
-# EXPERIMENTAL FROM HERE
+# TODO: Finalize the analyze, mcmc, and resample analysis functions.
 
 # emission_feature_listdict = [{'feature_name': None,
 #                          'model_names' : None,
@@ -250,6 +256,9 @@ def analyse_fit(specfit,
                 dispersion=None,
                 width=10
                 ):
+    """
+    THIS FUNCTION IS CURRENTLY UNDER ACTIVE DEVELOPMENT.
+    """
 
 
     result_dict = {}
@@ -305,6 +314,9 @@ def analyse_mcmc_results(foldername, specfit,
                 cont_meas=None,
                 dispersion=None,
                 width=10, concatenate=False):
+    """
+    THIS FUNCTION IS CURRENTLY UNDER ACTIVE DEVELOPMENT.
+    """
 
     # In the future integrate absorption featues absorption_feature_dictlist,
     # Only makes sense to analyze models together that were sampled together
@@ -401,6 +413,9 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
                   emfeat_meas=None, cont_meas=None, dispersion=None,
                   width=10,
                   concatenate=False):
+    """
+    THIS FUNCTION IS CURRENTLY UNDER ACTIVE DEVELOPMENT.
+    """
 
     # Set up continuum model variables
     cont_model_names = continuum_dict['model_names']
@@ -498,6 +513,9 @@ def analyse_resampled_results(specfit, resampled_df, continuum_dict,
                               emission_feature_dictlist, redshift, cosmology,
                               emfeat_meas=None, cont_meas=None, dispersion=None,
                               width=10, concatenate=False):
+    """
+    THIS FUNCTION IS CURRENTLY UNDER ACTIVE DEVELOPMENT.
+    """
 
     # Test if all necessary columns are inlcuded in the resampled file
     fit_columns = resampled_df.columns
@@ -527,7 +545,9 @@ def _resampled_analyze(specfit, resampled_df, continuum_dict,
                               emission_feature_dictlist, redshift, cosmology,
                               emfeat_meas=None, cont_meas=None, dispersion=None,
                               width=10, concatenate=False):
-
+    """
+    THIS FUNCTION IS CURRENTLY UNDER ACTIVE DEVELOPMENT.
+    """
     result_df = None
 
     for idx in resampled_df.index:
@@ -579,12 +599,12 @@ def build_model_flux(specfit, model_list, dispersion=None):
     argument.
 
     :param specfit: SpecFit class object to extract the model flux from
-    :type sf.SpecFit
+    :type specfit: sculptor.specfit.SpecFit
     :param model_list: List of model names to create the model flux from. The
-    models must be exist in the SpecModel objects inside the SpecFit object.
-    :type list
+        models must be exist in the SpecModel objects inside the SpecFit object.
+    :type model_list: list(string)
     :param dispersion: New dispersion to create the model flux for
-    :type np.array
+    :type dispersion: np.array
     :return: SpecOneD objects with the model flux
     :rtype: sod.SpecOneD
     """
@@ -620,12 +640,13 @@ def get_integrated_flux(input_spec, disp_range=None):
     for the integration.
 
     :param input_spec: SpecOneD object holding the spectrum to integrate
-    :type sod.SpecOneD
+    :type input_spec: sculptor.speconed.SpecOneD
     :param disp_range: 2 element list holding the lower and upper dispersion
-    boundaries for the integration
-    :type list
-    :return: integrated flux
-    :rtype: float
+        boundaries for the integration
+    :type disp_range: [float, float]
+    :return: Integrated flux
+    :rtype: astropy.units.Quantity
+
     """
 
     if disp_range is not None:
@@ -645,19 +666,23 @@ def get_average_fluxden(input_spec, dispersion, width=10, redshift=0):
     The central dispersion and width can be specified in the rest-frame and
     then are redshifted to the observed frame using the redsh keyword argument.
 
-    :param input_spec: Input spectrum
-    :type sod.SpecOneD
-    :param dispersion: Central dispersion
-    :type float
-    :param width: Width of the dispersion window
-    :type float
-    :param redsh: Redshift argument to redshift the dispersion window into
-    the observed frame.
-    :return: Average flux density
-    :rtype: float
-    """
+    Warning: this function currently only works for spectra in wavelength
+    units. For spectra in frequency units the conversion to rest-frame will
+    be incorrect.
 
-    # TODO: Implement frequency unit support.
+    :param input_spec: Input spectrum
+    :type input_spec: sculptor.speconed.SpecOneD
+    :param dispersion: Central dispersion
+    :type dispersion: float
+    :param width: Width of the dispersion window
+    :type width: float
+    :param redshift: Redshift argument to redshift the dispersion window into
+        the observed frame.
+    :type redshift: float
+    :return: Average flux density
+    :rtype: astropy.units.Quantity
+
+    """
 
     disp_range = [(dispersion - width / 2.)*(1.+redshift),
                   (dispersion + width / 2.)*(1.+redshift)]
@@ -675,7 +700,7 @@ def get_peak_redshift(input_spec, rest_wave):
     specifying the expected rest frame wavelength of the emission feature.
 
     :param input_spec: Input spectrum
-    :type sod.SpecOneD
+    :type input_spec: sculptor.speconed.SpecOneD
     :param rest_wave: Rest-frame wavelength of the expected emission feature.
     :return: Redshift of the peak flux density
     :rtype: float
@@ -695,15 +720,15 @@ def get_equivalent_width(cont_spec, line_spec, disp_range=None,
     be incorrect.
 
     :param cont_spec: Continuum spectrum
-    :type sod.SpecOneD
+    :type cont_spec: sculptor.speconed.SpecOneD
     :param line_spec: Spectrum with the feature (e.g. emission line)
-    :type sod.SpecOneD
+    :type line_spec: sculptor.speconed.SpecOneD
     :param disp_range: Dispersion range (2 element list of floats) over which
-    the equivalent width will be calculated.
-    :type list
+        the equivalent width will be calculated.
+    :type disp_range: [float, float]
     :param redshift: Redshift of the astronomical source
     :return: Rest-frame equivalent width
-    :rtype: float
+    :rtype: astropy.units.Quantity
     """
 
     # TODO: Implement frequency unit support.
@@ -739,12 +764,13 @@ def get_fwhm(input_spec, disp_range=None, resolution=None):
     be found in which case the a np.NaN value will be returned.
 
     :param input_spec: Input spectrum
-    :type sod.SpecOneD
+    :type input_spec: sculptor.speconed.SpecOneD
     :param disp_range: Dispersion range to which the calculation is limited.
+    :type disp_range: [float, float]
     :param resolution: Resolution in R = Lambda/Delta Lambda
-    :type float
+    :type resolution: float
     :return: FWHM of the spectral feature
-    :rtype: float
+    :rtype: astropy.units.Quantity
     """
 
     if disp_range is not None:
@@ -792,15 +818,14 @@ def get_fwhm(input_spec, disp_range=None, resolution=None):
             return np.sqrt(fwhm ** 2 - resolution_km_s ** 2)[0] * \
                    units.km/units.s
 
-# non-parametric width measurement
+# TODO: Add non-parametric width measurements
 
-
-def get_centroid_wavelength():
-    pass
-
-
-def get_centroid_redshift():
-    pass
+# def get_centroid_wavelength():
+#     pass
+#
+#
+# def get_centroid_redshift():
+#     pass
 
 # ------------------------------------------------------------------------------
 # Astrophysical spectral measurements
@@ -811,13 +836,14 @@ def calc_Lwav_from_fwav(fluxden, fluxden_unit, redshift, cosmology):
     density.
 
     :param fluxden: Monochromatic flux density at a given wavelength.
-    :type float
+    :type fluxden: float
     :param fluxden_unit: Unit of the flux density.
-    :type astropy.units.Quantity
+    :type fluxden_unit: astropy.units.Unit or astropy.units.Quantity or
+        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
     :param redshift: Redshift of the source.
-    :type float
+    :type redshift: float
     :param cosmology: Cosmology as an astropy Cosmology object
-    :type astropy.cosmology.Cosmology
+    :type cosmology: astropy.cosmology.Cosmology
     :return: Monochromatic luminosity in units of erg s^-1 Angstroem^-1
     :rtype: astropy.units.Quantity
     """
@@ -830,23 +856,21 @@ def calc_Lwav_from_fwav(fluxden, fluxden_unit, redshift, cosmology):
         bases=[units.erg, units.s, units.AA])
 
 
-def calc_integrated_luminosity(input_spec, fluxden_unit, redshift,
+def calc_integrated_luminosity(input_spec, redshift,
                                     cosmology, disp_range=None):
     """Calculate the integrated model spectrum luminosity. 
     
     :param input_spec: Input spectrum
-    :type sod.SpecOneD
-    :param fluxden_unit: Unit of the flux density.
-    :type astropy.units.Quantity
+    :type input_spec: sculptor.speconed.SpecOneD
     :param redshift: Redshift of the source.
-    :type float
+    :type redshift: float
     :param cosmology: Cosmology as an astropy Cosmology object
-    :type astropy.cosmology.Cosmology
+    :type cosmology: astropy.cosmology.Cosmology
     :param disp_range: 2 element list holding the lower and upper dispersion
-    boundaries for the integration
-    :type list
+        boundaries for the integration
+    :type disp_range: [float, float]
     :return: Return the integrated luminosity for (dispersion range in) the
-    input spectrum.
+        input spectrum.
     :rtype: astropy.units.Quantity
     """
 
@@ -878,11 +902,12 @@ def calc_apparent_mag_from_fluxden(fluxden, fluxden_unit, dispersion):
     density at a specified dispersion value.
 
     :param fluxden: Monochromatic flux density at a given wavelength.
-    :type float
+    :type fluxden: float
     :param fluxden_unit: Unit of the flux density.
-    :type astropy.units.Quantity
+    :type fluxden_unit: astropy.units.Unit or astropy.units.Quantity or
+        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
     :param dispersion: Dispersion value (usually in wavelength).
-    :type float
+    :type dispersion: float
     :return: Returns apparent AB magnitude.
     :rtype: astropy.units.Quantity
     """
@@ -893,8 +918,10 @@ def calc_apparent_mag_from_fluxden(fluxden, fluxden_unit, dispersion):
 
     return -2.5*np.log10(value) * units.mag
 
+
 # TODO: In a future update that includes astrophysical unit support the
 #  following functions should be updated.
+
 # TODO: In a future update consider allowing to specify a custom k-correction
 #  function to allow for arbitrary k-corrections.
 
@@ -906,25 +933,26 @@ def calc_absolute_mag_from_fluxden(fluxden, fluxden_unit, dispersion,
     at a given dispersion value.
 
     :param fluxden: Monochromatic flux density at a given wavelength.
-    :type float
+    :type fluxden: float
     :param fluxden_unit: Unit of the flux density.
-    :type astropy.units.Quantity
+    :type fluxden_unit: astropy.units.Unit or astropy.units.Quantity or
+        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
     :param dispersion: Dispersion value (usually in wavelength).
-    :type float
+    :type dispersion: float
     :param cosmology: Cosmology as an astropy Cosmology object.
-    :type astropy.cosmology.Cosmology
+    :type cosmology: astropy.cosmology.Cosmology
     :param redshift: Redshift of the source.
-    :type float
+    :type redshift: float
     :param kcorrection: Boolean to indicate whether the magnitude should be
-    k-corrected assuming a power law spectrum. This keyword argument defaults
-    to 'True'.
-    :type bool
+        k-corrected assuming a power law spectrum. This keyword argument
+        defaults to 'True'.
+    :type kcorrection: bool
     :param a_nu: Power law slope as a function of frequency for the
-    k-correction. This defaults to '0', appropriate for monochromatic
-    measurements.
-    :type float
+        k-correction. This defaults to '0', appropriate for monochromatic
+        measurements.
+    :type a_nu: float
     :return: Absolute AB magnitude (monochromatic)
-    :rtype: float
+    :rtype: astropy.units.Quantity
     """
 
     abmag = calc_apparent_mag_from_fluxden(fluxden, fluxden_unit, dispersion)
@@ -939,13 +967,14 @@ def calc_absolute_mag_from_monochromatic_luminosity(l_wav, l_wav_unit,
     luminosity per wavelegnth.
 
     :param l_wav: Monochromatic luminosity per wavelength
-    :type float
+    :type l_wav: float
     :param l_wav_unit: Unit of the monochromatic luminosity
-    :type astropy.units.Quantity
+    :type l_wav_unit: astropy.units.Unit or astropy.units.Quantity or
+        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
     :param wavelength: Wavelength of the monochromatic luminosity
-    :type float
+    :type wavelength: float
     :return: Absolute monochromatic magnitude
-    :rtype: float
+    :rtype: astropy.units.Quantity
     """
     l_nu = l_wav * l_wav_unit * (wavelength)**2 / const.c / 4 / \
                   np.pi
@@ -961,21 +990,24 @@ def calc_absolute_mag_from_apparent_mag(appmag, cosmology, redshift,
     power law k-correction.
 
     :param appmag: Apparent AB magnitude
+    :type appmag: float
     :param cosmology: Cosmology as an astropy Cosmology object.
-    :type astropy.cosmology.Cosmology
+    :type cosmology: astropy.cosmology.Cosmology
     :param redshift: Redshift of the source.
-    :type float
+    :type redshift: float
     :param kcorrection: Boolean to indicate whether the magnitude should be
-    k-corrected assuming a power law spectrum. This keyword argument defaults
-    to 'True'.
+        k-corrected assuming a power law spectrum. This keyword argument
+        defaults to 'True'.
+    :type kcorrection: bool
     :param a_nu: Power law slope as a function of frequency for the
-    k-correction. This defaults to '0', appropriate for monochromatic
-    measurements.
+        k-correction. This defaults to '0', appropriate for monochromatic
+        measurements.
+    :type a_nu: float
     :return: Absolute AB magnitude (monochromatic)
-    :rtype: float
+    :rtype: astropy.units.Quantity
     """
 
-    if kcorrection == True:
+    if kcorrection:
         kcorr = k_correction_pl(redshift, a_nu)
     else:
         kcorr = 0 * units.mag
@@ -990,299 +1022,12 @@ def k_correction_pl(redshift, a_nu):
     index (per frequency) a_nu.
 
     :param redshift: Cosmological redshift of the source
-    :type float
+    :type redshift: float
     :param a_nu: Power law index (per frequency)
-    :type float
+    :type a_nu: float
     :return: K-correction
     :rtype: float
     """
     # Hogg 1999, eq. 27
     return -2.5 * (1. + a_nu) * np.log10(1.+redshift) * units.mag
-
-
-
-#
-# def calc_QSO_Lbol_Ne19(L_wav, wav):
-#     """
-#
-#     :param L_wav:
-#     :param wav:
-#     :return:
-#     """
-#
-#     if wav in [1400, 3000, 5100]:
-#
-#         if wav == 1400:
-#             c = 7
-#             d = -0.1
-#         elif wav == 3000:
-#             c = 19
-#             d = -0.2
-#         elif wav == 5100:
-#             c = 40
-#             d = -0.2
-#
-#         k_bol = c * (L_wav/ 10 ** 42)**d
-#
-#         return L_wav * k_bol
-#
-#     else:
-#         print('[ERROR] Bolometric correction for specified wavelength not '
-#               'available.')
-
-
-
-
-#
-# def calc_CIV_BHmass_Co17(L_wav, wav, fwhm, verbosity=1):
-#
-#     reference = "Co17"
-#
-#     if wav == 1350:
-#         return 10 ** 6.71 * (fwhm / 1000.) ** 2 * (
-#                     wav * L_wav / 10 ** 44) ** (0.53), reference
-#     else:
-#         if verbosity > 1:
-#             print("Specified wavelength does not allow for BH mass "
-#                   "calculation with Hbeta", wav)
-
-#
-# def calc_BHmass_VP06VO09(L_wav, wav, fwhm, line="MgII", verbosity=2):
-#
-#     """ Calculate black hole mass according to the empirical relations
-#     of Vestergaard & Peterson 2006 and Vestergaard & Osmer 2009
-#
-#
-#     See equations (5, 7) in Vestergaard & Peterson for Hbeta and CIV
-#
-#     Parameters:
-#     -----------
-#     L_wav : float
-#         Monochromatic luminosity at the given wavelength of wav in erg s^-1
-#         Angstroem^-1
-#
-#     wav : float or int
-#         Wavelength for the given monochromatic luminosity
-#
-#     fwhm : float
-#         Full width at half maximum of the emission line specified in line
-#
-#     line : string
-#         Name of the emission line to calculate the black hole mass from. Possible
-#         line names are MgII, Hbeta, CIV
-#
-#     Returns:
-#     --------
-#
-#
-#     BHmass : float
-#     Black hole mass in units for solar masses
-#
-#     """
-#     zp = None
-#
-#     if line == "MgII":
-#         reference = "VW09"
-#
-#         if wav == 1350:
-#             zp = 6.72
-#
-#         elif wav == 2100:
-#             zp = 6.79
-#
-#         elif wav == 3000:
-#             zp = 6.86
-#
-#         elif wav == 5100:
-#             zp = 6.96
-#
-#         else:
-#             if verbosity > 1:
-#                 print("Specified wavelength does not allow for BH mass "
-#                        "calculation with MgII", wav)
-#         if zp is not None:
-#             return 10**zp * (fwhm/1000.)**2 * (wav * L_wav / 10**44)**(0.5), \
-#                reference
-#         # else:
-#         #     return None, None
-#
-#     elif line == "Hbeta":
-#         reference = "VO06"
-#
-#         if wav == 5100:
-#             return 10**6.91 * (fwhm/1000.)**2 * (wav * L_wav / 10**44)**(0.5), \
-#                    reference
-#
-#         else:
-#             if verbosity > 1:
-#                 print ("Specified wavelength does not allow for BH mass "
-#                        "calculation with Hbeta", wav)
-#             # return None, None
-#
-#     elif line == "CIV":
-#         reference = "VO06"
-#
-#         if wav == 1350:
-#             return 10**6.66 * (fwhm/1000.)**2 * (wav * L_wav / 10**44)**(0.53),\
-#                    reference
-#
-#         else:
-#             if verbosity > 1:
-#                 print ("Specified wavelength does not allow for BH mass "
-#                        "calculation with CIV", wav)
-#
-#     else:
-#         if verbosity >1:
-#             print("[Warning] No relation exists to calculate the BH mass for "
-#                   "the specified line ({}) and wavelength ({}): ".format(
-#                 line, wav))
-#
-#     return None, None
-#
-# def calc_BH_masses(L_wav, wav, fwhm, line="MgII", verbosity=2):
-#
-#     """ Calculate black hole mass according to the empirical relations
-#     of Vestergaard & Peterson 2006 and Vestergaard & Osmer 2009
-#
-#     See equation (1) in Vestergaard & Osmer 2009 for MgII
-#     See equations (5, 7) in Vestergaard & Peterson for Hbeta and CIV
-#
-#     Parameters:
-#     -----------
-#     L_wav : float
-#         Monochromatic luminosity at the given wavelength of wav in erg s^-1
-#         Angstroem^-1
-#
-#     wav : float or int
-#         Wavelength for the given monochromatic luminosity
-#
-#     fwhm : float
-#         Full width at half maximum of the emission line specified in line
-#
-#     line : string
-#         Name of the emission line to calculate the black hole mass from. Possible
-#         line names are MgII, Hbeta, CIV
-#
-#     Returns:
-#     --------
-#
-#
-#     BHmass : float
-#     Black hole mass in units for solar masses
-#
-#     """
-#     zp = None
-#     b = None
-#
-#     if line == "MgII":
-#         reference = "VW09"
-#
-#         if wav == 1350:
-#             zp = 6.72
-#
-#         elif wav == 2100:
-#             zp = 6.79
-#
-#         elif wav == 3000:
-#             zp = [6.86, 6.74]
-#             b = [0.5, 0.62]
-#             reference = ['VW09', 'S11']
-#
-#         elif wav == 5100:
-#             zp = 6.96
-#
-#         else:
-#             if verbosity > 1:
-#                 print("Specified wavelength does not allow for BH mass "
-#                        "calculation with MgII", wav)
-#         if zp is not None and b is None:
-#             return 10**zp * (fwhm/1000.)**2 * (wav * L_wav / 10**44)**(0.5), \
-#                reference
-#         elif zp is not None and b is not None:
-#
-#             bhmass_a = 10**zp[0] * (fwhm/1000.)**2 * (wav * L_wav / 10**44)**(
-#                 b[0])
-#             bhmass_b = 10 ** zp[1] * (fwhm / 1000.) ** 2 * (
-#                         wav * L_wav / 10 ** 44) ** (
-#                            b[1])
-#             bhmass = [bhmass_a, bhmass_b]
-#
-#             return bhmass, reference
-#
-#
-#
-#     elif line == "Hbeta":
-#         reference = "VO06"
-#
-#         if wav == 5100:
-#             zp = [6.91, np.log10(4.74E+6)]
-#             b = [0.5, 0.61]
-#             reference = ["VO06", "MJ02"]
-#             # return 10**6.91 * (fwhm/1000.)**2 * (wav * L_wav / 10**44)**(0.5), \
-#             #        reference
-#         # elif
-#         else:
-#             if verbosity > 1:
-#                 print ('[INFO] Specified wavelength {} does not allow for BH '
-#                        'mass calculation with Hbeta'.format(wav))
-#             # return None, None
-#
-#
-#         if zp is not None and b is None:
-#             return 10**zp * (fwhm/1000.)**2 * (wav * L_wav / 10**44)**(0.5), \
-#                reference
-#         elif zp is not None and b is not None:
-#
-#             bhmass_a = 10**zp[0] * (fwhm/1000.)**2 * (wav * L_wav / 10**44)**(
-#                 b[0])
-#             bhmass_b = 10 ** zp[1] * (fwhm / 1000.) ** 2 * (
-#                         wav * L_wav / 10 ** 44) ** (
-#                            b[1])
-#             bhmass = [bhmass_a, bhmass_b]
-#
-#             return bhmass, reference
-#
-#     elif line == "CIV":
-#         reference = "VO06"
-#
-#         if wav == 1350:
-#             if not np.isnan(fwhm):
-#                 return 10**6.66 * (fwhm/1000.)**2 * (wav * L_wav / 10**44)**(0.53),\
-#                        reference
-#             else:
-#                 return np.NaN, reference
-#
-#         else:
-#             if verbosity > 1:
-#                 print ("Specified wavelength does not allow for BH mass "
-#                        "calculation with CIV", wav)
-#
-#     else:
-#         if verbosity > 1:
-#             print("[Warning] No relation exists to calculate the BH mass for "
-#                   "the specified line ({}) and wavelength ({}): ".format(
-#                 line, wav))
-#
-#
-#     return None, None
-#
-#
-# def calc_Halpha_BH_mass(L_Halpha, FWHM_Halpha):
-#
-#     # Implementation after Greene & Ho 2005 Equation 6
-#     reference = "GH05"
-#
-#     if not np.isnan(FWHM_Halpha) or not np.isnan(L_Halpha):
-#
-#         return 2.0 * 1e+6 * (FWHM_Halpha/1000)**2.06 * (L_Halpha/
-#                                                        10**42)**0.55, \
-#                reference
-#
-#
-
-
-
-
-
-
 

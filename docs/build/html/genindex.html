@@ -32,6 +32,7 @@
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -88,11 +89,16 @@
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">The Sculptor GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Modules:</span></p>
+<p class="caption"><span class="caption-text">Example notebooks:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="spectrum_preparation.html">Preparing a spectrum for Sculptor modeling using the SpecOneD class</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Module documentation:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
 </ul>
 <p class="caption"><span class="caption-text">License:</span></p>
 <ul>
@@ -172,11 +178,11 @@
  | <a href="#D"><strong>D</strong></a>
  | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
- | <a href="#H"><strong>H</strong></a>
  | <a href="#I"><strong>I</strong></a>
+ | <a href="#K"><strong>K</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
- | <a href="#O"><strong>O</strong></a>
+ | <a href="#N"><strong>N</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
@@ -189,14 +195,10 @@
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.add">add() (sculptor.speconed.SpecOneD method)</a>
-</li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.add_global_param">add_global_param() (sculptor.specmodel.SpecModel method)</a>
 </li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.add_mask_preset_to_fit_mask">add_mask_preset_to_fit_mask() (sculptor.specmodel.SpecModel method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.add_model">add_model() (sculptor.specmodel.SpecModel method)</a>
 </li>
       <li><a href="specfit.html#sculptor.specfit.SpecFit.add_specmodel">add_specmodel() (sculptor.specfit.SpecFit method)</a>
@@ -206,6 +208,22 @@
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.add_wavelength_range_to_fit_mask">add_wavelength_range_to_fit_mask() (sculptor.specmodel.SpecModel method)</a>
 </li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="specanalysis.html#sculptor.specanalysis.analyse_fit">analyse_fit() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.analyse_mcmc_results">analyse_mcmc_results() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.analyse_resampled_results">analyse_resampled_results() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.analyze_continuum">analyze_continuum() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.analyze_emission_feature">analyze_emission_feature() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.apply_extinction">apply_extinction() (sculptor.speconed.SpecOneD method)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.average_fluxden">average_fluxden() (sculptor.speconed.SpecOneD method)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="B">B</h2>
@@ -213,15 +231,37 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.bin_by_npixels">bin_by_npixels() (sculptor.speconed.SpecOneD method)</a>
 </li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.broaden_by_gaussian">broaden_by_gaussian() (sculptor.speconed.SpecOneD method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.build_model">build_model() (sculptor.specmodel.SpecModel method)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.build_model_flux">build_model_flux() (in module sculptor.specanalysis)</a>
 </li>
   </ul></td>
 </tr></table>
 
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="specanalysis.html#sculptor.specanalysis.calc_absolute_mag_from_apparent_mag">calc_absolute_mag_from_apparent_mag() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.calc_absolute_mag_from_fluxden">calc_absolute_mag_from_fluxden() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.calc_absolute_mag_from_monochromatic_luminosity">calc_absolute_mag_from_monochromatic_luminosity() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.calc_apparent_mag_from_fluxden">calc_apparent_mag_from_fluxden() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.calc_integrated_luminosity">calc_integrated_luminosity() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.calc_Lwav_from_fwav">calc_Lwav_from_fwav() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.calculate_passband_ab_magnitude">calculate_passband_ab_magnitude() (sculptor.speconed.SpecOneD method)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.calculate_passband_flux">calculate_passband_flux() (sculptor.speconed.SpecOneD method)</a>
+</li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.check_dispersion_overlap">check_dispersion_overlap() (sculptor.speconed.SpecOneD method)</a>
 </li>
@@ -231,10 +271,12 @@
 </li>
       <li><a href="specfit.html#sculptor.specfit.SpecFit.colors">colors (sculptor.specfit.SpecFit attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.convolve_loglam">convolve_loglam() (sculptor.speconed.SpecOneD method)</a>
+      <li><a href="speconed.html#sculptor.speconed.PassBand.convert_spectral_units">convert_spectral_units() (sculptor.speconed.PassBand method)</a>
+
+      <ul>
+        <li><a href="speconed.html#sculptor.speconed.SpecOneD.convert_spectral_units">(sculptor.speconed.SpecOneD method)</a>
 </li>
+      </ul></li>
       <li><a href="specfit.html#sculptor.specfit.SpecFit.copy">copy() (sculptor.specfit.SpecFit method)</a>
 
       <ul>
@@ -249,17 +291,11 @@
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.datadir">datadir (in module sculptor.speconed)</a>
-</li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.delete_model">delete_model() (sculptor.specmodel.SpecModel method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="specfit.html#sculptor.specfit.SpecFit.delete_specmodel">delete_specmodel() (sculptor.specfit.SpecFit method)</a>
-</li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.dispersion">dispersion (sculptor.speconed.SpecOneD attribute)</a>
-</li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.divide">divide() (sculptor.speconed.SpecOneD method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -273,12 +309,6 @@
         <li><a href="specmodel.html#sculptor.specmodel.SpecModel.fit">(sculptor.specmodel.SpecModel method)</a>
 </li>
       </ul></li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.fit_dispersion">fit_dispersion (sculptor.speconed.SpecOneD attribute)</a>
-</li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.fit_fluxden">fit_fluxden (sculptor.speconed.SpecOneD attribute)</a>
-</li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.fit_output">fit_output (sculptor.speconed.SpecOneD attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.fit_result">fit_result (sculptor.specmodel.SpecModel attribute)</a>
@@ -287,31 +317,35 @@
 </li>
       <li><a href="specmodel.html#sculptor.specmodel.fitting_methods">fitting_methods (in module sculptor.specmodel)</a>
 </li>
-      <li><a href="speconed.html#sculptor.speconed.FlatSpectrum">FlatSpectrum (class in sculptor.speconed)</a>
-</li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.fluxden">fluxden (sculptor.speconed.SpecOneD attribute)</a>
-</li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.fluxden_err">fluxden_err (sculptor.speconed.SpecOneD attribute)</a>
-</li>
   </ul></td>
 </tr></table>
 
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="speconed.html#sculptor.speconed.gaussian">gaussian() (in module sculptor.speconed)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.get_average_fluxden">get_average_fluxden() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.get_equivalent_width">get_equivalent_width() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.get_fluxden_error_from_ivar">get_fluxden_error_from_ivar() (sculptor.speconed.SpecOneD method)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.get_fwhm">get_fwhm() (in module sculptor.specanalysis)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="specanalysis.html#sculptor.specanalysis.get_integrated_flux">get_integrated_flux() (in module sculptor.specanalysis)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.get_ivar_from_fluxden_error">get_ivar_from_fluxden_error() (sculptor.speconed.SpecOneD method)</a>
+</li>
+      <li><a href="specanalysis.html#sculptor.specanalysis.get_peak_redshift">get_peak_redshift() (in module sculptor.specanalysis)</a>
+</li>
       <li><a href="specfit.html#sculptor.specfit.SpecFit.get_result_dict">get_result_dict() (sculptor.specfit.SpecFit method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="specmodel.html#sculptor.specmodel.SpecModel.global_params">global_params (sculptor.specmodel.SpecModel attribute)</a>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.get_specplot_ylim">get_specplot_ylim() (sculptor.speconed.SpecOneD method)</a>
 </li>
-  </ul></td>
-</tr></table>
-
-<h2 id="H">H</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.header">header (sculptor.speconed.SpecOneD attribute)</a>
+      <li><a href="specmodel.html#sculptor.specmodel.SpecModel.global_params">global_params (sculptor.specmodel.SpecModel attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -328,6 +362,14 @@
   </ul></td>
 </tr></table>
 
+<h2 id="K">K</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="specanalysis.html#sculptor.specanalysis.k_correction_pl">k_correction_pl() (in module sculptor.specanalysis)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -338,18 +380,20 @@
 </li>
       </ul></li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="speconed.html#sculptor.speconed.PassBand.load_passband">load_passband() (sculptor.speconed.PassBand method)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.mask">mask (sculptor.speconed.SpecOneD attribute)</a>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.mask_between">mask_between() (sculptor.speconed.SpecOneD method)</a>
 </li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.mask_sn">mask_sn() (sculptor.speconed.SpecOneD method)</a>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.mask_by_snr">mask_by_snr() (sculptor.speconed.SpecOneD method)</a>
 </li>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.match_dispersions">match_dispersions() (sculptor.speconed.SpecOneD method)</a>
-</li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.medianclip_flux">medianclip_flux() (sculptor.speconed.SpecOneD method)</a>
 </li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.model">model (sculptor.specmodel.SpecModel attribute)</a>
 </li>
@@ -357,14 +401,12 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.model_pars">model_pars (sculptor.speconed.SpecOneD attribute)</a>
-</li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.model_spectrum">model_spectrum (sculptor.speconed.SpecOneD attribute)</a>
-</li>
       <li>
     module
 
       <ul>
+        <li><a href="specanalysis.html#module-sculptor.specanalysis">sculptor.specanalysis</a>
+</li>
         <li><a href="specfit.html#module-sculptor.specfit">sculptor.specfit</a>
 </li>
         <li><a href="specmodel.html#module-sculptor.specmodel">sculptor.specmodel</a>
@@ -372,15 +414,25 @@
         <li><a href="speconed.html#module-sculptor.speconed">sculptor.speconed</a>
 </li>
       </ul></li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.multiply">multiply() (sculptor.speconed.SpecOneD method)</a>
-</li>
   </ul></td>
 </tr></table>
 
-<h2 id="O">O</h2>
+<h2 id="N">N</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.override_raw">override_raw() (sculptor.speconed.SpecOneD method)</a>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.normalize_fluxden_by_error">normalize_fluxden_by_error() (sculptor.speconed.SpecOneD method)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.normalize_fluxden_by_factor">normalize_fluxden_by_factor() (sculptor.speconed.SpecOneD method)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.normalize_fluxden_to_factor">normalize_fluxden_to_factor() (sculptor.speconed.SpecOneD method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="specfit.html#sculptor.specfit.SpecFit.normalize_spectrum_by_error">normalize_spectrum_by_error() (sculptor.specfit.SpecFit method)</a>
+</li>
+      <li><a href="specfit.html#sculptor.specfit.SpecFit.normalize_spectrum_by_factor">normalize_spectrum_by_factor() (sculptor.specfit.SpecFit method)</a>
+</li>
+      <li><a href="specfit.html#sculptor.specfit.SpecFit.normalize_spectrum_to_factor">normalize_spectrum_to_factor() (sculptor.specfit.SpecFit method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -392,33 +444,33 @@
 </li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.params_list">params_list (sculptor.specmodel.SpecModel attribute)</a>
 </li>
+      <li><a href="speconed.html#sculptor.speconed.PassBand">PassBand (class in sculptor.speconed)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.peak_dispersion">peak_dispersion() (sculptor.speconed.SpecOneD method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.peak_fluxden">peak_fluxden() (sculptor.speconed.SpecOneD method)</a>
+</li>
       <li><a href="specfit.html#sculptor.specfit.SpecFit.plot">plot() (sculptor.specfit.SpecFit method)</a>
 
       <ul>
         <li><a href="specmodel.html#sculptor.specmodel.SpecModel.plot">(sculptor.specmodel.SpecModel method)</a>
 </li>
+        <li><a href="speconed.html#sculptor.speconed.PassBand.plot">(sculptor.speconed.PassBand method)</a>
+</li>
         <li><a href="speconed.html#sculptor.speconed.SpecOneD.plot">(sculptor.speconed.SpecOneD method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.pypeit_multi_plot">pypeit_multi_plot() (in module sculptor.speconed)</a>
-</li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.pypeit_plot">pypeit_plot() (sculptor.speconed.SpecOneD method)</a>
-</li>
   </ul></td>
 </tr></table>
 
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.raw_dispersion">raw_dispersion (sculptor.speconed.SpecOneD attribute)</a>
-</li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.raw_fluxden">raw_fluxden (sculptor.speconed.SpecOneD attribute)</a>
-</li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.raw_fluxden_err">raw_fluxden_err (sculptor.speconed.SpecOneD attribute)</a>
-</li>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.read_from_fits">read_from_fits() (sculptor.speconed.SpecOneD method)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.read_from_hdf">read_from_hdf() (sculptor.speconed.SpecOneD method)</a>
 </li>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.read_pypeit_fits">read_pypeit_fits() (sculptor.speconed.SpecOneD method)</a>
 </li>
@@ -430,11 +482,15 @@
         <li><a href="specmodel.html#sculptor.specmodel.SpecModel.redshift">(sculptor.specmodel.SpecModel attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.remove_extinction">remove_extinction() (sculptor.speconed.SpecOneD method)</a>
+</li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.remove_global_param">remove_global_param() (sculptor.specmodel.SpecModel method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="specfit.html#sculptor.specfit.SpecFit.remove_super_param">remove_super_param() (sculptor.specfit.SpecFit method)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.renormalize_by_ab_magnitude">renormalize_by_ab_magnitude() (sculptor.speconed.SpecOneD method)</a>
 </li>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.renormalize_by_spectrum">renormalize_by_spectrum() (sculptor.speconed.SpecOneD method)</a>
 </li>
@@ -444,13 +500,13 @@
         <li><a href="speconed.html#sculptor.speconed.SpecOneD.resample">(sculptor.speconed.SpecOneD method)</a>
 </li>
       </ul></li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.resample_to_resolution">resample_to_resolution() (sculptor.speconed.SpecOneD method)</a>
+</li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.reset_fit_mask">reset_fit_mask() (sculptor.specmodel.SpecModel method)</a>
 </li>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.reset_mask">reset_mask() (sculptor.speconed.SpecOneD method)</a>
 </li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.reset_plot_limits">reset_plot_limits() (sculptor.specmodel.SpecModel method)</a>
-</li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.restore">restore() (sculptor.speconed.SpecOneD method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -466,8 +522,19 @@
       </ul></li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.save_fit_report">save_fit_report() (sculptor.specmodel.SpecModel method)</a>
 </li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.save_to_fits">save_to_fits() (sculptor.speconed.SpecOneD method)</a>
+      <li><a href="specmodel.html#sculptor.specmodel.SpecModel.save_mcmc_chain">save_mcmc_chain() (sculptor.specmodel.SpecModel method)</a>
 </li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.save_to_csv">save_to_csv() (sculptor.speconed.SpecOneD method)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.save_to_hdf">save_to_hdf() (sculptor.speconed.SpecOneD method)</a>
+</li>
+      <li>
+    sculptor.specanalysis
+
+      <ul>
+        <li><a href="specanalysis.html#module-sculptor.specanalysis">module</a>
+</li>
+      </ul></li>
       <li>
     sculptor.specfit
 
@@ -482,6 +549,8 @@
         <li><a href="specmodel.html#module-sculptor.specmodel">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     sculptor.speconed
 
@@ -489,8 +558,6 @@
         <li><a href="speconed.html#module-sculptor.speconed">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.smooth">smooth() (sculptor.speconed.SpecOneD method)</a>
 </li>
       <li><a href="specfit.html#sculptor.specfit.SpecFit.spec">spec (sculptor.specfit.SpecFit attribute)</a>
@@ -509,8 +576,6 @@
 </li>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD">SpecOneD (class in sculptor.speconed)</a>
 </li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.subtract">subtract() (sculptor.speconed.SpecOneD method)</a>
-</li>
       <li><a href="specfit.html#sculptor.specfit.SpecFit.super_params">super_params (sculptor.specfit.SpecFit attribute)</a>
 </li>
   </ul></td>
@@ -519,13 +584,17 @@
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.to_frequency">to_frequency() (sculptor.speconed.SpecOneD method)</a>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.to_fluxden_per_unit_frequency_cgs">to_fluxden_per_unit_frequency_cgs() (sculptor.speconed.SpecOneD method)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.to_fluxden_per_unit_frequency_jy">to_fluxden_per_unit_frequency_jy() (sculptor.speconed.SpecOneD method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.to_log_wavelength">to_log_wavelength() (sculptor.speconed.SpecOneD method)</a>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.to_fluxden_per_unit_frequency_si">to_fluxden_per_unit_frequency_si() (sculptor.speconed.SpecOneD method)</a>
 </li>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.to_wavelength">to_wavelength() (sculptor.speconed.SpecOneD method)</a>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.to_fluxden_per_unit_wavelength_cgs">to_fluxden_per_unit_wavelength_cgs() (sculptor.speconed.SpecOneD method)</a>
+</li>
+      <li><a href="speconed.html#sculptor.speconed.SpecOneD.trim_dispersion">trim_dispersion() (sculptor.speconed.SpecOneD method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -533,8 +602,6 @@
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.SpecOneD.unit">unit (sculptor.speconed.SpecOneD attribute)</a>
-</li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.update_model_params_for_global_params">update_model_params_for_global_params() (sculptor.specmodel.SpecModel method)</a>
 </li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.update_params_from_fit_result">update_params_from_fit_result() (sculptor.specmodel.SpecModel method)</a>

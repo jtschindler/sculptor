@@ -32,6 +32,7 @@
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -117,11 +118,16 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Modules:</span></p>
+<p class="caption"><span class="caption-text">Example notebooks:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="spectrum_preparation.html">Preparing a spectrum for Sculptor modeling using the SpecOneD class</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Module documentation:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
 </ul>
 <p class="caption"><span class="caption-text">License:</span></p>
 <ul>
@@ -193,7 +199,31 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="the-sculptor-gui">
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="the-sculptor-gui">
 <h1>The Sculptor GUI<a class="headerlink" href="#the-sculptor-gui" title="Permalink to this headline">¶</a></h1>
 <p>To carefully analyze small samples of astronomic spectra the Sculptor GUI offers an interactive way to put together complex spectral models. Therefore, we will start with an introduction to the GUI and its capabilities.</p>
 <p><strong>Disclaimer:</strong>

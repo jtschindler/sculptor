@@ -32,6 +32,7 @@
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -89,11 +90,16 @@
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">The Sculptor GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Modules:</span></p>
+<p class="caption"><span class="caption-text">Example notebooks:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="spectrum_preparation.html">Preparing a spectrum for Sculptor modeling using the SpecOneD class</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Module documentation:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
 </ul>
 <p class="caption"><span class="caption-text">License:</span></p>
 <ul>
@@ -165,12 +171,36 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="welcome-to-sculptor-s-documentation">
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="welcome-to-sculptor-s-documentation">
 <h1>Welcome to Sculptor’s documentation!<a class="headerlink" href="#welcome-to-sculptor-s-documentation" title="Permalink to this headline">¶</a></h1>
 <p>Sculptor is a high level API and Graphical User Interface around <a class="reference external" href="https://lmfit.github.io/lmfit-py/">LMFIT</a> tailored specifically for the analysis of astronomical spectra.</p>
 <p>At the heart of this package are three python 3 modules that manipulate 1D astronomical spectra (speconed), help to construct spectral models using pre-defined or user-defined functions to fit a spectrum utilizing LMFIT (specmodel), and a higher level class that combines multiple spectral models for a complex fit of the astronomical spectrum (specfit).</p>
 <a class="reference internal image-reference" href="_images/example_fit.png"><img alt="Full fit of the example spectrum" src="_images/example_fit.png" style="width: 800px;" /></a>
-<p>The Graphical User Interface offers interactive control to set up and combine multiple spectral models to fully fit the astronomical spectrum of choice. This includes masking of spectral features, defining fit regions, setting of fit parameter boundaries. The framework allows to add interdependent fit parameters (e.g., to couple the FWHM of multiple emission/absorption) lines.</p>
+<p>The Graphical User Interface offers interactive control to set up and combine multiple spectral models to fully fit the astronomical spectrum of choice. This includes masking of spectral features, defining fit regions, setting of fit parameter boundaries. The framework allows to add interdependent fit parameters (e.g., to couple the FWHM of multiple emission/absorption lines).</p>
 <p>If you are interested in being involved with this project, please contact Jan-Torge Schindler via <a class="reference external" href="https://github.com/jtschindler/sculptor">github</a>.</p>
 <p><strong>Disclaimer:</strong>
 This project is currently undergoing rapid development. Be advised that fits done with the current version may not work with a future version of the software. The first stable, well-tested release will be version 1.0.0 anticipated for summer 2021.</p>
@@ -183,11 +213,18 @@ This project is currently undergoing rapid development. Be advised that fits don
 </ul>
 </div>
 <div class="toctree-wrapper compound">
-<p class="caption"><span class="caption-text">Modules:</span></p>
+<p class="caption"><span class="caption-text">Example notebooks:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="spectrum_preparation.html">Preparing a spectrum for Sculptor modeling using the SpecOneD class</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">Module documentation:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">

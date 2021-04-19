@@ -322,13 +322,13 @@ class SpecModel:
         """ Adding a "Global Parameter" to the SpecModel object
 
         :param str param_name: Name of the global parameter
-        :param float,optional value: Initial value of the
+        :param float,optional value: Initial value of the \
         global parameter
-        :param bool,optional vary: Boolean to indicate whether the global
+        :param bool,optional vary: Boolean to indicate whether the global \
         parameter should be varied during the fit
         :param float,optional min: Minimum value for the global parameter
         :param float,optional max: Maximum value for the global parameter
-        :param str, optional expr: Optional expression for the global
+        :param str, optional expr: Optional expression for the global \
         parameter
 
         :return: None
@@ -342,7 +342,7 @@ class SpecModel:
     def remove_global_param(self, param_name):
         """ Remove "Global Parameter" from SpecModel object
 
-        :param str param_name: Parameter name of the global parameter to
+        :param str param_name: Parameter name of the global parameter to \
         remove.
 
         :return: None
@@ -565,10 +565,10 @@ class SpecModel:
         Fixed parameters in the model fit will be automatically added to the
         output file.
 
-        :param str foldername: Specified folder in which the fit report will
-            be saved.
-        :param str specmodel_id: Unique SpecModel identifier used in creating
-            the filename for the fit report.
+        :param str foldername: Specified folder in which the fit report will \
+        be saved.
+        :param str specmodel_id: Unique SpecModel identifier used in creating \
+        the filename for the fit report.
         :return: None
         """
 
@@ -608,13 +608,12 @@ class SpecModel:
     def save_fit_report(self, foldername, specmodel_id=None, show=False):
         """ Save the fit report to a file in the specified folder
 
-        :param str foldername: Specified folder in which the fit report will
-            be saved.
-        :param str specmodel_id: Unique SpecModel identifier used in creating
-            the filename for the fit report.
-        :param bool show:  Boolean to indicate whether the fit report
-        should
-            also be printed to the screen.
+        :param str foldername: Specified folder in which the fit report will \
+        be saved.
+        :param str specmodel_id: Unique SpecModel identifier used in creating \
+        the filename for the fit report.
+        :param bool show:  Boolean to indicate whether the fit report \
+        should also be printed to the screen.
 
         :return: None
         """
@@ -842,10 +841,10 @@ class SpecModel:
         """ Reset the plot limits based on the dispersion and flux density
         ranges of the spectrum.
 
-        :param fluxden: Boolean to indicate whether to reset the flux density
+        :param fluxden: Boolean to indicate whether to reset the flux density \
         axis limits (default: True).
         :type fluxden: boolean
-        :param dispersion: Boolean to indicate whether to reset the dispersion
+        :param dispersion: Boolean to indicate whether to reset the dispersion \
         axis limits (default: True).
         :type dispersion: boolean
         :return: None

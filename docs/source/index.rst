@@ -27,11 +27,18 @@ This project is currently undergoing rapid development. Be advised that fits don
 
 .. toctree::
   :maxdepth: 1
-  :caption: Modules:
+  :caption: Example notebooks:
+
+  spectrum_preparation.nblink
+
+.. toctree::
+  :maxdepth: 1
+  :caption: Module documentation:
 
   speconed
   specmodel
   specfit
+  specanalysis
 
 .. toctree::
   :caption: License:

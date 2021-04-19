@@ -2,19 +2,10 @@
 
 """
 This module introduces the SpecOneD class, it's functions and the related
-FlatSpectrum class.
+PassBand class.
 The main purpose of the SpecOneD class and it's children classes is to provide
 python functionality for the manipulation of 1D spectral data in astronomy.
 
-Notes
------
-    The documentation for this module is not yet completed.
-
-
-Attributes
-----------
-datadir : str
-    The path to the data directory formatted as  a string.
 """
 
 import os
@@ -61,10 +52,44 @@ class SpecOneD(object):
     """The SpecOneD class provides a data structure for 1D astronomical
     spectra with extensive capabilities for spectrum analysis and manipulation.
 
-    Attributes:
+    :param dispersion: A 1D array providing the dispersion axis of the \
+    spectrum.
+    :type dispersion: numpy.ndarray
+    :param fluxden: A 1D array providing the flux density data of the \
+    spectrum.
+    :type fluxden: numpy.ndarray
+    :param fluxden_err: A 1D array providing the 1-sigma flux density \
+    error of the spectrum.
+    :type fluxden_err: numpy.ndarray
+    :param fluxden_ivar: A 1D array providing the inverse variance of the \
+    flux density for the spectrum.
+    :type fluxden_ivar: numpy.ndarray
+    :param header: A pandas DataFrame containing additional information \
+    on the spectrum.
+    :type header: pandas.DataFrame
+    :param dispersion_unit: The physical unit (including normalization \
+    factors) of the dispersion axis of the spectrum.
+    :type dispersion_unit: astropy.units.Unit or astropy.units.Quantity or \
+    astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
+    :param fluxden_unit: The physical unit (including normalization \
+    factors) of the flux density and associated properties (e.g. flux \
+    density error) of the spectrum.
+    :type fluxden_unit: astropy.units.Unit or astropy.units.Quantity or \
+    astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
+    :param obj_model: Object model from the telluric correction routine \
+    of PypeIt.
+    :type obj_model: numpy.ndarray
+    :param telluric: Telluric (atmospheric transmission) model from the \
+    telluric correction routine of PypeIt.
+    :type telluric: numpy.ndarray
+    :param mask: A boolean 1D array specifying regions that allows to \
+    mask region in the spectrum during spectral manipulation or for \
+    display purposes.
+    :type mask: numpy.ndarray
 
-    - :class:`np.ndarray` dispersion: A 1D array providing the dispersion axis of the spectrum.
-    - :class:`np.ndarray` fluxden: A 1D array providing the flux density data of the spectrum.
+    :raise ValueError: Raises a ValueError if the supplied header is not a \
+    pandas.DataFrame
+
     """
 
     def __init__(self, dispersion=None, fluxden=None, fluxden_err=None,
@@ -73,42 +98,42 @@ class SpecOneD(object):
                  telluric=None, mask=None):
         """Initialize the SpecOneD class object.
 
-        :param dispersion: A 1D array providing the dispersion axis of the
+        :param dispersion: A 1D array providing the dispersion axis of the \
         spectrum.
         :type dispersion: numpy.ndarray
-        :param fluxden: A 1D array providing the flux density data of the
+        :param fluxden: A 1D array providing the flux density data of the \
         spectrum.
         :type fluxden: numpy.ndarray
-        :param fluxden_err: A 1D array providing the 1-sigma flux density
+        :param fluxden_err: A 1D array providing the 1-sigma flux density \
         error of the spectrum.
         :type fluxden_err: numpy.ndarray
-        :param fluxden_ivar: A 1D array providing the inverse variance of the
+        :param fluxden_ivar: A 1D array providing the inverse variance of the \
         flux density for the spectrum.
         :type fluxden_ivar: numpy.ndarray
-        :param header: A pandas DataFrame containing additional information
+        :param header: A pandas DataFrame containing additional information \
         on the spectrum.
         :type header: pandas.DataFrame
-        :param dispersion_unit: The physical unit (including normalization
+        :param dispersion_unit: The physical unit (including normalization \
         factors) of the dispersion axis of the spectrum.
-        :type dispersion_unit: u.Unit or u.Quantity or u.CompositeUnit or
-        u.IrreducibleUnit
-        :param fluxden_unit: The physical unit (including normalization
-        factors) of the flux density and associated properties (e.g. flux
+        :type dispersion_unit: astropy.units.Unit or astropy.units.Quantity or \
+        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
+        :param fluxden_unit: The physical unit (including normalization \
+        factors) of the flux density and associated properties (e.g. flux \
         density error) of the spectrum.
-        :type fluxden_unit: u.Unit or u.Quantity or u.CompositeUnit or
-        u.IrreducibleUnit
-        :param obj_model: Object model from the telluric correction routine
+        :type fluxden_unit: astropy.units.Unit or astropy.units.Quantity or \
+        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
+        :param obj_model: Object model from the telluric correction routine \
         of PypeIt.
         :type obj_model: numpy.ndarray
-        :param telluric: Telluric (atmospheric transmission) model from the
+        :param telluric: Telluric (atmospheric transmission) model from the \
         telluric correction routine of PypeIt.
         :type telluric: numpy.ndarray
-        :param mask: A boolean 1D array specifying regions that allows to
-        mask region in the spectrum during spectral manipulation or for
+        :param mask: A boolean 1D array specifying regions that allows to \
+        mask region in the spectrum during spectral manipulation or for \
         display purposes.
         :type mask: numpy.ndarray
 
-        :raise ValueError: Raises a ValueError if the supplied header is not a
+        :raise ValueError: Raises a ValueError if the supplied header is not a \
         pandas.DataFrame
         """
 
@@ -173,12 +198,12 @@ class SpecOneD(object):
 
         :param filename: Filename of the fits file.
         :type filename: string
-        :param exten: Extension of the pypeit fits file to read. This
+        :param exten: Extension of the pypeit fits file to read. This \
         defaults to exten=1.
         :type exten: int
         :return:
 
-        :raises ValueError: Raises an error when the filename could not be
+        :raises ValueError: Raises an error when the filename could not be \
         read in.
         """
 
@@ -224,7 +249,7 @@ class SpecOneD(object):
         :type filename: str
         :return:
 
-        :raises ValueError: Raises an error when the filename could not be
+        :raises ValueError: Raises an error when the filename could not be \
         read in.
         """
 
@@ -288,7 +313,7 @@ class SpecOneD(object):
         :type filename: str
         :return:
 
-        :raises ValueError: Raises an error when the filename could not be
+        :raises ValueError: Raises an error when the filename could not be \
         read in.
         """
 
@@ -431,7 +456,7 @@ class SpecOneD(object):
 
         :param filename: Filename to save the SpecOneD object to.
         :type filename: str
-        :param outputformat: Format of the csv file. Possible formats include
+        :param outputformat: Format of the csv file. Possible formats include \
         "linetools". All other inputs will save it to the default format.
         :type outputformat: str
         :return:
@@ -545,11 +570,11 @@ class SpecOneD(object):
     def mask_by_snr(self, signal_to_noise_ratio, inplace=False):
         """Mask all regions with a signal to noise below the specified limit
 
-        :param signal_to_noise_ratio: All regions of the spectrum with a
+        :param signal_to_noise_ratio: All regions of the spectrum with a \
         value below this limit will be masked.
         :type signal_to_noise_ratio: float
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
         :return: SpecOneD
@@ -574,11 +599,11 @@ class SpecOneD(object):
     def mask_between(self, limits, inplace=False):
         """Mask spectrum between specified dispersion limits.
 
-        :param limits: A list of two floats indicating the lower and upper
+        :param limits: A list of two floats indicating the lower and upper \
         dispersion limit to mask between.
         :type limits: [float, float]
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
         :return:
@@ -633,10 +658,10 @@ class SpecOneD(object):
         """Calculate the average flux density over the full spectrum or the
         specified dispersion range
 
-        :param dispersion_range: Dispersion range over which to average the
+        :param dispersion_range: Dispersion range over which to average the \
         flux density.
         :type dispersion_range: [float, float]
-        :return: Average flux density of the full spectrum or specified
+        :return: Average flux density of the full spectrum or specified \
         dispersion range
         :rtype: float
         """
@@ -712,17 +737,21 @@ class SpecOneD(object):
 
     def convert_spectral_units(self, new_dispersion_unit, new_fluxden_unit,
                                verbosity=0):
-        """Conver the spectrum to new physical dispersion and flux density
+        """Convert the spectrum to new physical dispersion and flux density
         units.
-
-        WARNING: NEW FUNCTIONALITY, NOT FULLY TESTED!
 
         The function converts the flux density, the dispersion, the flux
         density error and the inverse variance.
         Object model and telluric if they exist will not be converted.
 
-        :param new_dispersion_unit:
-        :param new_fluxden_unit:
+        :param new_dispersion_unit: New dispersion unit (or quantity)
+        :type new_dispersion_unit: astropy.units.Unit or \
+        astropy.units.Quantity or astropy.units.CompositeUnit or \
+        astropy.units.IrreducibleUnit
+        :param new_fluxden_unit: New flux density unit (or quantity)
+        :type new_fluxden_unit: astropy.units.Unit or \
+        astropy.units.Quantity or astropy.units.CompositeUnit or \
+        astropy.units.IrreducibleUnit
         :return:
         """
 
@@ -870,8 +899,8 @@ class SpecOneD(object):
         This enables more efficient calculations on the flux density array by
         avoiding small numerical values.
 
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
         :return: SpecOneD
@@ -899,12 +928,12 @@ class SpecOneD(object):
         This enables more efficient calculations on the flux density array by
         avoiding small numerical values.
 
-        :param factor: Scale factor by which the flux density, flux density
-        error and object model will be divided and the flux density unit will be
-        multiplied with.
+        :param factor: Scale factor by which the flux density, flux density \
+        error and object model will be divided and the flux density unit will \
+        be multiplied with.
         :type factor: float
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
         :return: SpecOneD
@@ -927,12 +956,12 @@ class SpecOneD(object):
         This enables more efficient calculations on the flux density array by
         avoiding small numerical values.
 
-        :param factor: Scale factor by which the flux density, flux density
-        error and object model will be divided and the flux density unit will be
-        multiplied with.
+        :param factor: Scale factor by which the flux density, flux density \
+        error and object model will be divided and the flux density unit will \
+        be multiplied with.
         :type factor: float
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
         :return: SpecOneD
@@ -979,10 +1008,10 @@ class SpecOneD(object):
 
         :param secondary_spectrum:
         :type secondary_spectrum: SpecOneD
-        :return: overlap, overlap_min, overlap_max
-            Returns a string indicating the dispersion
-            overlap type according to the cases above 'overlap and the
-            minimum and maximum dispersion value of the overlap region of the
+        :return: overlap, overlap_min, overlap_max \
+            Returns a string indicating the dispersion \
+            overlap type according to the cases above 'overlap and the \
+            minimum and maximum dispersion value of the overlap region of the \
             two spectra.
         :rtype: (str, float, float)
         """
@@ -1036,11 +1065,11 @@ class SpecOneD(object):
 
         :param secondary_spectrum: Secondary spectrum
         :type secondary_spectrum: SpecOneD
-        :param match_secondary: The boolean indicates whether the secondary
-        will always be matched to the primary or whether reverse matching,
+        :param match_secondary: The boolean indicates whether the secondary \
+        will always be matched to the primary or whether reverse matching, \
         primary to secondary is allowed.
         :type match_secondary: bool
-        :param force: he boolean sets whether the dispersions are matched if
+        :param force: he boolean sets whether the dispersions are matched if \
         only partial overlap between the spectral dispersions exists.
         :type force: bool
         :param method:
@@ -1049,7 +1078,7 @@ class SpecOneD(object):
         :type interp_method: str
         :return:
 
-        :raise ValueError: A ValueError will be raised if there is no overlap
+        :raise ValueError: A ValueError will be raised if there is no overlap \
         between the spectra.
         """
 
@@ -1112,14 +1141,14 @@ class SpecOneD(object):
     def trim_dispersion(self, limits, mode='physical', inplace=False):
         """Trim the spectrum according to the dispersion limits specified.
 
-        :param limits: A list of two floats indicating the lower and upper
+        :param limits: A list of two floats indicating the lower and upper \
         dispersion limit to trim the dispersion axis to.
         :type limits: [float, float] or [int, int]
-        :param mode: A string specifying whether the limits are in 'physical'
+        :param mode: A string specifying whether the limits are in 'physical' \
         values of the dispersion axis (e.g. Angstroem) or in pixel values.
         :type mode: str
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
         :return: Spectrum trimmed to the specified limits
@@ -1181,16 +1210,16 @@ class SpecOneD(object):
 
         :param new_dispersion: 1D array with the new dispersion axis
         :type new_dispersion: numpy.ndarray
-        :param kind: String that indicates the interpolation function (
+        :param kind: String that indicates the interpolation function ( \
         default: 'linear')
         :type kind: str
-        :param fill_value: A string indicating whether values outside the
-        dispersion range will be extrapolated ('extrapolate') or filled with
-        a constant value ('const') based on the median of the 10 values at
+        :param fill_value: A string indicating whether values outside the \
+        dispersion range will be extrapolated ('extrapolate') or filled with \
+        a constant value ('const') based on the median of the 10 values at \
         the edge.
         :type fill_value: str
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
         :param verbosity: Integer indecating the verbosity level
@@ -1264,14 +1293,14 @@ class SpecOneD(object):
 
         :param width: Width (in pixels) of the kernel)
         :type: width: int
-        :param kernel: String indicating whether to use the Boxcar ("boxcar")
+        :param kernel: String indicating whether to use the Boxcar ("boxcar") \
         or Gaussian ("gaussian") kernel.
         :type kernel: str
-        :param scale_sigma: Boolean to indicate whether to scale the fluxden
+        :param scale_sigma: Boolean to indicate whether to scale the fluxden \
         error according to the width of the boxcar kernel.
         :type scale_sigma: bool
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
         :return:
@@ -1309,7 +1338,7 @@ class SpecOneD(object):
         wavelength/frequency.
 
         :param resolution:
-        :return: Returns new dispersion axis with a resolution in km/s as
+        :return: Returns new dispersion axis with a resolution in km/s as \
         given by the input value.
         :rtype: numpy.ndarray
         """
@@ -1333,15 +1362,15 @@ class SpecOneD(object):
 
         :param resolution: Specified resolution in km/s
         :type resolution: float
-        :param buffer: Integer value indicating how many pixels at the
-        beginning and the end of the current spectrum will be omitted in the
+        :param buffer: Integer value indicating how many pixels at the \
+        beginning and the end of the current spectrum will be omitted in the \
         resampling process.
         :type buffer: int
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
-        :return: Returns the resampled spectrum as a SpecOneD object if
+        :return: Returns the resampled spectrum as a SpecOneD object if \
         inplace==False.
         :rtype: SpecOneD
         """
@@ -1367,17 +1396,17 @@ class SpecOneD(object):
         If obj_model and telluric exist for the spectrum these will be
         linearly interpolated onto the new dispersion axis and NOT resampled.
 
-        :param new_dispersion: Array containing the new wavelength sampling
+        :param new_dispersion: Array containing the new wavelength sampling \
          desired for the spectrum or spectra.
         :type new_dispersion: numpy.ndarray
-        :param force: Boolean to force the resampling of the spectrum by
+        :param force: Boolean to force the resampling of the spectrum by \
         reducing the new dispersion axis range to the old dispersion axis range.
         :type force: bool
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
-        :return: Returns the resampled spectrum as a SpecOneD object if
+        :return: Returns the resampled spectrum as a SpecOneD object if \
         inplace==False.
         :rtype: SpecOneD
         """
@@ -1440,11 +1469,11 @@ class SpecOneD(object):
 
         :param npix: Number of pixels to be binned.
         :type npix: int
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
-        :type inplace: bool
-        :return: Returns the binned spectrum as a SpecOneD object if
+        :type inplace: boolean
+        :return: Returns the binned spectrum as a SpecOneD object if \
         inplace==False.
         :rtype: SpecOneD
         """
@@ -1538,25 +1567,25 @@ class SpecOneD(object):
         This plot is aimed for a quick visualization of the spectrum not for
         publication grade figures.
 
-        :param show_fluxden_err: Boolean to indicate whether the error will
+        :param show_fluxden_err: Boolean to indicate whether the error will \
         be plotted or not (default:True).
         :type show_fluxden_err: bool
-        :param mask_values: Boolean to indicate whether the mask will be
+        :param mask_values: Boolean to indicate whether the mask will be \
         applied when plotting the spectrum (default:True).
         :type mask_values: bool
-        :param ymin: Minimum value for the y-axis of the plot (flux density
-        axis). This defaults to 'None'. If either ymin or ymax are 'None' the
+        :param ymin: Minimum value for the y-axis of the plot (flux density \
+        axis). This defaults to 'None'. If either ymin or ymax are 'None' the \
         y-axis range will be determined automatically.
         :type ymin: float
-        :param ymax: Maximum value for the y-axis of the plot (flux density
-        axis). This defaults to 'None'. If either ymin or ymax are 'None' the
+        :param ymax: Maximum value for the y-axis of the plot (flux density \
+        axis). This defaults to 'None'. If either ymin or ymax are 'None' the \
         y-axis range will be determined automatically.
         :type ymax: float
-        :param show_obj_model: Boolean to indicate whether the object model will
-        be plotted or not (default:True).
-        :type show_obj_model: bool
-        :param show_telluric: Boolean to indicate whether the atmospheric model
+        :param show_obj_model: Boolean to indicate whether the object model \
         will be plotted or not (default:True).
+        :type show_obj_model: bool
+        :param show_telluric: Boolean to indicate whether the atmospheric \
+        model will be plotted or not (default:True).
         :type show_telluric: bool
         :return:
         """
@@ -1623,7 +1652,7 @@ class SpecOneD(object):
          spectrum and may not be optimal for all purposes. For pulication
          grade plots, the user should devise their own plots.
 
-        :return: (ylim_min, ylim_max) Return the minimum and maximum values
+        :return: (ylim_min, ylim_max) Return the minimum and maximum values \
         for the flux density (y-axis) for the plot function.
         :rtype: (float, float)
         """
@@ -1659,14 +1688,14 @@ class SpecOneD(object):
         :type a_v: float
         :param r_v:  Ratio of total to selective extinction r_v = a_v/E(B-V)
         :type r_v: float
-        :param extinction_law: Extinction law name as implemented in the
+        :param extinction_law: Extinction law name as implemented in the \
         extinction package, see documentation.
         :type extinction_law: str
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
-        :return: Returns the binned spectrum as a SpecOneD object if
+        :return: Returns the binned spectrum as a SpecOneD object if \
         inplace==False.
         :rtype: SpecOneD
         """
@@ -1717,14 +1746,14 @@ class SpecOneD(object):
         :type a_v: float
         :param r_v:  Ratio of total to selective extinction r_v = a_v/E(B-V)
         :type r_v: float
-        :param extinction_law: Extinction law name as implemented in the
+        :param extinction_law: Extinction law name as implemented in the \
         extinction package, see documentation.
         :type extinction_law: str
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
-        :return: Returns the binned spectrum as a SpecOneD object if
+        :return: Returns the binned spectrum as a SpecOneD object if \
         inplace==False.
         :rtype: SpecOneD
         """
@@ -1788,14 +1817,14 @@ class SpecOneD(object):
         The input spectrum and the Gaussian kernel are matched to the same
         dispersion axis using the 'interpolate' function.
 
-        :param fwhm: FWHM of the Gaussian that the spectrum will be
+        :param fwhm: FWHM of the Gaussian that the spectrum will be \
         convolved with in km/s.
         :type fwhm: float
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
-        :return: Returns the binned spectrum as a SpecOneD object if
+        :return: Returns the binned spectrum as a SpecOneD object if \
         inplace==False.
         :rtype: SpecOneD
         """
@@ -1842,15 +1871,15 @@ class SpecOneD(object):
         efficiency. Therefore, the (h*nu)^-1 term is not included in the
         integral.
 
-        :param passband: The astronomical passband with throughput in quantum
+        :param passband: The astronomical passband with throughput in quantum \
         efficiencies.
         :type passband: PassBand
-        :param match_method: Method for matching the dispersion axis of the
+        :param match_method: Method for matching the dispersion axis of the \
         spectrum to the passband.
         :type match_method: str
-        :param force: Boolean to indicate if they spectra will be forced to
-        match if the spectrum does not fully cover the passband. The
-        forced match will result in an inner match of the spectrum's and the
+        :param force: Boolean to indicate if they spectra will be forced to \
+        match if the spectrum does not fully cover the passband. The \
+        forced match will result in an inner match of the spectrum's and the \
         passband's dispersion axes. User discretion is advised.
         :type force: bool
         :return: Integrated spectrum flux in the passband
@@ -1896,18 +1925,18 @@ class SpecOneD(object):
         efficiency. Therefore, the (h*nu)^-1 term is not included in the
         integral.
 
-        :param passband: The astronomical passband with throughput in quantum
+        :param passband: The astronomical passband with throughput in quantum \
         efficiencies.
         :type passband: PassBand
-        :param match_method: Method for matching the dispersion axis of the
+        :param match_method: Method for matching the dispersion axis of the \
         spectrum to the passband.
         :type match_method: str
-        :param force: Boolean to indicate if they spectra will be forced to
-        match if the spectrum does not fully cover the passband. The
-        forced match will result in an inner match of the spectrum's and the
+        :param force: Boolean to indicate if they spectra will be forced to \
+        match if the spectrum does not fully cover the passband. The \
+        forced match will result in an inner match of the spectrum's and the \
         passband's dispersion axes. User discretion is advised.
         :type force: bool
-        :return: AB magnitude of the spectrum in the specified passband
+        :return: AB magnitude of the spectrum in the specified passband \
         :rtype: float
         """
         #
@@ -1934,24 +1963,24 @@ class SpecOneD(object):
 
         :param magnitude: Magnitude to scale the spectrum to.
         :type magnitude: float
-        :param passband: The astronomical passband with throughput in quantum
+        :param passband: The astronomical passband with throughput in quantum \
         efficiencies.
         :type passband: PassBand
-        :param match_method: Method for matching the dispersion axis of the
+        :param match_method: Method for matching the dispersion axis of the \
         spectrum to the passband.
         :type match_method: str
-        :param force: Boolean to indicate if they spectra will be forced to
-        match if the spectrum does not fully cover the passband. The
-        forced match will result in an inner match of the spectrum's and the
-        passband's dispersion axes. User discretion is advised.
+        :param force: Boolean to indicate if they spectra will be forced to \
+        match if the spectrum does not fully cover the passband. The \
+        forced match will result in an inner match of the spectrum's and the \
+        passband's dispersion axes. User discretion is advised. \
         :type force: bool
-        :param output_mode: Output mode of the function. The default mode
-        "Spectrum" returns the rescaled spectrum as a SpecOneD object or if
-        inplace=True updates the provided spectrum. The alternative output mode
-        "flux_factor" returns the factor to scale the flux with as a float.
+        :param output_mode: Output mode of the function. The default mode \
+        "Spectrum" returns the rescaled spectrum as a SpecOneD object or if \
+        inplace=True updates the provided spectrum. The alternative output \
+        mode "flux_factor" returns the factor to scale the flux with as a float.
         :type output_mode: str
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
         :return: Normalized spectrum or flux density normalization factor
@@ -2000,19 +2029,19 @@ class SpecOneD(object):
         The dispersion limits are unitless (list of two floats) but need to
         be in the same units as the SpecOneD dispersion axis (dispersion_unit).
 
-        :param spectrum: The provided spectrum to scale the SpecOneD spectrum
+        :param spectrum: The provided spectrum to scale the SpecOneD spectrum \
         to.
         :type spectrum: SpecOneD
-        :param dispersion_limits: A list of two floats indicating the lower and
-        upper dispersion limits between which the spectra are normalized.
+        :param dispersion_limits: A list of two floats indicating the lower \
+        and upper dispersion limits between which the spectra are normalized.
         :type dispersion_limits: (float, float)
-        :param output_mode: Output mode of the function. The default mode
-        "Spectrum" returns the rescaled spectrum as a SpecOneD object or if
-        inplace=True updates the provided spectrum. The alternative output mode
-        "flux_factor" returns the factor to scale the flux with as a float.
+        :param output_mode: Output mode of the function. The default mode \
+        "Spectrum" returns the rescaled spectrum as a SpecOneD object or if \
+        inplace=True updates the provided spectrum. The alternative output \
+        mode "flux_factor" returns the factor to scale the flux with as a float.
         :type output_mode: str
-        :param inplace: Boolean to indicate whether the active SpecOneD
-        object will be modified or a new SpecOneD object will be created and
+        :param inplace: Boolean to indicate whether the active SpecOneD \
+        object will be modified or a new SpecOneD object will be created and \
         returned.
         :type inplace: bool
         :return:
@@ -2060,31 +2089,58 @@ class SpecOneD(object):
         elif output_mode == 'flux_factor':
             return scale_factor
 
-    def redshift(self, z, method='doppler', inplace=False):
-        """Redshift the spectrum.
-
-        :param z:
-        :param method:
-        :param inplace:
-        :return:
-        """
-        pass
-
-    def blueshift(self, z, method='doppler', inplace=False):
-        """Blueshift the spectrum.
-
-        :param z:
-        :param method:
-        :param inplace:
-        :return:
-        """
-
-        pass
+    # def redshift(self, z, method='doppler', inplace=False):
+    #     """Redshift the spectrum.
+    #
+    #     :param z:
+    #     :param method:
+    #     :param inplace:
+    #     :return:
+    #     """
+    #     pass
+    #
+    # def blueshift(self, z, method='doppler', inplace=False):
+    #     """Blueshift the spectrum.
+    #
+    #     :param z:
+    #     :param method:
+    #     :param inplace:
+    #     :return:
+    #     """
+    #
+    #     pass
 
 
 class PassBand(SpecOneD):
     """The PassBand class, a child of the SpecOneD class, is a data structure
     for storing and manipulating astronomical filter transmission curves.
+
+    :param passband_name: Name of the passband. The passband names \
+    provided with the Sculptor package are in the format [ \
+    INSTRUMENT]-[BAND] and can be found in the Sculptor data folder.
+    :type passband_name: str
+    :param dispersion: A 1D array providing the dispersion axis of the \
+    passband.
+    :type dispersion: numpy.ndarray
+    :param fluxden: A 1D array providing the transmission data of the \
+    spectrum in quantum efficiency.
+    :type fluxden: numpy.ndarray
+    :param fluxden_err: A 1D array providing the 1-sigma error of the \
+    passband's transmission curve.
+    :type fluxden_err: numpy.ndarray
+    :param header: A pandas DataFrame containing additional information \
+    on the spectrum.
+    :type header: pandas.DataFrame
+    :param dispersion_unit: The physical unit (including normalization \
+    factors) of the dispersion axis of the passband.
+    :type dispersion_unit: astropy.units.Unit or astropy.units.Quantity or \
+    astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
+    :param fluxden_unit: The physical unit (including normalization \
+    factors) of the transmission curve and associated properties (e.g. \
+    flux density error) of the spectrum.
+    :type fluxden_unit: astropy.units.Unit or astropy.units.Quantity or \
+    astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
+
     """
 
     def __init__(self, passband_name=None, dispersion=None, fluxden=None,
@@ -2092,31 +2148,31 @@ class PassBand(SpecOneD):
                  fluxden_unit=None):
         """Initialize the PassBand object.
 
-        :param passband_name: Name of the passband. The passband names
-        provided with the Sculptor package are in the format [
+        :param passband_name: Name of the passband. The passband names \
+        provided with the Sculptor package are in the format [ \
         INSTRUMENT]-[BAND] and can be found in the Sculptor data folder.
         :type passband_name: str
-        :param dispersion: A 1D array providing the dispersion axis of the
+        :param dispersion: A 1D array providing the dispersion axis of the \
         passband.
         :type dispersion: numpy.ndarray
-        :param fluxden: A 1D array providing the transmission data of the
+        :param fluxden: A 1D array providing the transmission data of the \
         spectrum in quantum efficiency.
         :type fluxden: numpy.ndarray
-        :param fluxden_err: A 1D array providing the 1-sigma error of the
+        :param fluxden_err: A 1D array providing the 1-sigma error of the \
         passband's transmission curve.
         :type fluxden_err: numpy.ndarray
-        :param header: A pandas DataFrame containing additional information
+        :param header: A pandas DataFrame containing additional information \
         on the spectrum.
         :type header: pandas.DataFrame
-        :param dispersion_unit: The physical unit (including normalization
+        :param dispersion_unit: The physical unit (including normalization \
         factors) of the dispersion axis of the passband.
-        :type dispersion_unit: u.Unit or u.Quantity or u.CompositeUnit or
-        u.IrreducibleUnit
-        :param fluxden_unit: The physical unit (including normalization
-        factors) of the transmission curve and associated properties (e.g. flux
-        density error) of the spectrum.
-        :type fluxden_unit: u.Unit or u.Quantity or u.CompositeUnit or
-        u.IrreducibleUnit
+        :type dispersion_unit: astropy.units.Unit or astropy.units.Quantity or \
+        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
+        :param fluxden_unit: The physical unit (including normalization \
+        factors) of the transmission curve and associated properties (e.g. \
+        flux density error) of the spectrum.
+        :type fluxden_unit: astropy.units.Unit or astropy.units.Quantity or \
+        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
         """
 
         if passband_name is not None:
@@ -2140,10 +2196,10 @@ class PassBand(SpecOneD):
 
         :param passband_name: Name of the passband, e.g. WISE-W1
         :type passband_name: str
-        :param tolerance: Value below which the passband throughput will be
-        ignored when reading the passband in. In many cases the original
-        passband files contain a large range of 0 values below and above the
-        passband. The default value for the tolerance is 0.005, i.e. 0.5%
+        :param tolerance: Value below which the passband throughput will be \
+        ignored when reading the passband in. In many cases the original \
+        passband files contain a large range of 0 values below and above the \
+        passband. The default value for the tolerance is 0.005, i.e. 0.5% \
         throughput.
         :type tolerance: float
         :return:
@@ -2202,8 +2258,8 @@ class PassBand(SpecOneD):
         This function only converts the passband dispersion axis.
 
         :param new_dispersion_unit:
-        :type: astropy.units.Quantity or astropy.units.Unit or
-        astropy.units.CompositeUnit
+        :type: astropy.units.Unit or astropy.units.Quantity or \
+        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
         :return:
         """
 
@@ -2225,14 +2281,14 @@ class PassBand(SpecOneD):
         This plot is aimed for a quick visualization of the passband spectrum
         and not for publication grade figures.
 
-        :param mask_values: Boolean to indicate whether the mask will be
+        :param mask_values: Boolean to indicate whether the mask will be \
         applied when plotting the spectrum (default:True).
-        :param ymin: Minimum value for the y-axis of the plot (flux density
-        axis). This defaults to 'None'. If either ymin or ymax are 'None' the
+        :param ymin: Minimum value for the y-axis of the plot (flux density \
+        axis). This defaults to 'None'. If either ymin or ymax are 'None' the \
         y-axis range will be determined automatically.
         :type ymin: float
-        :param ymax: Maximum value for the y-axis of the plot (flux density
-        axis). This defaults to 'None'. If either ymin or ymax are 'None' the
+        :param ymax: Maximum value for the y-axis of the plot (flux density \
+        axis). This defaults to 'None'. If either ymin or ymax are 'None' the \
         y-axis range will be determined automatically.
         :type ymax: float
         :type mask_values: bool
