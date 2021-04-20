@@ -147,6 +147,11 @@ class SpecOneD(object):
         else:
             self.mask = mask
 
+        if fluxden_err is None and fluxden_ivar is not None:
+            self.get_fluxden_error_from_ivar()
+        if fluxden_ivar is None and fluxden_err is not None:
+            self.get_ivar_from_fluxden_error()
+
         if fluxden is not None \
             and (isinstance(dispersion_unit, u.Unit) or
                  isinstance(dispersion_unit, u.Quantity) or
@@ -163,7 +168,7 @@ class SpecOneD(object):
             self.fluxden_unit = None
         else:
             print('[WARNING] Flux density and dispersion units are '
-                  'not specified or not their types are not '
+                  'not specified or their types are not '
                   'supported. Any of the following astropy.units '
                   'are allowed: "Unit", "Quantity", "CompositeUnit", '
                   '"IrreducibleUnit". As a default the units will '
@@ -174,18 +179,20 @@ class SpecOneD(object):
 
         if isinstance(header, pd.DataFrame):
             self.header = header
+            self.fits_header = None
         elif header is None:
             self.header = pd.DataFrame(columns=['value'])
+            self.fits_header = None
         elif isinstance(header, fits.Header):
             self.header = pd.DataFrame(list(header.items()),
                                        index=list(header.keys()),
                                        columns=['property', 'value'])
             self.header.drop(columns='property', inplace=True)
+            self.fits_header = header
         else:
-            raise ValueError('[ERROR] Header is not a pandas DataFrame.')
+            raise ValueError('[ERROR] Header is not a pandas DataFrame or a '
+                             'fits header.')
 
-        # Additional definition for handling of fits data and pypeit spectra
-        self.fits_header = None
         self.obj_model = obj_model
         self.telluric = telluric
 
@@ -939,7 +946,17 @@ class SpecOneD(object):
         :return: SpecOneD
         """
 
-        scale_factor = factor / self.fluxden_unit.value
+        if isinstance(self.fluxden_unit, (u.Unit, u.IrreducibleUnit,
+                                             u.CompositeUnit)):
+            scale_factor = factor
+        elif isinstance(self.fluxden_unit, u.Quantity):
+            scale_factor = factor / self.fluxden_unit.value
+        else:
+            raise ValueError('[ERROR] Flux density unit type is not '
+                             'supported. Supported types are astropy.units.Unit'
+                             ' or astropy.units.Quantity or '
+                             'astropy.units.CompositeUnit or '
+                             'astropy.units.IrreducibleUnit')
         spec = self.normalize_fluxden_by_factor(scale_factor, inplace=inplace)
 
         return spec

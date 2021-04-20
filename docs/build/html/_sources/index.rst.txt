@@ -29,7 +29,9 @@ This project is currently undergoing rapid development. Be advised that fits don
   :maxdepth: 1
   :caption: Example notebooks:
 
+  speconed_demonstration.nblink
   spectrum_preparation.nblink
+
 
 .. toctree::
   :maxdepth: 1
