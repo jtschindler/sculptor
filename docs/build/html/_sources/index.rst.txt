@@ -31,6 +31,8 @@ This project is currently undergoing rapid development. Be advised that fits don
 
   speconed_demonstration.nblink
   spectrum_preparation.nblink
+  scripting_sculptor_1.nblink
+  scripting_sculptor_2.nblink
 
 
 .. toctree::

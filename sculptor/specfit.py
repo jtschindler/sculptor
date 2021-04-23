@@ -305,6 +305,8 @@ class SpecFit:
             self.xlim = meta.loc['xlim', 0]
         if 'ylim' in meta.index:
             self.ylim = meta.loc['ylim', 0]
+        if 'fitting_method' in meta.index:
+            self.fitting_method = meta.loc['fitting_method', 0]
 
         # Load global parameters
         if os.path.isfile(foldername + '/super_params.json'):
@@ -355,6 +357,8 @@ class SpecFit:
         columns.append('ylim')
         data.append([self.redshift])
         columns.append('redshift')
+        data.append([self.fitting_method])
+        columns.append('fitting_method')
 
         # Remove existing fit file in the folder
         if os.path.isfile(foldername + '/fit.hdf5'):
@@ -617,7 +621,8 @@ class SpecFit:
         """
 
         fig = plt.figure()
-        gs = gridspec.GridSpec(4, 1)
+        fig.subplots_adjust(hspace=0.4)
+        gs = gridspec.GridSpec(4, 1, figure=fig)
         ax_main = fig.add_subplot(gs[:3, 0])
         ax_resid = fig.add_subplot(gs[3:4, 0], sharex=ax_main)
 

@@ -135,7 +135,7 @@ def analyze_emission_feature(specfit, feature_name, model_names,
 
     if 'lum' in emfeat_meas:
         # Calculate the integrated line luminosity
-        lum = calc_integrated_luminosity(model_spec, model_spec.fluxden_unit,
+        lum = calc_integrated_luminosity(model_spec,
                                          redshift=redshift, cosmology=cosmology)
         result_dict.update({feature_name + '_lum': lum})
 
@@ -217,20 +217,19 @@ def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
                                 fluxden_avg*cont_spec.fluxden_unit})
 
         if 'Lwav' in cont_meas:
-            lwav = calc_Lwav_from_fwav(fluxden_avg, fluxden_unit,
+            lwav = calc_lwav_from_fwav(fluxden_avg,
                                        redshift=redshift,
                                        cosmology=cosmology)
             result_dict.update({wave_name+'_Lwav': lwav})
 
         if 'appmag' in cont_meas:
             appmag = calc_apparent_mag_from_fluxden(fluxden_avg,
-                                                    fluxden_unit,
                                                     wave*(1.+redshift)*units.AA)
             result_dict.update({wave_name + '_appmag': appmag})
 
         if 'absmag' in cont_meas:
             absmag = calc_absolute_mag_from_monochromatic_luminosity(
-                    lwav.value, lwav.unit, wave*units.AA)
+                    lwav, wave*units.AA)
             result_dict.update({wave_name + '_absmag': absmag})
 
 
@@ -686,8 +685,10 @@ def get_average_fluxden(input_spec, dispersion, width=10, redshift=0):
 
     disp_range = [(dispersion - width / 2.)*(1.+redshift),
                   (dispersion + width / 2.)*(1.+redshift)]
-    
-    return input_spec.average_fluxden(dispersion_range=disp_range)
+
+    unit = input_spec.fluxden_unit
+
+    return input_spec.average_fluxden(dispersion_range=disp_range) * unit
         
 
 # ------------------------------------------------------------------------------
@@ -831,15 +832,14 @@ def get_fwhm(input_spec, disp_range=None, resolution=None):
 # Astrophysical spectral measurements
 # ------------------------------------------------------------------------------
 
-def calc_Lwav_from_fwav(fluxden, fluxden_unit, redshift, cosmology):
+
+def calc_lwav_from_fwav(fluxden, redshift, cosmology):
     """Calculate the monochromatic luminosity from the monochromatic flux
     density.
 
     :param fluxden: Monochromatic flux density at a given wavelength.
-    :type fluxden: float
-    :param fluxden_unit: Unit of the flux density.
-    :type fluxden_unit: astropy.units.Unit or astropy.units.Quantity or
-        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
+    :type fluxden: astropy.units.Unit or astropy.units.Quantity or
+          astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
     :param redshift: Redshift of the source.
     :type redshift: float
     :param cosmology: Cosmology as an astropy Cosmology object
@@ -851,7 +851,7 @@ def calc_Lwav_from_fwav(fluxden, fluxden_unit, redshift, cosmology):
     # Calculate luminosity distance in Mpc
     lum_distance = cosmology.luminosity_distance(redshift)
 
-    return (fluxden * fluxden_unit * \
+    return (fluxden * \
            lum_distance**2 * 4 * np.pi * (1. + redshift)).decompose(
         bases=[units.erg, units.s, units.AA])
 
@@ -876,9 +876,9 @@ def calc_integrated_luminosity(input_spec, redshift,
 
     # Cconvert to rest-frame flux and dispersion
     rest_dispersion = input_spec.dispersion / (1. + redshift)
-    rest_fluxden = calc_Lwav_from_fwav(input_spec.fluxden,
-                                       input_spec.fluxden_unit, redshift,
-                                       cosmology)
+    rest_fluxden = calc_lwav_from_fwav(
+        input_spec.fluxden*input_spec.fluxden_unit,
+        redshift, cosmology)
     rest_frame_spec = sod.SpecOneD(dispersion=rest_dispersion,
                                    dispersion_unit=input_spec.dispersion_unit,
                                    fluxden=rest_fluxden.value,
@@ -891,28 +891,25 @@ def calc_integrated_luminosity(input_spec, redshift,
     # Integrate the model flux
     integrated_line_luminosity = np.trapz(rest_frame_spec.fluxden,
                                           x=rest_frame_spec.dispersion)
-    
+
     return integrated_line_luminosity * \
            rest_frame_spec.fluxden_unit * \
            rest_frame_spec.dispersion_unit
 
 
-def calc_apparent_mag_from_fluxden(fluxden, fluxden_unit, dispersion):
+def calc_apparent_mag_from_fluxden(fluxden, dispersion):
     """Calculate the apparent AB magnitude from the monochromatic flux
     density at a specified dispersion value.
 
     :param fluxden: Monochromatic flux density at a given wavelength.
-    :type fluxden: float
-    :param fluxden_unit: Unit of the flux density.
-    :type fluxden_unit: astropy.units.Unit or astropy.units.Quantity or
-        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
+    :type fluxden: astropy.units.Quantity
     :param dispersion: Dispersion value (usually in wavelength).
     :type dispersion: float
     :return: Returns apparent AB magnitude.
     :rtype: astropy.units.Quantity
     """
 
-    f_nu = fluxden * fluxden_unit * (dispersion)**2 / const.c
+    f_nu = fluxden * dispersion**2 / const.c
 
     value = (f_nu/units.ABflux).decompose()
 
@@ -926,17 +923,14 @@ def calc_apparent_mag_from_fluxden(fluxden, fluxden_unit, dispersion):
 #  function to allow for arbitrary k-corrections.
 
 
-def calc_absolute_mag_from_fluxden(fluxden, fluxden_unit, dispersion,
+def calc_absolute_mag_from_fluxden(fluxden, dispersion,
                                    cosmology, redshift, kcorrection=True,
                                    a_nu=0):
     """Calculate the absolute AB magnitude from the monochromatic flux density
     at a given dispersion value.
 
     :param fluxden: Monochromatic flux density at a given wavelength.
-    :type fluxden: float
-    :param fluxden_unit: Unit of the flux density.
-    :type fluxden_unit: astropy.units.Unit or astropy.units.Quantity or
-        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
+    :type fluxden: astropy.units.Quantity
     :param dispersion: Dispersion value (usually in wavelength).
     :type dispersion: float
     :param cosmology: Cosmology as an astropy Cosmology object.
@@ -955,28 +949,24 @@ def calc_absolute_mag_from_fluxden(fluxden, fluxden_unit, dispersion,
     :rtype: astropy.units.Quantity
     """
 
-    abmag = calc_apparent_mag_from_fluxden(fluxden, fluxden_unit, dispersion)
+    abmag = calc_apparent_mag_from_fluxden(fluxden, dispersion)
 
     return calc_absolute_mag_from_apparent_mag(abmag, cosmology, redshift,
                                         kcorrection, a_nu)
 
 
-def calc_absolute_mag_from_monochromatic_luminosity(l_wav, l_wav_unit,
-                                                    wavelength):
+def calc_absolute_mag_from_monochromatic_luminosity(l_wav, wavelength):
     """Calculate the absolute monochromatic magnitude from the monochromatic
     luminosity per wavelegnth.
 
     :param l_wav: Monochromatic luminosity per wavelength
-    :type l_wav: float
-    :param l_wav_unit: Unit of the monochromatic luminosity
-    :type l_wav_unit: astropy.units.Unit or astropy.units.Quantity or
-        astropy.units.CompositeUnit or astropy.units.IrreducibleUnit
+    :type l_wav: astropy.units.Quantity
     :param wavelength: Wavelength of the monochromatic luminosity
     :type wavelength: float
     :return: Absolute monochromatic magnitude
     :rtype: astropy.units.Quantity
     """
-    l_nu = l_wav * l_wav_unit * (wavelength)**2 / const.c / 4 / \
+    l_nu = l_wav * (wavelength)**2 / const.c / 4 / \
                   np.pi
 
     value = (l_nu / units.ABflux / (10 * units.pc)**2).decompose()

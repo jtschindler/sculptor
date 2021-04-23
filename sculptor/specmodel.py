@@ -665,8 +665,7 @@ class SpecModel:
 
         # Save fit result if it exists
         if self.fit_result is not None:
-            print("[INFO] Saving fit result")
-            print(specmodel_id, self.fit_result)
+            print("[INFO] Saving SpecModel fit result")
             save_modelresult(self.fit_result,
                              foldername + '/{}_fitresult.json'.format(
                                  specmodel_id))

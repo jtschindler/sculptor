@@ -1086,7 +1086,7 @@ class SpecOneD(object):
         will always be matched to the primary or whether reverse matching, \
         primary to secondary is allowed.
         :type match_secondary: bool
-        :param force: he boolean sets whether the dispersions are matched if \
+        :param force: The boolean sets whether the dispersions are matched if \
         only partial overlap between the spectral dispersions exists.
         :type force: bool
         :param method:
@@ -1189,11 +1189,11 @@ class SpecOneD(object):
 
         elif mode == "pixel":
 
-            if limits[0] < self.dispersion[0]:
+            if limits[0] < 0:
                 print("[WARNING] Lower limit is below the lowest pixel "
                       "value. The lower limit is set to the minimum "
                       "pixel value.")
-            if limits[1] > self.dispersion[-1]:
+            if limits[1] > len(self.dispersion-1):
                 print("[WARNING] Upper limit is above the highest pixel "
                       "value. The upper limit is set to the maximum "
                       "pixel value.")
@@ -1261,6 +1261,8 @@ class SpecOneD(object):
                                  'Supported modes are "extrapolate" and '
                                  '"const".')
 
+        snr_factor = np.sqrt(len(self.dispersion)/len(new_dispersion))
+
         if not inplace:
             spec = self.copy()
 
@@ -1291,9 +1293,11 @@ class SpecOneD(object):
                     spec.__dict__[attr] = interp(new_dispersion)
 
         if inplace:
+            self.fluxden_err /= snr_factor
             self.dispersion = new_dispersion
             self.reset_mask()
         else:
+            spec.fluxden_err /= snr_factor
             spec.dispersion = new_dispersion
             spec.reset_mask()
             return spec
@@ -1455,7 +1459,7 @@ class SpecOneD(object):
 
         if inplace:
             self.interpolate(new_dispersion, inplace=True)
-            self.dispersion = new_dispersion
+            self.dispersion = new_spec_wavs
             self.fluxden = new_fluxden
             if spec_errs is not None:
                 self.fluxden_err = new_fluxden_err
@@ -1464,7 +1468,7 @@ class SpecOneD(object):
         else:
             spec = self.copy()
             spec.interpolate(new_dispersion, inplace=True)
-            spec.dispersion = new_dispersion
+            spec.dispersion = new_spec_wavs
             spec.fluxden = new_fluxden
             if spec_errs is not None:
                 spec.fluxden_err = new_fluxden_err
