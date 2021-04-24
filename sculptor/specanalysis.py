@@ -157,7 +157,7 @@ def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
     At present this analysis assumes that the spectra are in the following
     units:
     flux density - erg/s/cm^2/AA
-    dispersipn - AA
+    dispersion - AA
 
     :param specfit: SpecFit class object to extract the model flux from
     :type specfit: sculptor.specfit.SpecFit
@@ -166,7 +166,7 @@ def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
     :type model_names: list(string)
     :param rest_frame_wavelengths: Rest-frame wavelength of the emission feature
     :type rest_frame_wavelengths: list(float)
-    :param cosmology: Astropy Cosmology object
+    :param cosmology: Cosmology for calculation of absolute properties
     :type cosmology: astropy.cosmology.Cosmology
     :param redshift: Redshift of the object. This keyword argument defaults
         to 'None', in which case the redshift from the SpecFit object is used.
@@ -244,110 +244,185 @@ def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
 # continuum_listdict = {'model_names': None,
 #                       'rest_frame_wavelengths': None}
 
-def analyse_fit(specfit,
-                continuum_dict,
-                emission_feature_dictlist,
-                # absorption_feature_dictlist,
-                redshift,
-                cosmology,
-                emfeat_meas=None,
-                cont_meas=None,
-                dispersion=None,
-                width=10
-                ):
+# def analyse_fit(specfit,
+#                 continuum_dict,
+#                 emission_feature_dictlist,
+#                 # absorption_feature_dictlist,
+#                 redshift,
+#                 cosmology,
+#                 emfeat_meas=None,
+#                 cont_meas=None,
+#                 dispersion=None,
+#                 width=10
+#                 ):
+#     """
+#     THIS FUNCTION IS CURRENTLY UNDER ACTIVE DEVELOPMENT.
+#     """
+#
+#
+#     result_dict = {}
+#
+#     # Analyze continuum properties
+#     cont_result = analyze_continuum(specfit,
+#                                     continuum_dict['model_names'],
+#                                     continuum_dict['rest_frame_wavelengths'],
+#                                     cosmology,
+#                                     redshift=redshift,
+#                                     dispersion=dispersion,
+#                                     cont_meas=cont_meas,
+#                                     width=width
+#                                     )
+#
+#     result_dict.update(cont_result)
+#
+#     # Analyze emission features
+#     for emission_feat_dict in emission_feature_dictlist:
+#         if 'disp_range' in emission_feat_dict:
+#             disp_range = emission_feat_dict['disp_range']
+#         else:
+#             disp_range = None
+#         emfeat_result = analyze_emission_feature(specfit,
+#                                                  emission_feat_dict[
+#                                                      'feature_name'],
+#                                                  emission_feat_dict[
+#                                                      'model_names'],
+#                                                  emission_feat_dict[
+#                                                      'rest_frame_wavelength'],
+#                                                  cont_model_names=
+#                                                  continuum_dict['model_names'],
+#                                                  redshift=redshift,
+#                                                  dispersion=dispersion,
+#                                                  emfeat_meas=emfeat_meas,
+#                                                  disp_range = disp_range
+#                                                  )
+#         result_dict.update(emfeat_result)
+#
+#
+#     # Analyze absorption features
+#     # TODO
+#
+#     return result_dict
+
+
+def analyse_mcmc_results(foldername, specfit, continuum_dict,
+                         emission_feature_dictlist, redshift, cosmology,
+                         emfeat_meas=None, cont_meas=None, dispersion=None,
+                         width=10, concatenate=False):
+    """Analyze MCMC model fit results write the results to an extended csv file.
+
+    Important: Only model functions that are sampled together can be analyzed
+    together. This means that only model functions from ONE SpecModel can also
+    be analyzed together.
+    Additionally, only model functions for which all variable parameters have
+    sampled by the MCMC fit are analyzed.
+
+    The following parameters should be specified in the *continuum_listdict*:
+    * 'model_names' - list of model function prefixes for the full continuum
+        model
+    * 'rest_frame_wavelengths' - list of rest-frame wavelengths (float) for
+        which fluxes, luminosities and magnitudes should be calculated
+
+    The other arguments for the *SpecAnalysis.analyze_continuum* are provided
+        to the MCMC analysis function separately.
+
+    The following parameters should be specified in the
+        *emission_feature_listdict*:
+    * 'feature_name' - name of the emission feature, which will be used to name
+        the resulting measurements in the output file.
+    * 'model_names' - list of model names to create the emission feature model
+        flux from.
+    * 'rest_frame_wavelength' - rest-frame wavelength of the emission feature
+
+    Additionally, one can specify:
+    * 'disp_range' - 2 element list holding the lower and upper dispersion
+        boundaries flux density integration.
+
+    :param foldername: Path to the folder with the MCMC flat chain hdf5 files.
+    :type foldername: string
+    :param specfit: Sculptor model fit (SpecFit object) containing the
+        information about the science spectrum, the SpecModels and parameters.
+    :type specfit: sculptor.specfit.SpecFit
+    :param continuum_dict: The *continuum_listdict* holds the arguments for
+        the *SpecAnalysis.analyze_continuum* function that will be called by
+        this procedure.
+    :type continuum_dict: dictionary
+    :param emission_feature_dictlist: The *emission_feature_listdict* hold the
+        arguments for the *SpecAnalysis.analyze_emission_feature* functions that
+        will be called by this procedure.
+    :type emission_feature_dictlist: dictionary
+    :param redshift: Source redshift
+    :type: float
+    :param cosmology: Cosmology for calculation of absolute properties
+    :type cosmology: astropy.cosmology.Cosmology
+    :param emfeat_meas: This keyword argument allows to specify the list of
+        emission feature measurements.
+        Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
+        'FWHM', 'flux']. The value defaults to 'None' in which all measurements
+        are calculated
+    :type emfeat_meas: list(string)
+    :param cont_meas: This keyword argument allows to specify the list of
+        emission feature measurements.
+        Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
+        'FWHM', 'flux']. The value defaults to 'None' in which all measurements
+        are calculated
+    :type cont_meas: list(string)
+    :param dispersion: This keyword argument allows to input a dispersion
+        axis (e.g., wavelengths) for which the model fluxes are calculated. The
+        value defaults to 'None', in which case the dispersion from the SpecFit
+        spectrum is being used.
+    :type dispersion: np.array
+    :param width: Window width in dispersion units to calculate the average
+        flux density in.
+    :type width: [float, float]
+    :param concatenate: Boolean to indicate whether the MCMC flat chain and
+        the analysis results should be concatenated before written to file.
+        (False = Only writes analysis results to file; True = Writes analysis
+        results and MCMC flat chain parameter values to file)
+    :type concatenate: bool
+    :return:
     """
-    THIS FUNCTION IS CURRENTLY UNDER ACTIVE DEVELOPMENT.
-    """
 
-
-    result_dict = {}
-
-    # Analyze continuum properties
-    cont_result = analyze_continuum(specfit,
-                                    continuum_dict['model_names'],
-                                    continuum_dict['rest_frame_wavelengths'],
-                                    cosmology,
-                                    redshift=redshift,
-                                    dispersion=dispersion,
-                                    cont_meas=cont_meas,
-                                    width=width
-                                    )
-
-    result_dict.update(cont_result)
-
-    # Analyze emission features
-    for emission_feat_dict in emission_feature_dictlist:
-        if 'disp_range' in emission_feat_dict:
-            disp_range = emission_feat_dict['disp_range']
-        else:
-            disp_range = None
-        emfeat_result = analyze_emission_feature(specfit,
-                                                 emission_feat_dict[
-                                                     'feature_name'],
-                                                 emission_feat_dict[
-                                                     'model_names'],
-                                                 emission_feat_dict[
-                                                     'rest_frame_wavelength'],
-                                                 cont_model_names=
-                                                 continuum_dict['model_names'],
-                                                 redshift=redshift,
-                                                 dispersion=dispersion,
-                                                 emfeat_meas=emfeat_meas,
-                                                 disp_range = disp_range
-                                                 )
-        result_dict.update(emfeat_result)
-
-
-    # Analyze absorption features
-    # TODO
-
-    return result_dict
-
-
-def analyse_mcmc_results(foldername, specfit,
-                continuum_dict,
-                emission_feature_dictlist,
-                redshift,
-                cosmology,
-                emfeat_meas=None,
-                cont_meas=None,
-                dispersion=None,
-                width=10, concatenate=False):
-    """
-    THIS FUNCTION IS CURRENTLY UNDER ACTIVE DEVELOPMENT.
-    """
-
-    # In the future integrate absorption featues absorption_feature_dictlist,
-    # Only makes sense to analyze models together that were sampled together
-    # for the continuum in the emission feature analysis use the best fit cont
-    # parameters from the MCMC analysis
-
+    # Automatically identify all MCMC chains available in the given folder.
     mcmc_filelist = glob.glob(os.path.join(foldername,  '*_mcmc_chain.hdf5'))
 
     print('[INFO] Starting MCMC analysis')
 
+    # Flag - Has the continuum been analyzed?
     cont_analyzed = False
 
-    # Iterate through the MCMC output files
+    # Iterate through the MCMC flat chain files and identify if any specified
+    # continuum or features should analyzed
     for mcmc_file in mcmc_filelist:
         mcmc_df = pd.read_hdf(mcmc_file)
         mcmc_columns = list(mcmc_df.columns)
         print('[INFO] Working on output file {}'.format(mcmc_file))
 
-        # Iterate through emission feature model lists
+        # Set the continuum model names from the input dictionary
         cont_models = continuum_dict['model_names']
 
+        # Iterate through emission feature model lists
         for emfeat_dict in emission_feature_dictlist:
+
+            # Set the emission feature model names
             emfeat_models = emfeat_dict['model_names']
+            # Set a list of both continuum and emission feature model names
             cont_emfeat_models = emfeat_models + cont_models
 
+            # Iterate through the SpecModel objects
             for idx, specmodel in enumerate(specfit.specmodels):
+                # Retrieve model function prefixes available in this SpecModel
                 prefix_list = [model.prefix for model in specmodel.model_list]
 
+                # IF continuum and emission features requested for the
+                # analysis are available in THIS SpecModel begin a joint
+                # analysis of the continuum and emission feature.
+                # ONLY MODLES THAT WERE SAMPLED TOGETHER ARE ANALYZED TOGETHER!
                 if set(cont_emfeat_models).issubset(prefix_list):
                     params_list_keys = []
                     for params in specmodel.params_list:
                         params_list_keys.extend(list(params.keys()))
+                    # ONLY IF all parameters have been sampled by the MCMC
+                    # continue with the analysis.
                     if set(params_list_keys).issubset(mcmc_columns):
                         print('[INFO] Analyzing continuum and emission '
                               'feature {}'.format(
@@ -365,10 +440,15 @@ def analyse_mcmc_results(foldername, specfit,
                                       concatenate=concatenate
                                       )
                 else:
+                    # IF only the emision features requested for the analysis
+                    # are available in THIS SpecModel analyze the emission
+                    # feature.
                     if set(emfeat_models).issubset(prefix_list):
                         params_list_keys = []
                         for params in specmodel.params_list:
                             params_list_keys.extend(list(params.keys()))
+                        # ONLY IF all parameters have been sampled by the MCMC
+                        # continue with the analysis.
                         if set(params_list_keys).issubset(mcmc_columns):
                             print('[INFO] Analyzing emission feature {}'.format(
                                 emfeat_dict['feature_name']))
@@ -385,11 +465,16 @@ def analyse_mcmc_results(foldername, specfit,
                                           concatenate=concatenate
                                           )
 
+                    # IF only the continuum models that are requested to be
+                    # analyzed (and haven't been analyzed before) are available
+                    # in THIS SpecModel analyze the continuum.
                     if set(cont_models).issubset(prefix_list) \
                             and not cont_analyzed:
                         params_list_keys = []
                         for params in specmodel.params_list:
                             params_list_keys.extend(list(params.keys()))
+                        # ONLY IF all parameters have been sampled by the MCMC
+                        # continue with the analysis.
                         if set(params_list_keys).issubset(mcmc_columns):
                             print('[INFO] Analyzing continuum')
                             _mcmc_analyze(specfit, idx, mcmc_df,
@@ -412,21 +497,74 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
                   emfeat_meas=None, cont_meas=None, dispersion=None,
                   width=10,
                   concatenate=False):
-    """
-    THIS FUNCTION IS CURRENTLY UNDER ACTIVE DEVELOPMENT.
+    """Analyze the MCMC SpecModel fit and save the posterior distributions of
+    the analyzed parameters.
+
+    :param specfit: Sculptor model fit (SpecFit object) containing the
+        information about the science spectrum, the SpecModels and parameters.
+    :type specfit: sculptor.specfit.SpecFit
+    :param specmodel_index: Integer that indicates which SpecModel the model
+        functions for the analysis belong to.
+    :type specmodel_index: int
+    :param mcmc_df: Dataframe holding the MCMC flat chain results for the
+        model function parameters.
+    :type mcmc_df: pandas.DataFrame
+    :param continuum_dict:
+    :param continuum_dict: The *continuum_listdict* holds the arguments for
+        the *SpecAnalysis.analyze_continuum* function that will be called by
+        this procedure.
+    :type continuum_dict: dictionary
+    :param emission_feature_dictlist: The *emission_feature_listdict* hold the
+        arguments for the *SpecAnalysis.analyze_emission_feature* functions that
+        will be called by this procedure.
+    :type emission_feature_dictlist: dictionary
+    :param redshift: Source redshift
+    :type: float
+    :param cosmology: Cosmology for calculation of absolute properties
+    :type cosmology: astropy.cosmology.Cosmology
+    :param mode: A string indicating whether an emission feature by itself
+        will be analyzed (mode='emfeat'), the continuum will be analyzed (
+        mode='cont') or both will be analyzed (mode='both').
+    :type mode: string
+    :param emfeat_meas: This keyword argument allows to specify the list of
+        emission feature measurements.
+        Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
+        'FWHM', 'flux']. The value defaults to 'None' in which all measurements
+        are calculated
+    :type emfeat_meas: list(string)
+    :param cont_meas: This keyword argument allows to specify the list of
+        emission feature measurements.
+        Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
+        'FWHM', 'flux']. The value defaults to 'None' in which all measurements
+        are calculated
+    :type cont_meas: list(string)
+    :param dispersion: This keyword argument allows to input a dispersion
+        axis (e.g., wavelengths) for which the model fluxes are calculated. The
+        value defaults to 'None', in which case the dispersion from the SpecFit
+        spectrum is being used.
+    :type dispersion: np.array
+    :param width: Window width in dispersion units to calculate the average
+        flux density in.
+    :type width: [float, float]
+    :param concatenate: Boolean to indicate whether the MCMC flat chain and
+        the analysis results should be concatenated before written to file.
+        (False = Only writes analysis results to file; True = Writes analysis
+        results and MCMC flat chain parameter values to file)
+    :type concatenate: bool
+    :return:
     """
 
     # Set up continuum model variables
     cont_model_names = continuum_dict['model_names']
 
-    # result_df = None
+    # Set up the table variable for the results
     result_table = None
 
     for idx in mcmc_df.index:
         # Work on a copy of the SpecFit object, not on the original
         fit = specfit.copy()
 
-        # Update specific SpecModel for the emission feature analysis
+        # Update the specific SpecModel for the emission feature analysis
         mcmc_series = mcmc_df.loc[idx, :]
         fit.specmodels[
             specmodel_index].update_param_values_from_input_series(mcmc_series)
@@ -435,6 +573,7 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
         emfeat_result_dict = None
         cont_result_dict = None
 
+        # Analyze the emission feature model function(s)
         if mode == 'both' or mode == 'emfeat':
             feature_name = emission_feature_dict['feature_name']
             model_names = emission_feature_dict['model_names']
@@ -445,14 +584,17 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
                 disp_range = None
 
             emfeat_result_dict = \
-                analyze_emission_feature(specfit, feature_name,
-                                         model_names, rest_frame_wavelength,
+                analyze_emission_feature(specfit,
+                                         feature_name,
+                                         model_names,
+                                         rest_frame_wavelength,
                                          cont_model_names=cont_model_names,
                                          redshift=redshift,
                                          dispersion=dispersion,
                                          emfeat_meas=emfeat_meas,
                                          disp_range=disp_range,
                                          cosmology=cosmology)
+        # Analyze the continuum model
         if mode == 'both' or mode == 'cont':
             cont_result_dict = \
                 analyze_continuum(specfit,
@@ -468,11 +610,6 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
             result_dict.update(cont_result_dict)
         if emfeat_result_dict is not None:
             result_dict.update(emfeat_result_dict)
-
-        # if result_df is None:
-        #     result_df = pd.DataFrame(data=result_dict, index=range(1))
-        # else:
-        #     result_df = result_df.append(result_dict, ignore_index=True)
 
         if result_table is None:
             # Initialize QTable for results
@@ -490,20 +627,16 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
     if concatenate:
         mcmc_table = QTable.from_pandas(mcmc_df)
         result = hstack([mcmc_table, result_table])
-        # result = pd.concat([mcmc_df, result_df], axis=1)
     else:
         result = result_table
 
     if cont_result_dict is None:
-        # result.to_csv('mcmc_analysis_{}.csv'.format(feature_name))
         result.write('mcmc_analysis_{}.csv'.format(feature_name),
                            format='ascii.ecsv', overwrite=True)
     elif emfeat_result_dict is None:
-        # result.to_csv('mcmc_analysis_cont.csv')
         result.write('mcmc_analysis_cont.csv',
                            format='ascii.ecsv', overwrite=True)
     else:
-        # result.to_csv('mcmc_analysis_cont_{}.csv'.format(feature_name))
         result.write('mcmc_analysis_cont_{}.csv'.format(feature_name),
                            format='ascii.ecsv', overwrite=True)
 

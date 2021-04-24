@@ -857,7 +857,7 @@ class SpecModel:
                 self.ylim = [-0.2*max(self.spec.fluxden),
                              max(self.spec.fluxden) * 1.05]
 
-    def plot(self):
+    def plot(self, xlim=None, ylim=None):
         """ Plot the SpecModel
 
         :return: None
@@ -869,6 +869,11 @@ class SpecModel:
         ax_main.clear()
 
         self._plot_specmodel(ax_main)
+
+        if xlim is not None:
+            ax_main.set_xlim(xlim)
+        if ylim is not None:
+            ax_main.set_ylim(ylim)
 
         plt.show()
 
