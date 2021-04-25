@@ -8,7 +8,7 @@ except ImportError:  # Python 2.x
     from distutils.command.build_py import build_py
 
 setup(name='sculptor',
-      version='0.1.0',
+      version='0.2b0',
       description='Interactive Modelling of astronomic electromagnetic spectra',
       author='Jan-Torge Schindler',
       author_email='jtschi@posteo.net',

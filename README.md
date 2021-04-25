@@ -1,6 +1,8 @@
 # Sculptor
 
-Interactive modeling of astronomic, electro-magnetic spectra
+Interactive modeling of astronomic, electro-magnetic spectra.
+
+For installation instructions and documentation visit [Sculptor's ReadTheDocs]
 
 ##### (Version 0.2b0)
 
@@ -29,10 +31,6 @@ If you are interested in being involved with this project, please contact Jan-To
 
 **Disclaimer:**
 This project is currently undergoing rapid development. Be advised as the API has not been finalized, yet, fits done with the current version may not work with a future version of the software. The first stable, well-tested release will be version 1.0.0 anticipated for summer 2021.
-
-## Installing Sculptor and further documentation
-
-#### The documentation, including the installation instructions are hosted at [Sculptor's ReadTheDocs].
 
 
 [LMFIT]: https://lmfit.github.io/lmfit-py/
