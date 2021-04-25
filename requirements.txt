@@ -12,5 +12,6 @@ lmfit>=1.0.1
 tables>=3.6.1
 emcee>=3.0.0
 PyYAML>=5.4.1
+extinction>=0.4.5
+tqdm>=4.6.0
 spectres
-extinction

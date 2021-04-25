@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>The Sculptor GUI &mdash; Sculptor 0.1.0 documentation</title>
+  <title>The Sculptor GUI &mdash; Sculptor 0.2b0 documentation</title>
   
 
   
@@ -62,6 +62,10 @@
 
           
             
+            
+              <div class="version">
+                0.2b0
+              </div>
             
           
 
@@ -118,13 +122,14 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Example notebooks:</span></p>
+<p class="caption"><span class="caption-text">Tutorials:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html">An introduction to the SpecOneD class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html#The-PassBand-class">The PassBand class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum_preparation.html">Preparing a composite spectrum for Sculptor modeling using the SpecOneD class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_1.html">Scripting Sculptor 01 - Modelling the example spectrum in a script</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_2.html">Scripting Sculptor 02 - Analysing model fits with SpecAnalysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_3.html">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Module documentation:</span></p>
 <ul>
@@ -132,6 +137,11 @@
 <li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Extensions:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qso_extension.html">The QSO-Extension Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="my_extension.html">Example extension Module</a></li>
 </ul>
 <p class="caption"><span class="caption-text">License:</span></p>
 <ul>
@@ -231,7 +241,7 @@
 <h1>The Sculptor GUI<a class="headerlink" href="#the-sculptor-gui" title="Permalink to this headline">¶</a></h1>
 <p>To carefully analyze small samples of astronomic spectra the Sculptor GUI offers an interactive way to put together complex spectral models. Therefore, we will start with an introduction to the GUI and its capabilities.</p>
 <p><strong>Disclaimer:</strong>
-The following examples are intended to get familiar with the Sculptor GUI. The fit to the quasar spectrum in this example is exemplary and should not be considered <em>science grade</em>. Due to the rapid development of Sculptor, your current version of the GUI, might look different.</p>
+The following examples are intended to get familiar with the Sculptor GUI. The fit to the quasar spectrum in this example is exemplary and should not be considered <em>science grade</em>. Due to the rapid development of Sculptor, your current version of the GUI, might look slightly different.</p>
 <p>A full model fit to an astronomical spectrum is internally set up as a <em>SpecFit</em> python object. This object holds general information on the spectrum (dispersion, flux density, redshift, etc.) and also defines the optimization method used when carrying out the fit (e.g., Levenberg-Marquardt). Spectral models, <em>SpecModel</em> python objects, are then added to the SpecFit object. Each SpecModel object can hold various fit models (e.g., multiple Gaussian emission line models), which are fit simultaneously to the spectrum. The SpecModel objects are <em>ordered</em> and the model fit of the first SpecModel is subtracted before the second SpecModel is fit and so on. This information is central to the way that Sculptor works and will help to understand the GUI.</p>
 <p>Start by opening up the Sculptor example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run_sculptor</span> <span class="o">--</span><span class="n">example</span><span class="o">=</span><span class="kc">True</span>
@@ -276,7 +286,7 @@ The following examples are intended to get familiar with the Sculptor GUI. The f
 <h3>Super Parameters<a class="headerlink" href="#super-parameters" title="Permalink to this headline">¶</a></h3>
 <p>The <em>Super parameters</em> box allows to <em>Add</em> and <em>Remove</em> super parameters, which are defined on the highest level and then added to all SpecModels and individual models insight the SpecModel. Super parameters are defined here. If they are fitted by a SpecModel the values are adjusted globally and all future fits will now start with the updated values.</p>
 <p>A use case for a super parameters could be the radial velocity of a star, for example. One can imagine that the first SpecModel fits the radial velocity via an absorption line shift relative to vacuum wavelength. All subsequent models use this velocity shift as an input value to analyze further spectral features.</p>
-<p>Only special cases require the use of super parameters and because Sculptor fits SpecModels subsequently (one after another) care has to be taken, when using this advanced cabapility.</p>
+<p>Only special cases require the use of super parameters and because Sculptor fits SpecModels subsequently (one after another) care has to be taken, when using this advanced capability.</p>
 </div>
 <div class="section" id="redshift-parameter">
 <h3>Redshift Parameter<a class="headerlink" href="#redshift-parameter" title="Permalink to this headline">¶</a></h3>
@@ -286,7 +296,7 @@ However, the <em>redshift parameter</em> sets the rest-frame axis on top of the 
 </div>
 <div class="section" id="global-fit-options">
 <h3>Global Fit Options<a class="headerlink" href="#global-fit-options" title="Permalink to this headline">¶</a></h3>
-<p>To the bottom left of the <em>SpecFit</em> tab is a drop-down menu and two buttons. The drop-down menu allows you to select the fit algorithm available in LMFIT. As a default the Levenberg-Marquardt algorithm is selected. For more on the differences of the minimzers see the LMFIT documentation (<a class="reference external" href="https://lmfit.github.io/lmfit-py/fitting.html">The minimze function</a>).</p>
+<p>To the bottom left of the <em>SpecFit</em> tab is a drop-down menu and two buttons. The drop-down menu allows you to select the fit algorithm available in LMFIT. As a default the Levenberg-Marquardt algorithm is selected. For more on the differences of the minimizers see the LMFIT documentation (<a class="reference external" href="https://lmfit.github.io/lmfit-py/fitting.html">The minimze function</a>).</p>
 <p>One special option is the Maximum likelihood fit via Monte-Carlo Markov Chain, which uses <a class="reference external" href="https://emcee.readthedocs.io/en/stable/">emcee</a>. Additional options for the MCMC runs are available under the <em>Fit</em> start menu item.</p>
 <p>The <em>Fit all</em> button consecutively fits all SpecModels, whereas the <em>Fit all + Save results</em> button saves the fit results to a folder, which is selected by the user in a File Dialog. The results contain a png image of the figure shown in the SpecFit tab as well as a LMFIT fit report with the best fit values and covariances for each SpecModel saved in a “.txt” file.</p>
 </div>
@@ -311,11 +321,11 @@ However, the <em>redshift parameter</em> sets the rest-frame axis on top of the 
 <div class="section" id="model-select">
 <h3>Model Select<a class="headerlink" href="#model-select" title="Permalink to this headline">¶</a></h3>
 <p>The model select controls allow you to <em>Add</em> and <em>Remove</em> models selected by their name from the drop down menus. Before a model is added the model prefix (default: “modelA”) can be specified for better readability of the results later on. For example, if someone wanted to the the Hydrogen Balmer line Hbeta, it would be appropriate to call the prefix “Hbeta”. <strong>Model prefixes cannot contain spaces.</strong></p>
-<p>The models that can be added to the spectrum include a range of basic models (e.g., gaussian, power law, constant, etc.) included with Sculptor. Custom models can be defined by the user in new python modules as part of the <strong>sculptor-extensions</strong> package, included in the github repository. An example of such an extension module <em>my_extension.py</em> is provided there adding the <em>Power Law (2500A)</em> model.</p>
+<p>The models that can be added to the spectrum include a range of basic models (e.g., gaussian, power law, constant, etc.) included with Sculptor. Custom models can be defined by the user in new python modules as part of the <strong>sculptor_extensions</strong> package, included in the github repository. An example of such an extension is provided with the <em>my_extension.py</em> module.</p>
 </div>
 <div class="section" id="global-parameters">
 <h3>Global Parameters<a class="headerlink" href="#global-parameters" title="Permalink to this headline">¶</a></h3>
-<p>Similar to <em>Super parameters</em>, which are added to all models in <em>all</em> SpecModels, the <em>Global parameters</em> are added to all models in the <em>active</em> SpecModel. The controls allow to provide a custom name for a global parameter, <em>Add</em> the global parameter to the SpecModel or select an existing global parameter from the drop down menu and then <em>Remove</em> it.</p>
+<p>Similar to <em>Super parameters</em>, which are added to all models in <em>all</em> SpecModels, the <em>Global parameters</em> are added to all model functions in the <em>active</em> SpecModel. The controls allow to provide a custom name for a global parameter, <em>Add</em> the global parameter to the SpecModel or select an existing global parameter from the drop down menu and then <em>Remove</em> it.</p>
 <p>Whereas the use cases for <em>Super parameters</em> are probably rare, use cases for <em>Global parameters</em> are much more common. For example, if we want to model a few emission lines, which we know should have the same width. We can easily define a new global parameter <em>FWHM_common</em> and set it to be the FWHM for all Gaussian emission line models in the SpecModel.</p>
 </div>
 <div class="section" id="fitting">

@@ -191,7 +191,7 @@ mask_presets = {}
 
 
 extension_path = pkg_resources.resource_filename('sculptor',
-                                                 '../sculptor-extensions')
+                                                 '../sculptor_extensions')
 
 file_names = glob.glob(extension_path+'/*.py')
 
@@ -199,9 +199,9 @@ module_names = [os.path.basename(f)[:-3] for f in file_names if
                 os.path.isfile(f) and not f.endswith('__init__.py')]
 
 for module_name in module_names:
-    print('[INFO] Import "sculptor-extensions" package: {}'.format(
+    print('[INFO] Import "sculptor_extensions" package: {}'.format(
         module_name))
-    module = importlib.import_module('sculptor-extensions.{}'.format(
+    module = importlib.import_module('sculptor_extensions.{}'.format(
         module_name))
 
     if hasattr(module, 'model_func_list') and \

@@ -11,6 +11,7 @@ import os
 import glob
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from sculptor import specfit as sf
 from sculptor import speconed as sod
 from astropy.table import QTable, hstack
@@ -308,33 +309,39 @@ def analyse_mcmc_results(foldername, specfit, continuum_dict,
                          emission_feature_dictlist, redshift, cosmology,
                          emfeat_meas=None, cont_meas=None, dispersion=None,
                          width=10, concatenate=False):
-    """Analyze MCMC model fit results write the results to an extended csv file.
+    """Analyze MCMC model fit results of specified continuum/feature models.
 
-    Important: Only model functions that are sampled together can be analyzed
-    together. This means that only model functions from ONE SpecModel can also
-    be analyzed together.
-    Additionally, only model functions for which all variable parameters have
-    sampled by the MCMC fit are analyzed.
+    Results will be written to an enhanced csv file in the same folder,
+    where the MCMC flat chain data resides.
+
+    **Important:** Only model functions that are sampled together can be \
+    analyzed together. This means that only model functions from ONE \
+    SpecModel can also be analyzed together. \
+    Additionally, only model functions for which all variable parameters \
+    have sampled by the MCMC fit are analyzed.
 
     The following parameters should be specified in the *continuum_listdict*:
-    * 'model_names' - list of model function prefixes for the full continuum
+
+    * 'model_names' - list of model function prefixes for the full continuum \
         model
-    * 'rest_frame_wavelengths' - list of rest-frame wavelengths (float) for
+    * 'rest_frame_wavelengths' - list of rest-frame wavelengths (float) for \
         which fluxes, luminosities and magnitudes should be calculated
 
-    The other arguments for the *SpecAnalysis.analyze_continuum* are provided
+    The other arguments for the *SpecAnalysis.analyze_continuum* are provided \
         to the MCMC analysis function separately.
 
-    The following parameters should be specified in the
+    The following parameters should be specified in the \
         *emission_feature_listdict*:
-    * 'feature_name' - name of the emission feature, which will be used to name
-        the resulting measurements in the output file.
-    * 'model_names' - list of model names to create the emission feature model
+
+    * 'feature_name' - name of the emission feature, which will be used to \
+        name the resulting measurements in the output file.
+    * 'model_names' - list of model names to create the emission feature model \
         flux from.
-    * 'rest_frame_wavelength' - rest-frame wavelength of the emission feature
+    * 'rest_frame_wavelength' - rest-frame wavelength of the emission feature.
 
     Additionally, one can specify:
-    * 'disp_range' - 2 element list holding the lower and upper dispersion
+
+    * 'disp_range' - 2 element list holding the lower and upper dispersion \
         boundaries flux density integration.
 
     :param foldername: Path to the folder with the MCMC flat chain hdf5 files.
@@ -379,7 +386,7 @@ def analyse_mcmc_results(foldername, specfit, continuum_dict,
         (False = Only writes analysis results to file; True = Writes analysis
         results and MCMC flat chain parameter values to file)
     :type concatenate: bool
-    :return:
+    :return: None
     """
 
     # Automatically identify all MCMC chains available in the given folder.
@@ -427,7 +434,7 @@ def analyse_mcmc_results(foldername, specfit, continuum_dict,
                         print('[INFO] Analyzing continuum and emission '
                               'feature {}'.format(
                             emfeat_dict['feature_name']))
-                        _mcmc_analyze(specfit, idx, mcmc_df,
+                        _mcmc_analyze(foldername, specfit, idx, mcmc_df,
                                       continuum_dict,
                                       emfeat_dict,
                                       redshift,
@@ -452,7 +459,7 @@ def analyse_mcmc_results(foldername, specfit, continuum_dict,
                         if set(params_list_keys).issubset(mcmc_columns):
                             print('[INFO] Analyzing emission feature {}'.format(
                                 emfeat_dict['feature_name']))
-                            _mcmc_analyze(specfit, idx, mcmc_df,
+                            _mcmc_analyze(foldername, specfit, idx, mcmc_df,
                                           continuum_dict,
                                           emfeat_dict,
                                           redshift,
@@ -477,7 +484,7 @@ def analyse_mcmc_results(foldername, specfit, continuum_dict,
                         # continue with the analysis.
                         if set(params_list_keys).issubset(mcmc_columns):
                             print('[INFO] Analyzing continuum')
-                            _mcmc_analyze(specfit, idx, mcmc_df,
+                            _mcmc_analyze(foldername, specfit, idx, mcmc_df,
                                           continuum_dict,
                                           emfeat_dict,
                                           redshift,
@@ -492,7 +499,7 @@ def analyse_mcmc_results(foldername, specfit, continuum_dict,
                             cont_analyzed = True
 
 
-def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
+def _mcmc_analyze(foldername, specfit, specmodel_index, mcmc_df, continuum_dict,
                   emission_feature_dict, redshift, cosmology, mode,
                   emfeat_meas=None, cont_meas=None, dispersion=None,
                   width=10,
@@ -500,6 +507,9 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
     """Analyze the MCMC SpecModel fit and save the posterior distributions of
     the analyzed parameters.
 
+    :param foldername: Path to the folder where the MCMC analysis should be
+        saved to.
+    :type foldername: string
     :param specfit: Sculptor model fit (SpecFit object) containing the
         information about the science spectrum, the SpecModels and parameters.
     :type specfit: sculptor.specfit.SpecFit
@@ -560,7 +570,12 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
     # Set up the table variable for the results
     result_table = None
 
-    for idx in mcmc_df.index:
+    emfeat_result_dict = None
+    cont_result_dict = None
+    feature_name = None
+
+    for i in tqdm(range(len(mcmc_df.index))):
+        idx = mcmc_df.index[i]
         # Work on a copy of the SpecFit object, not on the original
         fit = specfit.copy()
 
@@ -631,14 +646,15 @@ def _mcmc_analyze(specfit, specmodel_index, mcmc_df, continuum_dict,
         result = result_table
 
     if cont_result_dict is None:
-        result.write('mcmc_analysis_{}.csv'.format(feature_name),
-                           format='ascii.ecsv', overwrite=True)
+        result.write('{}/mcmc_analysis_{}.csv'.format(foldername, feature_name),
+                           format='ascii.ecsv', overwrite=True, delimiter=',')
     elif emfeat_result_dict is None:
-        result.write('mcmc_analysis_cont.csv',
-                           format='ascii.ecsv', overwrite=True)
+        result.write('{}/mcmc_analysis_cont.csv'.format(foldername),
+                           format='ascii.ecsv', overwrite=True, delimiter=',')
     else:
-        result.write('mcmc_analysis_cont_{}.csv'.format(feature_name),
-                           format='ascii.ecsv', overwrite=True)
+        result.write('{}/mcmc_analysis_cont_{}.csv'.format(
+            foldername, feature_name), format='ascii.ecsv', overwrite=True,
+            delimiter=',')
 
 
 def analyse_resampled_results(specfit, resampled_df, continuum_dict,

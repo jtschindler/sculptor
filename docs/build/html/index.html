@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Welcome to Sculptor’s documentation! &mdash; Sculptor 0.1.0 documentation</title>
+  <title>Welcome to Sculptor’s documentation! &mdash; Sculptor 0.2b0 documentation</title>
   
 
   
@@ -62,6 +62,10 @@
           
             
             
+              <div class="version">
+                0.2b0
+              </div>
+            
           
 
           
@@ -90,13 +94,14 @@
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">The Sculptor GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Example notebooks:</span></p>
+<p class="caption"><span class="caption-text">Tutorials:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html">An introduction to the SpecOneD class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html#The-PassBand-class">The PassBand class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum_preparation.html">Preparing a composite spectrum for Sculptor modeling using the SpecOneD class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_1.html">Scripting Sculptor 01 - Modelling the example spectrum in a script</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_2.html">Scripting Sculptor 02 - Analysing model fits with SpecAnalysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_3.html">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Module documentation:</span></p>
 <ul>
@@ -104,6 +109,11 @@
 <li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Extensions:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qso_extension.html">The QSO-Extension Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="my_extension.html">Example extension Module</a></li>
 </ul>
 <p class="caption"><span class="caption-text">License:</span></p>
 <ul>
@@ -201,13 +211,21 @@
 </style>
 <div class="section" id="welcome-to-sculptor-s-documentation">
 <h1>Welcome to Sculptor’s documentation!<a class="headerlink" href="#welcome-to-sculptor-s-documentation" title="Permalink to this headline">¶</a></h1>
-<p>Sculptor is a high level API and Graphical User Interface around <a class="reference external" href="https://lmfit.github.io/lmfit-py/">LMFIT</a> tailored specifically for the analysis of astronomical spectra.</p>
-<p>At the heart of this package are three python 3 modules that manipulate 1D astronomical spectra (speconed), help to construct spectral models using pre-defined or user-defined functions to fit a spectrum utilizing LMFIT (specmodel), and a higher level class that combines multiple spectral models for a complex fit of the astronomical spectrum (specfit).</p>
+<p><strong>Version:</strong> 0.2b0</p>
+<p><strong>Sculptor</strong> is a high level API and Graphical User Interface around <a class="reference external" href="https://lmfit.github.io/lmfit-py/">LMFIT</a> tailored specifically for the analysis of astronomical spectra. This package is designed to facilitate reproducible scientific results and easy to inspect model fits in an open source framework. For this purpose the <em>Sculptor</em> package introduces four core python modules and a Graphical User Interface for interactive control:</p>
+<p>1. <strong>SpecOneD</strong>:
+The <em>SpecOneD</em> module introduces the SpecOneD class, which is designed to store and manipulate 1D astronomical spectral data.</p>
+<p>2. <strong>SpecFit</strong>:
+The core module of <em>Sculptor</em> introducing the <em>SpecFit</em> class, which holds complex models to fit to the 1D astronomical spectrum.</p>
+<p>3. <strong>SpecModel</strong>:
+A helper class, which holds one complex spectral model, which can consist of multiple pre-defined or user-defined model functions to be fit to the 1D spectrum.</p>
+<p>4. <strong>SpecAnalysis</strong>:
+A module focused on the analysis of continuum models of models of emission/absorption features. It interfaces with the SpecFit class and streamlines the process of analyzing the fitted spectral models.</p>
 <a class="reference internal image-reference" href="_images/example_fit.png"><img alt="Full fit of the example spectrum" src="_images/example_fit.png" style="width: 800px;" /></a>
-<p>The Graphical User Interface offers interactive control to set up and combine multiple spectral models to fully fit the astronomical spectrum of choice. This includes masking of spectral features, defining fit regions, setting of fit parameter boundaries. The framework allows to add interdependent fit parameters (e.g., to couple the FWHM of multiple emission/absorption lines).</p>
+<p>At the heart of the <em>Sculptor</em> package is the Graphical User Interface, which offers interactive control to set up and combine multiple spectral models to fully fit the astronomical spectrum of choice. This includes masking of spectral features, defining fit regions, and setting of fit parameter boundaries. The framework allows to add interdependent fit parameters (e.g., to couple the FWHM of multiple emission/absorption lines).</p>
 <p>If you are interested in being involved with this project, please contact Jan-Torge Schindler via <a class="reference external" href="https://github.com/jtschindler/sculptor">github</a>.</p>
 <p><strong>Disclaimer:</strong>
-This project is currently undergoing rapid development. Be advised that fits done with the current version may not work with a future version of the software. The first stable, well-tested release will be version 1.0.0 anticipated for summer 2021.</p>
+This project is currently undergoing rapid development. Be advised as the API has not been finalized, yet, fits done with the current version may not work with a future version of the software. The first stable, well-tested release will be version 1.0.0 anticipated for summer 2021.</p>
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Getting Started:</span></p>
 <ul>
@@ -217,13 +235,14 @@ This project is currently undergoing rapid development. Be advised that fits don
 </ul>
 </div>
 <div class="toctree-wrapper compound">
-<p class="caption"><span class="caption-text">Example notebooks:</span></p>
+<p class="caption"><span class="caption-text">Tutorials:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html">An introduction to the SpecOneD class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html#The-PassBand-class">The PassBand class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum_preparation.html">Preparing a composite spectrum for Sculptor modeling using the SpecOneD class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_1.html">Scripting Sculptor 01 - Modelling the example spectrum in a script</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_2.html">Scripting Sculptor 02 - Analysing model fits with SpecAnalysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_3.html">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">
@@ -233,6 +252,13 @@ This project is currently undergoing rapid development. Be advised that fits don
 <li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">Extensions:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qso_extension.html">The QSO-Extension Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="my_extension.html">Example extension Module</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">

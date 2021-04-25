@@ -82,7 +82,7 @@ class SpecFit:
                               thin=20,
                               nwalkers=50,
                               workers=1,
-                              is_weighted=False,
+                              is_weighted=True,
                               progress=False,
                               seed=1234)
 

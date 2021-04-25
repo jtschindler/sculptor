@@ -5,7 +5,7 @@ The Sculptor GUI
 To carefully analyze small samples of astronomic spectra the Sculptor GUI offers an interactive way to put together complex spectral models. Therefore, we will start with an introduction to the GUI and its capabilities.
 
 **Disclaimer:**
-The following examples are intended to get familiar with the Sculptor GUI. The fit to the quasar spectrum in this example is exemplary and should not be considered *science grade*. Due to the rapid development of Sculptor, your current version of the GUI, might look different. 
+The following examples are intended to get familiar with the Sculptor GUI. The fit to the quasar spectrum in this example is exemplary and should not be considered *science grade*. Due to the rapid development of Sculptor, your current version of the GUI, might look slightly different.
 
 A full model fit to an astronomical spectrum is internally set up as a *SpecFit* python object. This object holds general information on the spectrum (dispersion, flux density, redshift, etc.) and also defines the optimization method used when carrying out the fit (e.g., Levenberg-Marquardt). Spectral models, *SpecModel* python objects, are then added to the SpecFit object. Each SpecModel object can hold various fit models (e.g., multiple Gaussian emission line models), which are fit simultaneously to the spectrum. The SpecModel objects are *ordered* and the model fit of the first SpecModel is subtracted before the second SpecModel is fit and so on. This information is central to the way that Sculptor works and will help to understand the GUI.
 
@@ -65,7 +65,7 @@ The *Super parameters* box allows to *Add* and *Remove* super parameters, which 
 
 A use case for a super parameters could be the radial velocity of a star, for example. One can imagine that the first SpecModel fits the radial velocity via an absorption line shift relative to vacuum wavelength. All subsequent models use this velocity shift as an input value to analyze further spectral features.
 
-Only special cases require the use of super parameters and because Sculptor fits SpecModels subsequently (one after another) care has to be taken, when using this advanced cabapility.
+Only special cases require the use of super parameters and because Sculptor fits SpecModels subsequently (one after another) care has to be taken, when using this advanced capability.
 
 Redshift Parameter
 ******************
@@ -76,7 +76,7 @@ However, the *redshift parameter* sets the rest-frame axis on top of the figure 
 
 Global Fit Options
 ******************
-To the bottom left of the *SpecFit* tab is a drop-down menu and two buttons. The drop-down menu allows you to select the fit algorithm available in LMFIT. As a default the Levenberg-Marquardt algorithm is selected. For more on the differences of the minimzers see the LMFIT documentation (`The minimze function <https://lmfit.github.io/lmfit-py/fitting.html>`_).
+To the bottom left of the *SpecFit* tab is a drop-down menu and two buttons. The drop-down menu allows you to select the fit algorithm available in LMFIT. As a default the Levenberg-Marquardt algorithm is selected. For more on the differences of the minimizers see the LMFIT documentation (`The minimze function <https://lmfit.github.io/lmfit-py/fitting.html>`_).
 
 One special option is the Maximum likelihood fit via Monte-Carlo Markov Chain, which uses `emcee <https://emcee.readthedocs.io/en/stable/>`_. Additional options for the MCMC runs are available under the *Fit* start menu item.
 
@@ -112,14 +112,14 @@ Model Select
 The model select controls allow you to *Add* and *Remove* models selected by their name from the drop down menus. Before a model is added the model prefix (default: "modelA") can be specified for better readability of the results later on. For example, if someone wanted to the the Hydrogen Balmer line Hbeta, it would be appropriate to call the prefix "Hbeta". **Model prefixes cannot contain spaces.**
 
 
-The models that can be added to the spectrum include a range of basic models (e.g., gaussian, power law, constant, etc.) included with Sculptor. Custom models can be defined by the user in new python modules as part of the **sculptor-extensions** package, included in the github repository. An example of such an extension module *my_extension.py* is provided there adding the *Power Law (2500A)* model.
+The models that can be added to the spectrum include a range of basic models (e.g., gaussian, power law, constant, etc.) included with Sculptor. Custom models can be defined by the user in new python modules as part of the **sculptor_extensions** package, included in the github repository. An example of such an extension is provided with the *my_extension.py* module.
 
 
 
 Global Parameters
 *****************
 
-Similar to *Super parameters*, which are added to all models in *all* SpecModels, the *Global parameters* are added to all models in the *active* SpecModel. The controls allow to provide a custom name for a global parameter, *Add* the global parameter to the SpecModel or select an existing global parameter from the drop down menu and then *Remove* it.
+Similar to *Super parameters*, which are added to all models in *all* SpecModels, the *Global parameters* are added to all model functions in the *active* SpecModel. The controls allow to provide a custom name for a global parameter, *Add* the global parameter to the SpecModel or select an existing global parameter from the drop down menu and then *Remove* it.
 
 Whereas the use cases for *Super parameters* are probably rare, use cases for *Global parameters* are much more common. For example, if we want to model a few emission lines, which we know should have the same width. We can easily define a new global parameter *FWHM_common* and set it to be the FWHM for all Gaussian emission line models in the SpecModel.
 
