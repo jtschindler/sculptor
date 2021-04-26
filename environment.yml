@@ -26,3 +26,4 @@ dependencies:
   - spectres
   - nbspinx
   - nbsphinx-link
+  - linetools

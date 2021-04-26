@@ -16,6 +16,7 @@ extinction>=0.4.5
 tqdm>=4.6.0
 spectres
 h5py
+linetools
 sphinx>=1.4
 ipykernel
 nbsphinx
