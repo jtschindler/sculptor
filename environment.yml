@@ -17,6 +17,7 @@ dependencies:
 - extinction >=0.4.5
 - pyyaml >= 5.4.1
 - tqdm >= 4.6.0
+- h5py
 - sphinx>=1.4
 - ipykernel
 - pip:
@@ -24,4 +25,4 @@ dependencies:
   - corner>=2.1.0
   - spectres
   - nbspinx
-  - nbsphinx-link 
+  - nbsphinx-link
