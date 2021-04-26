@@ -15,3 +15,6 @@ PyYAML>=5.4.1
 extinction>=0.4.5
 tqdm>=4.6.0
 spectres
+sphinx>=1.4
+ipykernel
+nbsphinx

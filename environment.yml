@@ -17,7 +17,10 @@ dependencies:
 - extinction >=0.4.5
 - pyyaml >= 5.4.1
 - tqdm >= 4.6.0
+- sphinx>=1.4
+- ipykernel
 - pip:
   - lmfit>=1.0.1
   - corner>=2.1.0
   - spectres
+  - nbspinx
