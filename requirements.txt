@@ -18,3 +18,4 @@ spectres
 sphinx>=1.4
 ipykernel
 nbsphinx
+nbsphinx-link

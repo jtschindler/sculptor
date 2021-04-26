@@ -22,3 +22,4 @@ dependencies:
   - corner>=2.1.0
   - spectres
   - nbspinx
+  - nbsphinx-link
