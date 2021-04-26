@@ -35,9 +35,9 @@ def parse_arguments():
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+def main(args):
 
-    args = parse_arguments()
+    # args = parse_arguments()
 
     spec = None
     
@@ -109,3 +109,13 @@ if __name__ == '__main__':
     form = SpecFitGui(spectrum=spec, redshift=args.redshift)
     form.show()
     app.exec_()
+
+
+
+
+def entry_point():
+    main(parse_arguments())
+
+
+if __name__ == '__main__':
+    entry_point()

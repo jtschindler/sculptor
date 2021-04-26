@@ -1,6 +1,6 @@
 # Sculptor
 
-Interactive modeling of astronomic, electro-magnetic spectra.
+Interactive modeling of (electromagnetic) astronomical spectra.
 
 For installation instructions and documentation visit [Sculptor's ReadTheDocs]
 
