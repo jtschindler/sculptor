@@ -1,5 +1,7 @@
 # Sculptor
 
+[![Documentation Status](https://readthedocs.org/projects/sculptor/badge/?version=latest)](https://sculptor.readthedocs.io/en/latest/?badge=latest)
+
 Interactive modeling of (electromagnetic) astronomical spectra.
 
 For installation instructions and documentation visit [Sculptor's ReadTheDocs]
