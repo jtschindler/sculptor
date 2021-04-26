@@ -5,7 +5,7 @@ import pathlib
 
 here = pathlib.Path(__file__).parent.resolve()
 # Get the long description from the README file
-long_description = (here / 'README.rst').read_text(encoding='utf-8')
+long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 
 try:  # Python 3.x
@@ -17,7 +17,7 @@ setup(name='sculptor',
       version='0.2b0',
       description='Interactive modeling of (electromagnetic) astronomical spectra',
       long_description=long_description,
-      long_description_content_type='text/x-rst',
+      long_description_content_type='text/markdown',
       author='Jan-Torge Schindler',
       author_email='schindler@mpia.de',
       license='BSD-3',
