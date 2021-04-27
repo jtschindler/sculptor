@@ -230,16 +230,44 @@ class SpecOneD(object):
         # Retain fits header in SpecOneD
         self.fits_header = hdu[0].header
 
-        self.dispersion = hdu[exten].data['OPT_WAVE']
-        self.fluxden = hdu[exten].data['OPT_FLAM']
-        self.mask = np.array(hdu[exten].data['OPT_MASK'], dtype=bool)
-        self.fluxden_ivar = hdu[exten].data['OPT_FLAM_IVAR']
-        self.fluxden_err = hdu[exten].data['OPT_FLAM_SIG']
+        # Check pypeit header keywords
+        #
+        # dispersion
+        if 'OPT_WAVE' in hdu[exten].columns.names:
+            self.dispersion = hdu[exten].data['OPT_WAVE']
+        if 'wave' in hdu[exten].columns.names:
+            self.dispersion = hdu[exten].data['wave']
+        # flux density
+        if 'OPT_FLAM' in hdu[exten].columns.names:
+            self.fluxden = hdu[exten].data['OPT_FLAM']
+        if 'flux' in hdu[exten].columns.names:
+            self.fluxden = hdu[exten].data['flux']
 
-        # Mask all pixels where the fluxden error is 0
-        new_mask = np.ones_like(self.mask, dtype=bool)
-        new_mask[self.fluxden_err == 0] = 0
-        self.mask = new_mask
+        # mask
+        if 'OPT_MASK' in hdu[exten].columns.names:
+            self.mask = np.array(hdu[exten].data['OPT_MASK'], dtype=bool)
+        if 'mask' in hdu[exten].columns.names:
+            self.mask = np.array(hdu[exten].data['mask'], dtype=bool)
+
+        # ivar
+        if 'OPT_FLAM_IVAR' in hdu[exten].columns.names:
+            self.fluxden_ivar = hdu[exten].data['OPT_FLAM_IVAR']
+        if 'ivar' in hdu[exten].columns.names:
+            self.fluxden_ivar = hdu[exten].data['ivar']
+            if 'sigma' not in hdu[exten].columns.names:
+                # No flux density 1 sigma error stored in this format
+                # Calculate the 1 sigma error.
+                self.get_fluxden_error_from_ivar()
+        # 1 sigma flux density error
+        if 'OPT_FLAM_SIG' in hdu[exten].columns.names:
+            self.fluxden_err = hdu[exten].data['OPT_FLAM_SIG']
+
+
+
+        # # Mask all pixels where the fluxden error is 0
+        # new_mask = np.ones_like(self.mask, dtype=bool)
+        # new_mask[self.fluxden_err == 0] = 0
+        # self.mask = new_mask
 
         self.dispersion_unit = 1. * u.AA
         self.fluxden_unit = 1e-17*u.erg/u.s/u.cm**2/u.AA
