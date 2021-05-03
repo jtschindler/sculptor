@@ -204,6 +204,16 @@ class SpecModelWidget(QWidget):
         self.buttonFit.clicked.connect(lambda: self.fit())
         self.buttonSaveResult = QPushButton('Save fit result')
         self.buttonSaveResult.clicked.connect(lambda: self.save_fit_result())
+
+        self.labelPropagateOption = QLabel('Propagate Option')
+        self.boxPropagateOption = QComboBox()
+        for option in ['subtract', 'divide']:
+            self.boxPropagateOption.addItem(option)
+        index = self.boxPropagateOption.findText(self.specmodel.propagate)
+        self.boxPropagateOption.setCurrentIndex(index)
+        self.boxPropagateOption.currentTextChanged.connect(
+            self.update_propagate_value)
+
         self.checkboxUseWeights = QCheckBox('Use weights (fluxden errors)')
         self.checkboxUseWeights.setChecked(self.specmodel.use_weights)
         self.checkboxUseWeights.stateChanged.connect(
@@ -217,14 +227,17 @@ class SpecModelWidget(QWidget):
         self.hLayoutFit.addWidget(self.buttonFit)
         self.hLayoutFit.addWidget(self.buttonSaveResult)
 
+        self.hLayoutFitPropagate = QHBoxLayout()
+        self.hLayoutFitPropagate.addWidget(self.labelPropagateOption)
+        self.hLayoutFitPropagate.addWidget(self.boxPropagateOption)
+
         self.hLayoutFitCheckboxes = QHBoxLayout()
         self.hLayoutFitCheckboxes.addWidget(self.checkboxUseWeights)
         self.hLayoutFitCheckboxes.addWidget(self.checkboxFitReport)
 
-
         self.vLayoutBoxFitAction.addLayout(self.hLayoutFit)
+        self.vLayoutBoxFitAction.addLayout(self.hLayoutFitPropagate)
         self.vLayoutBoxFitAction.addLayout(self.hLayoutFitCheckboxes)
-
 
         # Vertical Box Layout for Specmodel Actions/Properties
         self.vLayoutProperties = QVBoxLayout()
@@ -434,6 +447,10 @@ class SpecModelWidget(QWidget):
 
         self.specModelCanvas.plot(self.specmodel)
 
+    def update_propagate_value(self):
+
+        option = self.boxPropagateOption.currentText()
+        self.specmodel.propagate = option
 
     def remove_model_from_specmodel(self):
 

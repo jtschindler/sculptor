@@ -133,6 +133,10 @@ class SpecModel:
         # list of parameters for the models
         self.params_list = []
 
+        # String to indicate how spectral model is propagated to next
+        # Specmodel object in SpecFit
+        self.propagate = 'subtract'
+
         self.global_params = Parameters()
 
         self.color = 'orange'
@@ -165,6 +169,9 @@ class SpecModel:
         specmodel.model_list = self.model_list.copy()
         # list of parameters for the models
         specmodel.params_list = self.params_list.copy()
+
+        # Propagate string
+        specmodel.propagate = self.propagate
 
         specmodel.global_params = self.global_params.copy()
 
@@ -755,6 +762,8 @@ class SpecModel:
         columns.append('ylim')
         data.append([self.redshift])
         columns.append('redshift')
+        data.append([self.propagate])
+        columns.append('propagate')
 
         df = pd.DataFrame(np.array(data), index=columns)
 
@@ -798,6 +807,10 @@ class SpecModel:
 
         if 'redshift' in meta.index:
             self.redshift = meta.loc['redshift', 0]
+
+        # If clause for backward compatibility with v0.2b0
+        if 'propagate' in meta.index:
+            self.propagate = meta.loc['propagate', 0]
 
         # Load models and params into the model_list and params_list
         model_list = glob.glob(foldername + '/{}_*model.json'.format(

@@ -122,8 +122,16 @@ class SpecFit:
 
             elif hasattr(self.specmodels[-1], 'spec'):
                 spec = self.specmodels[-1].spec.copy()
+
+                # Propagate SpecModel results to new SpecModel
                 if hasattr(self.specmodels[-1], 'model_fluxden'):
-                    spec.fluxden -= self.specmodels[-1].model_fluxden
+                    if self.specmodels[-1].propagate == "subtract":
+                        spec.fluxden -= self.specmodels[-1].model_fluxden
+                    elif self.specmodels[-1].propagate == "divide":
+                        spec.fluxden /= self.specmodels[-1].model_fluxden
+                        spec.fluxden_unit /= self.specmodels[
+                            -1].spec.fluxden_unit
+
                 specmodel = SpecModel(self,
                                       spectrum=spec,
                                       redshift=self.redshift)
@@ -178,7 +186,7 @@ class SpecFit:
         Update all SpecModel spectra
 
         This function updates the SpecModel spectra consecutively. Model fits
-        from each SpecModel will be automatically subtracted.
+        from each SpecModel will be automatically subtracted/divided.
 
         Note: Not only the dispersion and the fluxden, but also the mask will be
         updated.
@@ -197,9 +205,31 @@ class SpecFit:
                 for idx in range(len(self.specmodels[1:])):
                     previous_spec = self.specmodels[idx].spec.copy()
                     previous_model_fluxden = self.specmodels[idx].model_fluxden
+                    previous_fluxden_unit = self.specmodels[
+                        idx].spec.fluxden_unit
 
-                    self.specmodels[idx+1].spec = previous_spec.copy()
-                    self.specmodels[idx + 1].spec.fluxden -= previous_model_fluxden
+                    # Propagate SpecModel fit results to next SpecModel
+                    if self.specmodels[idx].propagate == "subtract":
+
+                        self.specmodels[idx + 1].spec = previous_spec.copy()
+                        self.specmodels[
+                            idx + 1].spec.fluxden -= previous_model_fluxden
+
+                    elif self.specmodels[idx].propagate == "divide":
+
+                        self.specmodels[idx + 1].spec = previous_spec.copy()
+                        self.specmodels[
+                            idx + 1].spec.fluxden /= previous_model_fluxden
+                        self.specmodels[
+                            idx + 1].spec.fluxden_unit /= previous_fluxden_unit
+                    else:
+                        raise ValueError(
+                            '[ERROR] Specmodels propagations allows '
+                            'subtraction ("subtract") or division ('
+                            '"divide"). No other modes are supported. '
+                            'Please check the SpecModel.propagate '
+                            'attribute.')
+
 
     def add_super_param(self, param_name, value=None, vary=True,
                          min=-np.inf, max=np.inf, expr=None):
@@ -269,11 +299,28 @@ class SpecFit:
                 specmodel.save_fit_report(foldername, specmodel_id=str(idx) + '_FitAll')
 
             specmodel.update_params_from_fit_result()
-            # Update the fluxden of the next specmodel
-            if idx+1 < len(self.specmodels):
-                self.specmodels[idx+1].spec.fluxden = \
-                    specmodel.spec.fluxden - \
-                    specmodel.model_fluxden
+
+            # Propagate SpecModel fit results to next SpecModel
+            if specmodel.propagate == "subtract":
+
+                if idx+1 < len(self.specmodels):
+                    self.specmodels[idx+1].spec.fluxden = \
+                        specmodel.spec.fluxden - specmodel.model_fluxden
+
+            elif specmodel.propagate == "divide":
+
+                if idx + 1 < len(self.specmodels):
+                    self.specmodels[idx+1].spec.fluxden = \
+                     specmodel.spec.fluxden / specmodel.model_fluxden
+                    self.specmodels[idx+1].spec.fluxden_unit = \
+                    specmodel.spec.fluxden_unit / specmodel.spec.fluxden_unit
+
+            else:
+                raise ValueError('[ERROR] Specmodels propagations allows '
+                                 'subtraction ("subtract") or division ('
+                                 '"divide"). No other modes are supported. '
+                                 'Please check the SpecModel.propagate '
+                                 'attribute.')
 
     def load(self, foldername):
         """ Load a full spectral fit (SpecFit) from a folder

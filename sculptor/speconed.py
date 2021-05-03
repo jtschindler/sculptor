@@ -8,7 +8,7 @@ python functionality for the manipulation of 1D spectral data in astronomy.
 
 """
 
-import os
+
 import numpy as np
 import scipy as sp
 import pandas as pd
@@ -22,8 +22,6 @@ from astropy.io import fits
 from astropy import constants as const
 from astropy import units as u
 from astropy.convolution import convolve, Gaussian1DKernel, Box1DKernel
-
-from scipy.signal import medfilt
 
 import matplotlib.pyplot as plt
 
