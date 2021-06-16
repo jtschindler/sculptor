@@ -56,6 +56,7 @@ This project is currently undergoing rapid development. Be advised as the API ha
   specmodel
   specfit
   specanalysis
+  masksmodels
 
 .. toctree::
   :maxdepth: 1

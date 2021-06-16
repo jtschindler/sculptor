@@ -108,6 +108,7 @@
 <li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="masksmodels.html">The Masks &amp; Models Module</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Extensions:</span></p>
 <ul>
@@ -283,10 +284,10 @@
 </li>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.calculate_passband_ab_magnitude">calculate_passband_ab_magnitude() (sculptor.speconed.SpecOneD method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.calculate_passband_flux">calculate_passband_flux() (sculptor.speconed.SpecOneD method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.check_dispersion_overlap">check_dispersion_overlap() (sculptor.speconed.SpecOneD method)</a>
 </li>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.check_units">check_units() (sculptor.speconed.SpecOneD method)</a>
@@ -296,6 +297,8 @@
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.color">color (sculptor.specmodel.SpecModel attribute)</a>
 </li>
       <li><a href="specfit.html#sculptor.specfit.SpecFit.colors">colors (sculptor.specfit.SpecFit attribute)</a>
+</li>
+      <li><a href="masksmodels.html#sculptor.masksmodels.constant">constant() (in module sculptor.masksmodels)</a>
 </li>
       <li><a href="speconed.html#sculptor.speconed.PassBand.convert_spectral_units">convert_spectral_units() (sculptor.speconed.PassBand method)</a>
 
@@ -351,8 +354,12 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="speconed.html#sculptor.speconed.gaussian">gaussian() (in module sculptor.speconed)</a>
+      <li><a href="masksmodels.html#sculptor.masksmodels.gaussian">gaussian() (in module sculptor.masksmodels)</a>
+
+      <ul>
+        <li><a href="speconed.html#sculptor.speconed.gaussian">(in module sculptor.speconed)</a>
 </li>
+      </ul></li>
       <li><a href="specanalysis.html#sculptor.specanalysis.get_average_fluxden">get_average_fluxden() (in module sculptor.specanalysis)</a>
 </li>
       <li><a href="specanalysis.html#sculptor.specanalysis.get_equivalent_width">get_equivalent_width() (in module sculptor.specanalysis)</a>
@@ -413,6 +420,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="speconed.html#sculptor.speconed.PassBand.load_passband">load_passband() (sculptor.speconed.PassBand method)</a>
 </li>
+      <li><a href="masksmodels.html#sculptor.masksmodels.lorentzian">lorentzian() (in module sculptor.masksmodels)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -423,24 +432,40 @@
 </li>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.mask_by_snr">mask_by_snr() (sculptor.speconed.SpecOneD method)</a>
 </li>
+      <li><a href="masksmodels.html#sculptor.masksmodels.mask_presets">mask_presets (in module sculptor.masksmodels)</a>
+</li>
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.match_dispersions">match_dispersions() (sculptor.speconed.SpecOneD method)</a>
 </li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.model">model (sculptor.specmodel.SpecModel attribute)</a>
 </li>
-      <li><a href="my_extension.html#sculptor_extensions.my_extension.model_func_dict">model_func_dict (in module sculptor_extensions.my_extension)</a>
+      <li><a href="masksmodels.html#sculptor.masksmodels.model_func_dict">model_func_dict (in module sculptor.masksmodels)</a>
+
+      <ul>
+        <li><a href="my_extension.html#sculptor_extensions.my_extension.model_func_dict">(in module sculptor_extensions.my_extension)</a>
 </li>
-      <li><a href="my_extension.html#sculptor_extensions.my_extension.model_func_list">model_func_list (in module sculptor_extensions.my_extension)</a>
+      </ul></li>
+      <li><a href="masksmodels.html#sculptor.masksmodels.model_func_list">model_func_list (in module sculptor.masksmodels)</a>
+
+      <ul>
+        <li><a href="my_extension.html#sculptor_extensions.my_extension.model_func_list">(in module sculptor_extensions.my_extension)</a>
 </li>
+      </ul></li>
       <li><a href="specmodel.html#sculptor.specmodel.SpecModel.model_list">model_list (sculptor.specmodel.SpecModel attribute)</a>
 </li>
-      <li><a href="my_extension.html#sculptor_extensions.my_extension.model_setup_list">model_setup_list (in module sculptor_extensions.my_extension)</a>
+      <li><a href="masksmodels.html#sculptor.masksmodels.model_setup_list">model_setup_list (in module sculptor.masksmodels)</a>
+
+      <ul>
+        <li><a href="my_extension.html#sculptor_extensions.my_extension.model_setup_list">(in module sculptor_extensions.my_extension)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     module
 
       <ul>
+        <li><a href="masksmodels.html#module-sculptor.masksmodels">sculptor.masksmodels</a>
+</li>
         <li><a href="specanalysis.html#module-sculptor.specanalysis">sculptor.specanalysis</a>
 </li>
         <li><a href="specfit.html#module-sculptor.specfit">sculptor.specfit</a>
@@ -506,6 +531,8 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="masksmodels.html#sculptor.masksmodels.power_law">power_law() (in module sculptor.masksmodels)</a>
+</li>
       <li><a href="qso_extension.html#sculptor_extensions.qso.power_law_at_2500">power_law_at_2500() (in module sculptor_extensions.qso)</a>
 </li>
       <li><a href="qso_extension.html#sculptor_extensions.qso.power_law_at_2500_plus_bc">power_law_at_2500_plus_bc() (in module sculptor_extensions.qso)</a>
@@ -579,6 +606,13 @@
       <li><a href="speconed.html#sculptor.speconed.SpecOneD.save_to_hdf">save_to_hdf() (sculptor.speconed.SpecOneD method)</a>
 </li>
       <li>
+    sculptor.masksmodels
+
+      <ul>
+        <li><a href="masksmodels.html#module-sculptor.masksmodels">module</a>
+</li>
+      </ul></li>
+      <li>
     sculptor.specanalysis
 
       <ul>
@@ -632,14 +666,18 @@
 </li>
       <li><a href="qso_extension.html#sculptor_extensions.qso.se_bhmass_mgii_vo09_fwhm">se_bhmass_mgii_vo09_fwhm() (in module sculptor_extensions.qso)</a>
 </li>
+      <li><a href="masksmodels.html#sculptor.masksmodels.setup_constant">setup_constant() (in module sculptor.masksmodels)</a>
+</li>
+      <li><a href="masksmodels.html#sculptor.masksmodels.setup_gaussian">setup_gaussian() (in module sculptor.masksmodels)</a>
+</li>
       <li><a href="qso_extension.html#sculptor_extensions.qso.setup_iron_template_MgII_T06">setup_iron_template_MgII_T06() (in module sculptor_extensions.qso)</a>
 </li>
       <li><a href="qso_extension.html#sculptor_extensions.qso.setup_iron_template_MgII_VW01">setup_iron_template_MgII_VW01() (in module sculptor_extensions.qso)</a>
 </li>
-      <li><a href="qso_extension.html#sculptor_extensions.qso.setup_iron_template_model">setup_iron_template_model() (in module sculptor_extensions.qso)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="qso_extension.html#sculptor_extensions.qso.setup_iron_template_model">setup_iron_template_model() (in module sculptor_extensions.qso)</a>
+</li>
       <li><a href="qso_extension.html#sculptor_extensions.qso.setup_iron_template_OPT_BG92">setup_iron_template_OPT_BG92() (in module sculptor_extensions.qso)</a>
 </li>
       <li><a href="qso_extension.html#sculptor_extensions.qso.setup_iron_template_T06">setup_iron_template_T06() (in module sculptor_extensions.qso)</a>
@@ -658,7 +696,11 @@
 </li>
       <li><a href="qso_extension.html#sculptor_extensions.qso.setup_line_model_SiIV_2G">setup_line_model_SiIV_2G() (in module sculptor_extensions.qso)</a>
 </li>
+      <li><a href="masksmodels.html#sculptor.masksmodels.setup_lorentzian">setup_lorentzian() (in module sculptor.masksmodels)</a>
+</li>
       <li><a href="my_extension.html#sculptor_extensions.my_extension.setup_my_model">setup_my_model() (in module sculptor_extensions.my_extension)</a>
+</li>
+      <li><a href="masksmodels.html#sculptor.masksmodels.setup_power_law">setup_power_law() (in module sculptor.masksmodels)</a>
 </li>
       <li><a href="qso_extension.html#sculptor_extensions.qso.setup_power_law_at_2500">setup_power_law_at_2500() (in module sculptor_extensions.qso)</a>
 </li>

@@ -2,6 +2,9 @@
 *.pyc
 *.xml
 
+# To-Do list
+ToDo.txt
+
 # Setuptools distribution folder.
 /dist/
 

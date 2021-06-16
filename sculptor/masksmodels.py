@@ -90,18 +90,18 @@ def lorentzian(x, amp, cen, gamma, shift):
     return amp * 1 / (np.pi * gamma * (1 + ((x-central) / gamma)**2))
 
 
-def gausshermite4(x, a, b, c, d):
-    """ Calculate 4th order Gauss-Hermite function
-
-    :param x:
-    :param a:
-    :param b:
-    :param c:
-    :param d:
-    :return:
-    """
-
-    return np.polynomial.hermite.Hermite(coef=[a, b, c, d]).__call__(x)
+# def gausshermite4(x, a, b, c, d):
+#     """ Calculate 4th order Gauss-Hermite function
+#
+#     :param x:
+#     :param a:
+#     :param b:
+#     :param c:
+#     :param d:
+#     :return:
+#     """
+#
+#     return np.polynomial.hermite.Hermite(coef=[a, b, c, d]).__call__(x)
 
 
 # ------------------------------------------------------------------------------
@@ -110,6 +110,15 @@ def gausshermite4(x, a, b, c, d):
 
 
 def setup_power_law(prefix,  **kwargs):
+    """ Set up a simple power law model.
+
+    :param prefix: Model prefix
+    :type prefix: string
+    :param kwargs: Keyword arguments
+    :return: LMFIT model and parameters
+    :rtype: (lmfit.Model, lmfit.Parameters)
+
+    """
 
     amplitude = kwargs.pop('amplitude', 2)
 
@@ -124,14 +133,25 @@ def setup_power_law(prefix,  **kwargs):
 
 
 def setup_gaussian(prefix, **kwargs):
+    """ Set up a simple non-normalized Gaussian function model.
+
+    :param prefix: Model prefix
+    :type prefix: string
+    :param kwargs: Keyword arguments
+    :return: LMFIT model and parameters
+    :rtype: (lmfit.Model, lmfit.Parameters)
+
+    """
 
     amplitude = kwargs.pop('amplitude', 5)
+    cenwave = kwargs.pop('cenwave', 1215)
+    sigma = kwargs.pop('sigma', 5)
 
     params = Parameters()
 
     params.add(prefix + 'amp', value=amplitude)
-    params.add(prefix + 'cen')
-    params.add(prefix + 'sigma')
+    params.add(prefix + 'cen', value=cenwave)
+    params.add(prefix + 'sigma', value=sigma)
     params.add(prefix + 'shift', value=0, vary=False)
 
     model = Model(gaussian, prefix=prefix)
@@ -140,6 +160,15 @@ def setup_gaussian(prefix, **kwargs):
 
 
 def setup_constant(prefix, **kwargs):
+    """ Set up a simple constant function model.
+
+    :param prefix: Model prefix
+    :type prefix: string
+    :param kwargs: Keyword arguments
+    :return: LMFIT model and parameters
+    :rtype: (lmfit.Model, lmfit.Parameters)
+
+    """
 
     amplitude = kwargs.pop('amplitude', 5)
 
@@ -153,42 +182,80 @@ def setup_constant(prefix, **kwargs):
 
 
 def setup_lorentzian(prefix, **kwargs):
+    """ Set up a simple Lorentzian function model.
 
-    amplitude = kwargs.pop('amplitude', 5)
+    :param prefix: Model prefix
+    :type prefix: string
+    :param kwargs: Keyword arguments
+    :return: LMFIT model and parameters
+    :rtype: (lmfit.Model, lmfit.Parameters)
+
+    """
+
+    amplitude = kwargs.pop('amplitude', 20)
+    cenwave = kwargs.pop('cenwave', 1215)
+    gamma = kwargs.pop('gamma', 50)
 
     params = Parameters()
 
     params.add(prefix + 'amp', value=amplitude)
-    params.add(prefix + 'cen')
-    params.add(prefix + 'gamma')
+    params.add(prefix + 'cen', value=cenwave)
+    params.add(prefix + 'gamma', value=gamma)
     params.add(prefix + 'shift', value=0, vary=False)
 
     model = Model(lorentzian, prefix=prefix)
 
     return model, params
 
+# def setup_gausshermite4(prefix, **kwargs):
+#     """ Set up a model of a Gauss-Hermite polynomial of order 4.
+#
+#     :param prefix: Model prefix
+#     :type prefix: string
+#     :param kwargs: Keyword arguments
+#     :return: LMFIT model and parameters
+#     :rtype: (lmfit.Model, lmfit.Parameters)
+#
+#     """
+#
+#
+#     params = Parameters()
+#
+#     params.add(prefix + 'a', value=20)
+#     params.add(prefix + 'b', value=0)
+#     params.add(prefix + 'c', value=0)
+#     params.add(prefix + 'd', value=0)
+#
+#     model = Model(gausshermite4, prefix=prefix)
+#
+#     return model, params
 
 """ list of str: List of model names"""
 model_func_list = ['Constant (amp)',
                    'Power Law (amp, slope)',
                    'Gaussian (amp, cen, sigma, shift)',
-                   'Lorentzian (amp, cen, gamma, shift)'
+                   'Lorentzian (amp, cen, gamma, shift)',
+                   # 'Gauss-Hermite Pol. (a, b, c, d)'
                    ]
 """ dict: Dictionary of model functions"""
 model_func_dict = {'constant': constant,
                    'power_law': power_law,
                    'gaussian': gaussian,
-                   'lorentzian': lorentzian
+                   'lorentzian': lorentzian,
+                   # 'gausshermite4': gausshermite4
                    }
 """ dict: Dictionary of model setup function names"""
 model_setup_list = [setup_constant,
                     setup_power_law,
                     setup_gaussian,
-                    setup_lorentzian
+                    setup_lorentzian,
+                    # setup_gausshermite4
                     ]
 """ dict: Dictionary of mask presets"""
 mask_presets = {}
 
+
+""" Automatic import of extensions into Sculptor """
 
 extension_path = pkg_resources.resource_filename('sculptor',
                                                  '../sculptor_extensions')

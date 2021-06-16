@@ -20,6 +20,7 @@ from astropy import units
 from astropy.cosmology import FlatLambdaCDM
 
 from scipy.interpolate import UnivariateSpline
+from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
 
 pc_in_cm = units.pc.to(units.cm)
@@ -41,7 +42,8 @@ emfeat_measures_default = ['peak_fluxden',
 def analyze_emission_feature(specfit, feature_name, model_names,
                              rest_frame_wavelength, cont_model_names=None,
                              redshift=None, dispersion=None,
-                             emfeat_meas=None, disp_range=None, cosmology=None):
+                             emfeat_meas=None, disp_range=None,
+                             cosmology=None, fwhm_method='sign'):
     """Calculate measurements of an emission feature for a spectral fit (
     SpecFit object).
 
@@ -83,6 +85,9 @@ def analyze_emission_feature(specfit, feature_name, model_names,
     :type disp_range: list
     :param cosmology: Cosmology for calculating luminosities
     :type cosmology: astropy.cosmology class
+    :param fwhm_method: Method to use for calculating the FWHM. Possible
+    values are 'sign' (default) or 'spline'.
+    :type: string
     :return: Dictionary with measurement results (with units)
     :rtype: dict
     """
@@ -126,7 +131,7 @@ def analyze_emission_feature(specfit, feature_name, model_names,
 
     if 'FWHM' in emfeat_meas:
         # Calculate the (composite) line model FWHM.
-        fwhm = get_fwhm(model_spec)
+        fwhm = get_fwhm(model_spec, method=fwhm_method)
         result_dict.update({feature_name+'_FWHM': fwhm})
 
     if 'flux' in emfeat_meas:
@@ -139,6 +144,25 @@ def analyze_emission_feature(specfit, feature_name, model_names,
         lum = calc_integrated_luminosity(model_spec,
                                          redshift=redshift, cosmology=cosmology)
         result_dict.update({feature_name + '_lum': lum})
+
+    if 'nonparam' in emfeat_meas:
+        # Calculate basic non-parametric line measurements
+        # Note that this might be computationally expensive!
+
+        v50, v05, v10, v90, v95, v_res_at_line, freq_v50, wave_v50, z_v50 = \
+            get_nonparametric_measurements(model_spec, rest_frame_wavelength,
+                                           redshift, disp_range=disp_range)
+
+        result_dict.update({feature_name + '_v50': v50})
+        result_dict.update({feature_name + '_v05': v05})
+        result_dict.update({feature_name + '_v10': v10})
+        result_dict.update({feature_name + '_v90': v90})
+        result_dict.update({feature_name + '_v95': v95})
+        result_dict.update({feature_name + '_vres_at_line': v_res_at_line})
+        result_dict.update({feature_name + '_freq_v50': freq_v50})
+        result_dict.update({feature_name + '_wave_v50': wave_v50})
+        result_dict.update({feature_name + '_redsh_v50': z_v50})
+
 
     return result_dict
 
@@ -305,7 +329,7 @@ def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
 #     return result_dict
 
 
-def analyse_mcmc_results(foldername, specfit, continuum_dict,
+def analyze_mcmc_results(foldername, specfit, continuum_dict,
                          emission_feature_dictlist, redshift, cosmology,
                          emfeat_meas=None, cont_meas=None, dispersion=None,
                          width=10, concatenate=False):
@@ -597,6 +621,10 @@ def _mcmc_analyze(foldername, specfit, specmodel_index, mcmc_df, continuum_dict,
                 disp_range = emission_feature_dict['disp_range']
             else:
                 disp_range = None
+            if 'fwhm_method' in emission_feature_dict:
+                fwhm_method = emission_feature_dict['fwhm_method']
+            else:
+                fwhm_method = 'sign'
 
             emfeat_result_dict = \
                 analyze_emission_feature(specfit,
@@ -608,7 +636,8 @@ def _mcmc_analyze(foldername, specfit, specmodel_index, mcmc_df, continuum_dict,
                                          dispersion=dispersion,
                                          emfeat_meas=emfeat_meas,
                                          disp_range=disp_range,
-                                         cosmology=cosmology)
+                                         cosmology=cosmology,
+                                         fwhm_method=fwhm_method)
         # Analyze the continuum model
         if mode == 'both' or mode == 'cont':
             cont_result_dict = \
@@ -657,7 +686,7 @@ def _mcmc_analyze(foldername, specfit, specmodel_index, mcmc_df, continuum_dict,
             delimiter=',')
 
 
-def analyse_resampled_results(specfit, resampled_df, continuum_dict,
+def analyze_resampled_results(specfit, resampled_df, continuum_dict,
                               emission_feature_dictlist, redshift, cosmology,
                               emfeat_meas=None, cont_meas=None, dispersion=None,
                               width=10, concatenate=False):
@@ -708,7 +737,7 @@ def _resampled_analyze(specfit, resampled_df, continuum_dict,
         for specmodel in fit.specmodels:
             specmodel.update_param_values_from_input_series(resampled_series)
 
-        result_dict = analyse_fit(specfit,
+        result_dict = analyze_fit(specfit,
                                   continuum_dict,
                                   emission_feature_dictlist,
                                   # absorption_feature_dictlist,
@@ -888,8 +917,8 @@ def get_equivalent_width(cont_spec, line_spec, disp_range=None,
     rest_line_flux = line_spec.fluxden * (1+redshift)
 
     if disp_range is not None:
-        l_idx = np.argmin(np.abs(rest_dispersion - limits[0]))
-        u_idx = np.argmin(np.abs(rest_dispersion - limits[1]))
+        l_idx = np.argmin(np.abs(rest_dispersion - disp_range[0]))
+        u_idx = np.argmin(np.abs(rest_dispersion - disp_range[1]))
 
         ew = np.trapz((rest_line_flux[l_idx:u_idx])/rest_cont_flux[l_idx:u_idx],
                       rest_dispersion[l_idx:u_idx])
@@ -900,7 +929,7 @@ def get_equivalent_width(cont_spec, line_spec, disp_range=None,
     return ew * cont_spec.dispersion_unit
 
 
-def get_fwhm(input_spec, disp_range=None, resolution=None):
+def get_fwhm(input_spec, disp_range=None, resolution=None, method='spline'):
     """
     Calculate the FWHM (in km/s) of an emission feature from the spectrum.
 
@@ -919,6 +948,12 @@ def get_fwhm(input_spec, disp_range=None, resolution=None):
     :type disp_range: [float, float]
     :param resolution: Resolution in R = Lambda/Delta Lambda
     :type resolution: float
+    :param method: Method to use in retrieving the FWHM. There are two
+        methods available. The default method 'spline' uses a spline to interpolate
+        the original spectrum and find the zero points using a root finding
+        algorithm on the spline. The second method 'sign'  finds sign changes in
+        the half peak flux subtracted spectrum.
+    :type method: string
     :return: FWHM of the spectral feature
     :rtype: astropy.units.Quantity
     """
@@ -931,11 +966,17 @@ def get_fwhm(input_spec, disp_range=None, resolution=None):
     fluxden = spec.fluxden
     dispersion = spec.dispersion
 
-    spline = UnivariateSpline(dispersion,
-                              fluxden - np.max(fluxden) / 2.,
-                              s=0)
-
-    roots = spline.roots()
+    if method == 'spline':
+        spline = UnivariateSpline(dispersion,
+                                  fluxden - np.max(fluxden) / 2.,
+                                  s=0)
+        roots = spline.roots()
+    elif method == 'sign':
+        roots_idx = np.where(np.diff(np.sign(fluxden-np.max(fluxden)/2.)))[0]
+        roots = dispersion[roots_idx]
+    else:
+        raise ValueError('[ERROR] Value for "method" keyword argument not '
+                        'recgonized. Possible values are "sign" or "spline".')
 
     if len(roots) > 2 or len(roots) < 2:
         print('[ERROR] Found {} roots. Cannot determine FWHM'.format(len(
@@ -970,12 +1011,59 @@ def get_fwhm(input_spec, disp_range=None, resolution=None):
 
 # TODO: Add non-parametric width measurements
 
-# def get_centroid_wavelength():
-#     pass
-#
-#
-# def get_centroid_redshift():
-#     pass
+def get_nonparametric_measurements(input_spec, line_rest_wavel, redshift,
+                                   disp_range=None):
+    """
+
+    """
+
+    # Convert input spectrum to frequency
+    input_spec.to_fluxden_per_unit_frequency_cgs()
+
+    # Total flux
+    flux_total = get_integrated_flux(input_spec, disp_range=disp_range)
+
+    # Trim spectrum to disp_range if not None
+    if disp_range is not None:
+        input_spec.trim_dispersion(disp_range, inplace=True)
+
+    # Calculate velocity dispersion axis
+    line_wavel = (1 + redshift) * line_rest_wavel
+    line_cen_freq = (const.c / (line_wavel * units.AA))
+    freq_to_vel = units.doppler_optical(line_cen_freq)
+    velocity_disp = (input_spec.dispersion * input_spec.dispersion_unit).to(
+        units.km / units.s, equivalencies=freq_to_vel)
+
+    # Calculate cumulative flux
+    flux_fraction = cumtrapz(input_spec.fluxden, input_spec.dispersion,
+                             initial=0)
+    flux_fraction *= input_spec.dispersion_unit * input_spec.fluxden_unit
+    flux_fraction /= flux_total
+
+    # Determine velocities for flux fractions
+    idx_90 = np.argmin(abs(flux_fraction - 0.1))
+    idx_10 = np.argmin(abs(flux_fraction - 0.9))
+    idx_95 = np.argmin(abs(flux_fraction - 0.05))
+    idx_05 = np.argmin(abs(flux_fraction - 0.95))
+    idx_50 = np.argmin(abs(flux_fraction - 0.5))
+
+    v90 = velocity_disp[idx_90]
+    v10 = velocity_disp[idx_10]
+    v95 = velocity_disp[idx_95]
+    v05 = velocity_disp[idx_05]
+    v50 = velocity_disp[idx_50]
+    v_res_at_line = np.abs(velocity_disp[idx_50-1]-velocity_disp[idx_50+1])/2.
+
+    # Calculate the centroid frequency
+    freq_v50 = input_spec.dispersion[idx_50] * input_spec.dispersion_unit
+    # Calculate the centroid wavelength
+    wave_v50 = (freq_v50).to(units.AA, equivalencies= units.spectral())
+    # Calculate the centroid redshift
+    z_v50 = wave_v50.value/line_rest_wavel - 1.
+
+    return v50, v05, v10, v90, v95, v_res_at_line, freq_v50, wave_v50, z_v50
+
+
 
 # ------------------------------------------------------------------------------
 # Astrophysical spectral measurements

@@ -24,7 +24,7 @@ def analyze_mcmc_file():
     continuum_listdict = {'model_names': ['PL_'],
                           'rest_frame_wavelengths': [1450, 1280]}
 
-    scana.analyse_mcmc_results('example_spectrum_fit', fit,
+    scana.analyze_mcmc_results('example_spectrum_fit', fit,
                                continuum_listdict,
                                emission_feature_listdict,
                                fit.redshift, cosmo, concatenate=True)
