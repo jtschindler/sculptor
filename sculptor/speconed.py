@@ -1607,7 +1607,7 @@ class SpecOneD(object):
 # PLOT FUNCTIONALITY
 # ------------------------------------------------------------------------------
 
-    def plot(self, show_fluxden_err=True, mask_values=False, ymin=None,
+    def plot(self, show_fluxden_err=True, mask_values=True, ymin=None,
              ymax=None, show_obj_model=True, show_telluric=True):
         """Plot the spectrum.
 

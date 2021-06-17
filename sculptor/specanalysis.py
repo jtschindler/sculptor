@@ -86,7 +86,7 @@ def analyze_emission_feature(specfit, feature_name, model_names,
     :param cosmology: Cosmology for calculating luminosities
     :type cosmology: astropy.cosmology class
     :param fwhm_method: Method to use for calculating the FWHM. Possible
-    values are 'sign' (default) or 'spline'.
+        values are 'sign' (default) or 'spline'.
     :type: string
     :return: Dictionary with measurement results (with units)
     :rtype: dict
@@ -1009,12 +1009,33 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, method='spline'):
             return np.sqrt(fwhm ** 2 - resolution_km_s ** 2)[0] * \
                    units.km/units.s
 
-# TODO: Add non-parametric width measurements
 
 def get_nonparametric_measurements(input_spec, line_rest_wavel, redshift,
                                    disp_range=None):
     """
+    Measure the velocities at different ratios of the total emission line flux.
 
+    This function calculates the cumulative integral of the emission line
+    flux and then determines the closest dispersion values in velocity space to
+    the 5%, 10%, 50%, 90% and 95% total flux ratios.
+
+    :param input_spec: Input spectrum
+    :type input_spec: sculptor.speconed.SpecOneD
+    :param line_rest_wavel: rest-frame wavelength fo the line in Angstroem
+    :type line_rest_wavel: float
+    :param redshift: Redshift of the source
+    :type redshift: float
+    :param disp_range: Observed-frame dispersion range to which the
+        calculation is limited.
+    :type disp_range: [float, float]
+    :return: median velocity, 5% velocity, 10% velocity, 90% velocity,
+        95% velocity, velocity resolution at median velocity, frequency of
+        median velocity, wavelength of median velocity, redshift of median
+        velocity
+    :rtype: astropy.units.Quantity, astropy.units.Quantity,
+        astropy.units.Quantity, astropy.units.Quantity,
+        astropy.units.Quantity, astropy.units.Quantity,
+        astropy.units.Quantity, astropy.units.Quantity, astropy.units.Quantity
     """
 
     # Convert input spectrum to frequency
