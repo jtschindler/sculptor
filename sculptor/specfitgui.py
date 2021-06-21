@@ -826,8 +826,6 @@ class SpecFitGui(QMainWindow):
 
             self.specfit.load(foldername)
 
-            print(self.specfit.xlim, self.specfit.ylim)
-
             # Update dispersion and flux density limits from specfit
             self.leXposA.setText('{:.2f}'.format(self.specfit.xlim[0]))
             self.leXposB.setText('{:.2f}'.format(self.specfit.xlim[1]))

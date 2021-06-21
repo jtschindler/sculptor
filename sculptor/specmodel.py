@@ -756,10 +756,14 @@ class SpecModel:
         columns.append('use_weights')
         data.append([self.name])
         columns.append('name')
-        data.append([self.xlim])
-        columns.append('xlim')
-        data.append([self.ylim])
-        columns.append('ylim')
+        data.append([self.xlim[0]])
+        columns.append('xlim_0')
+        data.append([self.ylim[0]])
+        columns.append('ylim_0')
+        data.append([self.xlim[1]])
+        columns.append('xlim_1')
+        data.append([self.ylim[1]])
+        columns.append('ylim_1')
         data.append([self.redshift])
         columns.append('redshift')
         data.append([self.propagate])
@@ -802,8 +806,26 @@ class SpecModel:
             self.use_weights = False
 
         self.name = meta.loc['name', 0]
-        self.xlim = meta.loc['xlim', 0]
-        self.ylim = meta.loc['ylim', 0]
+
+        # For backward_compatibility of dispersion/flux density limits loading
+        if 'xlim' in meta.index:
+            self.xlim = meta.loc['xlim', 0]
+            print ('[WARNING] You are loading data from a '
+                                     'saved fit created with 0.2b0. This '
+                                     'format will be deprecated with '
+                                     'release 1.0.0')
+        else:
+            self.xlim = [float(meta.loc['xlim_0',0]),
+                         float(meta.loc['xlim_1',0])]
+        if 'ylim' in meta.index:
+            self.ylim = meta.loc['ylim', 0]
+            print ('[WARNING] You are loading data from a '
+                                     'saved fit created with 0.2b0. This '
+                                     'format will be deprecated with '
+                                     'release 1.0.0')
+        else:
+            self.ylim = [float(meta.loc['ylim_0', 0]),
+                         float(meta.loc['ylim_1', 0])]
 
         if 'redshift' in meta.index:
             self.redshift = meta.loc['redshift', 0]

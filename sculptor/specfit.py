@@ -341,17 +341,34 @@ class SpecFit:
 
         #  Load SpecFit meta data
         meta = pd.read_hdf(foldername + '/fit.hdf5', key='specfit_meta')
-
-        n_specmodels = meta.loc['n_specmodels', 0]
+        
+        n_specmodels = int(meta.loc['n_specmodels', 0])
 
         # Compatibility if statements for older versions without these
         # meta parameters.
         if 'redshift' in meta.index:
-            self.redshift = meta.loc['redshift', 0]
+            self.redshift = float(meta.loc['redshift', 0])
+
+        # For backward_compatibility of dispersion/flux density limits loading
         if 'xlim' in meta.index:
             self.xlim = meta.loc['xlim', 0]
+            print('[WARNING] You are loading data from a '
+                                     'saved fit created with 0.2b0. This '
+                                     'format will be deprecated with '
+                                     'release 1.0.0')
+        else:
+            self.xlim = [float(meta.loc['xlim_0',0]),
+                         float(meta.loc['xlim_1',0])]
         if 'ylim' in meta.index:
             self.ylim = meta.loc['ylim', 0]
+            print('[WARNING] You are loading data from a '
+                                     'saved fit created with 0.2b0. This '
+                                     'format will be deprecated with '
+                                     'release 1.0.0')
+        else:
+            self.ylim = [float(meta.loc['ylim_0', 0]),
+                         float(meta.loc['ylim_1', 0])]
+
         if 'fitting_method' in meta.index:
             self.fitting_method = meta.loc['fitting_method', 0]
 
@@ -398,10 +415,14 @@ class SpecFit:
 
         data.append([len(self.specmodels)])
         columns.append('n_specmodels')
-        data.append([self.xlim])
-        columns.append('xlim')
-        data.append([self.ylim])
-        columns.append('ylim')
+        data.append([self.xlim[0]])
+        columns.append('xlim_0')
+        data.append([self.ylim[0]])
+        columns.append('ylim_0')
+        data.append([self.xlim[1]])
+        columns.append('xlim_1')
+        data.append([self.ylim[1]])
+        columns.append('ylim_1')
         data.append([self.redshift])
         columns.append('redshift')
         data.append([self.fitting_method])
