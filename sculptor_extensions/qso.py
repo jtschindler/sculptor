@@ -21,7 +21,7 @@ import scipy as sp
 
 from astropy import constants as const
 from astropy import units as u
-from astropy.modeling.blackbody import blackbody_lambda
+from astropy.modeling.models import BlackBody
 
 from sculptor import speconed as sod
 
@@ -34,11 +34,11 @@ import pkg_resources
 datadir = pkg_resources.resource_filename('sculptor', 'data/')
 
 c_km_s = const.c.to('km/s').value
+c_AngstroemPerSecond = const.c.to(u.AA/u.s).value
 
 # ------------------------------------------------------------------------------
 # Model functions
 # ------------------------------------------------------------------------------
-
 
 def power_law_at_2500(x, amp, slope, z):
     """ Power law model anchored at 2500 AA
@@ -99,7 +99,10 @@ def balmer_continuum_model(x, z, amp_be, Te, tau_be, lambda_be):
 
     x = x / (1.+z)
 
-    fluxden = amp_be * blackbody_lambda(x, Te).value * (
+    bb = BlackBody(temperature=Te*u.K)
+    black_body_lambda = bb(x*u.AA).value * c_AngstroemPerSecond / x**2
+
+    fluxden = amp_be * black_body_lambda * (
                 1. - np.exp(-tau_be * (x / lambda_be) ** 3))
 
     fluxden[x >= lambda_be] = fluxden[x >= lambda_be] * 0
@@ -148,11 +151,16 @@ def power_law_at_2500_plus_fractional_bc(x, amp, slope, z, f, Te, tau_be,
 
     x = x / (1. + z)
 
-    bc_fluxden_at_lambda_be = blackbody_lambda(lambda_be, Te).value * (
+    bb = BlackBody(temperature=Te*u.K)
+    black_body_lambda = bb(x*u.AA).value * c_AngstroemPerSecond / x**2
+    black_body_lambda_be = bb(lambda_be*u.AA).value * c_AngstroemPerSecond / \
+                            lambda_be**2
+
+    bc_fluxden_at_lambda_be = black_body_lambda_be * (
                 1. - np.exp(-tau_be))
 
     bc_fluxden = f * pl_fluxden_at_be / bc_fluxden_at_lambda_be * \
-              blackbody_lambda(x, Te).value * (
+                black_body_lambda * (
                 1. - np.exp(-tau_be * (x / lambda_be) ** 3))
 
     bc_fluxden[x >= lambda_be] = bc_fluxden[x >= lambda_be] * 0
@@ -196,10 +204,15 @@ def power_law_at_2500_plus_bc(x, amp, slope, z, amp_be, Te, tau_be,
 
     x = x / (1. + z)
 
-    bc_fluxden_0 = amp_be / (blackbody_lambda(lambda_be, Te).value *
+    bb = BlackBody(temperature=Te*u.K)
+    black_body_lambda = bb(x*u.AA).value * c_AngstroemPerSecond / x**2
+    black_body_lambda_be = bb(lambda_be*u.AA).value * c_AngstroemPerSecond / \
+                            lambda_be**2
+
+    bc_fluxden_0 = amp_be / (black_body_lambda_be *
                                         (1. - np.exp(-tau_be)))
 
-    bc_fluxden = bc_fluxden_0 * blackbody_lambda(x, Te).value * \
+    bc_fluxden = bc_fluxden_0 * black_body_lambda * \
                  (1. - np.exp(-tau_be * (x / lambda_be) ** 3))
 
     bc_fluxden[x >= lambda_be] = bc_fluxden[x >= lambda_be] * 0
