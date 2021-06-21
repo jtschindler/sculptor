@@ -728,7 +728,7 @@ class SpecFitGui(QMainWindow):
     # Fit Actions
     # --------------------------------------------------------------------------
 
-    def update_fitting_method(self,value):
+    def update_fitting_method(self, value):
 
         self.specfit.fitting_method = value
 
@@ -826,6 +826,14 @@ class SpecFitGui(QMainWindow):
 
             self.specfit.load(foldername)
 
+            print(self.specfit.xlim, self.specfit.ylim)
+
+            # Update dispersion and flux density limits from specfit
+            self.leXposA.setText('{:.2f}'.format(self.specfit.xlim[0]))
+            self.leXposB.setText('{:.2f}'.format(self.specfit.xlim[1]))
+            self.leYposA.setText('{:.2e}'.format(self.specfit.ylim[0]))
+            self.leYposB.setText('{:.2e}'.format(self.specfit.ylim[1]))
+
             # Rebuild TabWidget with loaded SpecModels
             self.add_specmodels_in_specfit()
 
@@ -834,6 +842,16 @@ class SpecFitGui(QMainWindow):
             self.update_specfit_plot()
             self.update_boxSelectSuperParam()
             self.rebuild_super_params_widget()
+
+            # Update redshift value from specfit
+            self.leRedshift.setText('{}'.format(self.specfit.redshift))
+
+            # Update fitting method from specfit
+            index = self.boxFittingMethod.findText(self.specfit.fitting_method,
+                                                   QtCore.Qt.MatchFixedString)
+            if index >= 0:
+                self.boxFittingMethod.setCurrentIndex(index)
+
 
         else:
             self.statusBar().showMessage('[WARNING] No directory to '
