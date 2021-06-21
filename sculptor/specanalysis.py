@@ -87,7 +87,7 @@ def analyze_emission_feature(specfit, feature_name, model_names,
     :type cosmology: astropy.cosmology class
     :param fwhm_method: Method to use for calculating the FWHM. Possible
         values are 'sign' or 'spline' (default).
-    :type: string
+    :type fwhm_method: string
     :return: Dictionary with measurement results (with units)
     :rtype: dict
     """
@@ -382,7 +382,7 @@ def analyze_mcmc_results(foldername, specfit, continuum_dict,
         will be called by this procedure.
     :type emission_feature_dictlist: list of dictionary
     :param redshift: Source redshift
-    :type: float
+    :type redshift: float
     :param cosmology: Cosmology for calculation of absolute properties
     :type cosmology: astropy.cosmology.Cosmology
     :param emfeat_meas: This keyword argument allows to specify the list of
@@ -553,7 +553,7 @@ def _mcmc_analyze(foldername, specfit, specmodel_index, mcmc_df, continuum_dict,
         will be called by this procedure.
     :type emission_feature_dictlist: dictionary
     :param redshift: Source redshift
-    :type: float
+    :type redshift: float
     :param cosmology: Cosmology for calculation of absolute properties
     :type cosmology: astropy.cosmology.Cosmology
     :param mode: A string indicating whether an emission feature by itself
@@ -721,8 +721,6 @@ def analyze_resampled_results(specfit, foldername, resampled_df_name,
     * 'disp_range' - 2 element list holding the lower and upper dispersion \
         boundaries flux density integration.
 
-
-
     :param specfit: Sculptor model fit (SpecFit object) containing the
         information about the science spectrum, the SpecModels and parameters.
     :type specfit: sculptor.specfit.SpecFit
@@ -740,7 +738,7 @@ def analyze_resampled_results(specfit, foldername, resampled_df_name,
         will be called by this procedure.
     :type emission_feature_dictlist: list of dictionary
     :param redshift: Source redshift
-    :type: float
+    :type redshift: float
     :param cosmology: Cosmology for calculation of absolute properties
     :type cosmology: astropy.cosmology.Cosmology
     :param emfeat_meas: This keyword argument allows to specify the list of
@@ -821,7 +819,7 @@ def _resampled_analyze(specfit, resampled_df, foldername, continuum_dict,
         will be called by this procedure.
     :type emission_feature_dictlist: list of dictionary
     :param redshift: Source redshift
-    :type: float
+    :type redshift: float
    :param cosmology: Cosmology for calculation of absolute properties
     :type cosmology: astropy.cosmology.Cosmology
     :param emfeat_meas: This keyword argument allows to specify the list of

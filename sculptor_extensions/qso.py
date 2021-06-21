@@ -281,10 +281,12 @@ def template_model(x, amp, z, fwhm, intr_fwhm, templ_disp=None,
     :type templ_disp: np.ndarray
     :param templ_fluxden: Flux density of the template.
     :type templ_fluxden: templ_fluxden: np.ndarray
-    # :param templ_disp_unit: Dispersion unit of the template. This should be \
-    #     an astropy Unit, Quantity, IrreducibleUnit or CompositeUnit.
-    # :param templ_fluxden_unit: Flux density unit of the template. This should \
-    #     be an astropy Unit, Quantity, IrreducibleUnit or CompositeUnit.
+    :param templ_disp_unit_str: Dispersion unit of the template as a string
+        in astropy cds format.
+    :type templ_fluxden_unit_str: str
+    :param templ_fluxden_unit: Flux density unit of the template as a string
+        in astropy cds format.
+    :type templ_disp_unit_str: str
     :return: Template model as a Scipy interpolation
 
     """
