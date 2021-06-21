@@ -1319,11 +1319,13 @@ class SpecOneD(object):
                     spec.__dict__[attr] = interp(new_dispersion)
 
         if inplace:
-            self.fluxden_err /= snr_factor
+            if self.fluxden_err is not None:
+                self.fluxden_err /= snr_factor
             self.dispersion = new_dispersion
             self.reset_mask()
         else:
-            spec.fluxden_err /= snr_factor
+            if self.fluxden_err is not None:
+                spec.fluxden_err /= snr_factor
             spec.dispersion = new_dispersion
             spec.reset_mask()
             return spec

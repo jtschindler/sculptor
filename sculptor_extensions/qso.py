@@ -248,8 +248,9 @@ def line_model_gaussian(x, z, amp, cen, fwhm_km_s, shift_km_s):
 
 
 def template_model(x, amp, z, fwhm, intr_fwhm, templ_disp=None,
-                   templ_fluxden=None, templ_disp_unit=None,
-                   templ_fluxden_unit=None):
+                   templ_fluxden=None,
+                   templ_disp_unit_str=None,
+                   templ_fluxden_unit_str=None):
     """Template model
 
     :param x: Dispersion of the template model
@@ -267,18 +268,28 @@ def template_model(x, amp, z, fwhm, intr_fwhm, templ_disp=None,
     :type templ_disp: np.ndarray
     :param templ_fluxden: Flux density of the template.
     :type templ_fluxden: templ_fluxden: np.ndarray
-    :param templ_disp_unit: Dispersion unit of the template. This should be \
-        an astropy Unit, Quantity, IrreducibleUnit or CompositeUnit.
-    :param templ_fluxden_unit: Flux density unit of the template. This should \
-        be an astropy Unit, Quantity, IrreducibleUnit or CompositeUnit.
+    # :param templ_disp_unit: Dispersion unit of the template. This should be \
+    #     an astropy Unit, Quantity, IrreducibleUnit or CompositeUnit.
+    # :param templ_fluxden_unit: Flux density unit of the template. This should \
+    #     be an astropy Unit, Quantity, IrreducibleUnit or CompositeUnit.
     :return: Template model as a Scipy interpolation
 
     """
 
+    if templ_disp_unit_str is not None and type(templ_disp_unit_str) is str:
+        dispersion_unit = u.Unit(templ_disp_unit_str, format='cds')
+    else:
+        dispersion_unit = None
+    if templ_fluxden_unit_str is not None and \
+            type(templ_fluxden_unit_str)is str:
+        fluxden_unit = u.Unit(templ_fluxden_unit_str, format='cds')
+    else:
+        fluxden_unit = None
+
     # Initialize a SpecOneD model for the template
     template_spec = sod.SpecOneD(dispersion=templ_disp, fluxden=templ_fluxden,
-                                 dispersion_unit=templ_disp_unit,
-                                 fluxden_unit=templ_fluxden_unit)
+                                 dispersion_unit=dispersion_unit,
+                                 fluxden_unit=fluxden_unit)
 
     # Calculate the FWHM for the convolution
     convol_fwhm = np.sqrt(fwhm**2-intr_fwhm**2)
@@ -518,7 +529,8 @@ def setup_line_model_gaussian(prefix, **kwargs):
 
 
 def setup_iron_template_model(prefix, template_filename,
-                              templ_disp_unit, templ_fluxden_unit,fwhm=2500,
+                              templ_disp_unit, templ_fluxden_unit,
+                              fwhm=2500,
                               redshift=0,
                               amplitude=1, intr_fwhm=900,
                               dispersion_limits=None):
@@ -549,6 +561,25 @@ def setup_iron_template_model(prefix, template_filename,
     # Load template model from Sculptor data directory
     template = np.genfromtxt(datadir+'iron_templates/'+template_filename)
 
+    # Convert astropy units to string to be able to save them with LMFIT
+    if type(templ_disp_unit) is u.Quantity:
+        templ_disp_unit_str = templ_disp_unit.unit.to_string('cds')
+        templ_dist_unit_factor = templ_disp_unit.value
+    elif type(templ_disp_unit) is u.Unit:
+        templ_disp_unit_str = templ_disp_unit.to_string('cds')
+    else:
+        raise ValueError('[ERROR] Template dispersion unit type is not an '
+                         'astropy unit or astropy quantity.')
+
+    if type(templ_fluxden_unit) is u.Quantity:
+        templ_fluxden_unit_str = templ_fluxden_unit.unit.to_string('cds')
+        templ_fluxden_unit_factor = templ_fluxden_unit.value
+    elif type(templ_fluxden_unit) is u.Unit:
+        templ_fluxden_unit_str = templ_fluxden_unit.to_string('cds')
+    else:
+        raise ValueError('[ERROR] Template flux density unit type is not an '
+                         'astropy unit or astropy quantity.')
+
     # Apply dispersion limits
     if dispersion_limits is not None:
         wav_min = dispersion_limits[0]
@@ -561,16 +592,16 @@ def setup_iron_template_model(prefix, template_filename,
                       param_names=['amp', 'z', 'fwhm', 'intr_fwhm'],
                       templ_disp=template[idx_min:idx_max, 0],
                       templ_fluxden=template[idx_min:idx_max, 1],
-                      templ_disp_unit=templ_disp_unit,
-                      templ_fluxden_unit=templ_fluxden_unit,
+                      templ_disp_unit_str=templ_disp_unit_str,
+                      templ_fluxden_unit_str=templ_fluxden_unit_str,
                       prefix=prefix)
     else:
         model = Model(template_model,
                       param_names=['amp', 'z', 'fwhm', 'intr_fwhm'],
-                      templ_disp=template[idx_min:idx_max, 0],
-                      templ_fluxden=template[idx_min:idx_max, 1],
-                      templ_disp_unit=templ_disp_unit,
-                      templ_fluxden_unit=templ_fluxden_unit,
+                      templ_disp=template,
+                      templ_fluxden=template,
+                      templ_disp_unit_str=templ_disp_unit_str,
+                      templ_fluxden_unit_str=templ_fluxden_unit_str,
                       prefix=prefix)
 
     add_redshift_param(redshift, params, prefix)
@@ -603,14 +634,16 @@ def setup_subdivided_iron_template(templ_list, fwhm=2500, redshift=0,
     param_list = []
     model_list = []
 
-    templ_disp_unit = 1.*u.AA
-    templ_fluxden_unit = 1.*u.erg/u.s/u.cm**2/u.AA
+    templ_disp_unit = u.AA
+    templ_fluxden_unit = u.erg/u.s/u.cm**2/u.AA
 
     if 'UV01_VW01' in templ_list:
         # 1200-1560 Vestergaard 2001
         model, params = setup_iron_template_model(
-            'UV01_VW01_', 'Fe_UVtemplt_A.asc', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm,
+            'UV01_VW01_', 'Fe_UVtemplt_A.asc',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm,
             redshift=redshift,
             amplitude=amplitude, intr_fwhm=900, dispersion_limits=[1200, 1560])
         param_list.append(params)
@@ -618,24 +651,30 @@ def setup_subdivided_iron_template(templ_list, fwhm=2500, redshift=0,
     if 'UV02_VW01' in templ_list or not templ_list:
         # 1560-1875 Vestergaard 2001
         model, params = setup_iron_template_model(
-            'UV02_VW01_', 'Fe_UVtemplt_A.asc', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
+            'UV02_VW01_', 'Fe_UVtemplt_A.asc',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm, redshift=redshift,
             amplitude=amplitude, intr_fwhm=900, dispersion_limits=[1560, 1875])
         param_list.append(params)
         model_list.append(model)
     if 'UV03_VW01' in templ_list or not templ_list:
         # 1875-2200 Vestergaard 2001
         model, params = setup_iron_template_model(
-            'UV03_VW01_', 'Fe_UVtemplt_A.asc', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
+            'UV03_VW01_', 'Fe_UVtemplt_A.asc',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm, redshift=redshift,
             amplitude=amplitude, intr_fwhm=900, dispersion_limits=[1875, 2200])
         param_list.append(params)
         model_list.append(model)
     if 'FeIIIUV34_VW01' in templ_list or not templ_list:
         # Vestergaard 2001 - FeIII UV34 template
         model, params = setup_iron_template_model(
-            'FeIIIUV34_VW01_', 'Fe3UV34modelB2.asc', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm,
+            'FeIIIUV34_VW01_', 'Fe3UV34modelB2.asc',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm,
             redshift=redshift,
             amplitude=amplitude, intr_fwhm=900, dispersion_limits=[1875, 2200])
         param_list.append(params)
@@ -643,32 +682,40 @@ def setup_subdivided_iron_template(templ_list, fwhm=2500, redshift=0,
     if 'UV04_T06' in templ_list or not templ_list:
         # 2200-2660 Tsuzuki 2006
         model, params = setup_iron_template_model(
-            'UV04_T06_', 'Tsuzuki06.txt', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
+            'UV04_T06_', 'Tsuzuki06.txt',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm, redshift=redshift,
             amplitude=amplitude, intr_fwhm=900, dispersion_limits=[2200, 2660])
         param_list.append(params)
         model_list.append(model)
     if 'UV05_T06' in templ_list or not templ_list:
         # 2660-3000 Tsuzuki 2006
         model, params = setup_iron_template_model(
-            'UV05_T06_', 'Tsuzuki06.txt', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
+            'UV05_T06_', 'Tsuzuki06.txt',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm, redshift=redshift,
             amplitude=amplitude, intr_fwhm=900, dispersion_limits=[2660, 3000])
         param_list.append(params)
         model_list.append(model)
     if 'UV06_T06' in templ_list or not templ_list:
         # 3000-3500 Tsuzuki 2006
         model, params = setup_iron_template_model(
-            'UV06_T06_', 'Tsuzuki06.txt', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
+            'UV06_T06_', 'Tsuzuki06.txt',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm, redshift=redshift,
             amplitude=amplitude, intr_fwhm=900, dispersion_limits=[3000, 3500])
         param_list.append(params)
         model_list.append(model)
     if 'OPT01_BG92' in templ_list or not templ_list:
         # 4400-4700 Boronson & Green 1992
         model, params = setup_iron_template_model(
-            'OPT01_BG92_', 'Fe_OPT_BR92_linear.txt', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm,
+            'OPT01_BG92_', 'Fe_OPT_BR92_linear.txt',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm,
             redshift=redshift, amplitude=amplitude, intr_fwhm=900,
             dispersion_limits=[3700, 4700])
         param_list.append(params)
@@ -676,8 +723,10 @@ def setup_subdivided_iron_template(templ_list, fwhm=2500, redshift=0,
     if 'OPT02_BG92' in templ_list or not templ_list:
         # 4700-5100 Boronson & Green 1992
         model, params = setup_iron_template_model(
-            'OPT02_BG92_', 'Fe_OPT_BR92_linear.txt', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm,
+            'OPT02_BG92_', 'Fe_OPT_BR92_linear.txt',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm,
             redshift=redshift, amplitude=amplitude, intr_fwhm=900,
             dispersion_limits=[4700, 5100])
         param_list.append(params)
@@ -685,8 +734,10 @@ def setup_subdivided_iron_template(templ_list, fwhm=2500, redshift=0,
     if 'OPT03_BG92' in templ_list or not templ_list:
         # 5100-5600 Boronson & Green 1992
         model, params = setup_iron_template_model(
-            'OPT03_BG92_', 'Fe_OPT_BR92_linear.txt', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm,
+            'OPT03_BG92_', 'Fe_OPT_BR92_linear.txt',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm,
             redshift=redshift, amplitude=amplitude, intr_fwhm=900,
             dispersion_limits=[5100, 5600])
         param_list.append(params)
@@ -695,24 +746,30 @@ def setup_subdivided_iron_template(templ_list, fwhm=2500, redshift=0,
     if 'UV04_VW01' in templ_list or not templ_list:
         # 2200-2660 Vestergaard 2001
         model, params = setup_iron_template_model(
-            'UV04_VW01_', 'Fe_UVtemplt_A.asc', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
+            'UV04_VW01_', 'Fe_UVtemplt_A.asc',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm, redshift=redshift,
             amplitude=amplitude, intr_fwhm=900, dispersion_limits=[2200, 2660])
         param_list.append(params)
         model_list.append(model)
     if 'UV05_VW01' in templ_list or not templ_list:
         # 2660-3000 Vestergaard 2001
         model, params = setup_iron_template_model(
-            'UV05_VW01_', 'Fe_UVtemplt_A.asc', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
+            'UV05_VW01_', 'Fe_UVtemplt_A.asc',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm, redshift=redshift,
             amplitude=amplitude, intr_fwhm=900, dispersion_limits=[2660, 3000])
         param_list.append(params)
         model_list.append(model)
     if 'UV06_VW01' in templ_list or not templ_list:
         # 3000-3500 Vestergaard 2001
         model, params = setup_iron_template_model(
-            'UV06_VW01_', 'Fe_UVtemplt_A.asc', templ_disp_unit,
-            templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
+            'UV06_VW01_', 'Fe_UVtemplt_A.asc',
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm, redshift=redshift,
             amplitude=amplitude, intr_fwhm=900, dispersion_limits=[3000, 3500])
         param_list.append(params)
         model_list.append(model)
@@ -735,8 +792,8 @@ def setup_iron_template_T06(prefix, **kwargs):
 
     """
 
-    templ_disp_unit = 1. * u.AA
-    templ_fluxden_unit = 1. * u.erg / u.s / u.cm ** 2 / u.AA
+    templ_disp_unit = u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
 
     redshift = kwargs.pop('redshift', 0)
     amplitude = kwargs.pop('amplitude', 1)
@@ -766,8 +823,8 @@ def setup_iron_template_UV_VW01(prefix, **kwargs):
 
     """
 
-    templ_disp_unit = 1. * u.AA
-    templ_fluxden_unit = 1. * u.erg / u.s / u.cm ** 2 / u.AA
+    templ_disp_unit = u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
 
     redshift = kwargs.pop('redshift', 0)
     amplitude = kwargs.pop('amplitude', 1)
@@ -827,8 +884,8 @@ def setup_iron_template_MgII_T06(prefix, **kwargs):
 
     """
 
-    templ_disp_unit = 1. * u.AA
-    templ_fluxden_unit = 1. * u.erg / u.s / u.cm ** 2 / u.AA
+    templ_disp_unit = u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
 
     redshift = kwargs.pop('redshift', 0)
     amplitude = kwargs.pop('amplitude', 1)
@@ -885,8 +942,8 @@ def setup_iron_template_MgII_VW01(prefix, **kwargs):
 
     """
 
-    templ_disp_unit = 1. * u.AA
-    templ_fluxden_unit = 1. * u.erg / u.s / u.cm ** 2 / u.AA
+    templ_disp_unit = u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
 
     redshift = kwargs.pop('redshift', 0)
     amplitude = kwargs.pop('amplitude', 1)
@@ -942,8 +999,8 @@ def setup_iron_template_OPT_BG92(prefix, **kwargs):
 
     """
 
-    templ_disp_unit = 1. * u.AA
-    templ_fluxden_unit = 1. * u.erg / u.s / u.cm ** 2 / u.AA
+    templ_disp_unit = u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
 
     redshift = kwargs.pop('redshift', 0)
     amplitude = kwargs.pop('amplitude', 1)

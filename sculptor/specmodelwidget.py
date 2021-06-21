@@ -871,7 +871,8 @@ class SpecModelWidget(QWidget):
             self.specModelCanvas.fig.savefig(foldername +
                              '/SpecModel_{}.png'.format(self.specmodel.name))
         else:
-            self.statusBar().showMessage('[WARNING] No save directory '
+            self.specfitgui.statusBar().showMessage('[WARNING] No save '
+                                                   'directory '
                                          'selected.')
 
 
