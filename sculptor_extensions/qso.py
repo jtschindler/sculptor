@@ -578,20 +578,22 @@ def setup_iron_template_model(prefix, template_filename,
     if type(templ_disp_unit) is u.Quantity:
         templ_disp_unit_str = templ_disp_unit.unit.to_string('cds')
         templ_dist_unit_factor = templ_disp_unit.value
-    elif type(templ_disp_unit) is u.Unit:
+    elif type(templ_disp_unit) is u.Unit or type(templ_disp_unit) is \
+            u.CompositeUnit:
         templ_disp_unit_str = templ_disp_unit.to_string('cds')
     else:
-        raise ValueError('[ERROR] Template dispersion unit type is not an '
-                         'astropy unit or astropy quantity.')
+        raise ValueError('[ERROR] Template flux density unit type is not an '
+                         'astropy unit or astropy quantity. Current datatype: {}'.format(type(templ_disp_unit)))
 
     if type(templ_fluxden_unit) is u.Quantity:
         templ_fluxden_unit_str = templ_fluxden_unit.unit.to_string('cds')
         templ_fluxden_unit_factor = templ_fluxden_unit.value
-    elif type(templ_fluxden_unit) is u.Unit:
+    elif type(templ_fluxden_unit) is u.Unit or type(templ_fluxden_unit) is \
+            u.CompositeUnit:
         templ_fluxden_unit_str = templ_fluxden_unit.to_string('cds')
     else:
         raise ValueError('[ERROR] Template flux density unit type is not an '
-                         'astropy unit or astropy quantity.')
+                         'astropy unit or astropy quantity. Current datatype: {}'.format(type(templ_fluxden_unit)))
 
     # Apply dispersion limits
     if dispersion_limits is not None:

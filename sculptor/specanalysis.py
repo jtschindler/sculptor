@@ -43,7 +43,7 @@ def analyze_emission_feature(specfit, feature_name, model_names,
                              rest_frame_wavelength, cont_model_names=None,
                              redshift=None, dispersion=None,
                              emfeat_meas=None, disp_range=None,
-                             cosmology=None, fwhm_method='sign'):
+                             cosmology=None, fwhm_method='spline'):
     """Calculate measurements of an emission feature for a spectral fit (
     SpecFit object).
 
@@ -86,7 +86,7 @@ def analyze_emission_feature(specfit, feature_name, model_names,
     :param cosmology: Cosmology for calculating luminosities
     :type cosmology: astropy.cosmology class
     :param fwhm_method: Method to use for calculating the FWHM. Possible
-        values are 'sign' (default) or 'spline'.
+        values are 'sign' or 'spline' (default).
     :type: string
     :return: Dictionary with measurement results (with units)
     :rtype: dict
@@ -239,7 +239,7 @@ def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
 
         if 'fluxden_avg' in cont_meas:
             result_dict.update({wave_name+'_fluxden_avg':
-                                fluxden_avg*cont_spec.fluxden_unit})
+                                fluxden_avg})
 
         if 'Lwav' in cont_meas:
             lwav = calc_lwav_from_fwav(fluxden_avg,
@@ -380,7 +380,7 @@ def analyze_mcmc_results(foldername, specfit, continuum_dict,
     :param emission_feature_dictlist: The *emission_feature_listdict* hold the
         arguments for the *SpecAnalysis.analyze_emission_feature* functions that
         will be called by this procedure.
-    :type emission_feature_dictlist: dictionary
+    :type emission_feature_dictlist: list of dictionary
     :param redshift: Source redshift
     :type: float
     :param cosmology: Cosmology for calculation of absolute properties
@@ -447,7 +447,7 @@ def analyze_mcmc_results(foldername, specfit, continuum_dict,
                 # IF continuum and emission features requested for the
                 # analysis are available in THIS SpecModel begin a joint
                 # analysis of the continuum and emission feature.
-                # ONLY MODLES THAT WERE SAMPLED TOGETHER ARE ANALYZED TOGETHER!
+                # ONLY MODELS THAT WERE SAMPLED TOGETHER ARE ANALYZED TOGETHER!
                 if set(cont_emfeat_models).issubset(prefix_list):
                     params_list_keys = []
                     for params in specmodel.params_list:
@@ -624,7 +624,7 @@ def _mcmc_analyze(foldername, specfit, specmodel_index, mcmc_df, continuum_dict,
             if 'fwhm_method' in emission_feature_dict:
                 fwhm_method = emission_feature_dict['fwhm_method']
             else:
-                fwhm_method = 'sign'
+                fwhm_method = 'spline'
 
             emfeat_result_dict = \
                 analyze_emission_feature(specfit,
@@ -686,15 +686,93 @@ def _mcmc_analyze(foldername, specfit, specmodel_index, mcmc_df, continuum_dict,
             delimiter=',')
 
 
-def analyze_resampled_results(specfit, resampled_df, continuum_dict,
+def analyze_resampled_results(specfit, foldername, resampled_df_name,
+                              continuum_dict,
                               emission_feature_dictlist, redshift, cosmology,
                               emfeat_meas=None, cont_meas=None, dispersion=None,
                               width=10, concatenate=False):
-    """
-    THIS FUNCTION IS CURRENTLY UNDER ACTIVE DEVELOPMENT.
+    """Analyze resampled model fit results for all specified continuum and
+    feature models.
+
+    Results will be written to an enhanced csv file in the same folder,
+    where the resampled raw data resides.
+
+    The following parameters should be specified in the *continuum_listdict*:
+
+    * 'model_names' - list of model function prefixes for the full continuum \
+        model
+    * 'rest_frame_wavelengths' - list of rest-frame wavelengths (float) for \
+        which fluxes, luminosities and magnitudes should be calculated
+
+    The other arguments for the *SpecAnalysis.analyze_continuum* are provided \
+        to the MCMC analysis function separately.
+
+    The following parameters should be specified in the \
+        *emission_feature_listdict*:
+
+    * 'feature_name' - name of the emission feature, which will be used to \
+        name the resulting measurements in the output file.
+    * 'model_names' - list of model names to create the emission feature model \
+        flux from.
+    * 'rest_frame_wavelength' - rest-frame wavelength of the emission feature.
+
+    Additionally, one can specify:
+
+    * 'disp_range' - 2 element list holding the lower and upper dispersion \
+        boundaries flux density integration.
+
+
+
+    :param specfit: Sculptor model fit (SpecFit object) containing the
+        information about the science spectrum, the SpecModels and parameters.
+    :type specfit: sculptor.specfit.SpecFit
+    :param foldername: Path to the folder with the resampled raw hdf5 file.
+    :type foldername: string
+    :param resampled_df_name: Filename of the resampled raw DataFrame saved
+        in hdf5 format.
+    :type resampled_df_name: str
+    :param continuum_dict: The *continuum_listdict* holds the arguments for
+        the *SpecAnalysis.analyze_continuum* function that will be called by
+        this procedure.
+    :type continuum_dict: dictionary
+    :param emission_feature_dictlist: The *emission_feature_listdict* hold the
+        arguments for the *SpecAnalysis.analyze_emission_feature* functions that
+        will be called by this procedure.
+    :type emission_feature_dictlist: list of dictionary
+    :param redshift: Source redshift
+    :type: float
+    :param cosmology: Cosmology for calculation of absolute properties
+    :type cosmology: astropy.cosmology.Cosmology
+    :param emfeat_meas: This keyword argument allows to specify the list of
+        emission feature measurements.
+        Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
+        'FWHM', 'flux']. The value defaults to 'None' in which all measurements
+        are calculated
+    :type emfeat_meas: list(string)
+    :param cont_meas: This keyword argument allows to specify the list of
+        emission feature measurements.
+        Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
+        'FWHM', 'flux']. The value defaults to 'None' in which all measurements
+        are calculated
+    :type cont_meas: list(string)
+    :param dispersion: This keyword argument allows to input a dispersion
+        axis (e.g., wavelengths) for which the model fluxes are calculated. The
+        value defaults to 'None', in which case the dispersion from the SpecFit
+        spectrum is being used.
+    :type dispersion: np.array
+    :param width: Window width in dispersion units to calculate the average
+        flux density in.
+    :type width: [float, float]
+    :param concatenate: Boolean to indicate whether the MCMC flat chain and
+        the analysis results should be concatenated before written to file.
+        (False = Only writes analysis results to file; True = Writes analysis
+        results and MCMC flat chain parameter values to file)
+    :type concatenate: bool
+    :return: None
     """
 
     # Test if all necessary columns are inlcuded in the resampled file
+    resampled_df = pd.read_hdf(foldername+'/'+resampled_df_name, 'data')
     fit_columns = resampled_df.columns
     all_specfit_params = []
 
@@ -707,7 +785,8 @@ def analyze_resampled_results(specfit, resampled_df, continuum_dict,
     if set(all_specfit_params).issubset(fit_columns):
         print('[INFO] Resampled results contain necessary column information.')
         print('[INFO] Proceeding with analysis.')
-        _resampled_analyze(specfit, resampled_df, continuum_dict,
+        # If all parameters are found, continue with analysis
+        _resampled_analyze(specfit, resampled_df, foldername, continuum_dict,
                            emission_feature_dictlist, redshift, cosmology,
                            emfeat_meas=emfeat_meas, cont_meas=cont_meas,
                            dispersion=dispersion,
@@ -718,16 +797,70 @@ def analyze_resampled_results(specfit, resampled_df, continuum_dict,
         print('[ERROR] Please double check if the correct file was supplied.')
 
 
-def _resampled_analyze(specfit, resampled_df, continuum_dict,
+def _resampled_analyze(specfit, resampled_df, foldername, continuum_dict,
                               emission_feature_dictlist, redshift, cosmology,
                               emfeat_meas=None, cont_meas=None, dispersion=None,
                               width=10, concatenate=False):
-    """
-    THIS FUNCTION IS CURRENTLY UNDER ACTIVE DEVELOPMENT.
-    """
-    result_df = None
+    """Analyze the resampled model fit and save the posterior distributions of
+    the analyzed parameters.
 
-    for idx in resampled_df.index:
+    :param specfit: Sculptor model fit (SpecFit object) containing the
+        information about the science spectrum, the SpecModels and parameters.
+    :type specfit: sculptor.specfit.SpecFit
+    :param resampled_df: The resampled raw DataFrame
+    :type resampled_df: pd.DataFrame
+    :param foldername: Path to the folder with the resampled raw hdf5 file.
+        Used for saving the analyzed results.
+    :type foldername: string
+    :param continuum_dict: The *continuum_listdict* holds the arguments for
+        the *SpecAnalysis.analyze_continuum* function that will be called by
+        this procedure.
+    :type continuum_dict: dictionary
+    :param emission_feature_dictlist: The *emission_feature_listdict* hold the
+        arguments for the *SpecAnalysis.analyze_emission_feature* functions that
+        will be called by this procedure.
+    :type emission_feature_dictlist: list of dictionary
+    :param redshift: Source redshift
+    :type: float
+   :param cosmology: Cosmology for calculation of absolute properties
+    :type cosmology: astropy.cosmology.Cosmology
+    :param emfeat_meas: This keyword argument allows to specify the list of
+        emission feature measurements.
+        Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
+        'FWHM', 'flux']. The value defaults to 'None' in which all measurements
+        are calculated
+    :type emfeat_meas: list(string)
+    :param cont_meas: This keyword argument allows to specify the list of
+        emission feature measurements.
+        Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
+        'FWHM', 'flux']. The value defaults to 'None' in which all measurements
+        are calculated
+    :type cont_meas: list(string)
+    :param dispersion: This keyword argument allows to input a dispersion
+        axis (e.g., wavelengths) for which the model fluxes are calculated. The
+        value defaults to 'None', in which case the dispersion from the SpecFit
+        spectrum is being used.
+    :type dispersion: np.array
+    :param width: Window width in dispersion units to calculate the average
+        flux density in.
+    :type width: [float, float]
+    :param concatenate: Boolean to indicate whether the MCMC flat chain and
+        the analysis results should be concatenated before written to file.
+        (False = Only writes analysis results to file; True = Writes analysis
+        results and MCMC flat chain parameter values to file)
+    :type concatenate: bool
+    :return: None
+    """
+    
+    # Set up the table variable for the results
+    result_table = None
+
+    emfeat_result_dict = None
+    cont_result_dict = None
+    feature_name = None
+
+    for i in tqdm(range(len(resampled_df.index))):
+        idx = resampled_df.index[i]
 
         # Work on a copy of the original SpecFit object
         fit = specfit.copy()
@@ -737,29 +870,87 @@ def _resampled_analyze(specfit, resampled_df, continuum_dict,
         for specmodel in fit.specmodels:
             specmodel.update_param_values_from_input_series(resampled_series)
 
-        result_dict = analyze_fit(specfit,
-                                  continuum_dict,
-                                  emission_feature_dictlist,
-                                  # absorption_feature_dictlist,
-                                  redshift,
-                                  cosmology,
-                                  emfeat_meas=emfeat_meas,
-                                  cont_meas=cont_meas,
-                                  dispersion=dispersion,
-                                  width=width
-                                  )
+        result_dict = {}
+        emfeat_result_dict = None
+        cont_result_dict = None
 
-        if result_df is None:
-            result_df = pd.DataFrame(data=result_dict, index=range(1))
-        else:
-            result_df = result_df.append(result_dict, ignore_index=True)
+        # Continuum analysis
+        cont_result_dict = \
+            analyze_continuum(specfit,
+                              continuum_dict['model_names'],
+                              continuum_dict['rest_frame_wavelengths'],
+                              cosmology,
+                              redshift=redshift,
+                              dispersion=dispersion,
+                              cont_meas=cont_meas,
+                              width=width)
+
+        # Emission line analysis
+        for emission_feature_dict in emission_feature_dictlist:
+            cont_model_names = continuum_dict['model_names']
+            feature_name = emission_feature_dict['feature_name']
+            model_names = emission_feature_dict['model_names']
+            rest_frame_wavelength = emission_feature_dict[
+                'rest_frame_wavelength']
+            if 'disp_range' in emission_feature_dict:
+                disp_range = emission_feature_dict['disp_range']
+            else:
+                disp_range = None
+            if 'fwhm_method' in emission_feature_dict:
+                fwhm_method = emission_feature_dict['fwhm_method']
+            else:
+                fwhm_method = 'spline'
+
+            emfeat_result_dict = \
+                analyze_emission_feature(specfit,
+                                         feature_name,
+                                         model_names,
+                                         rest_frame_wavelength,
+                                         cont_model_names=cont_model_names,
+                                         redshift=redshift,
+                                         dispersion=dispersion,
+                                         emfeat_meas=emfeat_meas,
+                                         disp_range=disp_range,
+                                         cosmology=cosmology,
+                                         fwhm_method=fwhm_method)
+
+
+
+        if cont_result_dict is not None:
+            result_dict.update(cont_result_dict)
+        if emfeat_result_dict is not None:
+            result_dict.update(emfeat_result_dict)
+
+        if result_table is None:
+            # Initialize QTable for results
+            # Initialize column names
+            result_table = QTable(names=result_dict.keys())
+            # Initialize column units
+            for column in result_table.columns:
+                if (isinstance(result_dict[column], units.Quantity) or
+                   isinstance(result_dict[column], units.IrreducibleUnit) or
+                   isinstance(result_dict[column], units.CompositeUnit)):
+                    result_table[column].unit = result_dict[column].unit
+
+        result_table.add_row(result_dict)
 
     if concatenate:
-        result = pd.concat([mcmc_df, result_df], axis=1)
+        resampled_table = QTable.from_pandas(resampled_df)
+        result = hstack([resampled_table, result_table])
     else:
-        result = result_df
+        result = result_table
 
-    result.to_csv('resampled_analysis.csv')
+    if cont_result_dict is None:
+        result.write('{}/resampled_analysis_{}.csv'.format(foldername,
+                                                       feature_name),
+                           format='ascii.ecsv', overwrite=True, delimiter=',')
+    elif emfeat_result_dict is None:
+        result.write('{}/resampled_analysis_cont.csv'.format(foldername),
+                           format='ascii.ecsv', overwrite=True, delimiter=',')
+    else:
+        result.write('{}/resampled_analysis_cont_{}.csv'.format(
+            foldername, feature_name), format='ascii.ecsv', overwrite=True,
+            delimiter=',')
 
 # ------------------------------------------------------------------------------
 # Model Spectrum Generation

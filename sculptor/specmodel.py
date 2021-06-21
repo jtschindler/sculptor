@@ -811,7 +811,8 @@ class SpecModel:
         if 'xlim' in meta.index:
             self.xlim = meta.loc['xlim', 0]
             print ('[WARNING] You are loading data from a '
-                                     'saved fit created with 0.2b0. This '
+                                     'saved fit created with beta '
+                   'version 0.2b0. This '
                                      'format will be deprecated with '
                                      'release 1.0.0')
         else:
@@ -820,7 +821,8 @@ class SpecModel:
         if 'ylim' in meta.index:
             self.ylim = meta.loc['ylim', 0]
             print ('[WARNING] You are loading data from a '
-                                     'saved fit created with 0.2b0. This '
+                                     'saved fit created with beta '
+                   'version 0.2b0. This '
                                      'format will be deprecated with '
                                      'release 1.0.0')
         else:
