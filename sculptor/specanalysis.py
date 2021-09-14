@@ -471,7 +471,7 @@ def analyze_mcmc_results(foldername, specfit, continuum_dict,
                                       concatenate=concatenate
                                       )
                 else:
-                    # IF only the emision features requested for the analysis
+                    # IF only the emission features requested for the analysis
                     # are available in THIS SpecModel analyze the emission
                     # feature.
                     if set(emfeat_models).issubset(prefix_list):
@@ -884,6 +884,7 @@ def _resampled_analyze(specfit, resampled_df, foldername, continuum_dict,
                               width=width)
 
         # Emission line analysis
+        emfeat_result_dict = {}
         for emission_feature_dict in emission_feature_dictlist:
             cont_model_names = continuum_dict['model_names']
             feature_name = emission_feature_dict['feature_name']
@@ -899,7 +900,7 @@ def _resampled_analyze(specfit, resampled_df, foldername, continuum_dict,
             else:
                 fwhm_method = 'spline'
 
-            emfeat_result_dict = \
+            single_emfeat_result_dict = \
                 analyze_emission_feature(specfit,
                                          feature_name,
                                          model_names,
@@ -912,6 +913,7 @@ def _resampled_analyze(specfit, resampled_df, foldername, continuum_dict,
                                          cosmology=cosmology,
                                          fwhm_method=fwhm_method)
 
+            emfeat_result_dict.update(single_emfeat_result_dict)
 
 
         if cont_result_dict is not None:
@@ -938,16 +940,23 @@ def _resampled_analyze(specfit, resampled_df, foldername, continuum_dict,
     else:
         result = result_table
 
-    if cont_result_dict is None:
+    if cont_result_dict is None and len(emission_feature_dictlist) == 1:
         result.write('{}/resampled_analysis_{}.csv'.format(foldername,
                                                        feature_name),
+                           format='ascii.ecsv', overwrite=True, delimiter=',')
+    elif cont_result_dict is None and len(emission_feature_dictlist) > 1:
+        result.write('{}/resampled_analysis_lines.csv'.format(foldername),
                            format='ascii.ecsv', overwrite=True, delimiter=',')
     elif emfeat_result_dict is None:
         result.write('{}/resampled_analysis_cont.csv'.format(foldername),
                            format='ascii.ecsv', overwrite=True, delimiter=',')
-    else:
+    elif cont_result_dict is not None and len(emission_feature_dictlist) == 1:
         result.write('{}/resampled_analysis_cont_{}.csv'.format(
             foldername, feature_name), format='ascii.ecsv', overwrite=True,
+            delimiter=',')
+    else:
+        result.write('{}/resampled_analysis_cont_lines.csv'.format(
+            foldername), format='ascii.ecsv', overwrite=True,
             delimiter=',')
 
 # ------------------------------------------------------------------------------
@@ -1203,6 +1212,9 @@ def get_nonparametric_measurements(input_spec, line_rest_wavel, redshift,
                                    disp_range=None):
     """
     Measure the velocities at different ratios of the total emission line flux.
+
+    These velocity measurements are referenced in the literature by (e.g.)
+    Whittle+1985, Liu+2013, Zakamska & Greene 2014.
 
     This function calculates the cumulative integral of the emission line
     flux and then determines the closest dispersion values in velocity space to

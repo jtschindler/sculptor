@@ -24,6 +24,6 @@ dependencies:
   - lmfit>=1.0.1
   - corner>=2.1.0
   - spectres
-  - nbspinx
+  - nbsphinx
   - nbsphinx-link
   - linetools
