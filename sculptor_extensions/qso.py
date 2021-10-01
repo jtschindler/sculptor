@@ -1560,7 +1560,7 @@ model_setup_list = [setup_power_law_at_2500,
 
 # Test if swire library galaxy templates are present and then add the model and
 # setup functions
-if os.path.isdir(datadir+'galaxy_template/swire_library'):
+if os.path.isdir(datadir+'galaxy_templates/swire_library/'):
     print('[INFO] SWIRE library found.')
 
     model_funcs = ['SWIRE Ell2']
