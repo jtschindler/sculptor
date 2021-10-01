@@ -543,6 +543,16 @@ def setup_line_model_gaussian(prefix, **kwargs):
 # ------------------------------------------------------------------------------
 
 
+def setup_galaxy_template_model(prefix, template_filename,
+                              templ_disp_unit, templ_fluxden_unit,
+                              fwhm=2500,
+                              redshift=0,
+                              amplitude=1, intr_fwhm=900,
+                              dispersion_limits=None):
+
+    pass 
+
+
 def setup_iron_template_model(prefix, template_filename,
                               templ_disp_unit, templ_fluxden_unit,
                               fwhm=2500,
@@ -1338,11 +1348,38 @@ def setup_line_model_CIII_complex(prefix, **kwargs):
 # Masks
 # ------------------------------------------------------------------------------
 
+# QSO continuum windows EUV (Vestergaard & Peterson 2006)
+"""Description of the EUV continuum windows:
+VP06: We fitted the rest-frame UV spectra with a power-law contin-
+uum in nominally line-free windows typically in the wavelength
+ranges 1265–1290, 1340–1375, 1425–1470, 1680–1705, and
+1950–2050 8
+Shen12: We fit the pseudo-continuum model to a set of contin-
+uum windows free of strong emission lines (except for Fe ii):
+1350–1360 Å, 1445–1465 Å, 1700–1705 Å, 2155–2400 Å,
+2480–2675 Å, 2925–3500 Å, 4200–4230 Å, 4435–4700 Å,
+5100–5535 Å, 6000–6250 Å, and 6800–7000 Å.
+"""
+qso_cont_EUV = {'name': 'QSO Continuum+FeII',
+                'rest_frame': True,
+                'mask_ranges': [[1350, 1360],  # from Shen 2012, EUV, no FeII
+                                [1445, 1465],  # from Shen 2012, EUV, no FeII
+                                [1690, 1705],  # modified Shen 2012, EUV,
+                                # no FeII
+                                [2480, 2650],  # modified Shen 2012, UV w FeII
+                                [2925, 3090],  # modified Shen 2012, UV w FeII
+                                [4200, 4230],  # from Shen 2012, OPT, w [FeII]
+                                [5100, 5535],  # from Shen 2012, OPT, w FeII
+                                [6000, 6250],  # from Shen 2012, OPT, w [FeII]
+                                [6800, 7000],  # from Shen 2012, OPT, no FeII
+                                ]}
+
+
 # QSO continuum windows, see Vestergaard & Peterson 2006
 qso_cont_VP06 = {'name': 'QSO Cont. VP06' ,
                  'rest_frame': True,
-                 'mask_ranges':[[1265, 1290], [1340, 1375], [1425, 1470],
-                                [1680, 1705], [1905, 2050]]}
+                 'mask_ranges': [[1265, 1290], [1340, 1375], [1425, 1470],
+                                [1680, 1705], [1950, 2050]]}
 
 # QSO continuum + iron windows, see Shen+2011
 qso_contfe_MgII_Shen11 = {'name': 'QSO Cont. MgII Shen11',
