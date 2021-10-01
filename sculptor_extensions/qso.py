@@ -539,7 +539,7 @@ def setup_line_model_gaussian(prefix, **kwargs):
     return model, params
 
 # ------------------------------------------------------------------------------
-# Iron template models
+# Galaxy template models
 # ------------------------------------------------------------------------------
 
 
@@ -550,8 +550,121 @@ def setup_galaxy_template_model(prefix, template_filename,
                               amplitude=1, intr_fwhm=900,
                               dispersion_limits=None):
 
-    pass 
+    """Initialize a galaxy template model
 
+    :param prefix: Model prefix
+    :type prefix: string
+    :param template_filename: Filename of the iron template
+    :type template_filename: string
+    :param fwhm: FWHM the template should be broadened to
+    :type fwhm: float
+    :param redshift: Redshift
+    :type redshift: float
+    :param amplitude: Amplitude of the template model
+    :type amplitude: float
+    :param intr_fwhm: Intrinsic FWHM of the template
+    :type intr_fwhm: float
+    :param dispersion_limits:
+    :type dispersion_limits: (float, float)
+    :return: LMFIT model and parameters
+    :rtype: (lmfit.Model, lmfit.Parameters)
+
+    """
+
+    # Initialize parameters
+    params = Parameters()
+
+    # Load template model from Sculptor data directory
+    template = np.genfromtxt(datadir + 'galaxy_templates/' + template_filename)
+
+    # Convert astropy units to string to be able to save them with LMFIT
+    if type(templ_disp_unit) is u.Quantity:
+        templ_disp_unit_str = templ_disp_unit.unit.to_string('cds')
+        templ_dist_unit_factor = templ_disp_unit.value
+    elif type(templ_disp_unit) is u.Unit or type(templ_disp_unit) is \
+            u.CompositeUnit:
+        templ_disp_unit_str = templ_disp_unit.to_string('cds')
+    else:
+        raise ValueError('[ERROR] Template flux density unit type is not an '
+                         'astropy unit or astropy quantity. Current datatype: {}'.format(
+            type(templ_disp_unit)))
+
+    if type(templ_fluxden_unit) is u.Quantity:
+        templ_fluxden_unit_str = templ_fluxden_unit.unit.to_string('cds')
+        templ_fluxden_unit_factor = templ_fluxden_unit.value
+    elif type(templ_fluxden_unit) is u.Unit or type(templ_fluxden_unit) is \
+            u.CompositeUnit:
+        templ_fluxden_unit_str = templ_fluxden_unit.to_string('cds')
+    else:
+        raise ValueError('[ERROR] Template flux density unit type is not an '
+                         'astropy unit or astropy quantity. Current datatype: {}'.format(
+            type(templ_fluxden_unit)))
+
+    # Apply dispersion limits
+    if dispersion_limits is not None:
+        wav_min = dispersion_limits[0]
+        wav_max = dispersion_limits[1]
+
+        idx_min = np.argmin(np.abs(template[:, 0] - wav_min))
+        idx_max = np.argmin(np.abs(template[:, 0] - wav_max))
+
+        model = Model(template_model,
+                      param_names=['amp', 'z', 'fwhm', 'intr_fwhm'],
+                      templ_disp=template[idx_min:idx_max, 0],
+                      templ_fluxden=template[idx_min:idx_max, 1],
+                      templ_disp_unit_str=templ_disp_unit_str,
+                      templ_fluxden_unit_str=templ_fluxden_unit_str,
+                      prefix=prefix)
+    else:
+        model = Model(template_model,
+                      param_names=['amp', 'z', 'fwhm', 'intr_fwhm'],
+                      templ_disp=template[:, 0],
+                      templ_fluxden=template[:, 1],
+                      templ_disp_unit_str=templ_disp_unit_str,
+                      templ_fluxden_unit_str=templ_fluxden_unit_str,
+                      prefix=prefix)
+
+    add_redshift_param(redshift, params, prefix)
+    params.add(prefix + 'fwhm', value=fwhm, min=0, max=10000, vary=False)
+    params.add(prefix + 'amp', value=amplitude, min=1, max=1e+3)
+    params.add(prefix + 'intr_fwhm', value=intr_fwhm, vary=False)
+
+    return model, params
+
+
+def setup_SWIRE_Ell2_template(prefix, **kwargs):
+    """ Setup the SWIRE library Ell2 galaxy template model
+
+    The dispersion axis for this model is in Angstroem.
+
+    :param prefix: The input parameter exists for conformity with the \
+        Sculptor models, but will be ignored. The prefix is automatically set \
+        by the setup function.
+    :type prefix: string
+    :param kwargs:
+    :return: LMFIT model and parameters
+    :rtype: (lmfit.Model, lmfit.Parameters)
+
+    """
+
+    templ_disp_unit = u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
+
+    redshift = kwargs.pop('redshift', 0)
+    amplitude = kwargs.pop('amplitude', 1)
+    fwhm = kwargs.pop('fwhm', 2500)
+    # Tsuzuki 2006
+    model, params = setup_galaxy_template_model(
+        'SWIRE_Ell2_', 'swire_library/Ell2_template_norm.sed', templ_disp_unit,
+        templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
+        amplitude=amplitude, intr_fwhm=900)
+
+    return model, params
+
+
+# ------------------------------------------------------------------------------
+# Iron template models
+# ------------------------------------------------------------------------------
 
 def setup_iron_template_model(prefix, template_filename,
                               templ_disp_unit, templ_fluxden_unit,
@@ -625,8 +738,8 @@ def setup_iron_template_model(prefix, template_filename,
     else:
         model = Model(template_model,
                       param_names=['amp', 'z', 'fwhm', 'intr_fwhm'],
-                      templ_disp=template,
-                      templ_fluxden=template,
+                      templ_disp=template[:, 0],
+                      templ_fluxden=template[:, 1],
                       templ_disp_unit_str=templ_disp_unit_str,
                       templ_fluxden_unit_str=templ_fluxden_unit_str,
                       prefix=prefix)
@@ -1444,6 +1557,18 @@ model_setup_list = [setup_power_law_at_2500,
                     setup_line_model_MgII_2G,
                     setup_line_model_HbOIII_6G,
                     setup_line_model_CIII_complex]
+
+# Test if swire library galaxy templates are present and then add the model and
+# setup functions
+if os.path.isdir(datadir+'galaxy_template/swire_library'):
+    print('[INFO] SWIRE library found.')
+
+    model_funcs = ['SWIRE Ell2']
+
+    model_setups = [setup_SWIRE_Ell2_template]
+
+    model_func_list.extend(model_funcs)
+    model_setup_list.extend(model_setups)
 
 # Test if iron templates are present and then add the model and setup functions.
 if os.path.isfile(datadir+'iron_templates/'+'Fe_UVtemplt_A.asc'):
