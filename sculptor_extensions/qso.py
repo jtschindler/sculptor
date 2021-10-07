@@ -1026,7 +1026,7 @@ def setup_iron_template_OPT_BG92(prefix, **kwargs):
     model, params = setup_iron_template_model(
         'FeIIOPT_BG92_', 'Fe_OPT_BR92_linear.txt', templ_disp_unit,
         templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
-        amplitude=amplitude, intr_fwhm=900, dispersion_limits=[3700, 5600])
+        amplitude=amplitude, intr_fwhm=900, dispersion_limits=[3700, 7480])
 
     return model, params
 
