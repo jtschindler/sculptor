@@ -1002,7 +1002,7 @@ def setup_split_iron_template_MgII_VW01(prefix, **kwargs):
 
 def setup_iron_template_OPT_BG92(prefix, **kwargs):
     """ Setup the Boroson & Green 1992 iron template model around Hbeta \
-        (3700-5600A)
+        (3700-7480A)
 
     The dispersion axis for this model is in Angstroem.
 
@@ -1468,7 +1468,7 @@ if os.path.isfile(datadir+'iron_templates/'+'Fe_OPT_BR92_linear.txt'):
           'you will be using these templates in your model fit and '
           'publication, please add the citation to the original work, '
           'ADS bibcode: 1992ApJS...80..109B')
-    model_funcs = ['FeII template 3700-5600 (BG92, cont)',
+    model_funcs = ['FeII template 3700-7480 (BG92, cont)',
                   'FeII template 3700-5600 (BG92, split)']
     model_setups = [setup_iron_template_OPT_BG92,
                     setup_split_iron_template_OPT_BG92]
