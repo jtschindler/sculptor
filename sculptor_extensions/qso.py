@@ -653,9 +653,40 @@ def setup_SWIRE_Ell2_template(prefix, **kwargs):
     redshift = kwargs.pop('redshift', 0)
     amplitude = kwargs.pop('amplitude', 1)
     fwhm = kwargs.pop('fwhm', 2500)
-    # Tsuzuki 2006
+
     model, params = setup_galaxy_template_model(
         'SWIRE_Ell2_', 'swire_library/Ell2_template_norm.sed', templ_disp_unit,
+        templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
+        amplitude=amplitude, intr_fwhm=900)
+
+    return model, params
+
+
+def setup_SWIRE_NGC6090_template(prefix, **kwargs):
+    """ Setup the SWIRE library NGC6090 galaxy template model
+
+    The dispersion axis for this model is in Angstroem.
+
+    :param prefix: The input parameter exists for conformity with the \
+        Sculptor models, but will be ignored. The prefix is automatically set \
+        by the setup function.
+    :type prefix: string
+    :param kwargs:
+    :return: LMFIT model and parameters
+    :rtype: (lmfit.Model, lmfit.Parameters)
+
+    """
+
+    templ_disp_unit = u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
+
+    redshift = kwargs.pop('redshift', 0)
+    amplitude = kwargs.pop('amplitude', 1)
+    fwhm = kwargs.pop('fwhm', 2500)
+
+    model, params = setup_galaxy_template_model(
+        'SWIRE_NGC6090_', 'swire_library/N6090_template_norm.sed',
+        templ_disp_unit,
         templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
         amplitude=amplitude, intr_fwhm=900)
 
@@ -1149,7 +1180,7 @@ def setup_iron_template_OPT_BG92(prefix, **kwargs):
     model, params = setup_iron_template_model(
         'FeIIOPT_BG92_', 'Fe_OPT_BR92_linear.txt', templ_disp_unit,
         templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
-        amplitude=amplitude, intr_fwhm=900, dispersion_limits=[3700, 5600])
+        amplitude=amplitude, intr_fwhm=900, dispersion_limits=[3700, 7480])
 
     return model, params
 
@@ -1473,7 +1504,7 @@ uum windows free of strong emission lines (except for Fe ii):
 2480–2675 Å, 2925–3500 Å, 4200–4230 Å, 4435–4700 Å,
 5100–5535 Å, 6000–6250 Å, and 6800–7000 Å.
 """
-qso_cont_EUV = {'name': 'QSO Continuum+FeII',
+qso_cont_feII = {'name': 'QSO Continuum+FeII',
                 'rest_frame': True,
                 'mask_ranges': [[1350, 1360],  # from Shen 2012, EUV, no FeII
                                 [1445, 1465],  # from Shen 2012, EUV, no FeII
@@ -1482,6 +1513,7 @@ qso_cont_EUV = {'name': 'QSO Continuum+FeII',
                                 [2480, 2650],  # modified Shen 2012, UV w FeII
                                 [2925, 3090],  # modified Shen 2012, UV w FeII
                                 [4200, 4230],  # from Shen 2012, OPT, w [FeII]
+                                [4435, 4700],  # from Shen 2012, OPT, w [FeII]
                                 [5100, 5535],  # from Shen 2012, OPT, w FeII
                                 [6000, 6250],  # from Shen 2012, OPT, w [FeII]
                                 [6800, 7000],  # from Shen 2012, OPT, no FeII
@@ -1512,7 +1544,8 @@ qso_contfe_CIV_Shen11 = {'name': 'QSO Cont. CIV Shen11',
                          'mask_ranges':[[1445, 1465], [1700, 1705]]}
 
 # Dictionary with all masks
-mask_presets = {'QSO Cont.W. VP06': qso_cont_VP06,
+mask_presets = {'QSO Continuum+FeII': qso_cont_feII,
+                'QSO Cont.W. VP06': qso_cont_VP06,
                 'QSO Fe+Cont.W. CIV Shen11': qso_contfe_CIV_Shen11,
                 'QSO Fe+Cont.W. MgII Shen11': qso_contfe_MgII_Shen11,
                 'QSO Fe+Cont.W. HBeta Shen11': qso_contfe_HBeta_Shen11,
@@ -1563,9 +1596,11 @@ model_setup_list = [setup_power_law_at_2500,
 if os.path.isdir(datadir+'galaxy_templates/swire_library/'):
     print('[INFO] SWIRE library found.')
 
-    model_funcs = ['SWIRE Ell2']
+    model_funcs = ['SWIRE Ell2',
+                   'SWIRE NGC6090']
 
-    model_setups = [setup_SWIRE_Ell2_template]
+    model_setups = [setup_SWIRE_Ell2_template,
+                    setup_SWIRE_NGC6090_template]
 
     model_func_list.extend(model_funcs)
     model_setup_list.extend(model_setups)
@@ -1686,7 +1721,7 @@ def calc_eddington_luminosity(bh_mass):
     bh_mass = bh_mass.to(u.Msun)
 
     factor = (4 * np.pi * const.G * const.c * const.m_p) / const.sigma_T
-    factor = factor.to(units.erg / units.s / units.Msun)
+    factor = factor.to(u.erg / u.s / u.Msun)
 
     return factor * bh_mass
 
@@ -1703,7 +1738,7 @@ def calc_eddington_ratio(lbol, bh_mass):
 
     """
 
-    edd_lum = calc_Edd_luminosity(bh_mass)
+    edd_lum = calc_eddington_luminosity(bh_mass)
     return lbol / edd_lum
 
 
