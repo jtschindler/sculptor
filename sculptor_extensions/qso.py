@@ -1342,7 +1342,7 @@ def setup_line_model_CIII_complex(prefix, **kwargs):
 qso_cont_VP06 = {'name': 'QSO Cont. VP06' ,
                  'rest_frame': True,
                  'mask_ranges':[[1265, 1290], [1340, 1375], [1425, 1470],
-                                [1680, 1705], [1905, 2050]]}
+                                [1680, 1705], [1950, 2050]]}
 
 # QSO continuum + iron windows, see Shen+2011
 qso_contfe_MgII_Shen11 = {'name': 'QSO Cont. MgII Shen11',
