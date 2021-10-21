@@ -1523,11 +1523,7 @@ qso_cont_feII = {'name': 'QSO Continuum+FeII',
 # QSO continuum windows, see Vestergaard & Peterson 2006
 qso_cont_VP06 = {'name': 'QSO Cont. VP06' ,
                  'rest_frame': True,
-<<<<<<< HEAD
-                 'mask_ranges':[[1265, 1290], [1340, 1375], [1425, 1470],
-=======
                  'mask_ranges': [[1265, 1290], [1340, 1375], [1425, 1470],
->>>>>>> develop
                                 [1680, 1705], [1950, 2050]]}
 
 # QSO continuum + iron windows, see Shen+2011
