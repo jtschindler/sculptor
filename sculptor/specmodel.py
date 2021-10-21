@@ -359,8 +359,15 @@ class SpecModel:
             self.global_params.pop(param_name)
 
         for params in self.params_list:
+            # Remove global parameter from expressions
+            for param in params:
+                if params[param].expr == param_name:
+                    params[param].expr = None
+            # Remove global parameter from parameter list
             if param_name in params:
                 params.pop(param_name)
+
+
 
     def build_model(self):
         """ Build the Specmodel model and parameters for the fit

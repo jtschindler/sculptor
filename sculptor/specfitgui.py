@@ -236,7 +236,7 @@ class SpecFitGui(QMainWindow):
         self.hLayoutXpos = QHBoxLayout()
         self.hLayoutXpos.addWidget(self.leXposA)
         self.hLayoutXpos.addWidget(self.leXposB)
-        self.labelFluxPos = QLabel('Flux region (Shift + s/d)')
+        self.labelFluxPos = QLabel('Flux region (Shift + w/s)')
         self.leYposA = QLineEdit('{:.2e}'.format(self.specfit.ylim[0]))
         self.leYposB = QLineEdit('{:.2e}'.format(self.specfit.ylim[1]))
         self.hLayoutYpos = QHBoxLayout()
