@@ -27,6 +27,7 @@ setup(name='sculptor',
       package_dir={'sculptor': 'sculptor', 'sculptor_extensions':
           'sculptor_extensions'},
       package_data={'sculptor': ['data/iron_templates/*.*',
+                                 'data/galaxy_templates/swire_library/*.*',
                                  'data/example_spectra/*.*',
                                  'data/passbands/*.*'],
                     'sculptor_extensions': ['*.*']},

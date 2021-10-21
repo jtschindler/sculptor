@@ -539,9 +539,163 @@ def setup_line_model_gaussian(prefix, **kwargs):
     return model, params
 
 # ------------------------------------------------------------------------------
-# Iron template models
+# Galaxy template models
 # ------------------------------------------------------------------------------
 
+
+def setup_galaxy_template_model(prefix, template_filename,
+                              templ_disp_unit, templ_fluxden_unit,
+                              fwhm=2500,
+                              redshift=0,
+                              amplitude=1, intr_fwhm=900,
+                              dispersion_limits=None):
+
+    """Initialize a galaxy template model
+
+    :param prefix: Model prefix
+    :type prefix: string
+    :param template_filename: Filename of the iron template
+    :type template_filename: string
+    :param fwhm: FWHM the template should be broadened to
+    :type fwhm: float
+    :param redshift: Redshift
+    :type redshift: float
+    :param amplitude: Amplitude of the template model
+    :type amplitude: float
+    :param intr_fwhm: Intrinsic FWHM of the template
+    :type intr_fwhm: float
+    :param dispersion_limits:
+    :type dispersion_limits: (float, float)
+    :return: LMFIT model and parameters
+    :rtype: (lmfit.Model, lmfit.Parameters)
+
+    """
+
+    # Initialize parameters
+    params = Parameters()
+
+    # Load template model from Sculptor data directory
+    template = np.genfromtxt(datadir + 'galaxy_templates/' + template_filename)
+
+    # Convert astropy units to string to be able to save them with LMFIT
+    if type(templ_disp_unit) is u.Quantity:
+        templ_disp_unit_str = templ_disp_unit.unit.to_string('cds')
+        templ_dist_unit_factor = templ_disp_unit.value
+    elif type(templ_disp_unit) is u.Unit or type(templ_disp_unit) is \
+            u.CompositeUnit:
+        templ_disp_unit_str = templ_disp_unit.to_string('cds')
+    else:
+        raise ValueError('[ERROR] Template flux density unit type is not an '
+                         'astropy unit or astropy quantity. Current datatype: {}'.format(
+            type(templ_disp_unit)))
+
+    if type(templ_fluxden_unit) is u.Quantity:
+        templ_fluxden_unit_str = templ_fluxden_unit.unit.to_string('cds')
+        templ_fluxden_unit_factor = templ_fluxden_unit.value
+    elif type(templ_fluxden_unit) is u.Unit or type(templ_fluxden_unit) is \
+            u.CompositeUnit:
+        templ_fluxden_unit_str = templ_fluxden_unit.to_string('cds')
+    else:
+        raise ValueError('[ERROR] Template flux density unit type is not an '
+                         'astropy unit or astropy quantity. Current datatype: {}'.format(
+            type(templ_fluxden_unit)))
+
+    # Apply dispersion limits
+    if dispersion_limits is not None:
+        wav_min = dispersion_limits[0]
+        wav_max = dispersion_limits[1]
+
+        idx_min = np.argmin(np.abs(template[:, 0] - wav_min))
+        idx_max = np.argmin(np.abs(template[:, 0] - wav_max))
+
+        model = Model(template_model,
+                      param_names=['amp', 'z', 'fwhm', 'intr_fwhm'],
+                      templ_disp=template[idx_min:idx_max, 0],
+                      templ_fluxden=template[idx_min:idx_max, 1],
+                      templ_disp_unit_str=templ_disp_unit_str,
+                      templ_fluxden_unit_str=templ_fluxden_unit_str,
+                      prefix=prefix)
+    else:
+        model = Model(template_model,
+                      param_names=['amp', 'z', 'fwhm', 'intr_fwhm'],
+                      templ_disp=template[:, 0],
+                      templ_fluxden=template[:, 1],
+                      templ_disp_unit_str=templ_disp_unit_str,
+                      templ_fluxden_unit_str=templ_fluxden_unit_str,
+                      prefix=prefix)
+
+    add_redshift_param(redshift, params, prefix)
+    params.add(prefix + 'fwhm', value=fwhm, min=0, max=10000, vary=False)
+    params.add(prefix + 'amp', value=amplitude, min=1, max=1e+3)
+    params.add(prefix + 'intr_fwhm', value=intr_fwhm, vary=False)
+
+    return model, params
+
+
+def setup_SWIRE_Ell2_template(prefix, **kwargs):
+    """ Setup the SWIRE library Ell2 galaxy template model
+
+    The dispersion axis for this model is in Angstroem.
+
+    :param prefix: The input parameter exists for conformity with the \
+        Sculptor models, but will be ignored. The prefix is automatically set \
+        by the setup function.
+    :type prefix: string
+    :param kwargs:
+    :return: LMFIT model and parameters
+    :rtype: (lmfit.Model, lmfit.Parameters)
+
+    """
+
+    templ_disp_unit = u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
+
+    redshift = kwargs.pop('redshift', 0)
+    amplitude = kwargs.pop('amplitude', 1)
+    fwhm = kwargs.pop('fwhm', 2500)
+
+    model, params = setup_galaxy_template_model(
+        'SWIRE_Ell2_', 'swire_library/Ell2_template_norm.sed', templ_disp_unit,
+        templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
+        amplitude=amplitude, intr_fwhm=900)
+
+    return model, params
+
+
+def setup_SWIRE_NGC6090_template(prefix, **kwargs):
+    """ Setup the SWIRE library NGC6090 galaxy template model
+
+    The dispersion axis for this model is in Angstroem.
+
+    :param prefix: The input parameter exists for conformity with the \
+        Sculptor models, but will be ignored. The prefix is automatically set \
+        by the setup function.
+    :type prefix: string
+    :param kwargs:
+    :return: LMFIT model and parameters
+    :rtype: (lmfit.Model, lmfit.Parameters)
+
+    """
+
+    templ_disp_unit = u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
+
+    redshift = kwargs.pop('redshift', 0)
+    amplitude = kwargs.pop('amplitude', 1)
+    fwhm = kwargs.pop('fwhm', 2500)
+
+    model, params = setup_galaxy_template_model(
+        'SWIRE_NGC6090_', 'swire_library/N6090_template_norm.sed',
+        templ_disp_unit,
+        templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
+        amplitude=amplitude, intr_fwhm=900)
+
+    return model, params
+
+
+# ------------------------------------------------------------------------------
+# Iron template models
+# ------------------------------------------------------------------------------
 
 def setup_iron_template_model(prefix, template_filename,
                               templ_disp_unit, templ_fluxden_unit,
@@ -615,8 +769,8 @@ def setup_iron_template_model(prefix, template_filename,
     else:
         model = Model(template_model,
                       param_names=['amp', 'z', 'fwhm', 'intr_fwhm'],
-                      templ_disp=template,
-                      templ_fluxden=template,
+                      templ_disp=template[:, 0],
+                      templ_fluxden=template[:, 1],
                       templ_disp_unit_str=templ_disp_unit_str,
                       templ_fluxden_unit_str=templ_fluxden_unit_str,
                       prefix=prefix)
@@ -1338,10 +1492,42 @@ def setup_line_model_CIII_complex(prefix, **kwargs):
 # Masks
 # ------------------------------------------------------------------------------
 
+# QSO continuum windows EUV (Vestergaard & Peterson 2006)
+"""Description of the EUV continuum windows:
+VP06: We fitted the rest-frame UV spectra with a power-law contin-
+uum in nominally line-free windows typically in the wavelength
+ranges 1265–1290, 1340–1375, 1425–1470, 1680–1705, and
+1950–2050 8
+Shen12: We fit the pseudo-continuum model to a set of contin-
+uum windows free of strong emission lines (except for Fe ii):
+1350–1360 Å, 1445–1465 Å, 1700–1705 Å, 2155–2400 Å,
+2480–2675 Å, 2925–3500 Å, 4200–4230 Å, 4435–4700 Å,
+5100–5535 Å, 6000–6250 Å, and 6800–7000 Å.
+"""
+qso_cont_feII = {'name': 'QSO Continuum+FeII',
+                'rest_frame': True,
+                'mask_ranges': [[1350, 1360],  # from Shen 2012, EUV, no FeII
+                                [1445, 1465],  # from Shen 2012, EUV, no FeII
+                                [1690, 1705],  # modified Shen 2012, EUV,
+                                # no FeII
+                                [2480, 2650],  # modified Shen 2012, UV w FeII
+                                [2925, 3090],  # modified Shen 2012, UV w FeII
+                                [4200, 4230],  # from Shen 2012, OPT, w [FeII]
+                                [4435, 4700],  # from Shen 2012, OPT, w [FeII]
+                                [5100, 5535],  # from Shen 2012, OPT, w FeII
+                                [6000, 6250],  # from Shen 2012, OPT, w [FeII]
+                                [6800, 7000],  # from Shen 2012, OPT, no FeII
+                                ]}
+
+
 # QSO continuum windows, see Vestergaard & Peterson 2006
 qso_cont_VP06 = {'name': 'QSO Cont. VP06' ,
                  'rest_frame': True,
+<<<<<<< HEAD
                  'mask_ranges':[[1265, 1290], [1340, 1375], [1425, 1470],
+=======
+                 'mask_ranges': [[1265, 1290], [1340, 1375], [1425, 1470],
+>>>>>>> develop
                                 [1680, 1705], [1950, 2050]]}
 
 # QSO continuum + iron windows, see Shen+2011
@@ -1362,7 +1548,8 @@ qso_contfe_CIV_Shen11 = {'name': 'QSO Cont. CIV Shen11',
                          'mask_ranges':[[1445, 1465], [1700, 1705]]}
 
 # Dictionary with all masks
-mask_presets = {'QSO Cont.W. VP06': qso_cont_VP06,
+mask_presets = {'QSO Continuum+FeII': qso_cont_feII,
+                'QSO Cont.W. VP06': qso_cont_VP06,
                 'QSO Fe+Cont.W. CIV Shen11': qso_contfe_CIV_Shen11,
                 'QSO Fe+Cont.W. MgII Shen11': qso_contfe_MgII_Shen11,
                 'QSO Fe+Cont.W. HBeta Shen11': qso_contfe_HBeta_Shen11,
@@ -1407,6 +1594,20 @@ model_setup_list = [setup_power_law_at_2500,
                     setup_line_model_MgII_2G,
                     setup_line_model_HbOIII_6G,
                     setup_line_model_CIII_complex]
+
+# Test if swire library galaxy templates are present and then add the model and
+# setup functions
+if os.path.isdir(datadir+'galaxy_templates/swire_library/'):
+    print('[INFO] SWIRE library found.')
+
+    model_funcs = ['SWIRE Ell2',
+                   'SWIRE NGC6090']
+
+    model_setups = [setup_SWIRE_Ell2_template,
+                    setup_SWIRE_NGC6090_template]
+
+    model_func_list.extend(model_funcs)
+    model_setup_list.extend(model_setups)
 
 # Test if iron templates are present and then add the model and setup functions.
 if os.path.isfile(datadir+'iron_templates/'+'Fe_UVtemplt_A.asc'):
@@ -1524,7 +1725,7 @@ def calc_eddington_luminosity(bh_mass):
     bh_mass = bh_mass.to(u.Msun)
 
     factor = (4 * np.pi * const.G * const.c * const.m_p) / const.sigma_T
-    factor = factor.to(units.erg / units.s / units.Msun)
+    factor = factor.to(u.erg / u.s / u.Msun)
 
     return factor * bh_mass
 
@@ -1541,7 +1742,7 @@ def calc_eddington_ratio(lbol, bh_mass):
 
     """
 
-    edd_lum = calc_Edd_luminosity(bh_mass)
+    edd_lum = calc_eddington_luminosity(bh_mass)
     return lbol / edd_lum
 
 
