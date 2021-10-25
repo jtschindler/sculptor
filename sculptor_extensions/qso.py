@@ -1964,7 +1964,13 @@ model_func_dict = {'power_law_at_2500': power_law_at_2500,
                    'template_model': template_model,
                    'line_model_gaussian': line_model_gaussian,
                    # 'line_model_gaussian_amp': line_model_gaussian_amp,
-                   'CIII_complex_model_func': CIII_complex_model_func}
+                   'CIII_complex_model_func': CIII_complex_model_func,
+                   'line_model_gaussian_nii_doublet':
+                       line_model_gaussian_nii_doublet,
+                   'line_model_gaussian_oiii_doublet':
+                       line_model_gaussian_oiii_doublet,
+                   'line_model_gaussian_sii_doublet':
+                       line_model_gaussian_sii_doublet}
 
 
 # Model function name list and setup function list.
