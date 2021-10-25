@@ -298,7 +298,7 @@ def line_model_gaussian(x, z, flux, cen, fwhm_km_s):
     return flux/(sigma*np.sqrt(2*np.pi)) * np.exp(-(x-cen)**2 / (2*sigma**2))
 
 
-def line_model_gaussian_oiii_doublet(x, z, flux, fwhm_km_s):
+def line_model_gaussian_oiii_doublet(x, z, flux, fwhm_km_s, fluxratio):
     """Doublet line model for the [OIII] lines at 4960.30 A and 5008.24 A.
 
     This model ties the redshift, the FWHM and the fluxes (ratio 1:3) of the
@@ -329,7 +329,8 @@ def line_model_gaussian_oiii_doublet(x, z, flux, fwhm_km_s):
     sigma_b = fwhm_b / np.sqrt(8 * np.log(2))
 
     flux_a = flux
-    flux_b = 3 * flux_a
+    flux_b = fluxratio * flux_a
+    # for flux
 
     comp_a = flux_a / (sigma_a * np.sqrt(2 * np.pi)) * np.exp(
         -(x - cen_a) ** 2 / (2 * sigma_a ** 2))
@@ -1716,6 +1717,10 @@ def setup_doublet_line_model_oiii(prefix, **kwargs):
 
     params.add(prefix + 'flux', value=flux, min=flux/100, max=flux*1000)
     params.add(prefix + 'fwhm_km_s', value=fwhm, min=100, max=1200)
+    # Set the flux ratio for the doublet line model
+    # for [OIII] the value is 2.98 from the reference:
+    # https://academic.oup.com/mnras/article/374/3/1181/1046179
+    params.add(prefix + 'fluxratio', value=2.98, vary=False)
 
     model = Model(line_model_gaussian_oiii_doublet, prefix=prefix)
 
