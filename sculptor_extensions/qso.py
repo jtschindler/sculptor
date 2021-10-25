@@ -220,44 +220,207 @@ def power_law_at_2500_plus_bc(x, amp, slope, z, amp_be, Te, tau_be,
     return pl_fluxden + bc_fluxden
 
 
-def line_model_gaussian(x, z, amp, cen, fwhm_km_s, shift_km_s):
+# def line_model_gaussian_amp(x, z, amp, cen, fwhm_km_s, shift_km_s):
+#     """ Gaussian line model
+#
+#     The central wavelength of the Gaussian line model is determined by the
+#     central wavelength cen, the redshift, z, and the velocity shift
+#     shift_km_s (in km/s). These parameters are degenerate in a line fit and
+#     it is adviseable to fix two of them (to predetermined values e.g., the
+#     redshift or the central wavelength).
+#
+#     The width of the line is set by the FWHM in km/s.
+#
+#     The Gaussian is not normalized.
+#
+#     :param x: Dispersion of the continuum model
+#     :type x: np.ndarray
+#     :param z: Redshift
+#     :type z: float
+#     :param amp: Amplitude of the Gaussian
+#     :type amp: float
+#     :param cen: Central wavelength
+#     :type cen: float
+#     :param fwhm_km_s: FWHM of the Gaussian in km/s
+#     :type fwhm_km_s: float
+#     :param shift_km_s: Doppler velocity shift of the central wavelength
+#     :type shift_km_s: float
+#     :return: Gaussian line model
+#     :rtype: np.ndarray
+#
+#     """
+#
+#     cen = cen * (1+z)
+#
+#     delta_cen = shift_km_s / c_km_s * cen
+#     central = cen + delta_cen
+#     fwhm = fwhm_km_s / c_km_s * central
+#     sigma = fwhm / np.sqrt(8*np.log(2))
+#
+#     return amp * np.exp(-(x-central)**2 / (2*sigma**2))
+
+
+
+def line_model_gaussian(x, z, flux, cen, fwhm_km_s):
     """ Gaussian line model
 
     The central wavelength of the Gaussian line model is determined by the
-    central wavelength cen, the redshift, z, and the velocity shift
-    shift_km_s (in km/s). These parameters are degenerate in a line fit and
-    it is adviseable to fix two of them (to predetermined values e.g., the
-    redshift or the central wavelength).
+    central wavelength cen and the redshift, z. These parameters are degenerate
+    in a line fit and it is adviseable to fix one of them (to predetermined
+    values e.g., the redshift or the central wavelength).
 
     The width of the line is set by the FWHM in km/s.
 
-    The Gaussian is not normalized.
+    The Gaussian is normalized.
 
     :param x: Dispersion of the continuum model
     :type x: np.ndarray
     :param z: Redshift
     :type z: float
-    :param amp: Amplitude of the Gaussian
-    :type amp: float
+    :param flux: Amplitude of the Gaussian
+    :type flux: float
     :param cen: Central wavelength
     :type cen: float
     :param fwhm_km_s: FWHM of the Gaussian in km/s
     :type fwhm_km_s: float
-    :param shift_km_s: Doppler velocity shift of the central wavelength
-    :type shift_km_s: float
     :return: Gaussian line model
     :rtype: np.ndarray
 
     """
 
+    # Redshift central wavelength
     cen = cen * (1+z)
 
-    delta_cen = shift_km_s / c_km_s * cen
-    central = cen + delta_cen
-    fwhm = fwhm_km_s / c_km_s * central
+    # Calculate sigma from fwhm
+    fwhm = fwhm_km_s / c_km_s * cen
     sigma = fwhm / np.sqrt(8*np.log(2))
 
-    return amp * np.exp(-(x-central)**2 / (2*sigma**2))
+    return flux/(sigma*np.sqrt(2*np.pi)) * np.exp(-(x-cen)**2 / (2*sigma**2))
+
+
+def line_model_gaussian_oiii_doublet(x, z, flux, fwhm_km_s):
+    """Doublet line model for the [OIII] lines at 4960.30 A and 5008.24 A.
+
+    This model ties the redshift, the FWHM and the fluxes (ratio 1:3) of the
+    forbidden transitions of [OIII] at 4960.30 A and 5008.24 A together.
+
+    :param x: Dispersion of the continuum model
+    :type x: np.ndarray
+    :param z: Redshift
+    :type z: float
+    :param flux: Amplitude of the Gaussian
+    :type flux: float
+    :param cen: Central wavelength
+    :type cen: float
+    :param fwhm_km_s: FWHM of the Gaussian in km/s
+    :type fwhm_km_s: float
+    :return: Gaussian doublet line model
+    :rtype: np.ndarray
+    """
+
+    # Redshift central wavelengths
+    cen_a = 4960.30 * (1+z)
+    cen_b = 5008.24 * (1+z)
+
+    # Calculate sigma from fwhm
+    fwhm_a = fwhm_km_s / c_km_s * cen_a
+    fwhm_b = fwhm_km_s / c_km_s * cen_b
+    sigma_a = fwhm_a / np.sqrt(8*np.log(2))
+    sigma_b = fwhm_b / np.sqrt(8 * np.log(2))
+
+    flux_a = flux
+    flux_b = 3 * flux_a
+
+    comp_a = flux_a / (sigma_a * np.sqrt(2 * np.pi)) * np.exp(
+        -(x - cen_a) ** 2 / (2 * sigma_a ** 2))
+
+    comp_b = flux_b / (sigma_b * np.sqrt(2 * np.pi)) * np.exp(
+        -(x - cen_b) ** 2 / (2 * sigma_b ** 2))
+
+    return comp_a + comp_b
+
+
+def line_model_gaussian_nii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a,
+                                    fwhm_km_s_b):
+    """Doublet line model for the [NII] lines at 6549.85 A and 6585.28 A.
+
+    This model ties the redshift of the forbidden transitions of [NII] at
+    6549.85 A and 6585.28 A together. FWHM and fluxes are free parameters for
+    each Gaussian line model.
+
+    :param x: Dispersion of the continuum model
+    :type x: np.ndarray
+    :param z: Redshift
+    :type z: float
+    :param flux: Amplitude of the Gaussian
+    :type flux: float
+    :param cen: Central wavelength
+    :type cen: float
+    :param fwhm_km_s: FWHM of the Gaussian in km/s
+    :type fwhm_km_s: float
+    :return: Gaussian doublet line model
+    :rtype: np.ndarray
+    """
+
+    # Redshift central wavelengths
+    cen_a = 6549.85 * (1+z)
+    cen_b = 6585.28 * (1+z)
+
+    # Calculate sigma from fwhm
+    fwhm_a = fwhm_km_s_a / c_km_s * cen_a
+    fwhm_b = fwhm_km_s_b / c_km_s * cen_b
+    sigma_a = fwhm_a / np.sqrt(8*np.log(2))
+    sigma_b = fwhm_b / np.sqrt(8 * np.log(2))
+
+    comp_a = flux_a / (sigma_a * np.sqrt(2 * np.pi)) * np.exp(
+        -(x - cen_a) ** 2 / (2 * sigma_a ** 2))
+
+    comp_b = flux_b / (sigma_b * np.sqrt(2 * np.pi)) * np.exp(
+        -(x - cen_b) ** 2 / (2 * sigma_b ** 2))
+
+    return comp_a + comp_b
+
+
+def line_model_gaussian_sii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a,
+                                    fwhm_km_s_b):
+    """Doublet line model for the [SII] lines at 6718.29 A and 6732.67 A.
+
+    This model ties the redshift,  of the forbidden transitions of [SII] at
+    6718.29 A and 6732.67 A together. FWHM and fluxes are free parameters for
+    each Gaussian line model.
+
+    :param x: Dispersion of the continuum model
+    :type x: np.ndarray
+    :param z: Redshift
+    :type z: float
+    :param flux: Amplitude of the Gaussian
+    :type flux: float
+    :param cen: Central wavelength
+    :type cen: float
+    :param fwhm_km_s: FWHM of the Gaussian in km/s
+    :type fwhm_km_s: float
+    :return: Gaussian doublet line model
+    :rtype: np.ndarray
+    """
+
+    # Redshift central wavelengths
+    cen_a = 6718.29 * (1+z)
+    cen_b = 6732.67 * (1+z)
+
+    # Calculate sigma from fwhm
+    fwhm_a = fwhm_km_s_a / c_km_s * cen_a
+    fwhm_b = fwhm_km_s_b / c_km_s * cen_b
+    sigma_a = fwhm_a / np.sqrt(8*np.log(2))
+    sigma_b = fwhm_b / np.sqrt(8 * np.log(2))
+
+    comp_a = flux_a / (sigma_a * np.sqrt(2 * np.pi)) * np.exp(
+        -(x - cen_a) ** 2 / (2 * sigma_a ** 2))
+
+    comp_b = flux_b / (sigma_b * np.sqrt(2 * np.pi)) * np.exp(
+        -(x - cen_b) ** 2 / (2 * sigma_b ** 2))
+
+    return comp_a + comp_b
+
 
 
 def template_model(x, amp, z, fwhm, intr_fwhm, templ_disp=None,
@@ -325,9 +488,9 @@ def template_model(x, amp, z, fwhm, intr_fwhm, templ_disp=None,
 
 
 def CIII_complex_model_func(x, z, cen, cen_alIII, cen_siIII,
-                          amp, fwhm_km_s, shift_km_s,
-                          amp_alIII, fwhm_km_s_alIII, shift_km_s_alIII,
-                          amp_siIII, fwhm_km_s_siIII, shift_km_s_siIII):
+                          flux, fwhm_km_s, shift_km_s,
+                          flux_alIII, fwhm_km_s_alIII, shift_km_s_alIII,
+                          flux_siIII, fwhm_km_s_siIII, shift_km_s_siIII):
     """Model function for the CIII] emission line complex, consisting of the
     Gaussian line models with a combined redshift parameter.
 
@@ -373,23 +536,22 @@ def CIII_complex_model_func(x, z, cen, cen_alIII, cen_siIII,
     siIII_delta_cen = shift_km_s_siIII / c_km_s * siIII_cen
     alIII_delta_cen = shift_km_s_alIII / c_km_s * alIII_cen
 
-
     central = cIII_cen + cIII_delta_cen
     fwhm = fwhm_km_s / c_km_s * central
     sigma = fwhm / np.sqrt(8 * np.log(2))
-    gauss_cIII = amp * np.exp(
+    gauss_cIII = flux / (sigma * np.sqrt(2 * np.pi)) * np.exp(
         -(x - central) ** 2 / (2 * sigma ** 2))
 
     central = siIII_cen + siIII_delta_cen
     fwhm = fwhm_km_s_siIII / c_km_s * central
     sigma = fwhm / np.sqrt(8 * np.log(2))
-    gauss_siIII = amp_siIII * np.exp(
+    gauss_siIII = flux_siIII/ (sigma * np.sqrt(2 * np.pi)) * np.exp(
         -(x - central) ** 2 / (2 * sigma ** 2))
 
     central = alIII_cen + alIII_delta_cen
     fwhm = fwhm_km_s_alIII / c_km_s * central
     sigma = fwhm / np.sqrt(8 * np.log(2))
-    gauss_alIII = amp_alIII * np.exp(
+    gauss_alIII = flux_alIII / (sigma * np.sqrt(2 * np.pi)) * np.exp(
         -(x - central) ** 2 / (2 * sigma ** 2))
 
     return gauss_cIII + gauss_alIII + gauss_siIII
@@ -414,8 +576,12 @@ def add_redshift_param(redshift, params, prefix):
 
     """
 
-    z_min = min(redshift*1.05, 1080)
-    z_max = max(1.0, redshift * 0.95)
+    if redshift !=0:
+        z_min = max(0, 0.95 * redshift)
+        z_max = min(1.05 * redshift, 1080)
+    else:
+        z_min = 0
+        z_max = 1
 
     params.add(prefix+'z', value=redshift, min=z_min, max=z_max, vary=False)
 
@@ -508,6 +674,37 @@ def setup_power_law_at_2500_plus_bc(prefix, **kwargs):
     return model, params
 
 
+# def setup_line_model_gaussian_amp(prefix, **kwargs):
+#     """Initialize the Gaussian line model.
+#
+#     :param prefix: Model prefix
+#     :type prefix: string
+#     :param kwargs: Keyword arguments
+#     :return: LMFIT model and parameters
+#     :rtype: (lmfit.Model, lmfit.Parameters)
+#
+#     """
+#
+#     params = Parameters()
+#
+#     redshift = kwargs.pop('redshift', 0)
+#     amplitude = kwargs.pop('amplitude', 100)
+#     cenwave = kwargs.pop('cenwave', 1450)
+#     fwhm = kwargs.pop('fwhm', 2500)
+#     vshift = kwargs.pop('vshift', 0)
+#
+#     add_redshift_param(redshift, params, prefix)
+#
+#     params.add(prefix + 'amp', value=amplitude)
+#     params.add(prefix + 'cen', value=cenwave)
+#     params.add(prefix + 'fwhm_km_s', value=fwhm)
+#     params.add(prefix + 'shift_km_s', value=vshift, vary=False)
+#
+#     model = Model(line_model_gaussian_amp, prefix=prefix)
+#
+#     return model, params
+
+
 def setup_line_model_gaussian(prefix, **kwargs):
     """Initialize the Gaussian line model.
 
@@ -522,17 +719,15 @@ def setup_line_model_gaussian(prefix, **kwargs):
     params = Parameters()
 
     redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 100)
+    flux = kwargs.pop('flux', 100)
     cenwave = kwargs.pop('cenwave', 1450)
     fwhm = kwargs.pop('fwhm', 2500)
-    vshift = kwargs.pop('vshift', 0)
 
     add_redshift_param(redshift, params, prefix)
 
-    params.add(prefix + 'amp', value=amplitude)
+    params.add(prefix + 'flux', value=flux)
     params.add(prefix + 'cen', value=cenwave)
     params.add(prefix + 'fwhm_km_s', value=fwhm)
-    params.add(prefix + 'shift_km_s', value=vshift, vary=False)
 
     model = Model(line_model_gaussian, prefix=prefix)
 
@@ -1236,15 +1431,16 @@ def setup_line_model_SiIV_2G(prefix, **kwargs):
     """
 
     redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
+    amplitude = kwargs.pop('amplitude', 0.1)
 
     # CIV 2G model params
     prefixes = ['SiIV_A_', 'SiIV_B_']
-    amplitudes = np.array([2, 2]) * amplitude
-    fwhms = [2500, 2500]
+    fwhms = np.array([2500, 2500])
+    sigmas = fwhms / np.sqrt(8*np.log(2))
+    fluxes = np.array([2, 2]) * amplitude * sigmas * np.sqrt(2*np.pi)
+
     # SiIV + OIV] http://classic.sdss.org/dr6/algorithms/linestable.html
     cenwaves = [1399.8, 1399.8]
-    vshifts = [0, 0]
 
     param_list = []
     model_list = []
@@ -1253,19 +1449,17 @@ def setup_line_model_SiIV_2G(prefix, **kwargs):
     for idx, prefix in enumerate(prefixes):
         model, params = setup_line_model_gaussian(prefix,
                                                   redshift=redshift,
-                                                  amplitude=amplitudes[idx],
+                                                  flux=fluxes[idx],
                                                   cenwave=cenwaves[idx],
-                                                  fwhm=fwhms[idx],
-                                                  vshift=vshifts[idx])
+                                                  fwhm=fwhms[idx])
         param_list.append(params)
         model_list.append(model)
 
     # Set parameter properties
-    for (params, prefix) in zip(param_list, prefixes):
+    for idx, (params, prefix) in enumerate(zip(param_list, prefixes)):
         params[prefix + 'cen'].set(vary=False)
-        params[prefix + 'amp'].set(min=amplitude/100, max=amplitude*1000)
+        params[prefix + 'flux'].set(min=0, max=fluxes[idx]*1000)
         params[prefix + 'fwhm_km_s'].set(min=300, max=20000)
-        params[prefix + 'shift_km_s'].set(vary=False, min=-200, max=200)
 
     return model_list, param_list
 
@@ -1294,10 +1488,11 @@ def setup_line_model_CIV_2G(prefix, **kwargs):
 
     # CIV 2G model params
     prefixes = ['CIV_A_', 'CIV_B_']
-    amplitudes = np.array([1, 1]) * amplitude
+
     fwhms = [2500, 2500]
+    sigmas = fwhms / np.sqrt(8*np.log(2))
+    fluxes = np.array([1, 1]) * amplitude * sigmas * np.sqrt(2*np.pi)
     cenwaves = [1549.06, 1549.06]  # Vanden Berk 2001
-    vshifts = [0, 0]
 
     param_list = []
     model_list = []
@@ -1307,19 +1502,17 @@ def setup_line_model_CIV_2G(prefix, **kwargs):
 
         model, params = setup_line_model_gaussian(prefix,
                                                   redshift=redshift,
-                                                  amplitude=amplitudes[idx],
+                                                  amplitude=fluxes[idx],
                                                   cenwave=cenwaves[idx],
-                                                  fwhm=fwhms[idx],
-                                                  vshift=vshifts[idx])
+                                                  fwhm=fwhms[idx])
         param_list.append(params)
         model_list.append(model)
 
     # Set parameter properties
-    for (params, prefix) in zip(param_list, prefixes):
+    for idx, (params, prefix) in enumerate(zip(param_list, prefixes)):
         params[prefix + 'cen'].set(vary=False)
-        params[prefix + 'amp'].set(min=amplitude/100, max=amplitude*1000)
+        params[prefix + 'flux'].set(min=0, max=fluxes[idx]*1000)
         params[prefix + 'fwhm_km_s'].set(min=300, max=20000)
-        params[prefix + 'shift_km_s'].set(vary=False, min=-200, max=200)
 
     return model_list, param_list
 
@@ -1344,15 +1537,15 @@ def setup_line_model_MgII_2G(prefix, **kwargs):
     """
 
     redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 5)
+    amplitude = kwargs.pop('amplitude', 0.05)
 
     prefixes = ['MgII_A_', 'MgII_B_']
 
     # MgII 2G model params
     fwhms = [2500, 1000]
-    amplitudes = np.array([5, 2]) * amplitude
+    sigmas = fwhms / np.sqrt(8*np.log(2))
+    fluxes = np.array([2, 1]) * amplitude * sigmas * np.sqrt(2*np.pi)
     cenwaves = [2798.75, 2798.75]  # Vanden Berk 2001
-    vshifts = [0, 0]
 
     param_list = []
     model_list = []
@@ -1361,33 +1554,28 @@ def setup_line_model_MgII_2G(prefix, **kwargs):
     for idx, prefix in enumerate(prefixes):
         model, params = setup_line_model_gaussian(prefix,
                                                    redshift=redshift,
-                                                   amplitude=amplitudes[idx],
+                                                   flux=fluxes[idx],
                                                    cenwave=cenwaves[idx],
-                                                   fwhm=fwhms[idx],
-                                                   vshift=vshifts[idx])
+                                                   fwhm=fwhms[idx])
         param_list.append(params)
         model_list.append(model)
 
     # Set parameter properties
-    for (params, prefix) in zip(param_list, prefixes):
-        print(params, prefix)
+    for idx, (params, prefix) in enumerate(zip(param_list, prefixes)):
         params[prefix + 'cen'].set(vary=False)
-        params[prefix + 'amp'].set(min=amplitude/100, max=amplitude*1000)
+        params[prefix + 'flux'].set(min=0, max=fluxes[idx]*1000)
         params[prefix + 'fwhm_km_s'].set(min=300, max=20000)
-        params[prefix + 'shift_km_s'].set(vary=False, min=-200, max=200)
 
     return model_list, param_list
 
 
-def setup_line_model_HbOIII_6G(prefix, **kwargs):
-    """ Set up a 6 component Gaussian line model for the HBeta and [OIII]
-    emission lines.
+def setup_line_model_Hbeta_2G(prefix, **kwargs):
+    """ Set up a 2 component Gaussian line model for the HBeta emission line.
 
     This model is defined for a spectral dispersion axis in Angstroem.
 
-    :param prefix: The input parameter exists for conformity with the \
-        Sculptor models, but will be ignored. The prefix is automatically set \
-        by the setup function.
+    :param prefix: The name of the emission line model. If prefix is None then a
+    pre-defined name will be assumed.
     :type prefix: string
     :param kwargs:
     :return: Return a list of LMFIT models and a list of LMFIT parameters
@@ -1396,17 +1584,23 @@ def setup_line_model_HbOIII_6G(prefix, **kwargs):
     """
 
     redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 5)
+    amplitude = kwargs.pop('amplitude', 0.05)
 
-    prefixes = ['HBeta_A_', 'HBeta_B_', 'OIII4960_A_', 'OIII4960_B_',
-                'OIII5008_A_', 'OIII5008_B_']
+    print(prefix)
 
-    # Hbeta + O[III] 6G model params
-    amplitudes = np.array([4, 2, 1, 0.5, 2, 1]) * amplitude
-    fwhms = [2500, 900, 900, 900, 1200, 1200]
+    if prefix is None or prefix == 'None':
+        prefixes = ['HBeta_A_', 'HBeta_B_']
+    else:
+        prefixes = [prefix+'A_', prefix+'B_']
+
+    # Hbeta 2G model params
+    fwhms = [2500, 900]
+    sigmas = fwhms / np.sqrt(8 * np.log(2))
+    fluxes = np.array([2, 1]) * amplitude * sigmas * np.sqrt(2 * np.pi)
+    print('Fluxes', fluxes)
+
     # Line wavelengths from Vanden Berk 2001 Table 2 (in Angstroem)
-    cenwaves = [4862.68, 4862.68, 4960.30, 4960.30, 5008.24, 5008.24]
-    vshifts = [0, 0, 0, 0, 0, 0]
+    cenwaves = [4862.68, 4862.68]
 
     param_list = []
     model_list = []
@@ -1415,22 +1609,214 @@ def setup_line_model_HbOIII_6G(prefix, **kwargs):
     for idx, prefix in enumerate(prefixes):
         model, params = setup_line_model_gaussian(prefix,
                                                    redshift=redshift,
-                                                   amplitude=amplitudes[idx],
+                                                   flux=fluxes[idx],
                                                    cenwave=cenwaves[idx],
-                                                   fwhm=fwhms[idx],
-                                                   vshift=vshifts[idx])
+                                                   fwhm=fwhms[idx])
         param_list.append(params)
         model_list.append(model)
 
     # Set parameter properties
-    for (params, prefix) in zip(param_list, prefixes):
+    for idx, (params, prefix) in enumerate(zip(param_list, prefixes)):
         print(params, prefix)
         params[prefix + 'cen'].set(vary=False)
-        params[prefix + 'amp'].set(min=amplitude / 100, max=amplitude * 1000)
+        params[prefix + 'flux'].set(min=0,
+                                   max=fluxes[idx] * 1000)
         params[prefix + 'fwhm_km_s'].set(min=300, max=20000)
-        params[prefix + 'shift_km_s'].set(vary=False, min=-200, max=200)
 
     return model_list, param_list
+
+
+def setup_line_model_Halpha_2G(prefix, **kwargs):
+    """ Set up a 2 component Gaussian line model for the HAlpha emission line.
+
+    This model is defined for a spectral dispersion axis in Angstroem.
+
+    :param prefix: The name of the emission line model. If prefix is None then a
+    pre-defined name will be assumed.
+    :type prefix: string
+    :param kwargs:
+    :return: Return a list of LMFIT models and a list of LMFIT parameters
+    :rtype: (list, list)
+
+    """
+
+    redshift = kwargs.pop('redshift', 0)
+    amplitude = kwargs.pop('amplitude', 0.05)
+
+    print(prefix)
+
+    if prefix is None or prefix == 'None':
+        prefixes = ['HAlpha_A_', 'HAlpha_B_']
+    else:
+        prefixes = [prefix+'A_', prefix+'B_']
+
+    # Hbeta 2G model params
+    fwhms = [2500, 900]
+    sigmas = fwhms / np.sqrt(8 * np.log(2))
+    fluxes = np.array([2, 1]) * amplitude * sigmas * np.sqrt(2 * np.pi)
+    print('Fluxes', fluxes)
+
+    # Line wavelengths from Vanden Berk 2001 Table 2 (in Angstroem)
+    cenwaves = [6564.61, 6564.61]
+
+    param_list = []
+    model_list = []
+
+    # Build parameter and model list
+    for idx, prefix in enumerate(prefixes):
+        model, params = setup_line_model_gaussian(prefix,
+                                                   redshift=redshift,
+                                                   flux=fluxes[idx],
+                                                   cenwave=cenwaves[idx],
+                                                   fwhm=fwhms[idx])
+        param_list.append(params)
+        model_list.append(model)
+
+    # Set parameter properties
+    for idx, (params, prefix) in enumerate(zip(param_list, prefixes)):
+        print(params, prefix)
+        params[prefix + 'cen'].set(vary=False)
+        params[prefix + 'flux'].set(min=fluxes[idx] / 100,
+                                   max=fluxes[idx] * 1000)
+        params[prefix + 'fwhm_km_s'].set(min=300, max=20000)
+
+    return model_list, param_list
+
+
+def setup_doublet_line_model_oiii(prefix, **kwargs):
+    """ Set up a double line model for the [OIII] emission lines at 4960.30 A
+    and 5008.24 A.
+
+    This model is defined for a spectral dispersion axis in Angstroem.
+
+    :param prefix: The name of the doublet line model. If prefix is None then a
+    pre-defined name will be assumed.
+    :type prefix: string
+    :param kwargs:
+    :return: Return a list of LMFIT models and a list of LMFIT parameters
+    :rtype: (list, list)
+
+    """
+
+    if prefix is None or prefix == 'None_' or prefix == 'None':
+        prefix = '[OIII]_doublet_'
+
+    redshift = kwargs.pop('redshift', 0)
+    amplitude = kwargs.pop('amplitude', 0.05)
+
+    fwhm = 900
+    sigma = fwhm / np.sqrt(8 * np.log(2))
+    flux = amplitude * sigma * np.sqrt(2 * np.pi)
+
+    param_list = []
+    model_list = []
+
+    params = Parameters()
+    add_redshift_param(redshift, params, prefix)
+
+    params.add(prefix + 'flux', value=flux, min=flux/100, max=flux*1000)
+    params.add(prefix + 'fwhm_km_s', value=fwhm, min=100, max=1200)
+
+    model = Model(line_model_gaussian_oiii_doublet, prefix=prefix)
+
+    param_list.append(params)
+    model_list.append(model)
+
+    return model_list, param_list
+
+def setup_doublet_line_model_nii(prefix, **kwargs):
+    """ Set up a double line model for the [NII] emission lines at 6549.85 A and
+    6585.28 A.
+
+    This model is defined for a spectral dispersion axis in Angstroem.
+
+    :param prefix: The name of the doublet line model. If prefix is None then a
+    pre-defined name will be assumed.
+    :type prefix: string
+    :param kwargs:
+    :return: Return a list of LMFIT models and a list of LMFIT parameters
+    :rtype: (list, list)
+
+    """
+
+    if prefix is None or prefix == 'None_' or prefix == 'None':
+        prefix = '[NII]_doublet_'
+
+    redshift = kwargs.pop('redshift', 0)
+    amplitude = kwargs.pop('amplitude', 0.1)
+
+    fwhms = np.array([350, 350])
+    sigmas = fwhms / np.sqrt(8 * np.log(2))
+    amplitudes = np.array([1, 1]) * amplitude
+    fluxes = amplitudes * sigmas * np.sqrt(2 * np.pi)
+
+    param_list = []
+    model_list = []
+
+    params = Parameters()
+    add_redshift_param(redshift, params, prefix)
+
+    params.add(prefix + 'flux_a', value=fluxes[0], min=0,
+               max=fluxes[0]*1000)
+    params.add(prefix + 'fwhm_km_s_a', value=fwhms[0], min=50, max=1200)
+    params.add(prefix + 'flux_b', value=fluxes[1], min=0,
+               max=fluxes[1]*1000)
+    params.add(prefix + 'fwhm_km_s_b', value=fwhms[1], min=50, max=1200)
+
+    model = Model(line_model_gaussian_nii_doublet, prefix=prefix)
+
+    param_list.append(params)
+    model_list.append(model)
+
+    return model_list, param_list
+
+
+def setup_doublet_line_model_sii(prefix, **kwargs):
+    """ Set up a double line model for the [SII] emission lines at 6718.29 A and
+    6732.67 A.
+
+    This model is defined for a spectral dispersion axis in Angstroem.
+
+    :param prefix: The name of the doublet line model. If prefix is None then a
+    pre-defined name will be assumed.
+    :type prefix: string
+    :param kwargs:
+    :return: Return a list of LMFIT models and a list of LMFIT parameters
+    :rtype: (list, list)
+
+    """
+
+    if prefix is None or prefix == 'None_' or prefix == 'None':
+        prefix = '[NII]_doublet_'
+
+    redshift = kwargs.pop('redshift', 0)
+    amplitude = kwargs.pop('amplitude', 0.1)
+
+    fwhms = np.array([250, 250])
+    sigmas = fwhms / np.sqrt(8 * np.log(2))
+    amplitudes = np.array([1, 1]) * amplitude
+    fluxes = amplitudes * sigmas * np.sqrt(2 * np.pi)
+
+    param_list = []
+    model_list = []
+
+    params = Parameters()
+    add_redshift_param(redshift, params, prefix)
+
+    params.add(prefix + 'flux_a', value=fluxes[0], min=0,
+               max=fluxes[0]*1000)
+    params.add(prefix + 'fwhm_km_s_a', value=fwhms[0], min=300, max=900)
+    params.add(prefix + 'flux_b', value=fluxes[1], min=0,
+               max=fluxes[1]*1000)
+    params.add(prefix + 'fwhm_km_s_b', value=fwhms[1], min=30, max=900)
+
+    model = Model(line_model_gaussian_sii_doublet, prefix=prefix)
+
+    param_list.append(params)
+    model_list.append(model)
+
+    return model_list, param_list
+
 
 
 def setup_line_model_CIII_complex(prefix, **kwargs):
@@ -1451,13 +1837,20 @@ def setup_line_model_CIII_complex(prefix, **kwargs):
 
     """
     redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
+    amplitude = kwargs.pop('amplitude', 0.001)
+
+    fwhm_cIII = 2000
+    fwhm_alIII = 800
+    fwhm_siIII = 300
 
     prefix = 'CIII_'
 
-    amp_cIII = 21.19 * amplitude
-    amp_alIII = 0.4 * amplitude
-    amp_siIII = 0.16 * amplitude
+    flux_cIII = 21.19 * amplitude * fwhm_cIII / np.sqrt(8 * np.log(2)) * \
+                np.sqrt(2 * np.pi)
+    flux_alIII = 0.4 * amplitude * fwhm_alIII / np.sqrt(8 * np.log(2)) * \
+                np.sqrt(2 * np.pi)
+    flux_siIII = 0.16 * amplitude * fwhm_siIII / np.sqrt(8 * np.log(2)) * \
+                np.sqrt(2 * np.pi)
 
     params = Parameters()
     # Line wavelengths from Vanden Berk 2001 Table 2 (in Angstroem)
@@ -1467,17 +1860,17 @@ def setup_line_model_CIII_complex(prefix, **kwargs):
 
     add_redshift_param(redshift, params, prefix)
 
-    params.add(prefix + 'amp', value=amp_cIII, vary=True,
-               min=amp_cIII / 100, max=amp_cIII * 1000)
-    params.add(prefix + 'amp_alIII', value=amp_alIII, vary=True,
-               min=amp_alIII / 100, max=amp_alIII * 1000)
-    params.add(prefix + 'amp_siIII', value=amp_siIII, vary=True,
-               min=amp_siIII / 100, max=amp_siIII * 1000)
+    params.add(prefix + 'flux', value=flux_cIII, vary=True,
+               min=0 / 100, max=flux_cIII * 1000)
+    params.add(prefix + 'flux_alIII', value=flux_alIII, vary=True,
+               min=0 / 100, max=flux_alIII * 1000)
+    params.add(prefix + 'flux_siIII', value=flux_siIII, vary=True,
+               min=0 / 100, max=flux_siIII * 1000)
 
-    params.add(prefix + 'fwhm_km_s', value=2000, vary=True, min=500, max=1e+4)
-    params.add(prefix + 'fwhm_km_s_alIII', value=800, vary=True, min=500,
+    params.add(prefix + 'fwhm_km_s', value=fwhm_cIII, vary=True, min=500, max=1e+4)
+    params.add(prefix + 'fwhm_km_s_alIII', value=fwhm_alIII, vary=True, min=500,
                max=7e+3)
-    params.add(prefix + 'fwhm_km_s_siIII', value=300, vary=True, min=500,
+    params.add(prefix + 'fwhm_km_s_siIII', value=fwhm_siIII, vary=True, min=100,
                max=7e+3)
 
     params.add(prefix + 'shift_km_s', value=0, vary=False)
@@ -1524,7 +1917,7 @@ qso_cont_feII = {'name': 'QSO Continuum+FeII',
 qso_cont_VP06 = {'name': 'QSO Cont. VP06' ,
                  'rest_frame': True,
                  'mask_ranges': [[1265, 1290], [1340, 1375], [1425, 1470],
-                                [1680, 1705], [1950, 2050]]}
+                                 [1680, 1705], [1950, 2050]]}
 
 # QSO continuum + iron windows, see Shen+2011
 qso_contfe_MgII_Shen11 = {'name': 'QSO Cont. MgII Shen11',
@@ -1565,6 +1958,7 @@ model_func_dict = {'power_law_at_2500': power_law_at_2500,
                    power_law_at_2500_plus_fractional_bc,
                    'template_model': template_model,
                    'line_model_gaussian': line_model_gaussian,
+                   # 'line_model_gaussian_amp': line_model_gaussian_amp,
                    'CIII_complex_model_func': CIII_complex_model_func}
 
 
@@ -1574,10 +1968,15 @@ model_func_list = ['Power Law (2500A)',
                    'Power Law (2500A) + BC',
                    'Power Law (2500A) + BC (fractional)',
                    'Line model Gaussian',
+                   # 'Line model Gaussian (amp)',
                    'SiIV (2G components)',
                    'CIV (2G components)',
                    'MgII (2G components)',
-                   'HBeta+[OIII] (6G components)',
+                   'HBeta (2G components)',
+                   'HAlpha (2G components)',
+                   '[OIII] doublet (2G)',
+                   '[NII] doublet (2G)',
+                   '[SII] doublet (2G)',
                    'CIII] complex (3G components)'
                    ]
 
@@ -1585,10 +1984,15 @@ model_setup_list = [setup_power_law_at_2500,
                     setup_power_law_at_2500_plus_bc,
                     setup_power_law_at_2500_plus_fractional_bc,
                     setup_line_model_gaussian,
+                    # setup_line_model_gaussian_amp,
                     setup_line_model_SiIV_2G,
                     setup_line_model_CIV_2G,
                     setup_line_model_MgII_2G,
-                    setup_line_model_HbOIII_6G,
+                    setup_line_model_Hbeta_2G,
+                    setup_line_model_Halpha_2G,
+                    setup_doublet_line_model_oiii,
+                    setup_doublet_line_model_nii,
+                    setup_doublet_line_model_sii,
                     setup_line_model_CIII_complex]
 
 # Test if swire library galaxy templates are present and then add the model and

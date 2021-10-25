@@ -816,28 +816,28 @@ class SpecModel:
 
         # For backward_compatibility of dispersion/flux density limits loading
         if 'xlim' in meta.index:
-            self.xlim = meta.loc['xlim', 0]
+            self.xlim = np.float(meta.loc['xlim', 0])
             print ('[WARNING] You are loading data from a '
                                      'saved fit created with beta '
                    'version 0.2b0. This '
                                      'format will be deprecated with '
                                      'release 1.0.0')
         else:
-            self.xlim = [float(meta.loc['xlim_0',0]),
-                         float(meta.loc['xlim_1',0])]
+            self.xlim = [np.float(meta.loc['xlim_0',0]),
+                         np.float(meta.loc['xlim_1',0])]
         if 'ylim' in meta.index:
-            self.ylim = meta.loc['ylim', 0]
+            self.ylim = np.float(meta.loc['ylim', 0])
             print ('[WARNING] You are loading data from a '
                                      'saved fit created with beta '
                    'version 0.2b0. This '
                                      'format will be deprecated with '
                                      'release 1.0.0')
         else:
-            self.ylim = [float(meta.loc['ylim_0', 0]),
-                         float(meta.loc['ylim_1', 0])]
+            self.ylim = [np.float(meta.loc['ylim_0', 0]),
+                         np.float(meta.loc['ylim_1', 0])]
 
         if 'redshift' in meta.index:
-            self.redshift = meta.loc['redshift', 0]
+            self.redshift = np.float(meta.loc['redshift', 0])
 
         # If clause for backward compatibility with v0.2b0
         if 'propagate' in meta.index:
