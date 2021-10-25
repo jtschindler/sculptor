@@ -204,8 +204,11 @@ class SpecModel:
             model, params = model_setup_list[model_idx](prefix, **kwargs)
 
         # Add global params to params
+
         if self.global_params:
-            params.update(self.global_params)
+            for param in params:
+                for global_param in self.global_params:
+                    param.add(global_param)
 
         self._add_model(model, params)
 
