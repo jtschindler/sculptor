@@ -6,7 +6,7 @@ Interactive modeling of (electromagnetic) astronomical spectra.
 
 For installation instructions and documentation visit [Sculptor's ReadTheDocs]
 
-##### (Version 0.4b0)
+##### (Version 1.0.0)
 
 **Sculptor** is a high level API and Graphical User Interface around [LMFIT](https://lmfit.github.io/lmfit-py/) tailored specifically for the analysis of astronomical spectra. This package is designed to facilitate reproducible scientific results and easy to inspect model fits in an open source framework. For this purpose the *Sculptor* package introduces four core python modules and a Graphical User Interface for interactive control:
 
@@ -32,7 +32,7 @@ At the heart of the *Sculptor* package is the Graphical User Interface, which of
 If you are interested in being involved with this project, please contact Jan-Torge Schindler via [github](https://github.com/jtschindler/sculptor).
 
 **Disclaimer:**
-This project is currently undergoing rapid development. Be advised as the API has not been finalized, yet, fits done with the current version may not work with a future version of the software. The first stable, well-tested release will be version 1.0.0 anticipated for summer 2021.
+Version 1.0.0 is the first stable release version of Sculptor. Be advised that all future 1.x.x versions will adhere to the same API. However API changes might occur between major releases. 
 
 
 [LMFIT]: https://lmfit.github.io/lmfit-py/

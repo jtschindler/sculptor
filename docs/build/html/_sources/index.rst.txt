@@ -26,8 +26,7 @@ At the heart of the *Sculptor* package is the Graphical User Interface, which of
 If you are interested in being involved with this project, please contact Jan-Torge Schindler via `github <https://github.com/jtschindler/sculptor>`_.
 
 **Disclaimer:**
-This project is currently undergoing rapid development. Be advised as the API has not been finalized, yet, fits done with the current version may not work with a future version of the software. The first stable, well-tested release will be version 1.0.0 anticipated for summer 2021.
-
+Version 1.0.0 is the first stable release version of Sculptor. Be advised that all future 1.x.x versions will adhere to the same API. However API changes might occur between major releases.
 
 .. toctree::
   :maxdepth: 1
