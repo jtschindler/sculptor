@@ -14,7 +14,7 @@ except ImportError:  # Python 2.x
     from distutils.command.build_py import build_py
 
 setup(name='sculptor',
-      version='0.3b0',
+      version='0.4b0',
       description='Interactive modeling of (electromagnetic) astronomical spectra',
       long_description=long_description,
       long_description_content_type='text/markdown',

@@ -26,8 +26,8 @@ copyright = '2021, Jan-Torge Schindler'
 author = 'Jan-Torge Schindler'
 
 # The full version, including alpha/beta/rc tags
-version = '0.3b0'
-release = '0.3b0'
+version = '0.4b0'
+release = '0.4b0'
 
 # html_logo = 'sculptor_logo.png'
 

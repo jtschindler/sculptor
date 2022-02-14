@@ -6,7 +6,7 @@ Interactive modeling of (electromagnetic) astronomical spectra.
 
 For installation instructions and documentation visit [Sculptor's ReadTheDocs]
 
-##### (Version 0.3b0)
+##### (Version 0.4b0)
 
 **Sculptor** is a high level API and Graphical User Interface around [LMFIT](https://lmfit.github.io/lmfit-py/) tailored specifically for the analysis of astronomical spectra. This package is designed to facilitate reproducible scientific results and easy to inspect model fits in an open source framework. For this purpose the *Sculptor* package introduces four core python modules and a Graphical User Interface for interactive control:
 
@@ -25,7 +25,7 @@ A module focused on the analysis of continuum models of models of emission/absor
 
 ![Sculptor example fit][logo]
 
-[logo]: https://github.com/jtschindler/sculptor/blob/master/docs/images/example_fit.png "A Sculptor example fit of a quasar spectrum."
+[logo]: https://github.com/jtschindler/sculptor/blob/main/docs/images/example_fit.png "A Sculptor example fit of a quasar spectrum."
 
 At the heart of the *Sculptor* package is the Graphical User Interface, which offers interactive control to set up and combine multiple spectral models to fully fit the astronomical spectrum of choice. This includes masking of spectral features, defining fit regions, and setting of fit parameter boundaries. The framework allows to add interdependent fit parameters (e.g., to couple the FWHM of multiple emission/absorption lines).
 

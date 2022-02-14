@@ -353,12 +353,14 @@ def line_model_gaussian_nii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a,
     :type x: np.ndarray
     :param z: Redshift
     :type z: float
-    :param flux: Amplitude of the Gaussian
-    :type flux: float
-    :param cen: Central wavelength
-    :type cen: float
-    :param fwhm_km_s: FWHM of the Gaussian in km/s
-    :type fwhm_km_s: float
+    :param flux_a: Amplitude of the 1st Gaussian component
+    :type flux_a: float
+    :param flux_b: Amplitude of the 2nd Gaussian component
+    :type flux_b: float
+    :param fwhm_km_s_a: FWHM of the 1st Gaussian component in km/s
+    :type fwhm_km_s_a: float
+    :param fwhm_km_s_b: FWHM of the 2nd Gaussian component in km/s
+    :type fwhm_km_s_b: float
     :return: Gaussian doublet line model
     :rtype: np.ndarray
     """
@@ -394,14 +396,17 @@ def line_model_gaussian_sii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a,
     :type x: np.ndarray
     :param z: Redshift
     :type z: float
-    :param flux: Amplitude of the Gaussian
-    :type flux: float
-    :param cen: Central wavelength
-    :type cen: float
-    :param fwhm_km_s: FWHM of the Gaussian in km/s
-    :type fwhm_km_s: float
+    :param flux_a: Amplitude of the 1st Gaussian component
+    :type flux_a: float
+    :param flux_b: Amplitude of the 2nd Gaussian component
+    :type flux_b: float
+    :param fwhm_km_s_a: FWHM of the 1st Gaussian component in km/s
+    :type fwhm_km_s_a: float
+    :param fwhm_km_s_b: FWHM of the 2nd Gaussian component in km/s
+    :type fwhm_km_s_b: float
     :return: Gaussian doublet line model
     :rtype: np.ndarray
+
     """
 
     # Redshift central wavelengths
@@ -1534,7 +1539,6 @@ def setup_line_model_MgII_2G(prefix, **kwargs):
     :param kwargs:
     :return: Return a list of LMFIT models and a list of LMFIT parameters
     :rtype: (list, list)
-
     """
 
     redshift = kwargs.pop('redshift', 0)
@@ -1581,7 +1585,6 @@ def setup_line_model_Hbeta_2G(prefix, **kwargs):
     :param kwargs:
     :return: Return a list of LMFIT models and a list of LMFIT parameters
     :rtype: (list, list)
-
     """
 
     redshift = kwargs.pop('redshift', 0)
@@ -1638,7 +1641,6 @@ def setup_line_model_Halpha_2G(prefix, **kwargs):
     :param kwargs:
     :return: Return a list of LMFIT models and a list of LMFIT parameters
     :rtype: (list, list)
-
     """
 
     redshift = kwargs.pop('redshift', 0)
@@ -1696,7 +1698,6 @@ def setup_doublet_line_model_oiii(prefix, **kwargs):
     :param kwargs:
     :return: Return a list of LMFIT models and a list of LMFIT parameters
     :rtype: (list, list)
-
     """
 
     if prefix is None or prefix == 'None_' or prefix == 'None':
@@ -1741,7 +1742,6 @@ def setup_doublet_line_model_nii(prefix, **kwargs):
     :param kwargs:
     :return: Return a list of LMFIT models and a list of LMFIT parameters
     :rtype: (list, list)
-
     """
 
     if prefix is None or prefix == 'None_' or prefix == 'None':
@@ -1788,7 +1788,6 @@ def setup_doublet_line_model_sii(prefix, **kwargs):
     :param kwargs:
     :return: Return a list of LMFIT models and a list of LMFIT parameters
     :rtype: (list, list)
-
     """
 
     if prefix is None or prefix == 'None_' or prefix == 'None':
@@ -1838,8 +1837,7 @@ def setup_line_model_CIII_complex(prefix, **kwargs):
         by the setup function.
     :type prefix: string
     :param kwargs:
-    :return:
-
+    :return: Return model and model parameters
     """
     redshift = kwargs.pop('redshift', 0)
     amplitude = kwargs.pop('amplitude', 0.001)
