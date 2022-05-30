@@ -1,5 +1,5 @@
 # run: conda env create --file environment.yml
-name: sculptor-env
+name: sculptor
 channels:
 - conda-forge
 - defaults
