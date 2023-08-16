@@ -23,6 +23,8 @@ from scipy.interpolate import UnivariateSpline
 from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
 
+from IPython import embed
+
 pc_in_cm = units.pc.to(units.cm)
 c_km_s = const.c.to('km/s').value
 L_sun_erg_s = const.L_sun.to('erg/s').value

@@ -33,6 +33,8 @@ from sculptor import speconed as sod
 from sculptor.masksmodels import model_func_list, model_func_dict,\
     model_setup_list, mask_presets
 
+from IPython import embed
+
 # For a full list of fitting method
 # https://lmfit.github.io/lmfit-py/fitting.html
 fitting_methods = {'Levenberg-Marquardt': 'leastsq',
@@ -206,9 +208,13 @@ class SpecModel:
         # Add global params to params
 
         if self.global_params:
-            for param in params:
+            if type(params) is list:
+                for param in params:
+                    for global_param in self.global_params:
+                        param.add(global_param)
+            else:
                 for global_param in self.global_params:
-                    param.add(global_param)
+                    params.add(global_param)
 
         self._add_model(model, params)
 
@@ -819,28 +825,28 @@ class SpecModel:
 
         # For backward_compatibility of dispersion/flux density limits loading
         if 'xlim' in meta.index:
-            self.xlim = np.float(meta.loc['xlim', 0])
+            self.xlim = float(meta.loc['xlim', 0])
             print ('[WARNING] You are loading data from a '
                                      'saved fit created with beta '
                    'version 0.2b0. This '
                                      'format will be deprecated with '
                                      'release 1.0.0')
         else:
-            self.xlim = [np.float(meta.loc['xlim_0',0]),
-                         np.float(meta.loc['xlim_1',0])]
+            self.xlim = [float(meta.loc['xlim_0',0]),
+                         float(meta.loc['xlim_1',0])]
         if 'ylim' in meta.index:
-            self.ylim = np.float(meta.loc['ylim', 0])
+            self.ylim = float(meta.loc['ylim', 0])
             print ('[WARNING] You are loading data from a '
                                      'saved fit created with beta '
                    'version 0.2b0. This '
                                      'format will be deprecated with '
                                      'release 1.0.0')
         else:
-            self.ylim = [np.float(meta.loc['ylim_0', 0]),
-                         np.float(meta.loc['ylim_1', 0])]
+            self.ylim = [float(meta.loc['ylim_0', 0]),
+                         float(meta.loc['ylim_1', 0])]
 
         if 'redshift' in meta.index:
-            self.redshift = np.float(meta.loc['redshift', 0])
+            self.redshift = float(meta.loc['redshift', 0])
 
         # If clause for backward compatibility with v0.2b0
         if 'propagate' in meta.index:

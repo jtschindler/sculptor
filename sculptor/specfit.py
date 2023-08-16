@@ -347,7 +347,7 @@ class SpecFit:
         # Compatibility if statements for older versions without these
         # meta parameters.
         if 'redshift' in meta.index:
-            self.redshift = np.float(meta.loc['redshift', 0])
+            self.redshift = float(meta.loc['redshift', 0])
 
         # For backward_compatibility of dispersion/flux density limits loading
         if 'xlim' in meta.index:
@@ -358,8 +358,8 @@ class SpecFit:
                                      'format will be deprecated with '
                                      'release 1.0.0')
         else:
-            self.xlim = [np.float(meta.loc['xlim_0',0]),
-                         np.float(meta.loc['xlim_1',0])]
+            self.xlim = [float(meta.loc['xlim_0',0]),
+                         float(meta.loc['xlim_1',0])]
         if 'ylim' in meta.index:
             self.ylim = meta.loc['ylim', 0]
             print('[WARNING] You are loading data from a '
@@ -368,8 +368,8 @@ class SpecFit:
                                      'format will be deprecated with '
                                      'release 1.0.0')
         else:
-            self.ylim = [np.float(meta.loc['ylim_0', 0]),
-                         np.float(meta.loc['ylim_1', 0])]
+            self.ylim = [float(meta.loc['ylim_0', 0]),
+                         float(meta.loc['ylim_1', 0])]
 
         if 'fitting_method' in meta.index:
             self.fitting_method = meta.loc['fitting_method', 0]

@@ -2155,7 +2155,7 @@ def calc_eddington_ratio(lbol, bh_mass):
     return lbol / edd_lum
 
 
-def se_bhmass_hbeta_vp06(hbeta_fwhm, cont_lwav, cont_wav=5100*u.A):
+def se_bhmass_hbeta_vp06(hbeta_fwhm, cont_lwav, cont_wav=5100*u.AA):
     """Calculate the single-epoch virial BH mass based on the Hbeta FWHM and
     monochromatic continuum luminosity at 5100A.
 
