@@ -1,101 +1,58 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <title>The SpecAnalysis Module &mdash; Sculptor 1.0.0 documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+  <title>The SpecAnalysis Module &mdash; Sculptor 1.1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="The Masks &amp; Models Module" href="masksmodels.html" />
     <link rel="prev" title="The SpecFit Module" href="specfit.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
 
           
-            <a href="index.html" class="icon icon-home"> Sculptor
           
-
-          
+          <a href="index.html" class="icon icon-home">
+            Sculptor
           </a>
-
-          
-            
-            
               <div class="version">
-                1.0.0
+                1.1.0
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <p class="caption"><span class="caption-text">Getting Started:</span></p>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">The Sculptor GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Tutorials:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html">An introduction to the SpecOneD class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html#The-PassBand-class">The PassBand class</a></li>
@@ -104,121 +61,76 @@
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_2.html">Scripting Sculptor 02 - Analysing model fits with SpecAnalysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_3.html">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Module documentation:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Module documentation:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">The SpecAnalysis Module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">The SpecAnalysis Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.analyze_continuum"><code class="docutils literal notranslate"><span class="pre">analyze_continuum()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.analyze_emission_feature"><code class="docutils literal notranslate"><span class="pre">analyze_emission_feature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.analyze_mcmc_results"><code class="docutils literal notranslate"><span class="pre">analyze_mcmc_results()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.analyze_resampled_results"><code class="docutils literal notranslate"><span class="pre">analyze_resampled_results()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.build_model_flux"><code class="docutils literal notranslate"><span class="pre">build_model_flux()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.calc_absolute_mag_from_apparent_mag"><code class="docutils literal notranslate"><span class="pre">calc_absolute_mag_from_apparent_mag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.calc_absolute_mag_from_fluxden"><code class="docutils literal notranslate"><span class="pre">calc_absolute_mag_from_fluxden()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.calc_absolute_mag_from_monochromatic_luminosity"><code class="docutils literal notranslate"><span class="pre">calc_absolute_mag_from_monochromatic_luminosity()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.calc_apparent_mag_from_fluxden"><code class="docutils literal notranslate"><span class="pre">calc_apparent_mag_from_fluxden()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.calc_integrated_luminosity"><code class="docutils literal notranslate"><span class="pre">calc_integrated_luminosity()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.calc_lwav_from_fwav"><code class="docutils literal notranslate"><span class="pre">calc_lwav_from_fwav()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.get_average_fluxden"><code class="docutils literal notranslate"><span class="pre">get_average_fluxden()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.get_equivalent_width"><code class="docutils literal notranslate"><span class="pre">get_equivalent_width()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.get_fwhm"><code class="docutils literal notranslate"><span class="pre">get_fwhm()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.get_integrated_flux"><code class="docutils literal notranslate"><span class="pre">get_integrated_flux()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.get_nonparametric_measurements"><code class="docutils literal notranslate"><span class="pre">get_nonparametric_measurements()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.get_peak_redshift"><code class="docutils literal notranslate"><span class="pre">get_peak_redshift()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specanalysis.k_correction_pl"><code class="docutils literal notranslate"><span class="pre">k_correction_pl()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="masksmodels.html">The Masks &amp; Models Module</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Extensions:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Extensions:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="qso_extension.html">The QSO-Extension Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="my_extension.html">Example extension Module</a></li>
 </ul>
-<p class="caption"><span class="caption-text">License:</span></p>
+<p class="caption" role="heading"><span class="caption-text">License:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">Sculptor</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-        
-      <li>The SpecAnalysis Module</li>
-    
-    
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">The SpecAnalysis Module</li>
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="_sources/specanalysis.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
-  
-<style>
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<div class="section" id="module-sculptor.specanalysis">
-<span id="the-specanalysis-module"></span><h1>The SpecAnalysis Module<a class="headerlink" href="#module-sculptor.specanalysis" title="Permalink to this headline">¶</a></h1>
+             
+  <section id="module-sculptor.specanalysis">
+<span id="the-specanalysis-module"></span><h1>The SpecAnalysis Module<a class="headerlink" href="#module-sculptor.specanalysis" title="Permalink to this heading"></a></h1>
 <p>The SpecAnalysis module provides a range of functions for spectral analsysis
 in the context of the Sculptor packages SpecOneD, SpecFit, and SpecModel
 classes.</p>
 <dl class="py function">
-<dt id="sculptor.specanalysis.analyze_continuum">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">analyze_continuum</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specfit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rest_frame_wavelengths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.analyze_continuum" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.analyze_continuum">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">analyze_continuum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specfit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rest_frame_wavelengths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.analyze_continuum" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate measurements of the continuum at a range of specified
 wavelengths for a spectral fit (SpecFit object).</p>
 <p>At present this analysis assumes that the spectra are in the following
@@ -226,7 +138,7 @@ units:
 flux density - erg/s/cm^2/AA
 dispersion - AA</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>specfit</strong> (<a class="reference internal" href="specfit.html#sculptor.specfit.SpecFit" title="sculptor.specfit.SpecFit"><em>sculptor.specfit.SpecFit</em></a>) – SpecFit class object to extract the model flux from</p></li>
 <li><p><strong>model_names</strong> (<em>list</em><em>(</em><em>string</em><em>)</em>) – List of model names to create the emission feature flux
@@ -248,18 +160,18 @@ are calculated</p></li>
 flux density in.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Dictionary with measurement results (with units)</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>dict</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.analyze_emission_feature">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">analyze_emission_feature</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specfit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rest_frame_wavelength</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_model_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emfeat_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'spline'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.analyze_emission_feature" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.analyze_emission_feature">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">analyze_emission_feature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specfit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rest_frame_wavelength</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_model_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emfeat_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'spline'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.analyze_emission_feature" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate measurements of an emission feature for a spectral fit (
 SpecFit object).</p>
 <p>At present this analysis assumes that the spectra are in the following
@@ -267,7 +179,7 @@ units:
 flux density - erg/s/cm^2/AA
 dispersion - AA</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>specfit</strong> (<a class="reference internal" href="specfit.html#sculptor.specfit.SpecFit" title="sculptor.specfit.SpecFit"><em>sculptor.specfit.SpecFit</em></a>) – SpecFit class object to extract the model flux from</p></li>
 <li><p><strong>feature_name</strong> (<em>string</em>) – Name of the emission feature, which will be used to
@@ -296,18 +208,18 @@ boundaries for the integration</p></li>
 values are ‘sign’ or ‘spline’ (default).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Dictionary with measurement results (with units)</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>dict</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.analyze_mcmc_results">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">analyze_mcmc_results</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">foldername</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specfit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">continuum_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emission_feature_dictlist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emfeat_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concatenate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.analyze_mcmc_results" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.analyze_mcmc_results">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">analyze_mcmc_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">foldername</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specfit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">continuum_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emission_feature_dictlist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emfeat_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concatenate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.analyze_mcmc_results" title="Permalink to this definition"></a></dt>
 <dd><p>Analyze MCMC model fit results of specified continuum/feature models.</p>
 <p>Results will be written to an enhanced csv file in the same folder,
 where the MCMC flat chain data resides.</p>
@@ -329,7 +241,7 @@ where the MCMC flat chain data resides.</p>
 <li><p>‘disp_range’ - 2 element list holding the lower and upper dispersion         boundaries flux density integration.</p></li>
 </ul>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>foldername</strong> (<em>string</em>) – Path to the folder with the MCMC flat chain hdf5 files.</p></li>
 <li><p><strong>specfit</strong> (<a class="reference internal" href="specfit.html#sculptor.specfit.SpecFit" title="sculptor.specfit.SpecFit"><em>sculptor.specfit.SpecFit</em></a>) – Sculptor model fit (SpecFit object) containing the
@@ -337,7 +249,7 @@ information about the science spectrum, the SpecModels and parameters.</p></li>
 <li><p><strong>continuum_dict</strong> (<em>dictionary</em>) – The <em>continuum_listdict</em> holds the arguments for
 the <em>SpecAnalysis.analyze_continuum</em> function that will be called by
 this procedure.</p></li>
-<li><p><strong>emission_feature_dictlist</strong> (<em>list of dictionary</em>) – The <em>emission_feature_listdict</em> hold the
+<li><p><strong>emission_feature_dictlist</strong> (<em>list</em><em> of </em><em>dictionary</em>) – The <em>emission_feature_listdict</em> hold the
 arguments for the <em>SpecAnalysis.analyze_emission_feature</em> functions that
 will be called by this procedure.</p></li>
 <li><p><strong>redshift</strong> (<em>float</em>) – Source redshift</p></li>
@@ -364,15 +276,15 @@ the analysis results should be concatenated before written to file.
 results and MCMC flat chain parameter values to file)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.analyze_resampled_results">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">analyze_resampled_results</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specfit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">foldername</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resampled_df_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">continuum_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emission_feature_dictlist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emfeat_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concatenate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.analyze_resampled_results" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.analyze_resampled_results">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">analyze_resampled_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specfit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">foldername</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resampled_df_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">continuum_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emission_feature_dictlist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emfeat_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concatenate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.analyze_resampled_results" title="Permalink to this definition"></a></dt>
 <dd><p>Analyze resampled model fit results for all specified continuum and
 feature models.</p>
 <p>Results will be written to an enhanced csv file in the same folder,
@@ -394,7 +306,7 @@ where the resampled raw data resides.</p>
 <li><p>‘disp_range’ - 2 element list holding the lower and upper dispersion         boundaries flux density integration.</p></li>
 </ul>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>specfit</strong> (<a class="reference internal" href="specfit.html#sculptor.specfit.SpecFit" title="sculptor.specfit.SpecFit"><em>sculptor.specfit.SpecFit</em></a>) – Sculptor model fit (SpecFit object) containing the
 information about the science spectrum, the SpecModels and parameters.</p></li>
@@ -404,7 +316,7 @@ in hdf5 format.</p></li>
 <li><p><strong>continuum_dict</strong> (<em>dictionary</em>) – The <em>continuum_listdict</em> holds the arguments for
 the <em>SpecAnalysis.analyze_continuum</em> function that will be called by
 this procedure.</p></li>
-<li><p><strong>emission_feature_dictlist</strong> (<em>list of dictionary</em>) – The <em>emission_feature_listdict</em> hold the
+<li><p><strong>emission_feature_dictlist</strong> (<em>list</em><em> of </em><em>dictionary</em>) – The <em>emission_feature_listdict</em> hold the
 arguments for the <em>SpecAnalysis.analyze_emission_feature</em> functions that
 will be called by this procedure.</p></li>
 <li><p><strong>redshift</strong> (<em>float</em>) – Source redshift</p></li>
@@ -431,21 +343,21 @@ the analysis results should be concatenated before written to file.
 results and MCMC flat chain parameter values to file)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.build_model_flux">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">build_model_flux</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specfit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.build_model_flux" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.build_model_flux">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">build_model_flux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specfit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.build_model_flux" title="Permalink to this definition"></a></dt>
 <dd><p>Build the model flux from a specified list of models that exist in the
 SpecModels of the SpecFit object.</p>
 <p>The dispersion axis for the model flux can be specified as a keyword
 argument.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>specfit</strong> (<a class="reference internal" href="specfit.html#sculptor.specfit.SpecFit" title="sculptor.specfit.SpecFit"><em>sculptor.specfit.SpecFit</em></a>) – SpecFit class object to extract the model flux from</p></li>
 <li><p><strong>model_list</strong> (<em>list</em><em>(</em><em>string</em><em>)</em>) – List of model names to create the model flux from. The
@@ -453,22 +365,22 @@ models must be exist in the SpecModel objects inside the SpecFit object.</p></li
 <li><p><strong>dispersion</strong> (<em>np.array</em>) – New dispersion to create the model flux for</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>SpecOneD objects with the model flux</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>sod.SpecOneD</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.calc_absolute_mag_from_apparent_mag">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">calc_absolute_mag_from_apparent_mag</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">appmag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kcorrection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_nu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.calc_absolute_mag_from_apparent_mag" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.calc_absolute_mag_from_apparent_mag">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">calc_absolute_mag_from_apparent_mag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">appmag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kcorrection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_nu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.calc_absolute_mag_from_apparent_mag" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the absolute magnitude from the apparent magnitude using a
 power law k-correction.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>appmag</strong> (<em>float</em>) – Apparent AB magnitude</p></li>
 <li><p><strong>cosmology</strong> (<em>astropy.cosmology.Cosmology</em>) – Cosmology as an astropy Cosmology object.</p></li>
@@ -481,22 +393,22 @@ k-correction. This defaults to ‘0’, appropriate for monochromatic
 measurements.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Absolute AB magnitude (monochromatic)</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.calc_absolute_mag_from_fluxden">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">calc_absolute_mag_from_fluxden</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluxden</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kcorrection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_nu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.calc_absolute_mag_from_fluxden" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.calc_absolute_mag_from_fluxden">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">calc_absolute_mag_from_fluxden</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluxden</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kcorrection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_nu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.calc_absolute_mag_from_fluxden" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the absolute AB magnitude from the monochromatic flux density
 at a given dispersion value.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fluxden</strong> (<em>astropy.units.Quantity</em>) – Monochromatic flux density at a given wavelength.</p></li>
 <li><p><strong>dispersion</strong> (<em>float</em>) – Dispersion value (usually in wavelength).</p></li>
@@ -510,63 +422,63 @@ k-correction. This defaults to ‘0’, appropriate for monochromatic
 measurements.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Absolute AB magnitude (monochromatic)</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.calc_absolute_mag_from_monochromatic_luminosity">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">calc_absolute_mag_from_monochromatic_luminosity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l_wav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wavelength</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.calc_absolute_mag_from_monochromatic_luminosity" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.calc_absolute_mag_from_monochromatic_luminosity">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">calc_absolute_mag_from_monochromatic_luminosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l_wav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wavelength</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.calc_absolute_mag_from_monochromatic_luminosity" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the absolute monochromatic magnitude from the monochromatic
 luminosity per wavelegnth.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>l_wav</strong> (<em>astropy.units.Quantity</em>) – Monochromatic luminosity per wavelength</p></li>
 <li><p><strong>wavelength</strong> (<em>float</em>) – Wavelength of the monochromatic luminosity</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Absolute monochromatic magnitude</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.calc_apparent_mag_from_fluxden">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">calc_apparent_mag_from_fluxden</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluxden</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.calc_apparent_mag_from_fluxden" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.calc_apparent_mag_from_fluxden">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">calc_apparent_mag_from_fluxden</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluxden</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.calc_apparent_mag_from_fluxden" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the apparent AB magnitude from the monochromatic flux
 density at a specified dispersion value.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fluxden</strong> (<em>astropy.units.Quantity</em>) – Monochromatic flux density at a given wavelength.</p></li>
 <li><p><strong>dispersion</strong> (<em>float</em>) – Dispersion value (usually in wavelength).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Returns apparent AB magnitude.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.calc_integrated_luminosity">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">calc_integrated_luminosity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.calc_integrated_luminosity" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.calc_integrated_luminosity">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">calc_integrated_luminosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.calc_integrated_luminosity" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the integrated model spectrum luminosity.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_spec</strong> (<a class="reference internal" href="speconed.html#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD"><em>sculptor.speconed.SpecOneD</em></a>) – Input spectrum</p></li>
 <li><p><strong>redshift</strong> (<em>float</em>) – Redshift of the source.</p></li>
@@ -575,23 +487,23 @@ density at a specified dispersion value.</p>
 boundaries for the integration</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Return the integrated luminosity for (dispersion range in) the
 input spectrum.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.calc_lwav_from_fwav">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">calc_lwav_from_fwav</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluxden</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.calc_lwav_from_fwav" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.calc_lwav_from_fwav">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">calc_lwav_from_fwav</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluxden</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cosmology</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.calc_lwav_from_fwav" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the monochromatic luminosity from the monochromatic flux
 density.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fluxden</strong> (<em>astropy.units.Unit</em><em> or </em><em>astropy.units.Quantity</em><em> or
 </em><em>astropy.units.CompositeUnit</em><em> or </em><em>astropy.units.IrreducibleUnit</em>) – Monochromatic flux density at a given wavelength.</p></li>
@@ -599,18 +511,18 @@ density.</p>
 <li><p><strong>cosmology</strong> (<em>astropy.cosmology.Cosmology</em>) – Cosmology as an astropy Cosmology object</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Monochromatic luminosity in units of erg s^-1 Angstroem^-1</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.get_average_fluxden">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">get_average_fluxden</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.get_average_fluxden" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.get_average_fluxden">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">get_average_fluxden</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.get_average_fluxden" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the average flux density of a spectrum in a window centered at
 the specified dispersion and with a given width.</p>
 <p>The central dispersion and width can be specified in the rest-frame and
@@ -619,7 +531,7 @@ then are redshifted to the observed frame using the redsh keyword argument.</p>
 units. For spectra in frequency units the conversion to rest-frame will
 be incorrect.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_spec</strong> (<a class="reference internal" href="speconed.html#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD"><em>sculptor.speconed.SpecOneD</em></a>) – Input spectrum</p></li>
 <li><p><strong>dispersion</strong> (<em>float</em>) – Central dispersion</p></li>
@@ -628,24 +540,24 @@ be incorrect.</p>
 the observed frame.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Average flux density</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.get_equivalent_width">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">get_equivalent_width</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cont_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.get_equivalent_width" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.get_equivalent_width">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">get_equivalent_width</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cont_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.get_equivalent_width" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the rest-frame equivalent width of a spectral feature.</p>
 <p>Warning: this function currently only works for spectra in wavelength
 units. For spectra in frequency units the conversion to rest-frame will
 be incorrect.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>cont_spec</strong> (<a class="reference internal" href="speconed.html#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD"><em>sculptor.speconed.SpecOneD</em></a>) – Continuum spectrum</p></li>
 <li><p><strong>line_spec</strong> (<a class="reference internal" href="speconed.html#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD"><em>sculptor.speconed.SpecOneD</em></a>) – Spectrum with the feature (e.g. emission line)</p></li>
@@ -654,18 +566,18 @@ the equivalent width will be calculated.</p></li>
 <li><p><strong>redshift</strong> – Redshift of the astronomical source</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Rest-frame equivalent width</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.get_fwhm">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">get_fwhm</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'spline'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.get_fwhm" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.get_fwhm">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">get_fwhm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'spline'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.get_fwhm" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the FWHM (in km/s) of an emission feature from the spectrum.</p>
 <p>The user can specify a dispersion range to limit the FWHM calculation to
 this part of the spectrum. If a resolution (R) is specified the FWHM is
@@ -675,7 +587,7 @@ and then find the two roots (flux density = 0) of the new flux density axis.
 If the emission feature has multiple components more than two roots can
 be found in which case the a np.NaN value will be returned.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_spec</strong> (<a class="reference internal" href="speconed.html#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD"><em>sculptor.speconed.SpecOneD</em></a>) – Input spectrum</p></li>
 <li><p><strong>disp_range</strong> (<em>[</em><em>float</em><em>, </em><em>float</em><em>]</em>) – Dispersion range to which the calculation is limited.</p></li>
@@ -687,42 +599,42 @@ algorithm on the spline. The second method ‘sign’  finds sign changes in
 the half peak flux subtracted spectrum.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>FWHM of the spectral feature</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.get_integrated_flux">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">get_integrated_flux</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.get_integrated_flux" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.get_integrated_flux">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">get_integrated_flux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.get_integrated_flux" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the integrated flux of a spectrum.</p>
 <p>The keyword argument disp_range allows to specify the dispersion
 boundaries for the integration. The standard numpy.trapz function is used
 for the integration.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_spec</strong> (<a class="reference internal" href="speconed.html#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD"><em>sculptor.speconed.SpecOneD</em></a>) – SpecOneD object holding the spectrum to integrate</p></li>
 <li><p><strong>disp_range</strong> (<em>[</em><em>float</em><em>, </em><em>float</em><em>]</em>) – 2 element list holding the lower and upper dispersion
 boundaries for the integration</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Integrated flux</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.get_nonparametric_measurements">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">get_nonparametric_measurements</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line_rest_wavel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.get_nonparametric_measurements" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.get_nonparametric_measurements">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">get_nonparametric_measurements</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line_rest_wavel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.get_nonparametric_measurements" title="Permalink to this definition"></a></dt>
 <dd><p>Measure the velocities at different ratios of the total emission line flux.</p>
 <p>These velocity measurements are referenced in the literature by (e.g.)
 Whittle+1985, Liu+2013, Zakamska &amp; Greene 2014.</p>
@@ -730,7 +642,7 @@ Whittle+1985, Liu+2013, Zakamska &amp; Greene 2014.</p>
 flux and then determines the closest dispersion values in velocity space to
 the 5%, 10%, 50%, 90% and 95% total flux ratios.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_spec</strong> (<a class="reference internal" href="speconed.html#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD"><em>sculptor.speconed.SpecOneD</em></a>) – Input spectrum</p></li>
 <li><p><strong>line_rest_wavel</strong> (<em>float</em>) – rest-frame wavelength fo the line in Angstroem</p></li>
@@ -739,13 +651,13 @@ the 5%, 10%, 50%, 90% and 95% total flux ratios.</p>
 calculation is limited.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>median velocity, 5% velocity, 10% velocity, 90% velocity,
 95% velocity, velocity resolution at median velocity, frequency of
 median velocity, wavelength of median velocity, redshift of median
 velocity</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity, astropy.units.Quantity,
 astropy.units.Quantity, astropy.units.Quantity,
 astropy.units.Quantity, astropy.units.Quantity,
@@ -755,95 +667,78 @@ astropy.units.Quantity, astropy.units.Quantity, astropy.units.Quantity</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.get_peak_redshift">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">get_peak_redshift</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rest_wave</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.get_peak_redshift" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.get_peak_redshift">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">get_peak_redshift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rest_wave</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.get_peak_redshift" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the redshift of the flux density peak in the spectrum by
 specifying the expected rest frame wavelength of the emission feature.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_spec</strong> (<a class="reference internal" href="speconed.html#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD"><em>sculptor.speconed.SpecOneD</em></a>) – Input spectrum</p></li>
 <li><p><strong>rest_wave</strong> – Rest-frame wavelength of the expected emission feature.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Redshift of the peak flux density</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor.specanalysis.k_correction_pl">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></code><code class="sig-name descname"><span class="pre">k_correction_pl</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_nu</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.k_correction_pl" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specanalysis.k_correction_pl">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specanalysis.</span></span><span class="sig-name descname"><span class="pre">k_correction_pl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_nu</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specanalysis.k_correction_pl" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the k-correction for a power law spectrum with spectral
 index (per frequency) a_nu.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>redshift</strong> (<em>float</em>) – Cosmological redshift of the source</p></li>
 <li><p><strong>a_nu</strong> (<em>float</em>) – Power law index (per frequency)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>K-correction</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="masksmodels.html" class="btn btn-neutral float-right" title="The Masks &amp; Models Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="specfit.html" class="btn btn-neutral float-left" title="The SpecFit Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="masksmodels.html" class="btn btn-neutral float-right" title="The Masks &amp; Models Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2021, Jan-Torge Schindler.
-
-    </p>
+    <p>&#169; Copyright 2021, Jan-Torge Schindler.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

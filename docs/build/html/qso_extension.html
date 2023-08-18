@@ -1,101 +1,58 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <title>The QSO-Extension Module &mdash; Sculptor 1.0.0 documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+  <title>The QSO-Extension Module &mdash; Sculptor 1.1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Example extension Module" href="my_extension.html" />
     <link rel="prev" title="The Masks &amp; Models Module" href="masksmodels.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
 
           
-            <a href="index.html" class="icon icon-home"> Sculptor
           
-
-          
+          <a href="index.html" class="icon icon-home">
+            Sculptor
           </a>
-
-          
-            
-            
               <div class="version">
-                1.0.0
+                1.1.0
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <p class="caption"><span class="caption-text">Getting Started:</span></p>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">The Sculptor GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Tutorials:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html">An introduction to the SpecOneD class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html#The-PassBand-class">The PassBand class</a></li>
@@ -104,7 +61,7 @@
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_2.html">Scripting Sculptor 02 - Analysing model fits with SpecAnalysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_3.html">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Module documentation:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Module documentation:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
@@ -112,107 +69,93 @@
 <li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="masksmodels.html">The Masks &amp; Models Module</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Extensions:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Extensions:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">The QSO-Extension Module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">The QSO-Extension Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.CIII_complex_model_func"><code class="docutils literal notranslate"><span class="pre">CIII_complex_model_func()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.add_redshift_param"><code class="docutils literal notranslate"><span class="pre">add_redshift_param()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.balmer_continuum_model"><code class="docutils literal notranslate"><span class="pre">balmer_continuum_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.calc_bolometric_luminosity"><code class="docutils literal notranslate"><span class="pre">calc_bolometric_luminosity()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.calc_eddington_luminosity"><code class="docutils literal notranslate"><span class="pre">calc_eddington_luminosity()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.calc_eddington_ratio"><code class="docutils literal notranslate"><span class="pre">calc_eddington_ratio()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.calc_velocity_shifts"><code class="docutils literal notranslate"><span class="pre">calc_velocity_shifts()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.correct_CIV_fwhm_for_blueshift"><code class="docutils literal notranslate"><span class="pre">correct_CIV_fwhm_for_blueshift()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.line_model_gaussian"><code class="docutils literal notranslate"><span class="pre">line_model_gaussian()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.line_model_gaussian_nii_doublet"><code class="docutils literal notranslate"><span class="pre">line_model_gaussian_nii_doublet()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.line_model_gaussian_oiii_doublet"><code class="docutils literal notranslate"><span class="pre">line_model_gaussian_oiii_doublet()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.line_model_gaussian_sii_doublet"><code class="docutils literal notranslate"><span class="pre">line_model_gaussian_sii_doublet()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.power_law_at_2500"><code class="docutils literal notranslate"><span class="pre">power_law_at_2500()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.power_law_at_2500_plus_bc"><code class="docutils literal notranslate"><span class="pre">power_law_at_2500_plus_bc()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.power_law_at_2500_plus_fractional_bc"><code class="docutils literal notranslate"><span class="pre">power_law_at_2500_plus_fractional_bc()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.se_bhmass_civ_c17_fwhm"><code class="docutils literal notranslate"><span class="pre">se_bhmass_civ_c17_fwhm()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.se_bhmass_civ_vp06_fwhm"><code class="docutils literal notranslate"><span class="pre">se_bhmass_civ_vp06_fwhm()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.se_bhmass_civ_vp06_sigma"><code class="docutils literal notranslate"><span class="pre">se_bhmass_civ_vp06_sigma()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.se_bhmass_hbeta_vp06"><code class="docutils literal notranslate"><span class="pre">se_bhmass_hbeta_vp06()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.se_bhmass_mgii_s11_fwhm"><code class="docutils literal notranslate"><span class="pre">se_bhmass_mgii_s11_fwhm()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.se_bhmass_mgii_vo09_fwhm"><code class="docutils literal notranslate"><span class="pre">se_bhmass_mgii_vo09_fwhm()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_SWIRE_Ell2_template"><code class="docutils literal notranslate"><span class="pre">setup_SWIRE_Ell2_template()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_SWIRE_NGC6090_template"><code class="docutils literal notranslate"><span class="pre">setup_SWIRE_NGC6090_template()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_doublet_line_model_nii"><code class="docutils literal notranslate"><span class="pre">setup_doublet_line_model_nii()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_doublet_line_model_oiii"><code class="docutils literal notranslate"><span class="pre">setup_doublet_line_model_oiii()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_doublet_line_model_sii"><code class="docutils literal notranslate"><span class="pre">setup_doublet_line_model_sii()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_galaxy_template_model"><code class="docutils literal notranslate"><span class="pre">setup_galaxy_template_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_iron_template_MgII_T06"><code class="docutils literal notranslate"><span class="pre">setup_iron_template_MgII_T06()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_iron_template_MgII_VW01"><code class="docutils literal notranslate"><span class="pre">setup_iron_template_MgII_VW01()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_iron_template_OPT_BG92"><code class="docutils literal notranslate"><span class="pre">setup_iron_template_OPT_BG92()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_iron_template_T06"><code class="docutils literal notranslate"><span class="pre">setup_iron_template_T06()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_iron_template_UV_VW01"><code class="docutils literal notranslate"><span class="pre">setup_iron_template_UV_VW01()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_iron_template_model"><code class="docutils literal notranslate"><span class="pre">setup_iron_template_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_line_model_CIII_complex"><code class="docutils literal notranslate"><span class="pre">setup_line_model_CIII_complex()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_line_model_CIV_2G"><code class="docutils literal notranslate"><span class="pre">setup_line_model_CIV_2G()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_line_model_Halpha_2G"><code class="docutils literal notranslate"><span class="pre">setup_line_model_Halpha_2G()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_line_model_Hbeta_2G"><code class="docutils literal notranslate"><span class="pre">setup_line_model_Hbeta_2G()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_line_model_MgII_2G"><code class="docutils literal notranslate"><span class="pre">setup_line_model_MgII_2G()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_line_model_SiIV_2G"><code class="docutils literal notranslate"><span class="pre">setup_line_model_SiIV_2G()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_line_model_gaussian"><code class="docutils literal notranslate"><span class="pre">setup_line_model_gaussian()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_power_law_at_2500"><code class="docutils literal notranslate"><span class="pre">setup_power_law_at_2500()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_power_law_at_2500_plus_bc"><code class="docutils literal notranslate"><span class="pre">setup_power_law_at_2500_plus_bc()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_power_law_at_2500_plus_fractional_bc"><code class="docutils literal notranslate"><span class="pre">setup_power_law_at_2500_plus_fractional_bc()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_split_iron_template_MgII_T06"><code class="docutils literal notranslate"><span class="pre">setup_split_iron_template_MgII_T06()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_split_iron_template_MgII_VW01"><code class="docutils literal notranslate"><span class="pre">setup_split_iron_template_MgII_VW01()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_split_iron_template_OPT_BG92"><code class="docutils literal notranslate"><span class="pre">setup_split_iron_template_OPT_BG92()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_split_iron_template_UV_VW01"><code class="docutils literal notranslate"><span class="pre">setup_split_iron_template_UV_VW01()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.setup_subdivided_iron_template"><code class="docutils literal notranslate"><span class="pre">setup_subdivided_iron_template()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.qso.template_model"><code class="docutils literal notranslate"><span class="pre">template_model()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="my_extension.html">Example extension Module</a></li>
 </ul>
-<p class="caption"><span class="caption-text">License:</span></p>
+<p class="caption" role="heading"><span class="caption-text">License:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">Sculptor</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-        
-      <li>The QSO-Extension Module</li>
-    
-    
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">The QSO-Extension Module</li>
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="_sources/qso_extension.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
-  
-<style>
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<div class="section" id="module-sculptor_extensions.qso">
-<span id="the-qso-extension-module"></span><h1>The QSO-Extension Module<a class="headerlink" href="#module-sculptor_extensions.qso" title="Permalink to this headline">¶</a></h1>
+             
+  <section id="module-sculptor_extensions.qso">
+<span id="the-qso-extension-module"></span><h1>The QSO-Extension Module<a class="headerlink" href="#module-sculptor_extensions.qso" title="Permalink to this heading"></a></h1>
 <p>The Sculptor Quasar Extension</p>
 <p>This module defines models, masks and analysis routines specific for the
 analysis of type-I QSOs (quasars, type-I AGN).</p>
@@ -223,14 +166,14 @@ functions defined here.</p>
 functions. For example, we define a setup function to initialize a model for
 the Hbeta and [OIII] lines consistent of six Gaussian emission lines.</p>
 <dl class="py function">
-<dt id="sculptor_extensions.qso.CIII_complex_model_func">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">CIII_complex_model_func</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cen_alIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cen_siIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_km_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_alIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s_alIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_km_s_alIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_siIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s_siIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_km_s_siIII</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.CIII_complex_model_func" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.CIII_complex_model_func">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">CIII_complex_model_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cen_alIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cen_siIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_km_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_alIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s_alIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_km_s_alIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_siIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s_siIII</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_km_s_siIII</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.CIII_complex_model_func" title="Permalink to this definition"></a></dt>
 <dd><p>Model function for the CIII] emission line complex, consisting of the
 Gaussian line models with a combined redshift parameter.</p>
 <p>The width of the line is set by the FWHM in km/s.</p>
 <p>The Gaussians are not normalized.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>np.ndarray</em>) – Dispersion of the template model</p></li>
 <li><p><strong>z</strong> (<em>float</em>) – Redshift for CIII], AlIII, SiIII]</p></li>
@@ -248,33 +191,33 @@ Gaussian line models with a combined redshift parameter.</p>
 <li><p><strong>shift_km_s_siIII</strong> – Doppler velocity shift of the central wavelength</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>CIII] complex model</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.add_redshift_param">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">add_redshift_param</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.add_redshift_param" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.add_redshift_param">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">add_redshift_param</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">redshift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.add_redshift_param" title="Permalink to this definition"></a></dt>
 <dd><p>Add the redshift parameter to the LMFIT parameters.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>redshift</strong> (<em>float</em>) – Redshift</p></li>
 <li><p><strong>params</strong> (<em>lmfit.Parameters</em>) – Model parameters</p></li>
 <li><p><strong>prefix</strong> (<em>string</em>) – Model prefix</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.balmer_continuum_model">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">balmer_continuum_model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp_be</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Te</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau_be</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_be</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.balmer_continuum_model" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.balmer_continuum_model">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">balmer_continuum_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp_be</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Te</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau_be</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_be</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.balmer_continuum_model" title="Permalink to this definition"></a></dt>
 <dd><p>Model of the Balmer continuum (Dietrich 2003)</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
 <p>This functions implements the Balmer continuum model presented in
@@ -289,7 +232,7 @@ for reference see Grandi et al.(1982), Wills et al.(1985) or Verner et al.(
 not been included in this model and thus it will produce a sharp break at
 the Balmer edge.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>np.ndarray</em>) – Dispersion of the Balmer continuum</p></li>
 <li><p><strong>z</strong> (<em>float</em>) – Redshift</p></li>
@@ -299,18 +242,18 @@ the Balmer edge.</p>
 <li><p><strong>lambda_be</strong> (<em>float</em>) – Wavelength of the Balmer edge</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Balmer continuum model</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.calc_bolometric_luminosity">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">calc_bolometric_luminosity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Shen2011'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.calc_bolometric_luminosity" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.calc_bolometric_luminosity">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">calc_bolometric_luminosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Shen2011'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.calc_bolometric_luminosity" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the bolometric luminosity from the monochromatic continuum
 luminosity (erg/s/A) using bolometric correction factors from the
 literature.</p>
@@ -322,109 +265,109 @@ cont_wav = 5100, reference = Shen2011</p>
 composite spectral energy distribution (SED) in Richards et al. 2006 (
 ApJ, 166,470).</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>cont_lwav</strong> (<em>astropy.units.Quantity</em>) – Monochromatic continuum luminosity in erg/s/A.</p></li>
 <li><p><strong>cont_wav</strong> (<em>astropy.units.Quantity</em>) – Wavelength of the monochromatic continuum luminosity in A.</p></li>
 <li><p><strong>reference</strong> (<em>string</em>) – A reference string to select from the available         bolometric corrections.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Returns a tuple of the bolometric luminosity in erg/s and a         reference string indicating the publication and continuum wavelength         of the bolometric correction.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity, string</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.calc_eddington_luminosity">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">calc_eddington_luminosity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bh_mass</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.calc_eddington_luminosity" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.calc_eddington_luminosity">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">calc_eddington_luminosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bh_mass</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.calc_eddington_luminosity" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the Eddington luminosity for a given black hole mass.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>bh_mass</strong> (<em>u.Quantity</em>) – Black hole mass as an astropy Quantity</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Returns the Eddington luminosity in cgs units (erg/s).</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>u.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.calc_eddington_ratio">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">calc_eddington_ratio</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lbol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bh_mass</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.calc_eddington_ratio" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.calc_eddington_ratio">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">calc_eddington_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lbol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bh_mass</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.calc_eddington_ratio" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the Eddington ratio for a provided bolometric luminosity
 and black hole mass.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>lbol</strong> (<em>u.Quantity</em>) – Bolometric luminosity</p></li>
 <li><p><strong>bh_mass</strong> (<em>u.Quantity</em>) – Black hole mass</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.calc_velocity_shifts">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">calc_velocity_shifts</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_sys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relativistic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.calc_velocity_shifts" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.calc_velocity_shifts">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">calc_velocity_shifts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_sys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relativistic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.calc_velocity_shifts" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the velocity difference of a feature redshift with respect
 to the systemic redshift.</p>
 <p>This function is currently simply a wrapper around the linetools
 functions calculating the velocity difference.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>z</strong> (<em>float</em>) – The redshift of the spectroscopic feature (e.g., absorption or         emission line).</p></li>
 <li><p><strong>z_sys</strong> (<em>float</em>) – The systemic redshift</p></li>
 <li><p><strong>relativistic</strong> – Boolean indicating whether the doppler velocity is         calculated assuming relativistic velocities.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Type</dt>
+<dt class="field-even">Type<span class="colon">:</span></dt>
 <dd class="field-even"><p>bool</p>
 </dd>
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Returns the velocity difference in km/s.</p>
 </dd>
-<dt class="field-even">Return type</dt>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>u.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.correct_CIV_fwhm_for_blueshift">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">correct_CIV_fwhm_for_blueshift</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">civ_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blueshift</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.correct_CIV_fwhm_for_blueshift" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.correct_CIV_fwhm_for_blueshift">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">correct_CIV_fwhm_for_blueshift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">civ_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blueshift</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.correct_CIV_fwhm_for_blueshift" title="Permalink to this definition"></a></dt>
 <dd><p>Correct the CIV FWHM for the CIV blueshifts using the relation
 determined in Coatman et al. (2017, MNRAS, 465, 2120).</p>
 <p>The correction follows Eq. 4 of Coatman et al. (2017).</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>civ_fwhm</strong> (<em>astropy.units.Quantity</em>) – FWHM of the CIV line in km/s</p></li>
 <li><p><strong>blueshift</strong> (<em>astropy.units.Quantity</em>) – Blueshift of the CIV line in km/s</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Corrected FWHM in km/s</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.line_model_gaussian">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">line_model_gaussian</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.line_model_gaussian" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.line_model_gaussian">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">line_model_gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.line_model_gaussian" title="Permalink to this definition"></a></dt>
 <dd><p>Gaussian line model</p>
 <p>The central wavelength of the Gaussian line model is determined by the
 central wavelength cen and the redshift, z. These parameters are degenerate
@@ -433,7 +376,7 @@ values e.g., the redshift or the central wavelength).</p>
 <p>The width of the line is set by the FWHM in km/s.</p>
 <p>The Gaussian is normalized.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>np.ndarray</em>) – Dispersion of the continuum model</p></li>
 <li><p><strong>z</strong> (<em>float</em>) – Redshift</p></li>
@@ -442,24 +385,24 @@ values e.g., the redshift or the central wavelength).</p>
 <li><p><strong>fwhm_km_s</strong> (<em>float</em>) – FWHM of the Gaussian in km/s</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Gaussian line model</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.line_model_gaussian_nii_doublet">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">line_model_gaussian_nii_doublet</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s_b</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.line_model_gaussian_nii_doublet" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.line_model_gaussian_nii_doublet">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">line_model_gaussian_nii_doublet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s_b</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.line_model_gaussian_nii_doublet" title="Permalink to this definition"></a></dt>
 <dd><p>Doublet line model for the [NII] lines at 6549.85 A and 6585.28 A.</p>
 <p>This model ties the redshift of the forbidden transitions of [NII] at
 6549.85 A and 6585.28 A together. FWHM and fluxes are free parameters for
 each Gaussian line model.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>np.ndarray</em>) – Dispersion of the continuum model</p></li>
 <li><p><strong>z</strong> (<em>float</em>) – Redshift</p></li>
@@ -469,23 +412,23 @@ each Gaussian line model.</p>
 <li><p><strong>fwhm_km_s_b</strong> (<em>float</em>) – FWHM of the 2nd Gaussian component in km/s</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Gaussian doublet line model</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.line_model_gaussian_oiii_doublet">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">line_model_gaussian_oiii_doublet</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluxratio</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.line_model_gaussian_oiii_doublet" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.line_model_gaussian_oiii_doublet">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">line_model_gaussian_oiii_doublet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluxratio</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.line_model_gaussian_oiii_doublet" title="Permalink to this definition"></a></dt>
 <dd><p>Doublet line model for the [OIII] lines at 4960.30 A and 5008.24 A.</p>
 <p>This model ties the redshift, the FWHM and the fluxes (ratio 1:3) of the
 forbidden transitions of [OIII] at 4960.30 A and 5008.24 A together.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>np.ndarray</em>) – Dispersion of the continuum model</p></li>
 <li><p><strong>z</strong> (<em>float</em>) – Redshift</p></li>
@@ -494,24 +437,24 @@ forbidden transitions of [OIII] at 4960.30 A and 5008.24 A together.</p>
 <li><p><strong>fwhm_km_s</strong> (<em>float</em>) – FWHM of the Gaussian in km/s</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Gaussian doublet line model</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.line_model_gaussian_sii_doublet">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">line_model_gaussian_sii_doublet</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s_b</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.line_model_gaussian_sii_doublet" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.line_model_gaussian_sii_doublet">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">line_model_gaussian_sii_doublet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s_b</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.line_model_gaussian_sii_doublet" title="Permalink to this definition"></a></dt>
 <dd><p>Doublet line model for the [SII] lines at 6718.29 A and 6732.67 A.</p>
 <p>This model ties the redshift,  of the forbidden transitions of [SII] at
 6718.29 A and 6732.67 A together. FWHM and fluxes are free parameters for
 each Gaussian line model.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>np.ndarray</em>) – Dispersion of the continuum model</p></li>
 <li><p><strong>z</strong> (<em>float</em>) – Redshift</p></li>
@@ -521,22 +464,22 @@ each Gaussian line model.</p>
 <li><p><strong>fwhm_km_s_b</strong> (<em>float</em>) – FWHM of the 2nd Gaussian component in km/s</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Gaussian doublet line model</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.power_law_at_2500">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">power_law_at_2500</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.power_law_at_2500" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.power_law_at_2500">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">power_law_at_2500</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.power_law_at_2500" title="Permalink to this definition"></a></dt>
 <dd><p>Power law model anchored at 2500 AA</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>np.ndarray</em>) – Dispersion of the power law</p></li>
 <li><p><strong>amp</strong> (<em>float</em>) – Amplitude of the power law (at 2500 A)</p></li>
@@ -544,18 +487,18 @@ each Gaussian line model.</p>
 <li><p><strong>z</strong> (<em>float</em>) – Redshift</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Power law model</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.power_law_at_2500_plus_bc">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">power_law_at_2500_plus_bc</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp_be</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Te</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau_be</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_be</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.power_law_at_2500_plus_bc" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.power_law_at_2500_plus_bc">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">power_law_at_2500_plus_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp_be</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Te</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau_be</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_be</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.power_law_at_2500_plus_bc" title="Permalink to this definition"></a></dt>
 <dd><p>QSO continuum model consisting of a power law anchored at 2500 A and
 a balmer continuum contribution.</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
@@ -563,7 +506,7 @@ a balmer continuum contribution.</p>
 power law component by the amplitude of the balmer continuum at the
 balmer edge amp_be.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>np.ndarray</em>) – Dispersion of the continuum model</p></li>
 <li><p><strong>amp</strong> (<em>float</em>) – Amplitude of the power law (at 2500 A)</p></li>
@@ -575,25 +518,25 @@ balmer edge amp_be.</p>
 <li><p><strong>lambda_be</strong> (<em>float</em>) – Wavelength of the Balmer edge</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>QSO continuum model</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.power_law_at_2500_plus_fractional_bc">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">power_law_at_2500_plus_fractional_bc</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Te</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau_be</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_be</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.power_law_at_2500_plus_fractional_bc" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.power_law_at_2500_plus_fractional_bc">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">power_law_at_2500_plus_fractional_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Te</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau_be</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_be</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.power_law_at_2500_plus_fractional_bc" title="Permalink to this definition"></a></dt>
 <dd><p>QSO continuum model consisting of a power law anchored at 2500 A and
 a balmer continuum contribution.</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
 <p>The amplitude of the Balmer continuum is set to be a fraction of the
 power law component at the Balmer edge (3646A) using the variabe f.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>np.ndarray</em>) – Dispersion of the continuum model</p></li>
 <li><p><strong>amp</strong> (<em>float</em>) – Amplitude of the power law (at 2500 A)</p></li>
@@ -605,18 +548,18 @@ power law component at the Balmer edge (3646A) using the variabe f.</p>
 <li><p><strong>lambda_be</strong> (<em>float</em>) – Wavelength of the Balmer edge</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>QSO continuum model</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.se_bhmass_civ_c17_fwhm">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">se_bhmass_civ_c17_fwhm</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">civ_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.se_bhmass_civ_c17_fwhm" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.se_bhmass_civ_c17_fwhm">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">se_bhmass_civ_c17_fwhm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">civ_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.se_bhmass_civ_c17_fwhm" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the single-epoch virial BH mass based on the CIV FWHM and
 monochromatic continuum luminosity at 1350A.</p>
 <p>This relationship follows Eq.6 of from Coatman et al. (2017, MNRAS, 465,
@@ -631,25 +574,25 @@ very asymmetric CIV line profile.</p>
 rather than the GH polynomials, resulted in only marginal differences in
 the line parameters.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>civ_fwhm</strong> (<em>astropy.units.Quantity</em>) – FWHM of the CIV line in km/s</p></li>
 <li><p><strong>cont_lwav</strong> (<em>astropy.units.Quantity</em>) – Monochromatic continuum luminosity at 1350A in erg/s/A.</p></li>
 <li><p><strong>cont_wav</strong> (<em>astropy.units.Quantity</em>) – Wavelength of the monochromatic continuum luminosity in A.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Returns a tuple of the BH mass estimate based on the CIV FWHM         and a reference string for the single-epoch scaling relationship.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity, string</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.se_bhmass_civ_vp06_fwhm">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">se_bhmass_civ_vp06_fwhm</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">civ_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.se_bhmass_civ_vp06_fwhm" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.se_bhmass_civ_vp06_fwhm">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">se_bhmass_civ_vp06_fwhm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">civ_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.se_bhmass_civ_vp06_fwhm" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the single-epoch virial BH mass based on the CIV FWHM and
 monochromatic continuum luminosity at 1350A.</p>
 <p>The monochromatic continuum luminosity at 1450A can be used without error or
@@ -664,25 +607,25 @@ which shows the intrinsic scatter in the saample is +-0.36 dex. This
 value is more representative of the uncertainty zer point than is the
 formal error.”</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>civ_fwhm</strong> (<em>astropy.units.Quantity</em>) – FWHM of the CIV line in km/s</p></li>
 <li><p><strong>cont_lwav</strong> (<em>astropy.units.Quantity</em>) – Monochromatic continuum luminosity at 1350A/1450A in         erg/s/A.</p></li>
 <li><p><strong>cont_wav</strong> (<em>astropy.units.Quantity</em>) – Wavelength of the monochromatic continuum luminosity in A.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Returns a tuple of the BH mass estimate based on the CIV FWHM         and a reference string for the single-epoch scaling relationship.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity, string</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.se_bhmass_civ_vp06_sigma">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">se_bhmass_civ_vp06_sigma</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">civ_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.se_bhmass_civ_vp06_sigma" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.se_bhmass_civ_vp06_sigma">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">se_bhmass_civ_vp06_sigma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">civ_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.se_bhmass_civ_vp06_sigma" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the single-epoch virial BH mass based on the CIV line
 dispersion (sigma) and monochromatic continuum luminosity at 1350A.</p>
 <p>The monochromatic continuum luminosity at 1450A can be used without error or
@@ -699,25 +642,25 @@ which shows the intrinsic scatter in the saample is +-0.33 dex. This
 value is more representative of the uncertainty zer point than is the
 formal error.”</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>civ_sigma</strong> (<em>astropy.units.Quantity</em>) – Line dispersion (sigma) of the CIV line in km/s</p></li>
 <li><p><strong>cont_lwav</strong> (<em>astropy.units.Quantity</em>) – Monochromatic continuum luminosity at 1350A/1450A in         erg/s/A.</p></li>
 <li><p><strong>cont_wav</strong> (<em>astropy.units.Quantity</em>) – Wavelength of the monochromatic continuum luminosity in A.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Returns a tuple of the BH mass estimate based on the CIV sigma         and a reference string for the single-epoch scaling relationship.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity, string</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.se_bhmass_hbeta_vp06">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">se_bhmass_hbeta_vp06</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">hbeta_fwhm</span></em>, <em class="sig-param"><span class="pre">cont_lwav</span></em>, <em class="sig-param"><span class="pre">cont_wav=&lt;Quantity</span> <span class="pre">5100.</span> <span class="pre">A&gt;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.se_bhmass_hbeta_vp06" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.se_bhmass_hbeta_vp06">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">se_bhmass_hbeta_vp06</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hbeta_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav=&lt;Quantity</span> <span class="pre">5100.</span> <span class="pre">Angstrom&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.se_bhmass_hbeta_vp06" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the single-epoch virial BH mass based on the Hbeta FWHM and
 monochromatic continuum luminosity at 5100A.</p>
 <p>This relationship is taken from Vestergaard &amp; Peterson 2006, ApJ 641, 689</p>
@@ -732,25 +675,25 @@ which shows the intrinsic scatter in the saample is +-0.43 dex. This
 value is more representative of the uncertainty zer point than is the
 formal error.”</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>hbeta_fwhm</strong> (<em>astropy.units.Quantity</em>) – FWHM of the Hbeta line in km/s</p></li>
 <li><p><strong>cont_lwav</strong> (<em>astropy.units.Quantity</em>) – Monochromatic continuum luminosity at 5100A in erg/s/A</p></li>
 <li><p><strong>cont_wav</strong> (<em>astropy.units.Quantity</em>) – Wavelength of the monochromatic continuum luminosity         (default = 5100A).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Returns a tuple of the BH mass estimate based on the Hbeta FWHM         and a reference string for the single-epoch scaling relationship.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity, string</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.se_bhmass_mgii_s11_fwhm">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">se_bhmass_mgii_s11_fwhm</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mgii_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.se_bhmass_mgii_s11_fwhm" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.se_bhmass_mgii_s11_fwhm">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">se_bhmass_mgii_s11_fwhm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mgii_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.se_bhmass_mgii_s11_fwhm" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the single-epoch virial BH mass based on the MgII FWHM
 and monochromatic continuum luminosity at 3000A.</p>
 <p>This relationship is taken from Shen et al. 2011, ApJ, 194, 45</p>
@@ -768,25 +711,25 @@ estimate it is advised to always employ the same continuum construction
 procedure as in the reference sample that established the single-epoch
 virial relationship.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>mgii_fwhm</strong> (<em>astropy.units.Quantity</em>) – FWHM of the MgII line in km/s</p></li>
 <li><p><strong>cont_lwav</strong> (<em>astropy.units.Quantity</em>) – Monochromatic continuum luminosity in erg/s/A.</p></li>
 <li><p><strong>cont_wav</strong> (<em>astropy.units.Quantity</em>) – Wavelength of the monochromatic continuum luminosity in A.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Returns a tuple of the BH mass estimate based on the MgII FWHM         and a reference string for the single-epoch scaling relationship.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity, string</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.se_bhmass_mgii_vo09_fwhm">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">se_bhmass_mgii_vo09_fwhm</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mgii_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.se_bhmass_mgii_vo09_fwhm" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.se_bhmass_mgii_vo09_fwhm">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">se_bhmass_mgii_vo09_fwhm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mgii_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_lwav</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont_wav</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.se_bhmass_mgii_vo09_fwhm" title="Permalink to this definition"></a></dt>
 <dd><p>Calculate the single-epoch virial BH mass based on the MgII FWHM
 and monochromatic continuum luminosity at 1350A, 2100A, 3000A, or 5100A.</p>
 <p>This relationship is taken from Vestergaard &amp; Osmer 2009, ApJ 641, 689</p>
@@ -809,72 +752,72 @@ which includes the factor ~2.9 uncertainties of the reverberation mapping
 masses to which these mass estimation relations are anchored (see
 Vestergaard &amp; Peterson 2006 and Onken et al. 2004 for details)”</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>mgii_fwhm</strong> (<em>astropy.units.Quantity</em>) – FWHM of the MgII line in km/s</p></li>
 <li><p><strong>cont_lwav</strong> (<em>astropy.units.Quantity</em>) – Monochromatic continuum luminosity in erg/s/A.</p></li>
 <li><p><strong>cont_wav</strong> (<em>astropy.units.Quantity</em>) – Wavelength of the monochromatic continuum luminosity in A.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Returns a tuple of the BH mass estimate based on the MgII FWHM         and a reference string for the single-epoch scaling relationship.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>astropy.units.Quantity, string</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_SWIRE_Ell2_template">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_SWIRE_Ell2_template</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_SWIRE_Ell2_template" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_SWIRE_Ell2_template">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_SWIRE_Ell2_template</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_SWIRE_Ell2_template" title="Permalink to this definition"></a></dt>
 <dd><p>Setup the SWIRE library Ell2 galaxy template model</p>
 <p>The dispersion axis for this model is in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_SWIRE_NGC6090_template">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_SWIRE_NGC6090_template</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_SWIRE_NGC6090_template" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_SWIRE_NGC6090_template">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_SWIRE_NGC6090_template</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_SWIRE_NGC6090_template" title="Permalink to this definition"></a></dt>
 <dd><p>Setup the SWIRE library NGC6090 galaxy template model</p>
 <p>The dispersion axis for this model is in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_doublet_line_model_nii">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_doublet_line_model_nii</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_doublet_line_model_nii" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_doublet_line_model_nii">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_doublet_line_model_nii</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_doublet_line_model_nii" title="Permalink to this definition"></a></dt>
 <dd><p>Set up a double line model for the [NII] emission lines at 6549.85 A and
 6585.28 A.</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>prefix</strong> – The name of the doublet line model. If prefix is None then a</p>
 </dd>
 </dl>
@@ -886,13 +829,13 @@ Vestergaard &amp; Peterson 2006 and Onken et al. 2004 for details)”</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_doublet_line_model_oiii">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_doublet_line_model_oiii</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_doublet_line_model_oiii" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_doublet_line_model_oiii">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_doublet_line_model_oiii</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_doublet_line_model_oiii" title="Permalink to this definition"></a></dt>
 <dd><p>Set up a double line model for the [OIII] emission lines at 4960.30 A
 and 5008.24 A.</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>prefix</strong> – The name of the doublet line model. If prefix is None then a</p>
 </dd>
 </dl>
@@ -904,13 +847,13 @@ and 5008.24 A.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_doublet_line_model_sii">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_doublet_line_model_sii</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_doublet_line_model_sii" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_doublet_line_model_sii">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_doublet_line_model_sii</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_doublet_line_model_sii" title="Permalink to this definition"></a></dt>
 <dd><p>Set up a double line model for the [SII] emission lines at 6718.29 A and
 6732.67 A.</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>prefix</strong> – The name of the doublet line model. If prefix is None then a</p>
 </dd>
 </dl>
@@ -922,11 +865,11 @@ and 5008.24 A.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_galaxy_template_model">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_galaxy_template_model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_disp_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_fluxden_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amplitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intr_fwhm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">900</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_galaxy_template_model" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_galaxy_template_model">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_galaxy_template_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_disp_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_fluxden_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amplitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intr_fwhm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">900</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_galaxy_template_model" title="Permalink to this definition"></a></dt>
 <dd><p>Initialize a galaxy template model</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – Model prefix</p></li>
 <li><p><strong>template_filename</strong> (<em>string</em>) – Filename of the iron template</p></li>
@@ -937,126 +880,126 @@ and 5008.24 A.</p>
 <li><p><strong>dispersion_limits</strong> (<em>(</em><em>float</em><em>, </em><em>float</em><em>)</em>) – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_iron_template_MgII_T06">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_iron_template_MgII_T06</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_iron_template_MgII_T06" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_iron_template_MgII_T06">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_iron_template_MgII_T06</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_iron_template_MgII_T06" title="Permalink to this definition"></a></dt>
 <dd><p>Setup the Tsuzuki 2006 iron template model around MgII (2200-3500A)</p>
 <p>The dispersion axis for this model is in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_iron_template_MgII_VW01">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_iron_template_MgII_VW01</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_iron_template_MgII_VW01" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_iron_template_MgII_VW01">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_iron_template_MgII_VW01</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_iron_template_MgII_VW01" title="Permalink to this definition"></a></dt>
 <dd><p>Setup the Vestergaard &amp; Wilkes 2001 iron template model around MgII         (2200-3500A)</p>
 <p>The dispersion axis for this model is in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_iron_template_OPT_BG92">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_iron_template_OPT_BG92</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_iron_template_OPT_BG92" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_iron_template_OPT_BG92">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_iron_template_OPT_BG92</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_iron_template_OPT_BG92" title="Permalink to this definition"></a></dt>
 <dd><p>Setup the Boroson &amp; Green 1992 iron template model around Hbeta         (3700-7480A)</p>
 <p>The dispersion axis for this model is in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_iron_template_T06">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_iron_template_T06</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_iron_template_T06" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_iron_template_T06">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_iron_template_T06</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_iron_template_T06" title="Permalink to this definition"></a></dt>
 <dd><p>Setup the Tsuzuki 2006 iron template model</p>
 <p>The dispersion axis for this model is in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_iron_template_UV_VW01">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_iron_template_UV_VW01</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_iron_template_UV_VW01" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_iron_template_UV_VW01">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_iron_template_UV_VW01</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_iron_template_UV_VW01" title="Permalink to this definition"></a></dt>
 <dd><p>Setup the Vestergaard &amp; Wilkes 2001 iron template model around CIV         (1200-2200A)</p>
 <p>The dispersion axis for this model is in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_iron_template_model">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_iron_template_model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_disp_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_fluxden_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amplitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intr_fwhm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">900</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_iron_template_model" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_iron_template_model">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_iron_template_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_disp_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_fluxden_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amplitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intr_fwhm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">900</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_iron_template_model" title="Permalink to this definition"></a></dt>
 <dd><p>Initialize an iron template model</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – Model prefix</p></li>
 <li><p><strong>template_filename</strong> (<em>string</em>) – Filename of the iron template</p></li>
@@ -1067,67 +1010,67 @@ and 5008.24 A.</p>
 <li><p><strong>dispersion_limits</strong> (<em>(</em><em>float</em><em>, </em><em>float</em><em>)</em>) – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_line_model_CIII_complex">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_line_model_CIII_complex</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_CIII_complex" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_line_model_CIII_complex">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_line_model_CIII_complex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_CIII_complex" title="Permalink to this definition"></a></dt>
 <dd><p>Set up a 3 component Gaussian line model for the CIII], AlIII and
 SiIII] emission lines.</p>
 <p>Note that a special model function exists as all three Gaussian line
 models share a common redshift parameter.</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Return model and model parameters</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_line_model_CIV_2G">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_line_model_CIV_2G</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_CIV_2G" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_line_model_CIV_2G">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_line_model_CIV_2G</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_CIV_2G" title="Permalink to this definition"></a></dt>
 <dd><p>Set up a 2 component Gaussian line model for the CIV emission line.</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
 <p>This setup models the broad CIV line emission as seen in type-I quasars
 and AGN. Due to the broad nature of the line CIV the CIV doublet is assumed
 to be unresolved.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Return a list of LMFIT models and a list of LMFIT parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(list, list)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_line_model_Halpha_2G">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_line_model_Halpha_2G</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_Halpha_2G" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_line_model_Halpha_2G">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_line_model_Halpha_2G</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_Halpha_2G" title="Permalink to this definition"></a></dt>
 <dd><p>Set up a 2 component Gaussian line model for the HAlpha emission line.</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>prefix</strong> – The name of the emission line model. If prefix is None then a</p>
 </dd>
 </dl>
@@ -1139,12 +1082,12 @@ to be unresolved.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_line_model_Hbeta_2G">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_line_model_Hbeta_2G</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_Hbeta_2G" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_line_model_Hbeta_2G">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_line_model_Hbeta_2G</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_Hbeta_2G" title="Permalink to this definition"></a></dt>
 <dd><p>Set up a 2 component Gaussian line model for the HBeta emission line.</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>prefix</strong> – The name of the emission line model. If prefix is None then a</p>
 </dd>
 </dl>
@@ -1156,225 +1099,225 @@ to be unresolved.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_line_model_MgII_2G">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_line_model_MgII_2G</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_MgII_2G" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_line_model_MgII_2G">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_line_model_MgII_2G</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_MgII_2G" title="Permalink to this definition"></a></dt>
 <dd><p>Set up a 2 component Gaussian line model for the MgII emission line.</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
 <p>This setup models the broad MgII line emission as seen in type-I quasars
 and AGN. Due to the broad nature of the line MgII the MgII doublet is
 assumed to be unresolved.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Return a list of LMFIT models and a list of LMFIT parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(list, list)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_line_model_SiIV_2G">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_line_model_SiIV_2G</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_SiIV_2G" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_line_model_SiIV_2G">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_line_model_SiIV_2G</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_SiIV_2G" title="Permalink to this definition"></a></dt>
 <dd><p>Set up a 2 component Gaussian line model for the SiIV emission line.</p>
 <p>This setup models the broad SiIV line emission as seen in type-I quasars
 and AGN. Due to the broad nature of the line SiIV, the SiIV doublet is
 assumed to be unresolved and blended with the OIV emission line.</p>
 <p>This model is defined for a spectral dispersion axis in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Return a list of LMFIT models and a list of LMFIT parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(list, list)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_line_model_gaussian">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_line_model_gaussian</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_gaussian" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_line_model_gaussian">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_line_model_gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_line_model_gaussian" title="Permalink to this definition"></a></dt>
 <dd><p>Initialize the Gaussian line model.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – Model prefix</p></li>
 <li><p><strong>kwargs</strong> – Keyword arguments</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_power_law_at_2500">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_power_law_at_2500</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_power_law_at_2500" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_power_law_at_2500">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_power_law_at_2500</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_power_law_at_2500" title="Permalink to this definition"></a></dt>
 <dd><p>Initialize the power law model anchored at 2500 A.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – Model prefix</p></li>
 <li><p><strong>kwargs</strong> – Keyword arguments</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_power_law_at_2500_plus_bc">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_power_law_at_2500_plus_bc</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_power_law_at_2500_plus_bc" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_power_law_at_2500_plus_bc">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_power_law_at_2500_plus_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_power_law_at_2500_plus_bc" title="Permalink to this definition"></a></dt>
 <dd><p>Initialize the quasar continuum model consistent of a power law         anchored at 2500A and a balmer continuum contribution.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – Model prefix</p></li>
 <li><p><strong>kwargs</strong> – Keyword arguments</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_power_law_at_2500_plus_fractional_bc">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_power_law_at_2500_plus_fractional_bc</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_power_law_at_2500_plus_fractional_bc" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_power_law_at_2500_plus_fractional_bc">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_power_law_at_2500_plus_fractional_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_power_law_at_2500_plus_fractional_bc" title="Permalink to this definition"></a></dt>
 <dd><p>Initialize the quasar continuum model consistent of a power law         anchored at 2500A and a balmer continuum contribution.</p>
 <p>The Balmer continuum amplitude at the Balmer edge is set to be a fraction of
 the power law component.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – Model prefix</p></li>
 <li><p><strong>kwargs</strong> – Keyword arguments</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMFIT model and parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_split_iron_template_MgII_T06">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_split_iron_template_MgII_T06</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_split_iron_template_MgII_T06" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_split_iron_template_MgII_T06">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_split_iron_template_MgII_T06</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_split_iron_template_MgII_T06" title="Permalink to this definition"></a></dt>
 <dd><p>Setup the Tsuzuki 2006 iron template model subdivided into three         separate models at 2200-2660, 2660-3000, 3000-3500.</p>
 <p>The dispersion axis for this model is in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Return a list of LMFIT models and a list of LMFIT parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(list, list)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_split_iron_template_MgII_VW01">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_split_iron_template_MgII_VW01</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_split_iron_template_MgII_VW01" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_split_iron_template_MgII_VW01">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_split_iron_template_MgII_VW01</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_split_iron_template_MgII_VW01" title="Permalink to this definition"></a></dt>
 <dd><p>Setup the Vestergaard &amp; Wilkes 2001 iron template model subdivided         into three separate models at 2200-2660, 2660-3000, 3000-3500.</p>
 <p>The dispersion axis for this model is in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Return a list of LMFIT models and a list of LMFIT parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(list, list)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_split_iron_template_OPT_BG92">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_split_iron_template_OPT_BG92</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_split_iron_template_OPT_BG92" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_split_iron_template_OPT_BG92">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_split_iron_template_OPT_BG92</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_split_iron_template_OPT_BG92" title="Permalink to this definition"></a></dt>
 <dd><p>Setup the Boroson &amp; Green 1992 iron template model subdivided into         three separate models at 3700-4700, 4700-5100, 5100-5600.</p>
 <p>The dispersion axis for this model is in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Return a list of LMFIT models and a list of LMFIT parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(list, list)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_split_iron_template_UV_VW01">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_split_iron_template_UV_VW01</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_split_iron_template_UV_VW01" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_split_iron_template_UV_VW01">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_split_iron_template_UV_VW01</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_split_iron_template_UV_VW01" title="Permalink to this definition"></a></dt>
 <dd><p>Setup the Vestergaard &amp; Wilkes 2001 iron template model subdivided         into three separate models at 1200-1560, 1560-1875, 1875-2200.</p>
 <p>The dispersion axis for this model is in Angstroem.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> (<em>string</em>) – The input parameter exists for conformity with the         Sculptor models, but will be ignored. The prefix is automatically set         by the setup function.</p></li>
 <li><p><strong>kwargs</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Return a list of LMFIT models and a list of LMFIT parameters</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(list, list)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.setup_subdivided_iron_template">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">setup_subdivided_iron_template</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">templ_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amplitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_subdivided_iron_template" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.setup_subdivided_iron_template">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">setup_subdivided_iron_template</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">templ_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amplitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.setup_subdivided_iron_template" title="Permalink to this definition"></a></dt>
 <dd><p>Setup iron template models from a predefined list of templates and     dispersion ranges.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>templ_list</strong> – List of template names for which models will be set up</p></li>
 <li><p><strong>fwhm</strong> (<em>float</em>) – Goal FWHM of the template model</p></li>
@@ -1382,24 +1325,24 @@ the power law component.</p>
 <li><p><strong>amplitude</strong> (<em>float</em>) – Amplitude of the template model</p></li>
 </ul>
 </dd>
-<dt class="field-even">Type</dt>
+<dt class="field-even">Type<span class="colon">:</span></dt>
 <dd class="field-even"><p>list</p>
 </dd>
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Return a list of LMFIT models and a list of LMFIT parameters</p>
 </dd>
-<dt class="field-even">Return type</dt>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>(list, list)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="sculptor_extensions.qso.template_model">
-<code class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></code><code class="sig-name descname"><span class="pre">template_model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intr_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_disp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_fluxden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_disp_unit_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_fluxden_unit_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.template_model" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor_extensions.qso.template_model">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.qso.</span></span><span class="sig-name descname"><span class="pre">template_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intr_fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_disp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_fluxden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_disp_unit_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templ_fluxden_unit_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.qso.template_model" title="Permalink to this definition"></a></dt>
 <dd><p>Template model</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>np.ndarray</em>) – Dispersion of the template model</p></li>
 <li><p><strong>amp</strong> (<em>float</em>) – Amplitude of the template model</p></li>
@@ -1414,60 +1357,43 @@ in astropy cds format.</p></li>
 in astropy cds format.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Template model as a Scipy interpolation</p>
 </dd>
 </dl>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="my_extension.html" class="btn btn-neutral float-right" title="Example extension Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="masksmodels.html" class="btn btn-neutral float-left" title="The Masks &amp; Models Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="my_extension.html" class="btn btn-neutral float-right" title="Example extension Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2021, Jan-Torge Schindler.
-
-    </p>
+    <p>&#169; Copyright 2021, Jan-Torge Schindler.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

@@ -1,101 +1,61 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <title>Scripting Sculptor 01 - Modelling the example spectrum in a script &mdash; Sculptor 1.0.0 documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+  <title>Scripting Sculptor 01 - Modelling the example spectrum in a script &mdash; Sculptor 1.1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/nbsphinx-code-cells.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Scripting Sculptor 02 - Analysing model fits with SpecAnalysis" href="scripting_sculptor_2.html" />
     <link rel="prev" title="Preparing a composite spectrum for Sculptor modeling using the SpecOneD class" href="spectrum_preparation.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
 
           
-            <a href="index.html" class="icon icon-home"> Sculptor
           
-
-          
+          <a href="index.html" class="icon icon-home">
+            Sculptor
           </a>
-
-          
-            
-            
               <div class="version">
-                1.0.0
+                1.1.0
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <p class="caption"><span class="caption-text">Getting Started:</span></p>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">The Sculptor GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Tutorials:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html">An introduction to the SpecOneD class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html#The-PassBand-class">The PassBand class</a></li>
@@ -121,7 +81,7 @@
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_2.html">Scripting Sculptor 02 - Analysing model fits with SpecAnalysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_3.html">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Module documentation:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Module documentation:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
@@ -129,353 +89,42 @@
 <li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="masksmodels.html">The Masks &amp; Models Module</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Extensions:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Extensions:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="qso_extension.html">The QSO-Extension Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="my_extension.html">Example extension Module</a></li>
 </ul>
-<p class="caption"><span class="caption-text">License:</span></p>
+<p class="caption" role="heading"><span class="caption-text">License:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">Sculptor</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-        
-      <li>Scripting Sculptor 01 - Modelling the example spectrum in a script</li>
-    
-    
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Scripting Sculptor 01 - Modelling the example spectrum in a script</li>
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="_sources/scripting_sculptor_1.nblink.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
-  
-<style>
-/* CSS for nbsphinx extension */
-
-/* remove conflicting styling from Sphinx themes */
-div.nbinput.container div.prompt *,
-div.nboutput.container div.prompt *,
-div.nbinput.container div.input_area pre,
-div.nboutput.container div.output_area pre,
-div.nbinput.container div.input_area .highlight,
-div.nboutput.container div.output_area .highlight {
-    border: none;
-    padding: 0;
-    margin: 0;
-    box-shadow: none;
-}
-
-div.nbinput.container > div[class*=highlight],
-div.nboutput.container > div[class*=highlight] {
-    margin: 0;
-}
-
-div.nbinput.container div.prompt *,
-div.nboutput.container div.prompt * {
-    background: none;
-}
-
-div.nboutput.container div.output_area .highlight,
-div.nboutput.container div.output_area pre {
-    background: unset;
-}
-
-div.nboutput.container div.output_area div.highlight {
-    color: unset;  /* override Pygments text color */
-}
-
-/* avoid gaps between output lines */
-div.nboutput.container div[class*=highlight] pre {
-    line-height: normal;
-}
-
-/* input/output containers */
-div.nbinput.container,
-div.nboutput.container {
-    display: -webkit-flex;
-    display: flex;
-    align-items: flex-start;
-    margin: 0;
-    width: 100%;
-}
-@media (max-width: 540px) {
-    div.nbinput.container,
-    div.nboutput.container {
-        flex-direction: column;
-    }
-}
-
-/* input container */
-div.nbinput.container {
-    padding-top: 5px;
-}
-
-/* last container */
-div.nblast.container {
-    padding-bottom: 5px;
-}
-
-/* input prompt */
-div.nbinput.container div.prompt pre {
-    color: #307FC1;
-}
-
-/* output prompt */
-div.nboutput.container div.prompt pre {
-    color: #BF5B3D;
-}
-
-/* all prompts */
-div.nbinput.container div.prompt,
-div.nboutput.container div.prompt {
-    width: 4.5ex;
-    padding-top: 5px;
-    position: relative;
-    user-select: none;
-}
-
-div.nbinput.container div.prompt > div,
-div.nboutput.container div.prompt > div {
-    position: absolute;
-    right: 0;
-    margin-right: 0.3ex;
-}
-
-@media (max-width: 540px) {
-    div.nbinput.container div.prompt,
-    div.nboutput.container div.prompt {
-        width: unset;
-        text-align: left;
-        padding: 0.4em;
-    }
-    div.nboutput.container div.prompt.empty {
-        padding: 0;
-    }
-
-    div.nbinput.container div.prompt > div,
-    div.nboutput.container div.prompt > div {
-        position: unset;
-    }
-}
-
-/* disable scrollbars on prompts */
-div.nbinput.container div.prompt pre,
-div.nboutput.container div.prompt pre {
-    overflow: hidden;
-}
-
-/* input/output area */
-div.nbinput.container div.input_area,
-div.nboutput.container div.output_area {
-    -webkit-flex: 1;
-    flex: 1;
-    overflow: auto;
-}
-@media (max-width: 540px) {
-    div.nbinput.container div.input_area,
-    div.nboutput.container div.output_area {
-        width: 100%;
-    }
-}
-
-/* input area */
-div.nbinput.container div.input_area {
-    border: 1px solid #e0e0e0;
-    border-radius: 2px;
-    /*background: #f5f5f5;*/
-}
-
-/* override MathJax center alignment in output cells */
-div.nboutput.container div[class*=MathJax] {
-    text-align: left !important;
-}
-
-/* override sphinx.ext.imgmath center alignment in output cells */
-div.nboutput.container div.math p {
-    text-align: left;
-}
-
-/* standard error */
-div.nboutput.container div.output_area.stderr {
-    background: #fdd;
-}
-
-/* ANSI colors */
-.ansi-black-fg { color: #3E424D; }
-.ansi-black-bg { background-color: #3E424D; }
-.ansi-black-intense-fg { color: #282C36; }
-.ansi-black-intense-bg { background-color: #282C36; }
-.ansi-red-fg { color: #E75C58; }
-.ansi-red-bg { background-color: #E75C58; }
-.ansi-red-intense-fg { color: #B22B31; }
-.ansi-red-intense-bg { background-color: #B22B31; }
-.ansi-green-fg { color: #00A250; }
-.ansi-green-bg { background-color: #00A250; }
-.ansi-green-intense-fg { color: #007427; }
-.ansi-green-intense-bg { background-color: #007427; }
-.ansi-yellow-fg { color: #DDB62B; }
-.ansi-yellow-bg { background-color: #DDB62B; }
-.ansi-yellow-intense-fg { color: #B27D12; }
-.ansi-yellow-intense-bg { background-color: #B27D12; }
-.ansi-blue-fg { color: #208FFB; }
-.ansi-blue-bg { background-color: #208FFB; }
-.ansi-blue-intense-fg { color: #0065CA; }
-.ansi-blue-intense-bg { background-color: #0065CA; }
-.ansi-magenta-fg { color: #D160C4; }
-.ansi-magenta-bg { background-color: #D160C4; }
-.ansi-magenta-intense-fg { color: #A03196; }
-.ansi-magenta-intense-bg { background-color: #A03196; }
-.ansi-cyan-fg { color: #60C6C8; }
-.ansi-cyan-bg { background-color: #60C6C8; }
-.ansi-cyan-intense-fg { color: #258F8F; }
-.ansi-cyan-intense-bg { background-color: #258F8F; }
-.ansi-white-fg { color: #C5C1B4; }
-.ansi-white-bg { background-color: #C5C1B4; }
-.ansi-white-intense-fg { color: #A1A6B2; }
-.ansi-white-intense-bg { background-color: #A1A6B2; }
-
-.ansi-default-inverse-fg { color: #FFFFFF; }
-.ansi-default-inverse-bg { background-color: #000000; }
-
-.ansi-bold { font-weight: bold; }
-.ansi-underline { text-decoration: underline; }
-
-
-div.nbinput.container div.input_area div[class*=highlight] > pre,
-div.nboutput.container div.output_area div[class*=highlight] > pre,
-div.nboutput.container div.output_area div[class*=highlight].math,
-div.nboutput.container div.output_area.rendered_html,
-div.nboutput.container div.output_area > div.output_javascript,
-div.nboutput.container div.output_area:not(.rendered_html) > img{
-    padding: 5px;
-    margin: 0;
-}
-
-/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
-div.nbinput.container div.input_area > div[class^='highlight'],
-div.nboutput.container div.output_area > div[class^='highlight']{
-    overflow-y: hidden;
-}
-
-/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
-.prompt a.copybtn {
-    display: none;
-}
-
-/* Some additional styling taken form the Jupyter notebook CSS */
-div.rendered_html table {
-  border: none;
-  border-collapse: collapse;
-  border-spacing: 0;
-  color: black;
-  font-size: 12px;
-  table-layout: fixed;
-}
-div.rendered_html thead {
-  border-bottom: 1px solid black;
-  vertical-align: bottom;
-}
-div.rendered_html tr,
-div.rendered_html th,
-div.rendered_html td {
-  text-align: right;
-  vertical-align: middle;
-  padding: 0.5em 0.5em;
-  line-height: normal;
-  white-space: normal;
-  max-width: none;
-  border: none;
-}
-div.rendered_html th {
-  font-weight: bold;
-}
-div.rendered_html tbody tr:nth-child(odd) {
-  background: #f5f5f5;
-}
-div.rendered_html tbody tr:hover {
-  background: rgba(66, 165, 245, 0.2);
-}
-
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<div class="section" id="Scripting-Sculptor-01---Modelling-the-example-spectrum-in-a-script">
-<h1>Scripting Sculptor 01 - Modelling the example spectrum in a script<a class="headerlink" href="#Scripting-Sculptor-01---Modelling-the-example-spectrum-in-a-script" title="Permalink to this headline">¶</a></h1>
+             
+  <section id="Scripting-Sculptor-01---Modelling-the-example-spectrum-in-a-script">
+<h1>Scripting Sculptor 01 - Modelling the example spectrum in a script<a class="headerlink" href="#Scripting-Sculptor-01---Modelling-the-example-spectrum-in-a-script" title="Permalink to this heading"></a></h1>
 <p>In this notebook we will introduce on how to use Sculptor’s SpecFit and SpecModel classes to generate a Sculptor fit within a python script.</p>
 <p>The code in this example that generates the model fit is also available as a pure python script in the examples folder: <em>example_fit_setup_script.py</em></p>
 <p>We begin by importing the modules we need for this example. In addition to the SpecFit, SpecModel, and SpecOneD classes we need <em>pkg_resources</em> to easily access the SDSS quasar example spectrum, which is provided in sculptor/data/example_spectra.</p>
@@ -483,24 +132,21 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Matplotlib statements to make plots nice</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Matplotlib statements to make plots nice</span>
 <span class="c1"># %matplotlib notebook</span>
 <span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">set_matplotlib_formats</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;figure.dpi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">300</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;savefig.dpi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">300</span>
 <span class="c1"># set_matplotlib_formats(&#39;svg&#39;)</span>
-
-</pre></div>
+<br/></pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">pkg_resources</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pkg_resources</span>
 
 <span class="kn">from</span> <span class="nn">sculptor</span> <span class="kn">import</span> <span class="n">specfit</span> <span class="k">as</span> <span class="n">scfit</span>
 <span class="kn">from</span> <span class="nn">sculptor</span> <span class="kn">import</span> <span class="n">speconed</span> <span class="k">as</span> <span class="n">scspec</span>
@@ -521,17 +167,16 @@ div.rendered_html tbody tr:hover {
 [INFO] FeII iron template of Boroson &amp; Green 1992 found. If you will be using these templates in your model fit and publication, please add the citation to the original work, ADS bibcode: 1992ApJS...80..109B
 </pre></div></div>
 </div>
-<p>These imports automatically intialize some global variables, which allow you to use the model masks and functions defined in Sculptor and its extensions. We will take a look at how to write Sculptor extensions in a later tutorial. Sculptor comes with two extensions “my_extension”, which provides an example on how to set up your own extension, and the “qso” extension, which we will use heavily in this example. The “qso” extension also comes with additional data, e.g. FeII iron templates. If you
+<p>These imports automatically intialize some global variables, which allow you to use the model masks and functions defined in Sculptor and its extensions. We will take a look at how to write Sculptor extensions in a later tutorial. Sculptor comes with two extensions “my_extension”, which provides an example on how to set up your own extension, and the “qso” extension, which we will use heavily in this example. The “qso” extension also comes with additional data, e.g. FeII iron templates. If you
 want to use them in your work Sculptor reminds you where to find the original papers, so you can cite them appropriately.</p>
-<div class="section" id="Initializing-the-SpecFit-object">
-<h2>Initializing the SpecFit object<a class="headerlink" href="#Initializing-the-SpecFit-object" title="Permalink to this headline">¶</a></h2>
+<section id="Initializing-the-SpecFit-object">
+<h2>Initializing the SpecFit object<a class="headerlink" href="#Initializing-the-SpecFit-object" title="Permalink to this heading"></a></h2>
 <p>Let us begin by importing the SDSS quasar spectrum. The quasar is at a redshift of z=3.227, which we will use for initializing the SpecFit class.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Initialize a new SpecOneD object and read in the quasar spectrum</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize a new SpecOneD object and read in the quasar spectrum</span>
 <span class="n">spec</span> <span class="o">=</span> <span class="n">scspec</span><span class="o">.</span><span class="n">SpecOneD</span><span class="p">()</span>
 <span class="n">filename</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="s1">&#39;sculptor&#39;</span><span class="p">,</span> <span class="s1">&#39;data/example_spectra/J030341.04-002321.8_0.fits&#39;</span><span class="p">)</span>
 <span class="n">spec</span><span class="o">.</span><span class="n">read_sdss_fits</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
@@ -555,8 +200,7 @@ want to use them in your work Sculptor reminds you where to find the original pa
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Initialize SpecFit object</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize SpecFit object</span>
 <span class="n">fit</span> <span class="o">=</span> <span class="n">scfit</span><span class="o">.</span><span class="n">SpecFit</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">redshift</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -566,8 +210,7 @@ want to use them in your work Sculptor reminds you where to find the original pa
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="n">fit</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fit</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -578,16 +221,15 @@ want to use them in your work Sculptor reminds you where to find the original pa
 <img alt="_images/scripting_sculptor_1_8_0.png" src="_images/scripting_sculptor_1_8_0.png" />
 </div>
 </div>
-</div>
-<div class="section" id="Adding-our-first-SpecModel-object---Fitting-the-continuum">
-<h2>Adding our first SpecModel object - Fitting the continuum<a class="headerlink" href="#Adding-our-first-SpecModel-object---Fitting-the-continuum" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="Adding-our-first-SpecModel-object---Fitting-the-continuum">
+<h2>Adding our first SpecModel object - Fitting the continuum<a class="headerlink" href="#Adding-our-first-SpecModel-object---Fitting-the-continuum" title="Permalink to this heading"></a></h2>
 <p>In the next step we want to add a simple continuum model to our fit. However, we currently don’t really know which models and masks are available to us based on Sculptor and its loaded extensions. Let’s get a list of all model names and mask names. This information is available as a global variable in the sculptor.specmodel module:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;MODEL FUNCTIONS:&#39;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;MODEL FUNCTIONS:&#39;</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">model_func</span> <span class="ow">in</span> <span class="n">scmod</span><span class="o">.</span><span class="n">model_func_list</span><span class="p">:</span>
     <span class="nb">print</span> <span class="p">(</span><span class="n">model_func</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
@@ -649,8 +291,7 @@ QSO Fe+Cont.W. HAlpha Shen11
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Add the continuum SpecModel</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Add the continuum SpecModel</span>
 <span class="n">fit</span><span class="o">.</span><span class="n">add_specmodel</span><span class="p">()</span>
 <span class="c1"># We access the initialized SpecModel object by using the first item in the SpecFit.specmodels list</span>
 <span class="n">contmodel</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">specmodels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -672,8 +313,7 @@ QSO Fe+Cont.W. HAlpha Shen11
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="n">contmodel</span><span class="o">.</span><span class="n">add_wavelength_range_to_fit_mask</span><span class="p">(</span><span class="mi">8300</span><span class="p">,</span> <span class="mi">8620</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">contmodel</span><span class="o">.</span><span class="n">add_wavelength_range_to_fit_mask</span><span class="p">(</span><span class="mi">8300</span><span class="p">,</span> <span class="mi">8620</span><span class="p">)</span>
 <span class="n">contmodel</span><span class="o">.</span><span class="n">add_wavelength_range_to_fit_mask</span><span class="p">(</span><span class="mi">7105</span><span class="p">,</span> <span class="mi">7205</span><span class="p">)</span>
 <span class="n">contmodel</span><span class="o">.</span><span class="n">add_wavelength_range_to_fit_mask</span><span class="p">(</span><span class="mi">5400</span><span class="p">,</span> <span class="mi">5450</span><span class="p">)</span>
 <span class="n">contmodel</span><span class="o">.</span><span class="n">add_wavelength_range_to_fit_mask</span><span class="p">(</span><span class="mi">5685</span><span class="p">,</span> <span class="mi">5750</span><span class="p">)</span>
@@ -698,8 +338,7 @@ QSO Fe+Cont.W. HAlpha Shen11
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Fit the continuum model</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Fit the continuum model</span>
 <span class="n">contmodel</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
 <span class="c1"># Plot the fitted continuum model and the spectrum</span>
 <span class="n">contmodel</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
@@ -722,16 +361,15 @@ QSO Fe+Cont.W. HAlpha Shen11
 <img alt="_images/scripting_sculptor_1_16_1.png" src="_images/scripting_sculptor_1_16_1.png" />
 </div>
 </div>
-</div>
-<div class="section" id="Adding-and-manipulating-a-SpecModel---Fitting-the-SiIV-line">
-<h2>Adding and manipulating a SpecModel - Fitting the SiIV line<a class="headerlink" href="#Adding-and-manipulating-a-SpecModel---Fitting-the-SiIV-line" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="Adding-and-manipulating-a-SpecModel---Fitting-the-SiIV-line">
+<h2>Adding and manipulating a SpecModel - Fitting the SiIV line<a class="headerlink" href="#Adding-and-manipulating-a-SpecModel---Fitting-the-SiIV-line" title="Permalink to this heading"></a></h2>
 <p>In our next step we will add an emission line model to fit the SiIV emission line at a rest-frame wavelength of ~1400A. To do this we start by adding another SpecModel to our fit and specify the wavelength regions (in observed-frame) we want to use for the fit.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Add the SiIV emission line model</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Add the SiIV emission line model</span>
 <span class="n">fit</span><span class="o">.</span><span class="n">add_specmodel</span><span class="p">()</span>
 <span class="c1"># Access the SpecModel object by choosing the second SpecModel object in the SpecFit</span>
 <span class="c1"># specmodels list.</span>
@@ -760,8 +398,7 @@ QSO Fe+Cont.W. HAlpha Shen11
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="n">model_name</span> <span class="o">=</span> <span class="s1">&#39;SiIV (2G components)&#39;</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model_name</span> <span class="o">=</span> <span class="s1">&#39;SiIV (2G components)&#39;</span>
 <span class="n">model_prefix</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="n">siiv_model</span><span class="o">.</span><span class="n">add_model</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">model_prefix</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
 </pre></div>
@@ -772,8 +409,7 @@ QSO Fe+Cont.W. HAlpha Shen11
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">siiv_model</span><span class="o">.</span><span class="n">model_list</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">siiv_model</span><span class="o">.</span><span class="n">model_list</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -793,8 +429,7 @@ QSO Fe+Cont.W. HAlpha Shen11
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">siiv_model</span><span class="o">.</span><span class="n">params_list</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">siiv_model</span><span class="o">.</span><span class="n">params_list</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
 </pre></div>
@@ -821,8 +456,7 @@ Mathematical expression used to constrain the value during the fit (default is N
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Make the redshifts variable parameters</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make the redshifts variable parameters</span>
 <span class="n">params</span> <span class="o">=</span> <span class="n">siiv_model</span><span class="o">.</span><span class="n">params_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">params</span><span class="p">[</span><span class="s1">&#39;SiIV_A_z&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">vary</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="n">params</span> <span class="o">=</span> <span class="n">siiv_model</span><span class="o">.</span><span class="n">params_list</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -835,8 +469,7 @@ Mathematical expression used to constrain the value during the fit (default is N
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Fit the SiIV SpecModel</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Fit the SiIV SpecModel</span>
 <span class="n">siiv_model</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
 <span class="c1"># Display the fitted SpecModel</span>
 <span class="n">siiv_model</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
@@ -850,16 +483,15 @@ Mathematical expression used to constrain the value during the fit (default is N
 <img alt="_images/scripting_sculptor_1_28_0.png" src="_images/scripting_sculptor_1_28_0.png" />
 </div>
 </div>
-</div>
-<div class="section" id="Fitting-the-CIV-line">
-<h2>Fitting the CIV line<a class="headerlink" href="#Fitting-the-CIV-line" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="Fitting-the-CIV-line">
+<h2>Fitting the CIV line<a class="headerlink" href="#Fitting-the-CIV-line" title="Permalink to this heading"></a></h2>
 <p>In the next step we add the CIV model, basically repeating the same procedure.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Add the CIV emission line model</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Add the CIV emission line model</span>
 <span class="n">fit</span><span class="o">.</span><span class="n">add_specmodel</span><span class="p">()</span>
 <span class="n">civ_model</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">specmodels</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 <span class="n">civ_model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;CIV_line&#39;</span>
@@ -897,16 +529,15 @@ Mathematical expression used to constrain the value during the fit (default is N
 <img alt="_images/scripting_sculptor_1_30_1.png" src="_images/scripting_sculptor_1_30_1.png" />
 </div>
 </div>
-</div>
-<div class="section" id="Fitting-the-CIII]-line">
-<h2>Fitting the CIII] line<a class="headerlink" href="#Fitting-the-CIII]-line" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="Fitting-the-CIII]-line">
+<h2>Fitting the CIII] line<a class="headerlink" href="#Fitting-the-CIII]-line" title="Permalink to this heading"></a></h2>
 <p>After we successfully added the CIV line to the fit, we will now add a model for the SiIII], AlIII, and CIII] lines. While the previous SiIV and CIV model functions were comprised of two individual model functions called ‘line_model_gaussian’, the CIII] complex model is one model function comprised of three Gaussians with set central wavelength values.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Add the CIII] complex emission line model</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Add the CIII] complex emission line model</span>
 <span class="n">fit</span><span class="o">.</span><span class="n">add_specmodel</span><span class="p">()</span>
 <span class="n">ciii_model</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">specmodels</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
 <span class="n">ciii_model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;CIII]_complex&#39;</span>
@@ -945,16 +576,15 @@ Mathematical expression used to constrain the value during the fit (default is N
 <img alt="_images/scripting_sculptor_1_32_1.png" src="_images/scripting_sculptor_1_32_1.png" />
 </div>
 </div>
-</div>
-<div class="section" id="Adding-a-basic-line-model-(Gaussian)---Fitting-absorption-lines">
-<h2>Adding a basic line model (Gaussian) - Fitting absorption lines<a class="headerlink" href="#Adding-a-basic-line-model-(Gaussian)---Fitting-absorption-lines" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="Adding-a-basic-line-model-(Gaussian)---Fitting-absorption-lines">
+<h2>Adding a basic line model (Gaussian) - Fitting absorption lines<a class="headerlink" href="#Adding-a-basic-line-model-(Gaussian)---Fitting-absorption-lines" title="Permalink to this heading"></a></h2>
 <p>Just blueward of the SiIV line this quasar has two prominent absorption features, which we also want to model. For this purpose we use the basic ‘Line model Gaussian’ model function and provide the parameters values as keyword arguments ourselves.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Add absorption line models</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Add absorption line models</span>
 <span class="n">fit</span><span class="o">.</span><span class="n">add_specmodel</span><span class="p">()</span>
 <span class="n">abs_model</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">specmodels</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
 <span class="n">abs_model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Abs_lines&#39;</span>
@@ -992,16 +622,15 @@ Mathematical expression used to constrain the value during the fit (default is N
 </div>
 </div>
 <p>The default <em>.plot()</em> function dispersion and flux ranges may not always be appropriate to check whether the model was actually fit appropriately. Using the <em>matplotlib notebook</em> functionality one can zoom into the region of the two absorption lines to check whether the SpecModel fit did a good job.</p>
-</div>
-<div class="section" id="Visualizing-the-full-quasar-model-fit">
-<h2>Visualizing the full quasar model fit<a class="headerlink" href="#Visualizing-the-full-quasar-model-fit" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="Visualizing-the-full-quasar-model-fit">
+<h2>Visualizing the full quasar model fit<a class="headerlink" href="#Visualizing-the-full-quasar-model-fit" title="Permalink to this heading"></a></h2>
 <p>Let us now visualize the entire fit by calling the SpecFit plot function:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="n">fit</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fit</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -1012,16 +641,15 @@ Mathematical expression used to constrain the value during the fit (default is N
 <img alt="_images/scripting_sculptor_1_36_0.png" src="_images/scripting_sculptor_1_36_0.png" />
 </div>
 </div>
-</div>
-<div class="section" id="Accessing-SpecModel-fit-results-and-saving-them">
-<h2>Accessing SpecModel fit results and saving them<a class="headerlink" href="#Accessing-SpecModel-fit-results-and-saving-them" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="Accessing-SpecModel-fit-results-and-saving-them">
+<h2>Accessing SpecModel fit results and saving them<a class="headerlink" href="#Accessing-SpecModel-fit-results-and-saving-them" title="Permalink to this heading"></a></h2>
 <p>The fitted quasar model looks reasonable. However, in order to analyze the model we need to understand how to access the fitted parameters. Once a SpecModel has been fit, we can access the fit results simply by calling the <em>.fit_result</em> attribute of the SpecModel. It returns the LMFIT fit report for the SpecModel, giving us insight into the model that was fit, the fit statistics, the variables, and the correlations.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Printing the fit result for the CIV model</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Printing the fit result for the CIV model</span>
 <span class="n">civ_model</span><span class="o">.</span><span class="n">fit_result</span>
 </pre></div>
 </div>
@@ -1038,12 +666,11 @@ Mathematical expression used to constrain the value during the fit (default is N
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Save the CIV SpecModel fit report to the current folder</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Save the CIV SpecModel fit report to the current folder</span>
 <span class="n">civ_model</span><span class="o">.</span><span class="n">save_fit_report</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
 
 <span class="c1"># Check if the fit report was saved</span>
-<span class="o">!</span> ls
+<span class="o">!</span><span class="w"> </span>ls
 </pre></div>
 </div>
 </div>
@@ -1063,8 +690,7 @@ scripting_sculptor_3.ipynb
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="n">h</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;specmodel_CIV_line_fit_report.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">h</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;specmodel_CIV_line_fit_report.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">h</span><span class="p">:</span>
     <span class="nb">print</span> <span class="p">(</span><span class="n">line</span><span class="p">)</span>
 <span class="n">h</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
@@ -1150,9 +776,8 @@ scripting_sculptor_3.ipynb
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="o">!</span> rm specmodel_CIV_line_fit_report.txt
-<span class="o">!</span> ls
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span><span class="w"> </span>rm<span class="w"> </span>specmodel_CIV_line_fit_report.txt
+<span class="o">!</span><span class="w"> </span>ls
 </pre></div>
 </div>
 </div>
@@ -1166,23 +791,22 @@ scripting_sculptor_1.ipynb   speconed_demonstration.ipynb
 scripting_sculptor_2.ipynb   spectrum_preparation.ipynb
 </pre></div></div>
 </div>
-</div>
-<div class="section" id="Full-fits,-fitting-algorithms,-and-saving-your-results">
-<h2>Full fits, fitting algorithms, and saving your results<a class="headerlink" href="#Full-fits,-fitting-algorithms,-and-saving-your-results" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="Performing-a-global-consecutive-fit-and-saving-the-SpecModel-fit-results">
-<h3>Performing a global consecutive fit and saving the SpecModel fit results<a class="headerlink" href="#Performing-a-global-consecutive-fit-and-saving-the-SpecModel-fit-results" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="Full-fits,-fitting-algorithms,-and-saving-your-results">
+<h2>Full fits, fitting algorithms, and saving your results<a class="headerlink" href="#Full-fits,-fitting-algorithms,-and-saving-your-results" title="Permalink to this heading"></a></h2>
+<section id="Performing-a-global-consecutive-fit-and-saving-the-SpecModel-fit-results">
+<h3>Performing a global consecutive fit and saving the SpecModel fit results<a class="headerlink" href="#Performing-a-global-consecutive-fit-and-saving-the-SpecModel-fit-results" title="Permalink to this heading"></a></h3>
 <p>In some cases it might be useful to fit individual SpecModels and save their results. However, in most cases we want to fit all SpecModels consecutively and save all results. For this purpose the SpecFit object has a function called <em>fit</em>. It can take a keyword argument <em>save_results</em>, which defaults to <em>False</em>. If we set it to <em>True</em> the fit results will automatically be saved to the current folder. By providing a different <em>foldername</em> keyword argument the user can choose the folder, where the
 fit results will be saved.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Fit all SpecModels consecutively and save their results to the current folder</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Fit all SpecModels consecutively and save their results to the current folder</span>
 <span class="n">fit</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">save_results</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="c1"># Check the current folder for the .txt files</span>
-<span class="o">!</span> ls
+<span class="o">!</span><span class="w"> </span>ls
 </pre></div>
 </div>
 </div>
@@ -1205,11 +829,10 @@ specmodel_1_FitAll_fit_report.txt
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Remove the SpecModel fit report files</span>
-<span class="o">!</span> rm *.txt
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Remove the SpecModel fit report files</span>
+<span class="o">!</span><span class="w"> </span>rm<span class="w"> </span>*.txt
 <span class="c1"># Check the directory again</span>
-<span class="o">!</span> ls
+<span class="o">!</span><span class="w"> </span>ls
 </pre></div>
 </div>
 </div>
@@ -1223,17 +846,16 @@ scripting_sculptor_1.ipynb   speconed_demonstration.ipynb
 scripting_sculptor_2.ipynb   spectrum_preparation.ipynb
 </pre></div></div>
 </div>
-</div>
-<div class="section" id="Choosing-the-fit-algorithm-available-in-LMFIT">
-<h3>Choosing the fit algorithm available in LMFIT<a class="headerlink" href="#Choosing-the-fit-algorithm-available-in-LMFIT" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="Choosing-the-fit-algorithm-available-in-LMFIT">
+<h3>Choosing the fit algorithm available in LMFIT<a class="headerlink" href="#Choosing-the-fit-algorithm-available-in-LMFIT" title="Permalink to this heading"></a></h3>
 <p>The SpecFit object has a string attribute called <em>fitting_method</em>, which allows you to specify with which algorithm LMFIT will fit your model to the data. An overview over which algorithms are implemented in LMFIT can be found <a class="reference external" href="https://lmfit.github.io/lmfit-py/fitting.html">here</a>. The list of names available using Sculptor is saved as a global variable dictionary <em>fitting_methods</em> in the SpecModel module, that translates the human readable names of the algorithms into the LMFIT method
 options. Note that not all of them are fully tested in the Sculptor framework and may lead to errors, if used inappropriately.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">scmod</span><span class="o">.</span><span class="n">fitting_methods</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">scmod</span><span class="o">.</span><span class="n">fitting_methods</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Name: </span><span class="si">{}</span><span class="s1"> </span><span class="se">\n</span><span class="s1"> Method </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">scmod</span><span class="o">.</span><span class="n">fitting_methods</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
 </pre></div>
 </div>
@@ -1289,8 +911,7 @@ Name: Dual Annealing Optimization
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Current fitting method</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Current fitting method</span>
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Default fitting method: &#39;</span><span class="p">,</span> <span class="n">fit</span><span class="o">.</span><span class="n">fitting_method</span><span class="p">)</span>
 
 <span class="c1"># Change fitting method to Nelder-Mead</span>
@@ -1303,9 +924,7 @@ Name: Dual Annealing Optimization
 <span class="n">fit</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
 <span class="c1"># Display result</span>
 <span class="n">fit</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
-
-
-</pre></div>
+<br/><br/></pre></div>
 </div>
 </div>
 <div class="nboutput docutils container">
@@ -1325,23 +944,22 @@ New fitting method:  Nelder-Mead
 </div>
 </div>
 <p>Some of the fitting methods need extra parameters. A prominent example for this is the ‘Maximum likelihood via Monte-Carlo Markov Chain’, which uses emcee to perform a maximum likelihood fit using MCMC. For this particular method default parameters are implemented. However, we will devote an entire notebook to show how you can use this fitting option to produce science grade results.</p>
-</div>
-<div class="section" id="Saving-the-model-fit">
-<h3>Saving the model fit<a class="headerlink" href="#Saving-the-model-fit" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="Saving-the-model-fit">
+<h3>Saving the model fit<a class="headerlink" href="#Saving-the-model-fit" title="Permalink to this heading"></a></h3>
 <p>One of the goals of the Sculptor package is to enable easy reproducibility of model fits to astronomical spectra and their analysis. Therefore, you can save your entire fit (SpecFit object) to a folder with the SpecFit <em>save</em> function. It takes the folderpath+foldername as an attribute and will create the folder if it does not find it in the specified directory.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Quick look into the current directory</span>
-<span class="o">!</span> ls
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Quick look into the current directory</span>
+<span class="o">!</span><span class="w"> </span>ls
 
 <span class="c1"># Save the SpecFit object</span>
 <span class="n">fit</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;example_fit_notebook&#39;</span><span class="p">)</span>
 
 <span class="c1"># Check if the folder was created and contents were saved</span>
-<span class="o">!</span> ls
+<span class="o">!</span><span class="w"> </span>ls
 </pre></div>
 </div>
 </div>
@@ -1395,9 +1013,8 @@ scripting_sculptor_2.ipynb
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Check the contents of the saved SpecFit folder</span>
-<span class="o">!</span> ls ./example_fit_notebook/
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Check the contents of the saved SpecFit folder</span>
+<span class="o">!</span><span class="w"> </span>ls<span class="w"> </span>./example_fit_notebook/
 </pre></div>
 </div>
 </div>
@@ -1416,17 +1033,16 @@ scripting_sculptor_2.ipynb
 </pre></div></div>
 </div>
 <p>At this point we do not want to go into detail into all the saved files. The <em>fit.hdf5</em> saved the main attributes of the SpecFit and SpecModel objects. The individual models and their fit results were saved as <em>.json</em> files via the LMFIT functionality for saving models, parameters, and results. The input spectrum is saved as the <em>spectrum.hdf5</em> file and the spectra of the SpecModel objects, along with the mask regions and model spectra are saved in the <em>specmodel_X_specdata.hdf5</em> files.</p>
-</div>
-<div class="section" id="Loading-a-SpecFit-object-from-disk">
-<h3>Loading a SpecFit object from disk<a class="headerlink" href="#Loading-a-SpecFit-object-from-disk" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="Loading-a-SpecFit-object-from-disk">
+<h3>Loading a SpecFit object from disk<a class="headerlink" href="#Loading-a-SpecFit-object-from-disk" title="Permalink to this heading"></a></h3>
 <p>We can now use the Sculptor GUI to now load the full model fit (SpecFit object) into the GUI from the folder we saved it to and then manipulate it to tune the fit.</p>
 <p>Of course we can also instantiate a new SpecFit object and then load the previous result. This is quite simple:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Instantiate an empty SpecFit object</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Instantiate an empty SpecFit object</span>
 <span class="n">new_fit</span> <span class="o">=</span> <span class="n">scfit</span><span class="o">.</span><span class="n">SpecFit</span><span class="p">()</span>
 
 <span class="c1"># Load the saved model fit using the folder name</span>
@@ -1462,11 +1078,10 @@ Nelder-Mead
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># Delete the Sculptor model fit folder</span>
-<span class="o">!</span> rm -r example_fit_notebook
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Delete the Sculptor model fit folder</span>
+<span class="o">!</span><span class="w"> </span>rm<span class="w"> </span>-r<span class="w"> </span>example_fit_notebook
 <span class="c1"># Check the directory</span>
-<span class="o">!</span> ls
+<span class="o">!</span><span class="w"> </span>ls
 </pre></div>
 </div>
 </div>
@@ -1484,61 +1099,43 @@ scripting_sculptor_2.ipynb   spectrum_preparation.ipynb
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
 </pre></div>
 </div>
 </div>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="scripting_sculptor_2.html" class="btn btn-neutral float-right" title="Scripting Sculptor 02 - Analysing model fits with SpecAnalysis" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="spectrum_preparation.html" class="btn btn-neutral float-left" title="Preparing a composite spectrum for Sculptor modeling using the SpecOneD class" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="scripting_sculptor_2.html" class="btn btn-neutral float-right" title="Scripting Sculptor 02 - Analysing model fits with SpecAnalysis" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2021, Jan-Torge Schindler.
-
-    </p>
+    <p>&#169; Copyright 2021, Jan-Torge Schindler.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

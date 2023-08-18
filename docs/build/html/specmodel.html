@@ -1,101 +1,58 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <title>The SpecModel Module &mdash; Sculptor 1.0.0 documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+  <title>The SpecModel Module &mdash; Sculptor 1.1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="The SpecFit Module" href="specfit.html" />
     <link rel="prev" title="The SpecOneD Module" href="speconed.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
 
           
-            <a href="index.html" class="icon icon-home"> Sculptor
           
-
-          
+          <a href="index.html" class="icon icon-home">
+            Sculptor
           </a>
-
-          
-            
-            
               <div class="version">
-                1.0.0
+                1.1.0
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <p class="caption"><span class="caption-text">Getting Started:</span></p>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">The Sculptor GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Tutorials:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html">An introduction to the SpecOneD class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html#The-PassBand-class">The PassBand class</a></li>
@@ -104,115 +61,86 @@
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_2.html">Scripting Sculptor 02 - Analysing model fits with SpecAnalysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_3.html">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Module documentation:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Module documentation:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">The SpecModel Module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">The SpecModel Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specmodel.SpecModel"><code class="docutils literal notranslate"><span class="pre">SpecModel</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.specfit"><code class="docutils literal notranslate"><span class="pre">SpecModel.specfit</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.xlim"><code class="docutils literal notranslate"><span class="pre">SpecModel.xlim</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.ylim"><code class="docutils literal notranslate"><span class="pre">SpecModel.ylim</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.spec"><code class="docutils literal notranslate"><span class="pre">SpecModel.spec</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.redshift"><code class="docutils literal notranslate"><span class="pre">SpecModel.redshift</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.use_weights"><code class="docutils literal notranslate"><span class="pre">SpecModel.use_weights</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.model_list"><code class="docutils literal notranslate"><span class="pre">SpecModel.model_list</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.params_list"><code class="docutils literal notranslate"><span class="pre">SpecModel.params_list</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.global_params"><code class="docutils literal notranslate"><span class="pre">SpecModel.global_params</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.color"><code class="docutils literal notranslate"><span class="pre">SpecModel.color</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.model"><code class="docutils literal notranslate"><span class="pre">SpecModel.model</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.params"><code class="docutils literal notranslate"><span class="pre">SpecModel.params</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.fit_result"><code class="docutils literal notranslate"><span class="pre">SpecModel.fit_result</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.add_global_param"><code class="docutils literal notranslate"><span class="pre">SpecModel.add_global_param()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.add_mask_preset_to_fit_mask"><code class="docutils literal notranslate"><span class="pre">SpecModel.add_mask_preset_to_fit_mask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.add_model"><code class="docutils literal notranslate"><span class="pre">SpecModel.add_model()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.add_wavelength_range_to_fit_mask"><code class="docutils literal notranslate"><span class="pre">SpecModel.add_wavelength_range_to_fit_mask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.build_model"><code class="docutils literal notranslate"><span class="pre">SpecModel.build_model()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.delete_model"><code class="docutils literal notranslate"><span class="pre">SpecModel.delete_model()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.fit"><code class="docutils literal notranslate"><span class="pre">SpecModel.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.load"><code class="docutils literal notranslate"><span class="pre">SpecModel.load()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.plot"><code class="docutils literal notranslate"><span class="pre">SpecModel.plot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.remove_global_param"><code class="docutils literal notranslate"><span class="pre">SpecModel.remove_global_param()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.reset_fit_mask"><code class="docutils literal notranslate"><span class="pre">SpecModel.reset_fit_mask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.reset_plot_limits"><code class="docutils literal notranslate"><span class="pre">SpecModel.reset_plot_limits()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.save"><code class="docutils literal notranslate"><span class="pre">SpecModel.save()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.save_fit_report"><code class="docutils literal notranslate"><span class="pre">SpecModel.save_fit_report()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.save_mcmc_chain"><code class="docutils literal notranslate"><span class="pre">SpecModel.save_mcmc_chain()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.update_model_params_for_global_params"><code class="docutils literal notranslate"><span class="pre">SpecModel.update_model_params_for_global_params()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.specmodel.SpecModel.update_params_from_fit_result"><code class="docutils literal notranslate"><span class="pre">SpecModel.update_params_from_fit_result()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.specmodel.fitting_methods"><code class="docutils literal notranslate"><span class="pre">fitting_methods</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="masksmodels.html">The Masks &amp; Models Module</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Extensions:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Extensions:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="qso_extension.html">The QSO-Extension Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="my_extension.html">Example extension Module</a></li>
 </ul>
-<p class="caption"><span class="caption-text">License:</span></p>
+<p class="caption" role="heading"><span class="caption-text">License:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">Sculptor</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-        
-      <li>The SpecModel Module</li>
-    
-    
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">The SpecModel Module</li>
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="_sources/specmodel.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
-  
-<style>
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<div class="section" id="module-sculptor.specmodel">
-<span id="the-specmodel-module"></span><h1>The SpecModel Module<a class="headerlink" href="#module-sculptor.specmodel" title="Permalink to this headline">¶</a></h1>
+             
+  <section id="module-sculptor.specmodel">
+<span id="the-specmodel-module"></span><h1>The SpecModel Module<a class="headerlink" href="#module-sculptor.specmodel" title="Permalink to this heading"></a></h1>
 <p>This module introduces the SpecModel class and its functionality. The SpecModel
 class is designed to fit models to an astronomical spectrum using LMFIT.</p>
 <p>The SpecModel is always associated with a SpecFit object, which provides the
@@ -220,274 +148,274 @@ foundational functionality for the fitting.</p>
 <p class="rubric">Notes</p>
 <p>This module is in active development.</p>
 <dl class="py class">
-<dt id="sculptor.specmodel.SpecModel">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">sculptor.specmodel.</span></code><code class="sig-name descname"><span class="pre">SpecModel</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specfit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spectrum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sculptor.specmodel.</span></span><span class="sig-name descname"><span class="pre">SpecModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specfit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spectrum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redshift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel" title="Permalink to this definition"></a></dt>
 <dd><p>Class holding information on models for the SpecFit class</p>
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.specfit">
-<code class="sig-name descname"><span class="pre">specfit</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.specfit" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.specfit">
+<span class="sig-name descname"><span class="pre">specfit</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.specfit" title="Permalink to this definition"></a></dt>
 <dd><p>Associated SpecFit object</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="specfit.html#sculptor.specfit.SpecFit" title="sculptor.specfit.SpecFit">SpecFit</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.xlim">
-<code class="sig-name descname"><span class="pre">xlim</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.xlim" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.xlim">
+<span class="sig-name descname"><span class="pre">xlim</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.xlim" title="Permalink to this definition"></a></dt>
 <dd><p>Wavelength limits for plotting</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>list of float</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.ylim">
-<code class="sig-name descname"><span class="pre">ylim</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.ylim" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.ylim">
+<span class="sig-name descname"><span class="pre">ylim</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.ylim" title="Permalink to this definition"></a></dt>
 <dd><p>Flux density limits for plotting</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>list of float</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.spec">
-<code class="sig-name descname"><span class="pre">spec</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.spec" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.spec">
+<span class="sig-name descname"><span class="pre">spec</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.spec" title="Permalink to this definition"></a></dt>
 <dd><p>Astronomical spectrum as a SpecOneD object</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="speconed.html#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD">SpecOneD</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.redshift">
-<code class="sig-name descname"><span class="pre">redshift</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.redshift" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.redshift">
+<span class="sig-name descname"><span class="pre">redshift</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.redshift" title="Permalink to this definition"></a></dt>
 <dd><p>Cosmological redshift of the astronomical object</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.use_weights">
-<code class="sig-name descname"><span class="pre">use_weights</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.use_weights" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.use_weights">
+<span class="sig-name descname"><span class="pre">use_weights</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.use_weights" title="Permalink to this definition"></a></dt>
 <dd><p>Boolean to indicate whether fluxden errors will be
 used as weights for the fit.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>bool</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.model_list">
-<code class="sig-name descname"><span class="pre">model_list</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.model_list" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.model_list">
+<span class="sig-name descname"><span class="pre">model_list</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.model_list" title="Permalink to this definition"></a></dt>
 <dd><p>List of LMFIT models</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>list of Models</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.params_list">
-<code class="sig-name descname"><span class="pre">params_list</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.params_list" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.params_list">
+<span class="sig-name descname"><span class="pre">params_list</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.params_list" title="Permalink to this definition"></a></dt>
 <dd><p>List of LMFIT Parameters for all
 LMFIT models.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>list of Parameters</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.global_params">
-<code class="sig-name descname"><span class="pre">global_params</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.global_params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.global_params">
+<span class="sig-name descname"><span class="pre">global_params</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.global_params" title="Permalink to this definition"></a></dt>
 <dd><p>Global parameters to be added to the all
 models in the Specmodel. Their main use is to provide variables
 and constraints for multiple individual models.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Parameters</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.color">
-<code class="sig-name descname"><span class="pre">color</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.color" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.color">
+<span class="sig-name descname"><span class="pre">color</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.color" title="Permalink to this definition"></a></dt>
 <dd><p>Color to use in the SpecModel plot.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.model">
-<code class="sig-name descname"><span class="pre">model</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.model" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.model">
+<span class="sig-name descname"><span class="pre">model</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.model" title="Permalink to this definition"></a></dt>
 <dd><p>LMFIT SpecModel model. The global model including all
 models in the model_list.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Model</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.params">
-<code class="sig-name descname"><span class="pre">params</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.params" title="Permalink to this definition"></a></dt>
 <dd><p>LMFIT SpecModel parameters. The global parameter
 list including all parameters from all models.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Parameters</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="sculptor.specmodel.SpecModel.fit_result">
-<code class="sig-name descname"><span class="pre">fit_result</span></code><a class="headerlink" href="#sculptor.specmodel.SpecModel.fit_result" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.fit_result">
+<span class="sig-name descname"><span class="pre">fit_result</span></span><a class="headerlink" href="#sculptor.specmodel.SpecModel.fit_result" title="Permalink to this definition"></a></dt>
 <dd><p>LMFIT ModelResult for the fit to the SpecModel</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>ModelResult</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.add_global_param">
-<code class="sig-name descname"><span class="pre">add_global_param</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.add_global_param" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.add_global_param">
+<span class="sig-name descname"><span class="pre">add_global_param</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.add_global_param" title="Permalink to this definition"></a></dt>
 <dd><p>Adding a “Global Parameter” to the SpecModel object</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>param_name</strong> (<em>str</em>) – Name of the global parameter</p></li>
 <li><p><strong>value</strong> (<em>float</em><em>,</em><em>optional</em>) – Initial value of the         global parameter</p></li>
 <li><p><strong>vary</strong> (<em>bool</em><em>,</em><em>optional</em>) – Boolean to indicate whether the global         parameter should be varied during the fit</p></li>
 <li><p><strong>min</strong> (<em>float</em><em>,</em><em>optional</em>) – Minimum value for the global parameter</p></li>
 <li><p><strong>max</strong> (<em>float</em><em>,</em><em>optional</em>) – Maximum value for the global parameter</p></li>
-<li><p><strong>optional expr</strong> (<em>str</em><em>,</em>) – Optional expression for the global         parameter</p></li>
+<li><p><strong>expr</strong> (<em>str</em><em>, </em><em>optional</em>) – Optional expression for the global         parameter</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.add_mask_preset_to_fit_mask">
-<code class="sig-name descname"><span class="pre">add_mask_preset_to_fit_mask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask_preset_key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.add_mask_preset_to_fit_mask" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.add_mask_preset_to_fit_mask">
+<span class="sig-name descname"><span class="pre">add_mask_preset_to_fit_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask_preset_key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.add_mask_preset_to_fit_mask" title="Permalink to this definition"></a></dt>
 <dd><p>Adding a preset mask from the models_and_masks module to the fit.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>mask_preset_key</strong> (<em>str</em>) – Name of the preset mask in the
 mask_preset dictionary.</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.add_model">
-<code class="sig-name descname"><span class="pre">add_model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.add_model" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.add_model">
+<span class="sig-name descname"><span class="pre">add_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.add_model" title="Permalink to this definition"></a></dt>
 <dd><p>Add a model to the SpecModel by using the built-in Sculptor models.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>model_name</strong> – </p></li>
 <li><p><strong>prefix</strong> – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.add_wavelength_range_to_fit_mask">
-<code class="sig-name descname"><span class="pre">add_wavelength_range_to_fit_mask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">disp_x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_x2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.add_wavelength_range_to_fit_mask" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.add_wavelength_range_to_fit_mask">
+<span class="sig-name descname"><span class="pre">add_wavelength_range_to_fit_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">disp_x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp_x2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.add_wavelength_range_to_fit_mask" title="Permalink to this definition"></a></dt>
 <dd><p>Adding a wavelength region to the fit mask.</p>
 <p>The dispersion region between the two dispersion values will be added
 to the fit mask.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>disp_x1</strong> (<em>(</em><em>float</em><em>)</em>) – Dispersion value 1</p></li>
 <li><p><strong>disp_x2</strong> (<em>(</em><em>float</em><em>)</em>) – Dispersion value 2</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.build_model">
-<code class="sig-name descname"><span class="pre">build_model</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.build_model" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.build_model">
+<span class="sig-name descname"><span class="pre">build_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.build_model" title="Permalink to this definition"></a></dt>
 <dd><p>Build the Specmodel model and parameters for the fit</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.delete_model">
-<code class="sig-name descname"><span class="pre">delete_model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.delete_model" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.delete_model">
+<span class="sig-name descname"><span class="pre">delete_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.delete_model" title="Permalink to this definition"></a></dt>
 <dd><p>Delete model (Model, Parameters) from the SpecModel object.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>index</strong> (<em>(</em><em>int</em><em>)</em>) – Index of model to remove from model_list and
 Parameters to remove from params_list (default index==”None”). If
 the index is None the last added model will be removed.</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.fit">
-<code class="sig-name descname"><span class="pre">fit</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.fit" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.fit" title="Permalink to this definition"></a></dt>
 <dd><p>Fit the SpecModel to the astronomical spectrum</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.load">
-<code class="sig-name descname"><span class="pre">load</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">foldername</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specmodel_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.load" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.load">
+<span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">foldername</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specmodel_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.load" title="Permalink to this definition"></a></dt>
 <dd><p>Load a SpecModel from the specified folder.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>foldername</strong> (<em>str</em>) – Specified folder in which the SpecModel will
 be saved.</p></li>
@@ -495,72 +423,72 @@ be saved.</p></li>
 the filenames for the save files.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.plot">
-<code class="sig-name descname"><span class="pre">plot</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.plot" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.plot" title="Permalink to this definition"></a></dt>
 <dd><p>Plot the SpecModel</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.remove_global_param">
-<code class="sig-name descname"><span class="pre">remove_global_param</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.remove_global_param" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.remove_global_param">
+<span class="sig-name descname"><span class="pre">remove_global_param</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.remove_global_param" title="Permalink to this definition"></a></dt>
 <dd><p>Remove “Global Parameter” from SpecModel object</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>param_name</strong> (<em>str</em>) – Parameter name of the global parameter to         remove.</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.reset_fit_mask">
-<code class="sig-name descname"><span class="pre">reset_fit_mask</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.reset_fit_mask" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.reset_fit_mask">
+<span class="sig-name descname"><span class="pre">reset_fit_mask</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.reset_fit_mask" title="Permalink to this definition"></a></dt>
 <dd><p>Reset the fit mask based on the supplied astronomical spectrum.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.reset_plot_limits">
-<code class="sig-name descname"><span class="pre">reset_plot_limits</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluxden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.reset_plot_limits" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.reset_plot_limits">
+<span class="sig-name descname"><span class="pre">reset_plot_limits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluxden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.reset_plot_limits" title="Permalink to this definition"></a></dt>
 <dd><p>Reset the plot limits based on the dispersion and flux density
 ranges of the spectrum.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fluxden</strong> (<em>boolean</em>) – Boolean to indicate whether to reset the flux density         axis limits (default: True).</p></li>
 <li><p><strong>dispersion</strong> (<em>boolean</em>) – Boolean to indicate whether to reset the dispersion         axis limits (default: True).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.save">
-<code class="sig-name descname"><span class="pre">save</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">foldername</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specmodel_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.save" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">foldername</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specmodel_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.save" title="Permalink to this definition"></a></dt>
 <dd><p>Save the SpecModel object to a specified folder</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>foldername</strong> (<em>str</em>) – Specified folder in which the SpecModel will
 be saved.</p></li>
@@ -568,70 +496,70 @@ be saved.</p></li>
 the filenames for the save files.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.save_fit_report">
-<code class="sig-name descname"><span class="pre">save_fit_report</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">foldername</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specmodel_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.save_fit_report" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.save_fit_report">
+<span class="sig-name descname"><span class="pre">save_fit_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">foldername</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specmodel_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.save_fit_report" title="Permalink to this definition"></a></dt>
 <dd><p>Save the fit report to a file in the specified folder</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>foldername</strong> (<em>str</em>) – Specified folder in which the fit report will         be saved.</p></li>
 <li><p><strong>specmodel_id</strong> (<em>str</em>) – Unique SpecModel identifier used in creating         the filename for the fit report.</p></li>
 <li><p><strong>show</strong> (<em>bool</em>) – Boolean to indicate whether the fit report         should also be printed to the screen.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.save_mcmc_chain">
-<code class="sig-name descname"><span class="pre">save_mcmc_chain</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">foldername</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specmodel_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.save_mcmc_chain" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.save_mcmc_chain">
+<span class="sig-name descname"><span class="pre">save_mcmc_chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">foldername</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specmodel_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.save_mcmc_chain" title="Permalink to this definition"></a></dt>
 <dd><p>Save the values of the MCMC flat chain as an hdf5 file.</p>
 <p>Fixed parameters in the model fit will be automatically added to the
 output file.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>foldername</strong> (<em>str</em>) – Specified folder in which the fit report will         be saved.</p></li>
 <li><p><strong>specmodel_id</strong> (<em>str</em>) – Unique SpecModel identifier used in creating         the filename for the fit report.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.update_model_params_for_global_params">
-<code class="sig-name descname"><span class="pre">update_model_params_for_global_params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.update_model_params_for_global_params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.update_model_params_for_global_params">
+<span class="sig-name descname"><span class="pre">update_model_params_for_global_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.update_model_params_for_global_params" title="Permalink to this definition"></a></dt>
 <dd><p>Global parameters are added to the Model parameters.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="sculptor.specmodel.SpecModel.update_params_from_fit_result">
-<code class="sig-name descname"><span class="pre">update_params_from_fit_result</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.update_params_from_fit_result" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.SpecModel.update_params_from_fit_result">
+<span class="sig-name descname"><span class="pre">update_params_from_fit_result</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.specmodel.SpecModel.update_params_from_fit_result" title="Permalink to this definition"></a></dt>
 <dd><p>Update all parameter values in the parameter list based on the
 fit result.</p>
 <p>Individual model parameter, global parameters and even the super
 parameters of the associated SpecFit object will be updated based on
 the fit.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
 </dd>
 </dl>
@@ -640,66 +568,49 @@ the fit.</p>
 </dd></dl>
 
 <dl class="py data">
-<dt id="sculptor.specmodel.fitting_methods">
-<code class="sig-prename descclassname"><span class="pre">sculptor.specmodel.</span></code><code class="sig-name descname"><span class="pre">fitting_methods</span></code><em class="property"> <span class="pre">=</span> <span class="pre">{'Adaptive</span> <span class="pre">Memory</span> <span class="pre">Programming</span> <span class="pre">for</span> <span class="pre">Global</span> <span class="pre">Optimization':</span> <span class="pre">'ampgo',</span> <span class="pre">'BFGS':</span> <span class="pre">'bfgs',</span> <span class="pre">'Basinhopping':</span> <span class="pre">'basinhopping',</span> <span class="pre">'Brute</span> <span class="pre">force</span> <span class="pre">method':</span> <span class="pre">'brute',</span> <span class="pre">'Cobyla':</span> <span class="pre">'cobyla',</span> <span class="pre">'Conjugate-Gradient':</span> <span class="pre">'cg',</span> <span class="pre">'Differential</span> <span class="pre">evolution':</span> <span class="pre">'differential_evolution',</span> <span class="pre">'Dual</span> <span class="pre">Annealing</span> <span class="pre">Optimization':</span> <span class="pre">'dual_annealing',</span> <span class="pre">'L-BFGS-B':</span> <span class="pre">'lbfgsb',</span> <span class="pre">'Least-Squares</span> <span class="pre">minimization':</span> <span class="pre">'least_squares',</span> <span class="pre">'Levenberg-Marquardt':</span> <span class="pre">'leastsq',</span> <span class="pre">'Maximum</span> <span class="pre">likelihood</span> <span class="pre">via</span> <span class="pre">Monte-Carlo</span> <span class="pre">Markov</span> <span class="pre">Chain':</span> <span class="pre">'emcee',</span> <span class="pre">'Nelder-Mead':</span> <span class="pre">'nelder',</span> <span class="pre">'Newton</span> <span class="pre">GLTR</span> <span class="pre">trust-region':</span> <span class="pre">'trust-krylov',</span> <span class="pre">'Powell':</span> <span class="pre">'powell',</span> <span class="pre">'Sequential</span> <span class="pre">Linear</span> <span class="pre">Squares</span> <span class="pre">Programming':</span> <span class="pre">'slsqp',</span> <span class="pre">'Simplicial</span> <span class="pre">Homology</span> <span class="pre">Global</span> <span class="pre">Optimization':</span> <span class="pre">'shgo',</span> <span class="pre">'Truncated</span> <span class="pre">Newton':</span> <span class="pre">'tnc',</span> <span class="pre">'Trust-region</span> <span class="pre">for</span> <span class="pre">constrained</span> <span class="pre">obtimization':</span> <span class="pre">'trust-constr'}</span></em><a class="headerlink" href="#sculptor.specmodel.fitting_methods" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sculptor.specmodel.fitting_methods">
+<span class="sig-prename descclassname"><span class="pre">sculptor.specmodel.</span></span><span class="sig-name descname"><span class="pre">fitting_methods</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'Adaptive</span> <span class="pre">Memory</span> <span class="pre">Programming</span> <span class="pre">for</span> <span class="pre">Global</span> <span class="pre">Optimization':</span> <span class="pre">'ampgo',</span> <span class="pre">'BFGS':</span> <span class="pre">'bfgs',</span> <span class="pre">'Basinhopping':</span> <span class="pre">'basinhopping',</span> <span class="pre">'Brute</span> <span class="pre">force</span> <span class="pre">method':</span> <span class="pre">'brute',</span> <span class="pre">'Cobyla':</span> <span class="pre">'cobyla',</span> <span class="pre">'Conjugate-Gradient':</span> <span class="pre">'cg',</span> <span class="pre">'Differential</span> <span class="pre">evolution':</span> <span class="pre">'differential_evolution',</span> <span class="pre">'Dual</span> <span class="pre">Annealing</span> <span class="pre">Optimization':</span> <span class="pre">'dual_annealing',</span> <span class="pre">'L-BFGS-B':</span> <span class="pre">'lbfgsb',</span> <span class="pre">'Least-Squares</span> <span class="pre">minimization':</span> <span class="pre">'least_squares',</span> <span class="pre">'Levenberg-Marquardt':</span> <span class="pre">'leastsq',</span> <span class="pre">'Maximum</span> <span class="pre">likelihood</span> <span class="pre">via</span> <span class="pre">Monte-Carlo</span> <span class="pre">Markov</span> <span class="pre">Chain':</span> <span class="pre">'emcee',</span> <span class="pre">'Nelder-Mead':</span> <span class="pre">'nelder',</span> <span class="pre">'Newton</span> <span class="pre">GLTR</span> <span class="pre">trust-region':</span> <span class="pre">'trust-krylov',</span> <span class="pre">'Powell':</span> <span class="pre">'powell',</span> <span class="pre">'Sequential</span> <span class="pre">Linear</span> <span class="pre">Squares</span> <span class="pre">Programming':</span> <span class="pre">'slsqp',</span> <span class="pre">'Simplicial</span> <span class="pre">Homology</span> <span class="pre">Global</span> <span class="pre">Optimization':</span> <span class="pre">'shgo',</span> <span class="pre">'Truncated</span> <span class="pre">Newton':</span> <span class="pre">'tnc',</span> <span class="pre">'Trust-region</span> <span class="pre">for</span> <span class="pre">constrained</span> <span class="pre">obtimization':</span> <span class="pre">'trust-constr'}</span></em><a class="headerlink" href="#sculptor.specmodel.fitting_methods" title="Permalink to this definition"></a></dt>
 <dd><p>Dictionary of fitting methods</p>
 <p>Fitting methods available for fitting in SpecFit based on the list of methods in
 LMFIT.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type</dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>dict</p>
 </dd>
 </dl>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="specfit.html" class="btn btn-neutral float-right" title="The SpecFit Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="speconed.html" class="btn btn-neutral float-left" title="The SpecOneD Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="specfit.html" class="btn btn-neutral float-right" title="The SpecFit Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2021, Jan-Torge Schindler.
-
-    </p>
+    <p>&#169; Copyright 2021, Jan-Torge Schindler.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

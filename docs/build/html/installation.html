@@ -1,112 +1,68 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <title>Installation &mdash; Sculptor 1.0.0 documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+  <title>Installation &mdash; Sculptor 1.1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="The Sculptor GUI" href="getting_started.html" />
     <link rel="prev" title="Welcome to Sculptor’s documentation!" href="index.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
 
           
-            <a href="index.html" class="icon icon-home"> Sculptor
           
-
-          
+          <a href="index.html" class="icon icon-home">
+            Sculptor
           </a>
-
-          
-            
-            
               <div class="version">
-                1.0.0
+                1.1.0
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <p class="caption"><span class="caption-text">Getting Started:</span></p>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#clone-the-github-repository">1. Clone the github repository</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#install-requirements">2. Install requirements</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#installing-requirements-with-a-new-conda-environment-recommended">2.1 Installing requirements with a new conda environment (Recommended)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#installing-requirements-in-an-existing-conda-environment">2.2 Installing requirements in an existing conda environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#installing-requirements-via-pip">2.3 Installing requirements via pip</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installing-sculptor-and-its-requirements">2. Installing Sculptor and its requirements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#installing-sculptor-via-conda-recommended">2.1 Installing Sculptor via conda (Recommended)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#installing-sculptor-using-setup-py-via-pip">2.2 Installing Sculptor (using setup.py via pip)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#installing-sculptor-using-requirements-txt-via-pip">2.3 Installing Sculptor (using requirements.txt via pip)</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#install-sculptor-from-the-cloned-repository">3. Install sculptor from the cloned repository</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#open-up-the-sculptor-gui">4. Open up the sculptor GUI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#open-up-the-sculptor-gui">3. Open up the sculptor GUI</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">The Sculptor GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Tutorials:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html">An introduction to the SpecOneD class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html#The-PassBand-class">The PassBand class</a></li>
@@ -115,7 +71,7 @@
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_2.html">Scripting Sculptor 02 - Analysing model fits with SpecAnalysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_3.html">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Module documentation:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Module documentation:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
@@ -123,208 +79,141 @@
 <li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="masksmodels.html">The Masks &amp; Models Module</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Extensions:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Extensions:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="qso_extension.html">The QSO-Extension Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="my_extension.html">Example extension Module</a></li>
 </ul>
-<p class="caption"><span class="caption-text">License:</span></p>
+<p class="caption" role="heading"><span class="caption-text">License:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">Sculptor</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-        
-      <li>Installation</li>
-    
-    
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Installation</li>
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="_sources/installation.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
-  
-<style>
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<div class="section" id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="clone-the-github-repository">
-<h2>1. Clone the github repository<a class="headerlink" href="#clone-the-github-repository" title="Permalink to this headline">¶</a></h2>
+             
+  <section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h1>
+<section id="clone-the-github-repository">
+<h2>1. Clone the github repository<a class="headerlink" href="#clone-the-github-repository" title="Permalink to this heading"></a></h2>
 <p>This document describes how to install Sculptor and its dependencies. For now the project has not been published on PyPi, yet. Therefore, the first step is to clone the Sculptor repository from <a class="reference external" href="https://github.com/jtschindler/sculptor">github</a>.</p>
 <p>To do this simply clone the repository to your folder of choice.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">jtschindler</span><span class="o">/</span><span class="n">sculptor</span><span class="o">.</span><span class="n">git</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="install-requirements">
-<h2>2. Install requirements<a class="headerlink" href="#install-requirements" title="Permalink to this headline">¶</a></h2>
+<p>The current version of Sculptor is designed to work with python &gt;= 3.9.</p>
+</section>
+<section id="installing-sculptor-and-its-requirements">
+<h2>2. Installing Sculptor and its requirements<a class="headerlink" href="#installing-sculptor-and-its-requirements" title="Permalink to this heading"></a></h2>
 <p>Navigate to the main folder of sculptor. It should contain the <em>setup.py</em> file as well as <em>requirements.txt</em>, <em>conda_requirements.yml</em>, and <em>environment.yml</em>.</p>
-<div class="section" id="installing-requirements-with-a-new-conda-environment-recommended">
-<h3>2.1 Installing requirements with a new conda environment (Recommended)<a class="headerlink" href="#installing-requirements-with-a-new-conda-environment-recommended" title="Permalink to this headline">¶</a></h3>
-<p>The sculptor github repository provides an environment.yml file. It automatically creates the  <em>sculptor-env</em> environment installing all necessary dependencies with the following command:</p>
+<section id="installing-sculptor-via-conda-recommended">
+<h3>2.1 Installing Sculptor via conda (Recommended)<a class="headerlink" href="#installing-sculptor-via-conda-recommended" title="Permalink to this heading"></a></h3>
+<p>While some may prefer a pure pip installation, I have run into issues with installing PyQt5 and pytables via pip on new Mac OSX M1/M2 machines. Therefore, I recommend to use the provided environment.yml file instead.</p>
+<p>It automatically creates the  <em>sculptor</em> environment installing all necessary dependencies with the following command:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">env</span> <span class="n">create</span> <span class="o">--</span><span class="n">file</span> <span class="n">environment</span><span class="o">.</span><span class="n">yml</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="installing-requirements-in-an-existing-conda-environment">
-<h3>2.2 Installing requirements in an existing conda environment<a class="headerlink" href="#installing-requirements-in-an-existing-conda-environment" title="Permalink to this headline">¶</a></h3>
-<p>There are basically two ways to make sure all requirements are installed, when working with an existing conda environment. The more convenient way makes use of the conda_requirements.yaml by updating the environment of choice [myenv]:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">env</span> <span class="n">update</span> <span class="o">--</span><span class="n">name</span> <span class="p">[</span><span class="n">myenv</span><span class="p">]</span> <span class="o">--</span><span class="n">file</span> <span class="n">conda_requirements</span><span class="o">.</span><span class="n">yml</span>
+<p>The environment is crearted using python 3.10. If a different python version is needed, please modify your version of the environment.yml file. Following the creating of the environment activate it via</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="n">sculptor</span>
 </pre></div>
 </div>
-<p>Alternatively, one can open the conda_requirements.yml with a text editor and manually install all dependencies. The environment of choice should be activated first. Note, that <em>lmfit</em> and <em>corner</em> can only be installed via pip. Therefore one has to install pip in the active environment, if it is not installed already:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">install</span> <span class="n">pip</span>
+<p>and then install Sculptor with</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span>
 </pre></div>
 </div>
+<p>This has been tested on a Mac OSX with a M2 chip, recently.</p>
+</section>
+<section id="installing-sculptor-using-setup-py-via-pip">
+<h3>2.2 Installing Sculptor (using setup.py via pip)<a class="headerlink" href="#installing-sculptor-using-setup-py-via-pip" title="Permalink to this heading"></a></h3>
+<p>One can attempt a pure pip installation. Due to issues with pytables and PyQt5 installations via pip on Mac OSX M1/M2 machines, one needs to first install these packages independently:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">PyQt5</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">tables</span>
+</pre></div>
 </div>
-<div class="section" id="installing-requirements-via-pip">
-<h3>2.3 Installing requirements via pip<a class="headerlink" href="#installing-requirements-via-pip" title="Permalink to this headline">¶</a></h3>
+<p>Then you need to navigate into the main package folder with the setup.py file and execute:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span>
+</pre></div>
+</div>
+<p>This will install all of the remaining dependencies and the Sculptor package itself.</p>
+</section>
+<section id="installing-sculptor-using-requirements-txt-via-pip">
+<h3>2.3 Installing Sculptor (using requirements.txt via pip)<a class="headerlink" href="#installing-sculptor-using-requirements-txt-via-pip" title="Permalink to this heading"></a></h3>
 <p>In the sculptor github repository you will find a ‘requirements.txt’, which allows you to install the necessary requirements using pip from the main sculptor directory:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
 </pre></div>
 </div>
 <p>If you are managing your python installation with Anaconda, this can work as well as long as you have pip installed in your Anaconda working environment. However, it may lead to issues if a pip version and an anaconda version of the same package (e.g., astropy) is installed.</p>
-</div>
-</div>
-<div class="section" id="install-sculptor-from-the-cloned-repository">
-<h2>3. Install sculptor from the cloned repository<a class="headerlink" href="#install-sculptor-from-the-cloned-repository" title="Permalink to this headline">¶</a></h2>
-<p>With all requirements fulfilled, install Sculptor via</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
+<p>In the same folder you then execute:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="open-up-the-sculptor-gui">
-<h2>4. Open up the sculptor GUI<a class="headerlink" href="#open-up-the-sculptor-gui" title="Permalink to this headline">¶</a></h2>
+<p>This will install the Sculptor package.</p>
+</section>
+</section>
+<section id="open-up-the-sculptor-gui">
+<h2>3. Open up the sculptor GUI<a class="headerlink" href="#open-up-the-sculptor-gui" title="Permalink to this heading"></a></h2>
 <p>To test whether the installation was successful, open your terminal and simply type</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run_sculptor</span>
 </pre></div>
 </div>
 <p>If this opens up the Sculptor GUI, the installation was a success!</p>
+<p>To test Sculptor further one can also load the example spectrum via</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run_sculptor</span> <span class="o">--</span><span class="n">ex</span><span class="o">=</span><span class="kc">True</span>
+</pre></div>
 </div>
-</div>
+</section>
+</section>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="getting_started.html" class="btn btn-neutral float-right" title="The Sculptor GUI" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Sculptor’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="getting_started.html" class="btn btn-neutral float-right" title="The Sculptor GUI" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2021, Jan-Torge Schindler.
-
-    </p>
+    <p>&#169; Copyright 2021, Jan-Torge Schindler.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>
