@@ -4,7 +4,7 @@
 import sys
 import argparse
 import numpy as np
-import pkg_resources
+import importlib_resources
 from sculptor.specfitgui import SpecFitGui
 from sculptor.speconed import SpecOneD
 from PyQt5 import QtWidgets
@@ -42,8 +42,8 @@ def main(args):
     spec = None
     
     if args.example:
-        args.filename = pkg_resources.resource_filename('sculptor',
-                                                    'data/example_spectra/J030341.04-002321.8_0.fits')
+        ref = importlib_resources.files('sculptor') / 'data/example_spectra/J030341.04-002321.8_0.fits'
+        args.filename = ref.as_posix()
         args.redshift = 3.227
 
     if args.filename is not None:

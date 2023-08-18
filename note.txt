@@ -1,0 +1,11 @@
+
+New installation instructions
+
+ToDo:
+- need to replace pkg_resources with something new
+
+For new Macs use
+environment.yml and then run pip install -e .
+
+For other systems using the requirement.txt and  pip install -e . should work (not tested)
+
