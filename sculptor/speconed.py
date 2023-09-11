@@ -1967,6 +1967,8 @@ class SpecOneD(object):
                                         force=False):
         """Calculate the AB magnitude of the spectrum in the given passband.
 
+        AB magnitudes are calculated following equation 4 in https://arxiv.org/pdf/astro-ph/0210394.pdf
+
         :param passband: The astronomical passband with throughput in quantum \
         efficiencies.
         :type passband: PassBand
