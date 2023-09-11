@@ -1990,13 +1990,12 @@ class SpecOneD(object):
 
         spectrum_flux = spec.calculate_passband_flux_density(passband, force=force,
                                                              match_method=match_method)
-        print(spectrum_flux)
 
         flat_flux = 3.631e-20 * np.ones_like(passband.dispersion) * \
                     u.erg/u.s/u.cm**2/u.Hz
 
         passband_flux = np.trapz(flat_flux * passband.fluxden
-                                 / (spec.dispersion * spec.dispersion_unit),
+                                 / (passband.dispersion * passband.dispersion_unit),
                                  passband.dispersion * passband.dispersion_unit)
 
         return -2.5 * np.log10(spectrum_flux / passband_flux)
