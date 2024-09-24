@@ -1610,7 +1610,7 @@ class SpecOneD(object):
 # ------------------------------------------------------------------------------
 
     def plot(self, show_fluxden_err=True, mask_values=True, ymin=None,
-             ymax=None, show_obj_model=True, show_telluric=True):
+             ymax=None, show_obj_model=True, show_telluric=True, step_plot=True):
         """Plot the spectrum.
 
         This plot is aimed for a quick visualization of the spectrum not for
@@ -1636,6 +1636,11 @@ class SpecOneD(object):
         :param show_telluric: Boolean to indicate whether the atmospheric \
         model will be plotted or not (default:True).
         :type show_telluric: bool
+        :param step_plot: Boolean indicating whether to plot the spectrum \
+        as a step function using the wavelength value as the middle of the \
+        step.
+        :type step_plot: bool
+
         :return:
         """
 
@@ -1657,8 +1662,12 @@ class SpecOneD(object):
             ax.plot(self.dispersion[mask], self.fluxden_err[mask], 'grey',
                     lw=1, label='Flux density error')
 
-        ax.plot(self.dispersion[mask], self.fluxden[mask], 'k',
-                linewidth=1, label='Flux density')
+        if step_plot:
+            ax.step(self.dispersion[mask], self.fluxden[mask],
+                     color='k', where='mid', label='Flux density', lw=1)
+        else:
+            ax.plot(self.dispersion[mask], self.fluxden[mask], 'k',
+                    linewidth=1, label='Flux density')
 
         # Additional plotting functionality for spectra with obj_models
         if self.obj_model is not None and show_obj_model:
@@ -2059,7 +2068,7 @@ class SpecOneD(object):
         else:
             raise ValueError("[ERROR] Output mode {} not supported. "
                              "Output modes are 'spectrum' or "
-                             "'flux_factor'.".format(output))
+                             "'flux_factor'.".format(output_mode))
 
     def renormalize_by_spectrum(self, spectrum, dispersion_limits=None,
                                 output_mode='spectrum', inplace=False):

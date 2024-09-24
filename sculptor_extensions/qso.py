@@ -2201,6 +2201,164 @@ def se_bhmass_hbeta_vp06(hbeta_fwhm, cont_lwav, cont_wav=5100*u.AA):
                          'should be estimated at 5100A.')
 
 
+def se_bhmass_hbeta_park12(hbeta_fwhm, cont_lwav, cont_wav=5100*u.AA):
+    """Calculate the single-epoch virial BH mass based on the Hbeta FWHM and
+    monochromatic continuum luminosity at 5100A.
+
+    These relationships are taken from Park et al. 2012, ApJ 747, 30
+
+    To measure the line width of Hβ and the continuum luminosity at 5100 Å,
+    the authors follow the procedure given by Woo et al. (2006) and
+    McGill et al. (2008), but with significant modifications:
+
+    - converted to in rest-frame
+    - three component continuum (PL, FeII of Boroson & Green 1982,
+     host-galaxy starlight from Buruzual & Charlo 2003)
+    - continuum models subtracted from spectra
+    - Hβ narrow-line profile by fitting a tenth-order Gauss–Hermite series
+     to [OIII] A 5007 line.
+    - Hbeta component subtracted by scaling the [OIII] A 5007 line.
+    - broad component of the Hβ line using a sixth-order Gauss–Hermite series
+
+
+    To obtain the AGN continuum luminosity (nuclear luminosity, L5100,n ),
+    the host-galaxy contribution to the total luminosity should be subtracted
+    from the measured total luminosity.
+    Authors use information from spectral decomposition.
+    The starlight contributions are on the same order as the AGN
+    contributions (see Table 2)!
+
+    The authors find a discrepancy in the FWHM of mean and rms spectra of
+    their sources (multiple-epoch of spectroscopy). They derive a correction
+    to convert the broader SE FWHM to the narrower RMS FWHM, which they argue
+    should be used in the SE virial estimators.
+
+
+    :param hbeta_fwhm: FWHM of the Hbeta line in km/s
+    :type hbeta_fwhm: astropy.units.Quantity
+    :param cont_lwav: Monochromatic continuum luminosity at 5100A in erg/s/A
+    :type cont_lwav: astropy.units.Quantity
+    :param cont_wav: Wavelength of the monochromatic continuum luminosity \
+        (default = 5100A).
+    :type cont_wav: astropy.units.Quantity
+    :return: Returns a tuple of the BH mass estimate based on the Hbeta FWHM \
+        and a reference string for the single-epoch scaling relationship.
+    :rtype: astropy.units.Quantity, string
+
+    """
+
+    if cont_wav.value == 5100:
+
+        if np.median(hbeta_fwhm.value) > 3000:
+
+            reference = 'Hbeta_Park12_fwhm_eq15'
+
+            bhmass = 10 ** 6.966 * (hbeta_fwhm / (1000. * u.km / u.s)) ** 1.734 \
+                     * (cont_wav * cont_lwav / (10 ** 44 * u.erg / u.s)) ** 0.518 * u.Msun
+
+            return bhmass, reference
+
+        else:
+
+
+            reference = 'Hbeta_Park12_fwhm_eq16'
+
+            bhmass = 10 ** 6.985 * (hbeta_fwhm / (1000.*u.km/u.s))**1.666 \
+                     * (cont_wav * cont_lwav / (10**44*u.erg/u.s))**0.518 * u.Msun
+
+            return bhmass, reference
+
+    else:
+        raise ValueError('[ERROR] The monochromatic continuum luminosity '
+                         'should be estimated at 5100A.')
+
+
+
+
+
+def se_bhmass_gh05(line_fwhm, lwav, single_epoch_rel='Ha_LHa'):
+    """Calculate the single-epoch virial BH mass based on the Hbeta FWHM and
+    monochromatic continuum luminosity at 5100A.
+
+    These relationships are taken from Greene & Ho, ApJ 630, 122
+
+    Continuum was fitted using a double power law with a spectral break at
+    5000A and an empirical FeII template (Boroson & Green 1992).
+    Balmer continuum was not modeled as the fit does not extend blueward of
+    3685A.
+
+    Halpha:
+    Lines are deconstructed in narrow and broad components, beginning with
+    the [SII] AA 6716, 6731 lines. Mult-Gaussian models are fit to the narrow
+    lines.
+    The broad component of Halpha is fit with as many Gaussian components as
+    needed to provide an acceptable fit.
+
+    Hbeta:
+    The template built from [SII] is used to model the narrow Hbeta component,
+    whose centroid is fixed to the Halpha position, while its flux is limited
+    by the value appropriate for Case B' recombination (Ha = 3.1 Hbeta,
+    Osterbrock 1989). The [OIII] lines are fit simultaneously using a
+    two-component Gaussian (core + blue wings). The broad Hbeta profile is
+    modeled as a multi-component Gaussian analogous to Halpha.
+
+    The single epoch virial estimators in this work are based on transforming
+    the virial mass expression of Kaspi et al. 2000 (L_5100 and FWHM_Hb) into
+    a new formalism that depends solely on the observed properties of the Ha
+    line (or Hb line).
+
+    JTS comment: It is unclear to what extent the LSF has been subtracted from
+    the line FWHM.
+
+    :param line_fwhm: FWHM of the Balmer line in km/s
+    :type line_fwhm: astropy.units.Quantity
+    :param lwav: Luminosity of either the continuum or the line (narrow+broad)
+    :type lwav: astropy.units.Quantity
+    :param single_epoch_rel: Selection of the mode of the SE virial estimator
+    :type single_epoch_rel: str
+    :return: Returns a tuple of the BH mass estimate based on the Hbeta FWHM \
+        and a reference string for the single-epoch scaling relationship.
+    :rtype: astropy.units.Quantity, string
+
+    """
+
+
+    if single_epoch_rel == 'Ha_LHa':
+
+        reference = 'Halpha_GH05_HaLHa'
+
+        bhmass = (2.0e+6 * (line_fwhm / (1000. * u.km / u.s)) ** 2.06
+                  * (lwav / (10 ** 42 * u.erg / u.s)) ** 0.55 * u.Msun)
+
+        return bhmass, reference
+
+    elif single_epoch_rel == 'Hb_L5100':
+
+        reference = 'Hbeta_GH05_HaL5100'
+
+        cont_wav = 5100 * u.AA
+
+        bhmass = 4.4e+6 * (line_fwhm / (1000. * u.km / u.s)) ** 2 \
+                 * (cont_wav * lwav / (10 ** 44 * u.erg / u.s)) ** 0.64 * u.Msun
+
+        return bhmass, reference
+
+
+    elif single_epoch_rel == 'Hb_LHb':
+
+        reference = 'Halpha_GH05_HbLHb'
+
+        bhmass = (3.6e+6 * (line_fwhm / (1000. * u.km / u.s)) ** 2.0
+                  * (lwav / (10 ** 42 * u.erg / u.s)) ** 0.56 * u.Msun)
+
+        return bhmass, reference
+
+    else:
+        raise ValueError('[ERROR] Single epoch relation {} not supported. '
+                         'Possible relations are Ha_LHa, Ha_L5100, Hb_LHb')
+
+
+
 def se_bhmass_civ_vp06_fwhm(civ_fwhm, cont_lwav, cont_wav):
     """Calculate the single-epoch virial BH mass based on the CIV FWHM and
     monochromatic continuum luminosity at 1350A.

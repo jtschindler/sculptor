@@ -301,6 +301,26 @@ class SpecModel:
 
             self.mask[lo_index:up_index] = True
 
+    def remove_wavelength_range_from_fit_mask(self, disp_x1, disp_x2):
+        """ Removing a wavelength region to the fit mask.
+
+        The dispersion region between the two dispersion values will be removed
+        from the fit mask.
+
+        :param (float) disp_x1: Dispersion value 1
+        :param (float) disp_x2: Dispersion value 2
+        :return:
+        """
+
+        print('[INFO] Manual mask range', disp_x1, disp_x2)
+
+        if hasattr(self, 'spec'):
+            mask_between = np.sort(np.array([disp_x1, disp_x2]))
+            lo_index = np.argmin(np.abs(self.spec.dispersion - mask_between[0]))
+            up_index = np.argmin(np.abs(self.spec.dispersion - mask_between[1]))
+
+            self.mask[lo_index:up_index] = False
+
     def reset_fit_mask(self):
         """Reset the fit mask based on the supplied astronomical spectrum.
 
@@ -910,7 +930,7 @@ class SpecModel:
                 self.ylim = [-0.2*max(self.spec.fluxden),
                              max(self.spec.fluxden) * 1.05]
 
-    def plot(self, xlim=None, ylim=None):
+    def plot(self, xlim=None, ylim=None, save=False, filename=None):
         """ Plot the SpecModel
 
         :return: None
@@ -928,7 +948,10 @@ class SpecModel:
         if ylim is not None:
             ax_main.set_ylim(ylim)
 
-        plt.show()
+        if save:
+            if filename is None:
+                filename = 'specmodel_plot.pdf'
+            plt.savefig(filename)
 
     def _plot_specmodel(self, ax_main):
         """  Internal plotting function to plot the SpecModel

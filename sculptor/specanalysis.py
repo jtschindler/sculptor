@@ -136,6 +136,10 @@ def analyze_emission_feature(specfit, feature_name, model_names,
         fwhm = get_fwhm(model_spec, method=fwhm_method)
         result_dict.update({feature_name+'_FWHM': fwhm})
 
+        if np.isnan(fwhm):
+            print('[WARNING] FWHM could not be calculated for feature '
+                  '{}'.format(feature_name))
+
     if 'flux' in emfeat_meas:
         # Calculate the integrated line flux
         flux = get_integrated_flux(model_spec, disp_range=disp_range)
@@ -171,8 +175,7 @@ def analyze_emission_feature(specfit, feature_name, model_names,
 
 cont_measures_default = ['fluxden_avg',
                          'Lwav',
-                         'appmag',
-                         'absmag']
+                         'appmag']
 
 
 def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
@@ -254,10 +257,10 @@ def analyze_continuum(specfit, model_names, rest_frame_wavelengths,
                                                     wave*(1.+redshift)*units.AA)
             result_dict.update({wave_name + '_appmag': appmag})
 
-        if 'absmag' in cont_meas:
-            absmag = calc_absolute_mag_from_monochromatic_luminosity(
-                    lwav, wave*units.AA)
-            result_dict.update({wave_name + '_absmag': absmag})
+        # if 'absmag' in cont_meas:
+        #     absmag = calc_absolute_mag_from_monochromatic_luminosity(
+        #             lwav, wave*units.AA)
+        #     result_dict.update({wave_name + '_absmag': absmag})
 
 
     return result_dict
@@ -993,7 +996,20 @@ def build_model_flux(specfit, model_list, dispersion=None):
 
     for specmodel in specfit.specmodels:
         for idx, model in enumerate(specmodel.model_list):
+
             if model.prefix in model_list:
+
+                # Check params for global parameters and update them
+                for param in specmodel.params_list[idx]:
+                    expr = specmodel.params_list[idx][param].expr
+                    if expr is not None:
+                        expr_val = specmodel.params_list[idx][expr].value
+                        if expr in specmodel.params_list[idx]:
+                            specmodel.params_list[idx][param].expr = None
+                            specmodel.params_list[idx][param].value = expr_val
+                        else:
+                            raise ValueError('Global parameter {} not found in SpecModel'.format(expr))
+
                 model_fluxden += model.eval(specmodel.params_list[idx],
                                             x=dispersion)
 
@@ -1416,7 +1432,35 @@ def calc_absolute_mag_from_fluxden(fluxden, dispersion,
                                         kcorrection, a_nu)
 
 
-def calc_absolute_mag_from_monochromatic_luminosity(l_wav, wavelength):
+def calc_absolute_mag_from_fluxden_alt(fluxden, dispersion,
+                                   cosmology, redshift, kcorrection=True,
+                                   a_nu=0):
+    """
+    Calculate the absolute AB magnitude from the monochromatic flux density at a
+    given wavelength value.
+    
+    :param fluxden: 
+    :param dispersion: 
+    :param cosmology: 
+    :param redshift: 
+    :param kcorrection: 
+    :param a_nu: 
+    :return: 
+    """
+    
+    f_nu = fluxden * dispersion**2 / const.c
+    
+    dist_lum = cosmology.luminosity_distance(redshift)
+    
+    l_nu = f_nu / (1+redshift) * dist_lum**2 
+    
+    absmag = -2.5 * np.log10(l_nu / units.ABflux / (10 * units.pc)**2).decompose()
+    
+    return absmag
+    
+
+
+def calc_absolute_mag_from_monochromatic_luminosity(l_wav, wavelength, redshift):
     """Calculate the absolute monochromatic magnitude from the monochromatic
     luminosity per wavelegnth.
 
