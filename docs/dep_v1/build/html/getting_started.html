@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Sculptor GUI &mdash; Sculptor 1.1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+    <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Spectral fitting with the Sculptor GUI" href="first_fit.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Sculptor
+          </a>
+              <div class="version">
+                1.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">The Sculptor GUI</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#the-start-menu">1-The Start Menu</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#file">File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#spectrum">Spectrum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#specmodel">SpecModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fit">Fit</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#the-specfit-tab">2-The SpecFit Tab</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#region-select">Region Select</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#masking">Masking</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#super-parameters">Super Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#redshift-parameter">Redshift Parameter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#global-fit-options">Global Fit Options</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#the-specmodel-tab">3-The SpecModel Tab</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#specmodel-name">SpecModel Name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Region Select</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Masking</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-select">Model Select</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#global-parameters">Global Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fitting">Fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#global-parameter-model-tabs">Global Parameter &amp; Model Tabs</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html">An introduction to the SpecOneD class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html#The-PassBand-class">The PassBand class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectrum_preparation.html">Preparing a composite spectrum for Sculptor modeling using the SpecOneD class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_1.html">Scripting Sculptor 01 - Modelling the example spectrum in a script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_2.html">Scripting Sculptor 02 - Analysing model fits with SpecAnalysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_3.html">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Module documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="masksmodels.html">The Masks &amp; Models Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Extensions:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qso_extension.html">The QSO-Extension Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="my_extension.html">Example extension Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">License:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Sculptor</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">The Sculptor GUI</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/getting_started.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="the-sculptor-gui">
+<h1>The Sculptor GUI<a class="headerlink" href="#the-sculptor-gui" title="Permalink to this heading"></a></h1>
+<p>To carefully analyze small samples of astronomic spectra the Sculptor GUI offers an interactive way to put together complex spectral models. Therefore, we will start with an introduction to the GUI and its capabilities.</p>
+<p><strong>Disclaimer:</strong>
+The following examples are intended to get familiar with the Sculptor GUI. The fit to the quasar spectrum in this example is exemplary and should not be considered <em>science grade</em>. Due to the rapid development of Sculptor, your current version of the GUI, might look slightly different.</p>
+<p>A full model fit to an astronomical spectrum is internally set up as a <em>SpecFit</em> python object. This object holds general information on the spectrum (dispersion, flux density, redshift, etc.) and also defines the optimization method used when carrying out the fit (e.g., Levenberg-Marquardt). Spectral models, <em>SpecModel</em> python objects, are then added to the SpecFit object. Each SpecModel object can hold various fit models (e.g., multiple Gaussian emission line models), which are fit simultaneously to the spectrum. The SpecModel objects are <em>ordered</em> and the model fit of the first SpecModel is subtracted before the second SpecModel is fit and so on. This information is central to the way that Sculptor works and will help to understand the GUI.</p>
+<p>Start by opening up the Sculptor example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run_sculptor</span> <span class="o">--</span><span class="n">example</span><span class="o">=</span><span class="kc">True</span>
+</pre></div>
+</div>
+<p>This will open the main GUI and read in an SDSS spectrum of quasar J030341.04-002321.8 at redshift z=3.227. It should look something like this:</p>
+<a class="reference internal image-reference" href="_images/example_specfit_0.png"><img alt="SpecFitTab_example" src="_images/example_specfit_0.png" style="width: 800px;" /></a>
+<section id="the-start-menu">
+<h2>1-The Start Menu<a class="headerlink" href="#the-start-menu" title="Permalink to this heading"></a></h2>
+<p>On top of the window you will find the start menu with the <em>File</em>, <em>Spectrum</em>, <em>SpecModel</em>, and <em>Fit</em> drop down menus.</p>
+<section id="file">
+<h3>File<a class="headerlink" href="#file" title="Permalink to this heading"></a></h3>
+<p>The <em>File</em> dropdown menu allows to <em>Load</em> and <em>Save</em> the full spectral fit (SpecFit object) and will open a File Dialog Window to select the folder to save to or to load from. It also allows to <em>Exit</em> the GUI. Keyboard shortcuts are indicated.</p>
+</section>
+<section id="spectrum">
+<h3>Spectrum<a class="headerlink" href="#spectrum" title="Permalink to this heading"></a></h3>
+<p>The <em>Spectrum</em> dropdown menu offers various ways to import a spectrum, overwriting the current spectrum and removing all masks.</p>
+</section>
+<section id="specmodel">
+<h3>SpecModel<a class="headerlink" href="#specmodel" title="Permalink to this heading"></a></h3>
+<p>The fitting is done via the <em>SpecModel</em> object and without any <em>SpecModels</em> nothing can be fit. The <em>SpecModel</em> dropdown menu offers to <em>Add</em> a <em>SpecModel</em>, <em>Remove</em> the current (active tab) <em>SpecModel</em> or <em>Remove all SpecModels</em> altogether.</p>
+</section>
+<section id="fit">
+<h3>Fit<a class="headerlink" href="#fit" title="Permalink to this heading"></a></h3>
+<p>The <em>Fit</em> dropdown menu allows to specify further fit parameters when fitting the SpecModel with MCMC (<em>Set MCMC parameters</em>). It also offers the possibility to resample the spectrum on a pixel by pixel basis using its flux density uncertainties and fitting each resampled spectrum with the specified fit method (<em>Run resample and fit</em>). We will discuss this option at a later point in detail. One can specify a few settings for this option via the <em>Set resample and fit parameters</em> menu item.</p>
+</section>
+</section>
+<section id="the-specfit-tab">
+<h2>2-The SpecFit Tab<a class="headerlink" href="#the-specfit-tab" title="Permalink to this heading"></a></h2>
+<p>The SpecFit tab, called <em>Fit</em>, provides an overview over all fit SpecModels and the full spectral fit (sum of all individual SpecModels) in the figure to the right. We will now go through the different regions to the left of the figure.</p>
+<section id="region-select">
+<h3>Region Select<a class="headerlink" href="#region-select" title="Permalink to this heading"></a></h3>
+<p>The <em>Region Select</em> box allows to specify ranges in the dispersion of flux direction by direct input or interactively by pressing the <em>Shift</em> button together with <em>W</em>, <em>S</em>, <em>A</em>, or <em>D</em> while hovering with the cursor over the figure to the right. By doing so the values shown in the white fields are automatically updated. If the cursor is outside the figure no input will be passed.</p>
+<p>The first two buttons below, which can also be accessed via keyboard shortcuts, allow to set the dispersion and flux density ranges of the figure to the right using the regions defined above. The last button <em>Reset plot</em> resets the plot ranges to show the full spectrum.</p>
+</section>
+<section id="masking">
+<h3>Masking<a class="headerlink" href="#masking" title="Permalink to this heading"></a></h3>
+<p>The masking box provides capabilities for interactive masking of the spectrum. <strong>In the SpecFit tab masking removes regions from the fit (greyed out visually).</strong> The <em>Mask</em> button masks the dispersion range defined in the <em>Region Select</em>. The <em>Unmask</em> button unmasks the dispersion region defined in the <em>Region Select</em> and the <em>Reset Mask</em> button resets the mask unmasking the entire dispersion range.</p>
+<p>Furthermore one can select a pre-defined mask in the drop-down menu and then mask out the pre-defined dispersion ranges via the <em>Load mask preset</em> button.</p>
+</section>
+<section id="super-parameters">
+<h3>Super Parameters<a class="headerlink" href="#super-parameters" title="Permalink to this heading"></a></h3>
+<p>The <em>Super parameters</em> box allows to <em>Add</em> and <em>Remove</em> super parameters, which are defined on the highest level and then added to all SpecModels and individual models insight the SpecModel. Super parameters are defined here. If they are fitted by a SpecModel the values are adjusted globally and all future fits will now start with the updated values.</p>
+<p>A use case for a super parameters could be the radial velocity of a star, for example. One can imagine that the first SpecModel fits the radial velocity via an absorption line shift relative to vacuum wavelength. All subsequent models use this velocity shift as an input value to analyze further spectral features.</p>
+<p>Only special cases require the use of super parameters and because Sculptor fits SpecModels subsequently (one after another) care has to be taken, when using this advanced capability.</p>
+</section>
+<section id="redshift-parameter">
+<h3>Redshift Parameter<a class="headerlink" href="#redshift-parameter" title="Permalink to this heading"></a></h3>
+<p>Extragalactic sources (e.g., galaxies, quasars, etc.) will be cosmologically redshifted. The SpecFit object has a redshift attribute, which can be set/updated here. The user can enter the value and set/update the internal value by hitting <em>Enter</em>.</p>
+<p>The <em>redshift parameter</em> can be passed to spectral models as a keyword argument (kwarg), when they are added to a SpecModel object. This allows to build in set the redshift parameter when building a new model. Contrary to <em>super parameters</em> the global redshift value will <strong>not</strong> be updated when fit by any model.
+However, the <em>redshift parameter</em> sets the rest-frame axis on top of the figure to the right.</p>
+</section>
+<section id="global-fit-options">
+<h3>Global Fit Options<a class="headerlink" href="#global-fit-options" title="Permalink to this heading"></a></h3>
+<p>To the bottom left of the <em>SpecFit</em> tab is a drop-down menu and two buttons. The drop-down menu allows you to select the fit algorithm available in LMFIT. As a default the Levenberg-Marquardt algorithm is selected. For more on the differences of the minimizers see the LMFIT documentation (<a class="reference external" href="https://lmfit.github.io/lmfit-py/fitting.html">The minimze function</a>).</p>
+<p>One special option is the Maximum likelihood fit via Monte-Carlo Markov Chain, which uses <a class="reference external" href="https://emcee.readthedocs.io/en/stable/">emcee</a>. Additional options for the MCMC runs are available under the <em>Fit</em> start menu item.</p>
+<p>The <em>Fit all</em> button consecutively fits all SpecModels, whereas the <em>Fit all + Save results</em> button saves the fit results to a folder, which is selected by the user in a File Dialog. The results contain a png image of the figure shown in the SpecFit tab as well as a LMFIT fit report with the best fit values and covariances for each SpecModel saved in a “.txt” file.</p>
+</section>
+</section>
+<section id="the-specmodel-tab">
+<h2>3-The SpecModel Tab<a class="headerlink" href="#the-specmodel-tab" title="Permalink to this heading"></a></h2>
+<p>As a next step we click on <em>SpecModel</em> from the <em>Start Menu</em> and click on <em>Add SpecModel</em>. This will add a new SpecModel tab to the GUI and automatically switches to it. The figure now displays the spectrum without the residual plot below and would show only model fluxes and masks related to the active SpecModel.</p>
+<a class="reference internal image-reference" href="_images/example_specmodel_0.png"><img alt="SpecModelTab_example" src="_images/example_specmodel_0.png" style="width: 800px;" /></a>
+<section id="specmodel-name">
+<h3>SpecModel Name<a class="headerlink" href="#specmodel-name" title="Permalink to this heading"></a></h3>
+<p>This input field allows you to change the name of the SpecModel from the default value “SpecModel”. To apply the name change hit <em>Enter</em>. The name change is successful, when you see the name of the active tab change to your input.</p>
+</section>
+<section id="id1">
+<h3>Region Select<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
+<p>The region select controls work exactly in the same way as for the SpecFit tab. However, all changes to the flux and dispersion range are, of course, only applied to the SpecModel figure to the right.</p>
+</section>
+<section id="id2">
+<h3>Masking<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<p>The masking controls work in the same way as before with one important difference: mask regions now <em>mask in</em> ranges that should be considered in the SpecModel fit, whereas in the SpecFit tab masking excluded dispersion regions from all fits. The masked-in dispersion ranges are highlighted in color.</p>
+<p>Custom user-defined masks can be added with new python modules as part of the <strong>sculptor-extensions</strong> package, included in the github repository. An example file <em>my_extension.py</em> adds the <em>QSO Cont. VP06</em> mask to Sculptor, which defines pure continuum regions for quasar modeling.</p>
+</section>
+<section id="model-select">
+<h3>Model Select<a class="headerlink" href="#model-select" title="Permalink to this heading"></a></h3>
+<p>The model select controls allow you to <em>Add</em> and <em>Remove</em> models selected by their name from the drop down menus. Before a model is added the model prefix (default: “modelA”) can be specified for better readability of the results later on. For example, if someone wanted to the the Hydrogen Balmer line Hbeta, it would be appropriate to call the prefix “Hbeta”. <strong>Model prefixes cannot contain spaces.</strong></p>
+<p>The models that can be added to the spectrum include a range of basic models (e.g., gaussian, power law, constant, etc.) included with Sculptor. Custom models can be defined by the user in new python modules as part of the <strong>sculptor_extensions</strong> package, included in the github repository. An example of such an extension is provided with the <em>my_extension.py</em> module.</p>
+</section>
+<section id="global-parameters">
+<h3>Global Parameters<a class="headerlink" href="#global-parameters" title="Permalink to this heading"></a></h3>
+<p>Similar to <em>Super parameters</em>, which are added to all models in <em>all</em> SpecModels, the <em>Global parameters</em> are added to all model functions in the <em>active</em> SpecModel. The controls allow to provide a custom name for a global parameter, <em>Add</em> the global parameter to the SpecModel or select an existing global parameter from the drop down menu and then <em>Remove</em> it.</p>
+<p>Whereas the use cases for <em>Super parameters</em> are probably rare, use cases for <em>Global parameters</em> are much more common. For example, if we want to model a few emission lines, which we know should have the same width. We can easily define a new global parameter <em>FWHM_common</em> and set it to be the FWHM for all Gaussian emission line models in the SpecModel.</p>
+</section>
+<section id="fitting">
+<h3>Fitting<a class="headerlink" href="#fitting" title="Permalink to this heading"></a></h3>
+<p>The fitting controls consist of two button and two toggle switches. The switch <em>Use weights (fluxden errors)</em> is by default enabled and uses the flux density uncertainty as weights in the fit. The second switch, <em>Show fit report</em> prints the LMFIT fit report in a pop-up window on the screen. This provides the user with metrics for the goodness of the fit, the best fit values and the fit covariances. If the MCMC method is chosen in the SpecFit tab, the fit report also plots the posterior distributions of all fit parameters. If the number of model parameters is large, the corner plot will be unfortunately hard to read.</p>
+<p>The <em>Fit SpecModel</em> button fits the active SpecModel and the <em>Save fit result</em> button saves the fit results (fit report and figure png) for the active SpecModel.</p>
+</section>
+<section id="global-parameter-model-tabs">
+<h3>Global Parameter &amp; Model Tabs<a class="headerlink" href="#global-parameter-model-tabs" title="Permalink to this heading"></a></h3>
+<p>At the bottom of the SpecModel Tab is a field, which shows an empty tab called <em>Global Params</em>. All added global parameters will be shown in this tab. To further understand the function of this field let’s add a power law model to the SpecModel.</p>
+<a class="reference internal image-reference" href="_images/example_specmodel_1.png"><img alt="SpecModelTab_example" src="_images/example_specmodel_1.png" style="width: 1000px;" /></a>
+<p>Adding the model added another tab to the field appropriately named after the chosen model prefix (PowerLaw). Navigating to the tab shows all the parameters for this specific model. In the case chosen here the model has two free parameters, the amplitude (PowerLaw_amp) and the slope (PowerLaw_slope).
+For each parameter the user can now control the initial <em>Value</em>, the parameter range set by <em>min</em> and <em>max</em> and whether the parameter should be varied during the fit (<em>vary</em> toggle switch).</p>
+<p>The field that currently shows the text <em>None</em> is the expression field. It allows to use mathematical constraints on the parameters. The LMFIT documentation for this topic is found <a class="reference external" href="https://lmfit.github.io/lmfit-py/constraints.html">here</a>.</p>
+<p>In the global parameter example above we described that we want to set the FWHM of multiple gaussian emission lines to our super parameter <em>FWHM_common</em>. This done via the expression field by entering the name of the global parameter and applying the change with <em>Enter</em>.</p>
+<p>The expressions can only contain numbers, names of other parameters in the model and +, -, /, *, (, ). If the expression is invalid the input will not be forwarded to the model and the text field will reset to previous expression after fitting the spectrum.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="first_fit.html" class="btn btn-neutral float-right" title="Spectral fitting with the Sculptor GUI" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Jan-Torge Schindler.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scripting Sculptor 03 - Fitting and Analzying models using MCMC &mdash; Sculptor 1.1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/nbsphinx-code-cells.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+    <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="The SpecOneD Module" href="speconed.html" />
+    <link rel="prev" title="Scripting Sculptor 02 - Analysing model fits with SpecAnalysis" href="scripting_sculptor_2.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Sculptor
+          </a>
+              <div class="version">
+                1.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">The Sculptor GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html">An introduction to the SpecOneD class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html#The-PassBand-class">The PassBand class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectrum_preparation.html">Preparing a composite spectrum for Sculptor modeling using the SpecOneD class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_1.html">Scripting Sculptor 01 - Modelling the example spectrum in a script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_2.html">Scripting Sculptor 02 - Analysing model fits with SpecAnalysis</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Fitting-a-model-using-MCMC">Fitting a model using MCMC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Analyzing-the-MCMC-fit-results">Analyzing the MCMC fit results</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Module documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="masksmodels.html">The Masks &amp; Models Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Extensions:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qso_extension.html">The QSO-Extension Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="my_extension.html">Example extension Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">License:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Sculptor</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/scripting_sculptor_3.nblink.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Scripting-Sculptor-03---Fitting-and-Analzying-models-using-MCMC">
+<h1>Scripting Sculptor 03 - Fitting and Analzying models using MCMC<a class="headerlink" href="#Scripting-Sculptor-03---Fitting-and-Analzying-models-using-MCMC" title="Permalink to this heading"></a></h1>
+<p>This tutorial notebook focuses on using <em>Sculptor’s</em> modules to fit and analyze a model using the maxmimum likelihood Markov Chain Monte Carlo method implemented in <a class="reference external" href="https://lmfit.github.io/lmfit-py/index.html">LMFIT</a> using the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/#">emcee</a> backend. You can find more information on how LMFIT uses emcee <a class="reference external" href="https://lmfit.github.io/lmfit-py/examples/example_emcee_Model_interface.html">here</a>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">matplotlib</span> inline
+
+<span class="kn">import</span> <span class="nn">corner</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">FlatLambdaCDM</span>
+
+<span class="kn">from</span> <span class="nn">sculptor</span> <span class="kn">import</span> <span class="n">specfit</span> <span class="k">as</span> <span class="n">scfit</span>
+<span class="kn">from</span> <span class="nn">sculptor</span> <span class="kn">import</span> <span class="n">specmodel</span> <span class="k">as</span> <span class="n">scmod</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[INFO] Import &#34;sculptor_extensions&#34; package: my_extension
+[INFO] Import &#34;sculptor_extensions&#34; package: qso
+[INFO] SWIRE library found.
+[INFO] FeII iron template of Vestergaard &amp; Wilkes 2001 found. If you will be using these templates in your model fit and publication, please add the citation to the original work, ADS bibcode: 2001ApJS..134....1V
+[INFO] FeII iron template of Tsuzuki et al. 2006 found. If you will be using these templates in your model fit and publication, please add the citation to the original work, ADS bibcode: 2006ApJ...650...57T
+[INFO] FeII iron template of Boroson &amp; Green 1992 found. If you will be using these templates in your model fit and publication, please add the citation to the original work, ADS bibcode: 1992ApJS...80..109B
+</pre></div></div>
+</div>
+<section id="Fitting-a-model-using-MCMC">
+<h2>Fitting a model using MCMC<a class="headerlink" href="#Fitting-a-model-using-MCMC" title="Permalink to this heading"></a></h2>
+<p>We begin by loading the example spectrum fit to an SDSS quasar spectrum we have been using in previous tutorials.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Instantiate an empty SpecFit object</span>
+<span class="n">fit</span> <span class="o">=</span> <span class="n">scfit</span><span class="o">.</span><span class="n">SpecFit</span><span class="p">()</span>
+<span class="c1"># Load the example spectrum fit</span>
+<span class="n">fit</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;../example_spectrum_fit&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>In the next step we need to change the fitting method. Just as a reminder the full list of fitting methods is available as a globa variable in the <em>SpecModel</em> module:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">scmod</span><span class="o">.</span><span class="n">fitting_methods</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Name: </span><span class="si">{}</span><span class="s1"> </span><span class="se">\n</span><span class="s1"> Method </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">scmod</span><span class="o">.</span><span class="n">fitting_methods</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Name: Levenberg-Marquardt
+ Method leastsq
+Name: Nelder-Mead
+ Method nelder
+Name: Maximum likelihood via Monte-Carlo Markov Chain
+ Method emcee
+Name: Least-Squares minimization
+ Method least_squares
+Name: Differential evolution
+ Method differential_evolution
+Name: Brute force method
+ Method brute
+Name: Basinhopping
+ Method basinhopping
+Name: Adaptive Memory Programming for Global Optimization
+ Method ampgo
+Name: L-BFGS-B
+ Method lbfgsb
+Name: Powell
+ Method powell
+Name: Conjugate-Gradient
+ Method cg
+Name: Cobyla
+ Method cobyla
+Name: BFGS
+ Method bfgs
+Name: Truncated Newton
+ Method tnc
+Name: Newton GLTR trust-region
+ Method trust-krylov
+Name: Trust-region for constrained obtimization
+ Method trust-constr
+Name: Sequential Linear Squares Programming
+ Method slsqp
+Name: Simplicial Homology Global Optimization
+ Method shgo
+Name: Dual Annealing Optimization
+ Method dual_annealing
+</pre></div></div>
+</div>
+<p>Let us now set the fitting method to ‘Maximum likelihood via Monte-Carlo Markov Chain’.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setting the fit method to MCMC via emcee</span>
+<span class="n">fit</span><span class="o">.</span><span class="n">fitting_method</span> <span class="o">=</span> <span class="s1">&#39;Maximum likelihood via Monte-Carlo Markov Chain&#39;</span>
+</pre></div>
+</div>
+</div>
+<p>This fitting method takes additional keyword arguments that specify * the number of MCMC steps (<em>steps</em>), * the number of steps considered to be the burn in phase (<em>burn</em>), which will be discarded, * the number of walkers (<em>nwalkers</em>), which should be a much larger number than your variables * the number of workers (<em>workers</em>) for multiprocessing (<em>workers=4</em> will spawn a multiprocessing-based pool with 4 parallel processes), * thin sampling accepting only 1 in every <em>thin</em> (int) samples,
+* whether the objective function has been weightes by measurement uncertainties (<em>is_weighted</em>, boolean), * whether a progress bar should be printed (<em>progress</em>, boolean), * and the <em>seed</em> (default: <em>seed=1234</em>).</p>
+<p><strong>Note:</strong> The <em>is_weighted</em> keyword will be set to <em>True</em> by default.</p>
+<p>For a full documentation of the keyword arguments, please visit the <a class="reference external" href="https://lmfit.github.io/lmfit-py/fitting.html#lmfit.minimizer.Minimizer.emcee">LMFIT emcee documentation</a>. The list of keyword arguments can be accessed via <em>SpecFit.emcee_kws</em>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">fit</span><span class="o">.</span><span class="n">emcee_kws</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">fit</span><span class="o">.</span><span class="n">emcee_kws</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+steps 1000
+burn 300
+thin 20
+nwalkers 50
+workers 1
+is_weighted True
+progress False
+seed 1234
+</pre></div></div>
+</div>
+<p>Additional keywords can be added to this dictionary, which will be passed to the <em>SpecModel</em> fit function, once the <em>SpecFit</em> fitting method has been selected to be MCMC (see above).</p>
+<p>The default values <strong>do not automatically constitute a good default choice</strong>. The choice of those parameters is highly dependent on the model fit (e.g., number of variable parameters). In order to properly fit the CIV emission line we will adjust them:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set the MCMC keywords</span>
+<span class="n">fit</span><span class="o">.</span><span class="n">emcee_kws</span><span class="p">[</span><span class="s1">&#39;steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2000</span>
+<span class="n">fit</span><span class="o">.</span><span class="n">emcee_kws</span><span class="p">[</span><span class="s1">&#39;burn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">500</span>
+<span class="c1"># We are fitting 6 parameters so nwalker=50 is fine</span>
+<span class="n">fit</span><span class="o">.</span><span class="n">emcee_kws</span><span class="p">[</span><span class="s1">&#39;nwalkers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">25</span>
+<span class="c1"># No multiprocessing for now</span>
+<span class="n">fit</span><span class="o">.</span><span class="n">emcee_kws</span><span class="p">[</span><span class="s1">&#39;workers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">fit</span><span class="o">.</span><span class="n">emcee_kws</span><span class="p">[</span><span class="s1">&#39;thin&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">fit</span><span class="o">.</span><span class="n">emcee_kws</span><span class="p">[</span><span class="s1">&#39;progress&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="c1"># Take uncertainties into account</span>
+<span class="n">fit</span><span class="o">.</span><span class="n">emcee_kws</span><span class="p">[</span><span class="s1">&#39;is_weighted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</pre></div>
+</div>
+</div>
+<p><strong>Before fitting any model using MCMC it is strongly advised to fit the model with a standard algorithm (e.g., ‘Levenberg-Marquardt’) after setting it up and then start the MCMC fit from the best-fit parameters.</strong></p>
+<p>In our case we already fitted all models to the quasar spectrum before saving it. Therefore, we can immediately fit the CIV emission line model.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># In case we have forgotten the index of the CIV SpecModel in the fit.specmodels list.</span>
+<span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">specmodel</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">specmodels</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">specmodel</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0 Continuum
+1 SiIV_line
+2 CIV_line
+3 CIII]_complex
+4 Abs_lines
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Select the CIV emission line SpecModel</span>
+<span class="n">civ_model</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">specmodels</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+<span class="c1"># Fit the SpecModel using the MCMC method and emcee_kws modified above</span>
+<span class="n">civ_model</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+
+<span class="c1"># Print the fit result</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">civ_model</span><span class="o">.</span><span class="n">fit_result</span><span class="o">.</span><span class="n">fit_report</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 2000/2000 [00:06&lt;00:00, 288.42it/s]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+The chain is shorter than 50 times the integrated autocorrelation time for 7 parameter(s). Use this estimate with caution and run a longer chain!
+N/50 = 40;
+tau: [60.71255358 65.93961611 64.03676477 66.17055916 63.93059079 73.11907444
+ 61.57293084]
+[[Model]]
+    (Model(line_model_gaussian, prefix=&#39;CIV_B_&#39;) + Model(line_model_gaussian, prefix=&#39;CIV_A_&#39;))
+[[Fit Statistics]]
+    # fitting method   = emcee
+    # function evals   = 50000
+    # data points      = 309
+    # variables        = 7
+    chi-square         = 301.595330
+    reduced chi-square = 0.99866003
+    Akaike info crit   = 6.50516627
+    Bayesian info crit = 32.6385552
+[[Variables]]
+    CIV_B_z:          3.21141536 +/- 8.0272e-04 (0.02%) (init = 3.209845)
+    CIV_B_flux:       1091.60304 +/- 132.570578 (12.14%) (init = 1151.246)
+    CIV_B_cen:        1549.06 (fixed)
+    CIV_B_fwhm_km_s:  4704.44704 +/- 244.820184 (5.20%) (init = 4790.818)
+    CIV_A_z:          3.20746100 +/- 0.00166939 (0.05%) (init = 3.209726)
+    CIV_A_flux:       1880.60255 +/- 118.497872 (6.30%) (init = 1820.904)
+    CIV_A_cen:        1549.06 (fixed)
+    CIV_A_fwhm_km_s:  11663.2794 +/- 674.461140 (5.78%) (init = 12121.84)
+    __lnsigma:       -0.03756195 +/- 0.03824749 (101.83%) (init = 0.01)
+[[Correlations]] (unreported correlations are &lt; 0.100)
+    C(CIV_B_flux, CIV_A_flux)           = -0.963
+    C(CIV_B_flux, CIV_B_fwhm_km_s)      =  0.942
+    C(CIV_B_fwhm_km_s, CIV_A_flux)      = -0.929
+    C(CIV_B_flux, CIV_A_fwhm_km_s)      =  0.912
+    C(CIV_A_flux, CIV_A_fwhm_km_s)      = -0.803
+    C(CIV_B_fwhm_km_s, CIV_A_fwhm_km_s) =  0.797
+    C(CIV_B_z, CIV_A_z)                 = -0.620
+    C(CIV_B_z, CIV_A_fwhm_km_s)         = -0.576
+    C(CIV_B_z, CIV_B_flux)              = -0.550
+    C(CIV_B_z, CIV_B_fwhm_km_s)         = -0.520
+    C(CIV_B_z, CIV_A_flux)              =  0.487
+    C(CIV_A_z, CIV_A_fwhm_km_s)         =  0.374
+    C(CIV_B_flux, CIV_A_z)              =  0.269
+    C(CIV_B_fwhm_km_s, CIV_A_z)         =  0.242
+    C(CIV_A_z, CIV_A_flux)              = -0.186
+</pre></div></div>
+</div>
+<p>We visualize the fit result by plotting the CIV model fit.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the fitted model</span>
+<span class="n">civ_model</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xlim</span><span class="o">=</span><span class="p">[</span><span class="mi">5500</span><span class="p">,</span><span class="mi">7500</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/scripting_sculptor_3_16_0.png" src="_images/scripting_sculptor_3_16_0.png" />
+</div>
+</div>
+<p>However, much more important is that we have a look at the sampled parameter space and the posterior distributions of the fit parameters. To do this we first retrieve the sampled flat chain and the plot it using the <a class="reference external" href="https://corner.readthedocs.io/en/latest/">corner</a> package.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Retrieve the MCMC flat chain of the CIV model fit</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">civ_model</span><span class="o">.</span><span class="n">fit_result</span><span class="o">.</span><span class="n">flatchain</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+<span class="c1"># Visualize the flat chain fit results using the typical corner plot</span>
+<span class="n">corner_plot</span> <span class="o">=</span> <span class="n">corner</span><span class="o">.</span><span class="n">corner</span><span class="p">(</span><span class="n">data</span><span class="p">,</span>
+                            <span class="n">labels</span><span class="o">=</span><span class="n">civ_model</span><span class="o">.</span><span class="n">fit_result</span><span class="o">.</span><span class="n">var_names</span><span class="p">,</span>
+                            <span class="n">quantiles</span><span class="o">=</span><span class="p">[</span><span class="mf">0.16</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.84</span><span class="p">],</span>
+                            <span class="n">show_titles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">title_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;fontsize&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">}</span>
+                            <span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/scripting_sculptor_3_18_0.png" src="_images/scripting_sculptor_3_18_0.png" />
+</div>
+</div>
+<p>The posterior distributions of the fit parameters look quite well behaved. It seems we have appropriately sampled the parameter space. The plot illustrates strong covariance in some variable parameters pairs (e.g., CIV_A_amp and CIV_A_fwhm_km_s). For further analysis of the MCMC fit, we will now save the flat chain in a file using the <em>SpecModel.save_mcmc_chain</em> function, which takes a folder path as an argument. We will save the flat chain in the example fit folders.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Save the MCMC flatchain to a file for analysis</span>
+<span class="n">civ_model</span><span class="o">.</span><span class="n">save_mcmc_chain</span><span class="p">(</span><span class="s1">&#39;../example_spectrum_fit&#39;</span><span class="p">)</span>
+
+<span class="o">!</span><span class="w"> </span>ls<span class="w"> </span>../example_spectrum_fit/*.hdf5
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+../example_spectrum_fit/fit.hdf5
+../example_spectrum_fit/specmodel_0_specdata.hdf5
+../example_spectrum_fit/specmodel_1_specdata.hdf5
+../example_spectrum_fit/specmodel_2_specdata.hdf5
+../example_spectrum_fit/specmodel_3_specdata.hdf5
+../example_spectrum_fit/specmodel_4_specdata.hdf5
+../example_spectrum_fit/specmodel_CIV_line_mcmc_chain.hdf5
+../example_spectrum_fit/spectrum.hdf5
+</pre></div></div>
+</div>
+</section>
+<section id="Analyzing-the-MCMC-fit-results">
+<h2>Analyzing the MCMC fit results<a class="headerlink" href="#Analyzing-the-MCMC-fit-results" title="Permalink to this heading"></a></h2>
+<p>It is perfectly fine to work with the parameter fit results from the MCMC fit. However, we do have the full flat chain information and, therefore, it may be better to get posterior distributions for all the properties of the continuum or feature we are interested in.</p>
+<p>In a previous notebook tutorial we covered how to use <em>SpecAnalysis</em> to analyze our model fits. To construct posterior distributions of the CIV emission line properties we will now use the high-level <em>SpecAnalysis</em> function <em>analyze_mcmc_results</em>, which uses the <em>SpecAnalysis.analyze_continuum</em> and <em>SpecAnalysis.analyze_emission_feature</em> we have introduced earlier.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the SpecAnalysis and Cosmology modules</span>
+<span class="kn">from</span> <span class="nn">sculptor</span> <span class="kn">import</span> <span class="n">specanalysis</span> <span class="k">as</span> <span class="n">scana</span>
+<span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">FlatLambdaCDM</span>
+</pre></div>
+</div>
+</div>
+<p>We begin our analysis by specfiying the Cosmology we will be using and then import the model fit.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define Cosmology for cosmological conversions</span>
+<span class="n">cosmo</span> <span class="o">=</span> <span class="n">FlatLambdaCDM</span><span class="p">(</span><span class="n">H0</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span> <span class="n">Om0</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">Tcmb0</span><span class="o">=</span><span class="mf">2.725</span><span class="p">)</span>
+
+<span class="c1"># Instantiate an empty SpecFit object</span>
+<span class="n">fit</span> <span class="o">=</span> <span class="n">scfit</span><span class="o">.</span><span class="n">SpecFit</span><span class="p">()</span>
+<span class="c1"># Load the example spectrum fit</span>
+<span class="n">fit</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;../example_spectrum_fit&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>The <em>analyze_mcmc_results</em> function is designed to automatically analyze the output of the MCMC analysis. The user specifies the folder with the MCMC output data and the function will search for any *_mcmc_chain.hdf5* files. As a second argument the function requires the full model fit information (SpecFit object). The third and fourth argument are dictionaries, <em>continuum_listdict</em> and <em>emission_feature_listdict</em>, which specify which continuum models and features should be analyzed.</p>
+<p>The <em>continuum_listdict</em> and the <em>emission_feature_listdict</em> hold the arguments for the <em>SpecAnalysis.analyze_continuum</em> and <em>SpecAnalysis.analyze_emission_feature</em> functions that will be called by the MCMC analysis procedure.</p>
+<p>The following parameters should be specified in the <em>continuum_listdict</em>: * ‘model_names’ - list of model function prefixes for the full continuum model * ‘rest_frame_wavelengths’ - list of rest-frame wavelengths (float) for which fluxes, luminosities and magnitudes should be calculated</p>
+<p>The other arguments for the <em>SpecAnalysis.analyze_continuum</em> are provided to the MCMC analysis function separately.</p>
+<p>The following parameters should be specified in the <em>emission_feature_listdict</em>: * ‘feature_name’ - name of the emission feature, which will be used to name the resulting measurements in the output file * ‘model_names’ - list of model names to create the emission feature model flux from * ‘rest_frame_wavelength’ - rest-frame wavelength of the emission feature</p>
+<p>Additionally, one can specify: * ‘disp_range’ - 2 element list holding the lower and upper dispersion boundaries flux density integration</p>
+<p>For a list of all arguments and keyword arguments, have a look at the function header:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>:param foldername: Path to the folder with the MCMC flat chain hdf5 files.
+:type foldername: string
+:param specfit: Sculptor model fit (SpecFit object) containing the
+    information about the science spectrum, the SpecModels and parameters.
+:type specfit: sculptor.specfit.SpecFit
+:param continuum_dict: The *continuum_listdict* holds the arguments for
+    the *SpecAnalysis.analyze_continuum* function that will be called by
+    this procedure.
+:type continuum_dict: dictionary
+:param emission_feature_dictlist: The *emission_feature_listdict* hold the
+    arguments for the *SpecAnalysis.analyze_emission_feature* functions that
+    will be called by this procedure.
+:type emission_feature_dictlist: dictionary
+:param redshift: Source redshift
+:type: float
+:param cosmology: Cosmology for calculation of absolute properties
+:type cosmology: astropy.cosmology.Cosmology
+:param emfeat_meas: This keyword argument allows to specify the list of
+    emission feature measurements.
+    Currently possible measurements are [&#39;peak_fluxden&#39;, &#39;peak_redsh&#39;, &#39;EW&#39;,
+    &#39;FWHM&#39;, &#39;flux&#39;]. The value defaults to &#39;None&#39; in which all measurements
+    are calculated
+:type emfeat_meas: list(string)
+:param cont_meas: This keyword argument allows to specify the list of
+    emission feature measurements.
+    Currently possible measurements are [&#39;peak_fluxden&#39;, &#39;peak_redsh&#39;, &#39;EW&#39;,
+    &#39;FWHM&#39;, &#39;flux&#39;]. The value defaults to &#39;None&#39; in which all measurements
+    are calculated
+:type cont_meas: list(string)
+:param dispersion: This keyword argument allows to input a dispersion
+    axis (e.g., wavelengths) for which the model fluxes are calculated. The
+    value defaults to &#39;None&#39;, in which case the dispersion from the SpecFit
+    spectrum is being used.
+:type dispersion: np.array
+:param width: Window width in dispersion units to calculate the average
+    flux density in.
+:type width: [float, float]
+:param concatenate: Boolean to indicate whether the MCMC flat chain and
+    the analysis results should be concatenated before written to file.
+    (False = Only writes analysis results to file; True = Writes analysis
+    results and MCMC flat chain parameter values to file)
+:type concatenate: bool
+</pre></div>
+</div>
+<p><strong>IMPORTANT: Only model functions that are sampled together can be analyzed together. Therefore, only model functions from ONE SpecModel can be analyzed together.</strong></p>
+<p><strong>THIS MEANS: For example, if you wanted to analyze the continuum model and the CIV emission line together using MCMC, you would have to fit them with ONE SpecModel. In our setup we have separate SpecModels for the continuum and the CIV line. Therefore, we cannot do that. However, to calculate the CIV equivalent width we need the continuum model. In this case we still need to specify the continuum model prefix for the analysis routine. It will build the best-fit continuum model and use it for
+the CIV analysis. As the best-fit continuum model was subtracted before the CIV line was fit using MCMC, this is the correct way of analzying the results as well.</strong></p>
+<p>What does the <em>analyze_mcmc_results</em> actually do?</p>
+<p>It identifies for which of the specified models (continuum/features) it can find the necessary MCMC flat chain information. If multiple continuum or feature models have been specified it will go through them one by one. For each entry in the flat chain file it will read in the model function parameters, build the model fluxes, and then analyze the model using the <em>SpecAnalysis.analyze_continuum</em> and <em>SpecAnalysis.analyze_emission_feature</em> functions. If you have very long MCMC chains, this
+process can easily take several minutes. A progress bar will keep you informed.</p>
+<p>What is the result of the <em>analyze_mcmc_results</em> function?</p>
+<p>The function will write an “Enhanced Character Separated Values” csv file to the same folder with the MCMC flat chain data. The csv file can be read in and then further manipulated with <em>astropy</em>. <strong>Unit information on physical quantities is saved along with the values to the csv file.</strong></p>
+<p>Let us now set up both dictionaries for our example:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">continuum_listdict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;model_names&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;PL_&#39;</span><span class="p">],</span>
+                      <span class="s1">&#39;rest_frame_wavelengths&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1450</span><span class="p">,</span> <span class="mi">1280</span><span class="p">]}</span>
+
+<span class="n">emission_feature_listdict</span> <span class="o">=</span> <span class="p">[{</span><span class="s1">&#39;feature_name&#39;</span><span class="p">:</span> <span class="s1">&#39;CIV&#39;</span><span class="p">,</span>
+                             <span class="s1">&#39;model_names&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="s1">&#39;CIV_A_&#39;</span><span class="p">,</span> <span class="s1">&#39;CIV_B_&#39;</span><span class="p">],</span>
+                             <span class="s1">&#39;rest_frame_wavelength&#39;</span><span class="p">:</span> <span class="mf">1549.06</span><span class="p">}</span>
+                                 <span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<p>And then run the <em>analyze_mcmc_results</em> function:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">scana</span><span class="o">.</span><span class="n">analyze_mcmc_results</span><span class="p">(</span><span class="s1">&#39;../example_spectrum_fit&#39;</span><span class="p">,</span> <span class="n">fit</span><span class="p">,</span>
+                           <span class="n">continuum_listdict</span><span class="p">,</span>
+                           <span class="n">emission_feature_listdict</span><span class="p">,</span>
+                           <span class="n">fit</span><span class="o">.</span><span class="n">redshift</span><span class="p">,</span> <span class="n">cosmo</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+  0%|          | 14/18750 [00:00&lt;02:14, 138.92it/s]
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[INFO] Starting MCMC analysis
+[INFO] Working on output file ../example_spectrum_fit/specmodel_CIV_line_mcmc_chain.hdf5
+[INFO] Analyzing emission feature CIV
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 18750/18750 [02:09&lt;00:00, 145.09it/s]
+</pre></div></div>
+</div>
+<p>It can take a while until the MCMC anlysis finishes. The results are written into the same folder with the MCMC flat chain data. In our case we can find the analyzed results (<em>mcmc_analysis_CIV.csv</em>) in</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span><span class="w"> </span>ls<span class="w"> </span>../example_spectrum_fit/
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0_PL__model.json                   mcmc_analysis_CIV.csv
+0_fitresult.json                   specmodel_0_FitAll_fit_report.txt
+1_SiIV_A__model.json               specmodel_0_specdata.hdf5
+1_SiIV_B__model.json               specmodel_1_FitAll_fit_report.txt
+1_fitresult.json                   specmodel_1_specdata.hdf5
+2_CIV_A__model.json                specmodel_2_FitAll_fit_report.txt
+2_CIV_B__model.json                specmodel_2_specdata.hdf5
+2_fitresult.json                   specmodel_3_FitAll_fit_report.txt
+3_CIII__model.json                 specmodel_3_specdata.hdf5
+3_fitresult.json                   specmodel_4_FitAll_fit_report.txt
+4_Abs_A_model.json                 specmodel_4_specdata.hdf5
+4_Abs_B_model.json                 specmodel_CIV_line_mcmc_chain.hdf5
+4_fitresult.json                   spectrum.hdf5
+fit.hdf5
+</pre></div></div>
+</div>
+<p>The analyzed data is saved in the enhanced csv format from astropy. We use <em>astropy.table.QTable</em> to read the file in, retaining the unit information on the analyzed properties.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">QTable</span>
+
+<span class="n">t</span> <span class="o">=</span> <span class="n">QTable</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;../example_spectrum_fit/mcmc_analysis_CIV.csv&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ascii.ecsv&#39;</span><span class="p">)</span>
+<span class="n">t</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<i>QTable length=18750</i>
+<table id="table6461489888" class="table-striped table-bordered table-condensed">
+<thead><tr><th>CIV_peak_fluxden</th><th>CIV_peak_redsh</th><th>CIV_EW</th><th>CIV_FWHM</th><th>CIV_flux</th><th>CIV_lum</th></tr></thead>
+<thead><tr><th>erg / (Angstrom cm2 s)</th><th></th><th>Angstrom</th><th>km / s</th><th>erg / (cm2 s)</th><th>erg / s</th></tr></thead>
+<thead><tr><th>float64</th><th>float64</th><th>float64</th><th>float64</th><th>float64</th><th>float64</th></tr></thead>
+<tr><td>1.7025458953823565e-16</td><td>3.2114519863017534</td><td>33.11496431713009</td><td>6266.596338612362</td><td>2.961265327675218e-14</td><td>2.7272731887439896e+45</td></tr>
+<tr><td>1.6721664115085754e-16</td><td>3.210481058669064</td><td>32.99822135043035</td><td>6460.856063522636</td><td>2.9499538664435997e-14</td><td>2.716855532259717e+45</td></tr>
+<tr><td>1.723933433168788e-16</td><td>3.2114519863017534</td><td>33.469930987621815</td><td>6088.369860660105</td><td>2.9935535993120595e-14</td><td>2.757010117996179e+45</td></tr>
+<tr><td>1.7182794771269916e-16</td><td>3.210481058669064</td><td>33.31534363653506</td><td>6173.896793403524</td><td>2.979287938638493e-14</td><td>2.743871695879414e+45</td></tr>
+<tr><td>1.6878815917188721e-16</td><td>3.210481058669064</td><td>33.161937379596345</td><td>6455.038209974451</td><td>2.966046822693796e-14</td><td>2.7316768614052704e+45</td></tr>
+<tr><td>1.7320789412335437e-16</td><td>3.2114519863017534</td><td>33.78160061683048</td><td>6330.212961485504</td><td>3.0213830308964116e-14</td><td>2.7826405341256157e+45</td></tr>
+<tr><td>1.6987702663876353e-16</td><td>3.2114519863017534</td><td>33.42811472924633</td><td>6367.250543886042</td><td>2.9898229578526494e-14</td><td>2.753574262946658e+45</td></tr>
+<tr><td>1.7002049199831065e-16</td><td>3.2114519863017534</td><td>33.37302405915962</td><td>6409.616175461986</td><td>2.9844375270940024e-14</td><td>2.7486143761102343e+45</td></tr>
+<tr><td>1.6755933939029979e-16</td><td>3.210481058669064</td><td>33.34759616649851</td><td>6497.096461492717</td><td>2.982464934483506e-14</td><td>2.7467976530734148e+45</td></tr>
+<tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+<tr><td>1.7230147389554056e-16</td><td>3.2114519863017534</td><td>33.37479397925696</td><td>6147.307197386451</td><td>2.9851667159581736e-14</td><td>2.749285946205694e+45</td></tr>
+<tr><td>1.713119163521492e-16</td><td>3.2114519863017534</td><td>33.60186777044355</td><td>6391.03239870545</td><td>3.0058406077155686e-14</td><td>2.768326236236442e+45</td></tr>
+<tr><td>1.699526629230714e-16</td><td>3.210481058669064</td><td>33.525326140779796</td><td>6440.871721101392</td><td>2.9989658270368215e-14</td><td>2.761994684366228e+45</td></tr>
+<tr><td>1.6981870118562772e-16</td><td>3.2114519863017534</td><td>33.24090141975268</td><td>6339.25589718063</td><td>2.972627229916071e-14</td><td>2.7377373005089886e+45</td></tr>
+<tr><td>1.7190133988262977e-16</td><td>3.210481058669064</td><td>33.99497119170071</td><td>6413.170514132771</td><td>3.039412004497653e-14</td><td>2.7992449011384977e+45</td></tr>
+<tr><td>1.7353516300351097e-16</td><td>3.210481058669064</td><td>33.62373692126313</td><td>6255.61972575812</td><td>3.0067364499910786e-14</td><td>2.7691512911872792e+45</td></tr>
+<tr><td>1.7204870649017424e-16</td><td>3.2114519863017534</td><td>33.10115578309755</td><td>6194.743638300733</td><td>2.9599731342699945e-14</td><td>2.7260831013864665e+45</td></tr>
+<tr><td>1.7059536939278595e-16</td><td>3.2114519863017534</td><td>33.039315764377186</td><td>6271.252179226404</td><td>2.9565184692661265e-14</td><td>2.7229014157897432e+45</td></tr>
+<tr><td>1.699557133889922e-16</td><td>3.210481058669064</td><td>33.63234776488099</td><td>6388.014093185133</td><td>3.0056768200666273e-14</td><td>2.7681753906977356e+45</td></tr>
+<tr><td>1.6877095368987712e-16</td><td>3.2114519863017534</td><td>33.377005078544634</td><td>6350.536884815106</td><td>2.984901209178342e-14</td><td>2.749041419139746e+45</td></tr>
+</table></div>
+</div>
+<p>With the table data we can visualize the posterior distributions for all measurements and further analyze them.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="n">prop</span> <span class="o">=</span> <span class="s1">&#39;CIV_EW&#39;</span>
+
+<span class="c1"># Calculate median, lower and upper 1-sigma range</span>
+<span class="n">med</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">prop</span><span class="p">])</span>
+<span class="n">low</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">prop</span><span class="p">],</span><span class="mi">16</span><span class="p">)</span>
+<span class="n">upp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">prop</span><span class="p">],</span><span class="mi">84</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Property: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prop</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Median: </span><span class="si">{:.2e}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">med</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Lower 1-sigma: </span><span class="si">{:.2e}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">low</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Upper 1-sigma: </span><span class="si">{:.2e}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">upp</span><span class="p">))</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">([</span><span class="n">med</span><span class="o">.</span><span class="n">value</span><span class="p">],</span> <span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#ff7f0e&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Median&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">low</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#ff7f0e&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$1\sigma$ uncertainties&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">upp</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#ff7f0e&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="n">med</span><span class="o">.</span><span class="n">unit</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;N&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Property: CIV_EW
+Median: 3.33e+01 Angstrom
+Lower 1-sigma: 3.29e+01 Angstrom
+Upper 1-sigma: 3.37e+01 Angstrom
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/scripting_sculptor_3_34_1.png" src="_images/scripting_sculptor_3_34_1.png" />
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="scripting_sculptor_2.html" class="btn btn-neutral float-left" title="Scripting Sculptor 02 - Analysing model fits with SpecAnalysis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="speconed.html" class="btn btn-neutral float-right" title="The SpecOneD Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Jan-Torge Schindler.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

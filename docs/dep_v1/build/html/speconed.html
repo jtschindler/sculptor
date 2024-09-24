@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The SpecOneD Module &mdash; Sculptor 1.1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+    <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="The SpecModel Module" href="specmodel.html" />
+    <link rel="prev" title="Scripting Sculptor 03 - Fitting and Analzying models using MCMC" href="scripting_sculptor_3.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Sculptor
+          </a>
+              <div class="version">
+                1.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">The Sculptor GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html">An introduction to the SpecOneD class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html#The-PassBand-class">The PassBand class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectrum_preparation.html">Preparing a composite spectrum for Sculptor modeling using the SpecOneD class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_1.html">Scripting Sculptor 01 - Modelling the example spectrum in a script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_2.html">Scripting Sculptor 02 - Analysing model fits with SpecAnalysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_3.html">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Module documentation:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">The SpecOneD Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.speconed.PassBand"><code class="docutils literal notranslate"><span class="pre">PassBand</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.PassBand.convert_spectral_units"><code class="docutils literal notranslate"><span class="pre">PassBand.convert_spectral_units()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.PassBand.load_passband"><code class="docutils literal notranslate"><span class="pre">PassBand.load_passband()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.PassBand.plot"><code class="docutils literal notranslate"><span class="pre">PassBand.plot()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.speconed.SpecOneD"><code class="docutils literal notranslate"><span class="pre">SpecOneD</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.apply_extinction"><code class="docutils literal notranslate"><span class="pre">SpecOneD.apply_extinction()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.average_fluxden"><code class="docutils literal notranslate"><span class="pre">SpecOneD.average_fluxden()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.bin_by_npixels"><code class="docutils literal notranslate"><span class="pre">SpecOneD.bin_by_npixels()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.broaden_by_gaussian"><code class="docutils literal notranslate"><span class="pre">SpecOneD.broaden_by_gaussian()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.calculate_passband_ab_magnitude"><code class="docutils literal notranslate"><span class="pre">SpecOneD.calculate_passband_ab_magnitude()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.calculate_passband_flux"><code class="docutils literal notranslate"><span class="pre">SpecOneD.calculate_passband_flux()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.check_dispersion_overlap"><code class="docutils literal notranslate"><span class="pre">SpecOneD.check_dispersion_overlap()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.check_units"><code class="docutils literal notranslate"><span class="pre">SpecOneD.check_units()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.convert_spectral_units"><code class="docutils literal notranslate"><span class="pre">SpecOneD.convert_spectral_units()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.copy"><code class="docutils literal notranslate"><span class="pre">SpecOneD.copy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.create_dispersion_by_resolution"><code class="docutils literal notranslate"><span class="pre">SpecOneD.create_dispersion_by_resolution()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.get_fluxden_error_from_ivar"><code class="docutils literal notranslate"><span class="pre">SpecOneD.get_fluxden_error_from_ivar()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.get_ivar_from_fluxden_error"><code class="docutils literal notranslate"><span class="pre">SpecOneD.get_ivar_from_fluxden_error()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.get_specplot_ylim"><code class="docutils literal notranslate"><span class="pre">SpecOneD.get_specplot_ylim()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.interpolate"><code class="docutils literal notranslate"><span class="pre">SpecOneD.interpolate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.mask_between"><code class="docutils literal notranslate"><span class="pre">SpecOneD.mask_between()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.mask_by_snr"><code class="docutils literal notranslate"><span class="pre">SpecOneD.mask_by_snr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.match_dispersions"><code class="docutils literal notranslate"><span class="pre">SpecOneD.match_dispersions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.normalize_fluxden_by_error"><code class="docutils literal notranslate"><span class="pre">SpecOneD.normalize_fluxden_by_error()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.normalize_fluxden_by_factor"><code class="docutils literal notranslate"><span class="pre">SpecOneD.normalize_fluxden_by_factor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.normalize_fluxden_to_factor"><code class="docutils literal notranslate"><span class="pre">SpecOneD.normalize_fluxden_to_factor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.peak_dispersion"><code class="docutils literal notranslate"><span class="pre">SpecOneD.peak_dispersion()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.peak_fluxden"><code class="docutils literal notranslate"><span class="pre">SpecOneD.peak_fluxden()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.plot"><code class="docutils literal notranslate"><span class="pre">SpecOneD.plot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.read_from_fits"><code class="docutils literal notranslate"><span class="pre">SpecOneD.read_from_fits()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.read_from_hdf"><code class="docutils literal notranslate"><span class="pre">SpecOneD.read_from_hdf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.read_pypeit_fits"><code class="docutils literal notranslate"><span class="pre">SpecOneD.read_pypeit_fits()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.read_sdss_fits"><code class="docutils literal notranslate"><span class="pre">SpecOneD.read_sdss_fits()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.remove_extinction"><code class="docutils literal notranslate"><span class="pre">SpecOneD.remove_extinction()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.renormalize_by_ab_magnitude"><code class="docutils literal notranslate"><span class="pre">SpecOneD.renormalize_by_ab_magnitude()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.renormalize_by_spectrum"><code class="docutils literal notranslate"><span class="pre">SpecOneD.renormalize_by_spectrum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.resample"><code class="docutils literal notranslate"><span class="pre">SpecOneD.resample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.resample_to_resolution"><code class="docutils literal notranslate"><span class="pre">SpecOneD.resample_to_resolution()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.reset_mask"><code class="docutils literal notranslate"><span class="pre">SpecOneD.reset_mask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.save_to_csv"><code class="docutils literal notranslate"><span class="pre">SpecOneD.save_to_csv()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.save_to_hdf"><code class="docutils literal notranslate"><span class="pre">SpecOneD.save_to_hdf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.smooth"><code class="docutils literal notranslate"><span class="pre">SpecOneD.smooth()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.to_fluxden_per_unit_frequency_cgs"><code class="docutils literal notranslate"><span class="pre">SpecOneD.to_fluxden_per_unit_frequency_cgs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.to_fluxden_per_unit_frequency_jy"><code class="docutils literal notranslate"><span class="pre">SpecOneD.to_fluxden_per_unit_frequency_jy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.to_fluxden_per_unit_frequency_si"><code class="docutils literal notranslate"><span class="pre">SpecOneD.to_fluxden_per_unit_frequency_si()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.to_fluxden_per_unit_wavelength_cgs"><code class="docutils literal notranslate"><span class="pre">SpecOneD.to_fluxden_per_unit_wavelength_cgs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sculptor.speconed.SpecOneD.trim_dispersion"><code class="docutils literal notranslate"><span class="pre">SpecOneD.trim_dispersion()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor.speconed.gaussian"><code class="docutils literal notranslate"><span class="pre">gaussian()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="masksmodels.html">The Masks &amp; Models Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Extensions:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qso_extension.html">The QSO-Extension Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="my_extension.html">Example extension Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">License:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Sculptor</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">The SpecOneD Module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/speconed.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-sculptor.speconed">
+<span id="the-speconed-module"></span><h1>The SpecOneD Module<a class="headerlink" href="#module-sculptor.speconed" title="Permalink to this heading"></a></h1>
+<p>This module introduces the SpecOneD class, it’s functions and the related
+PassBand class.
+The main purpose of the SpecOneD class and it’s children classes is to provide
+python functionality for the manipulation of 1D spectral data in astronomy.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sculptor.speconed.PassBand">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sculptor.speconed.</span></span><span class="sig-name descname"><span class="pre">PassBand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">passband_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluxden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluxden_err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion_unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluxden_unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.PassBand" title="Permalink to this definition"></a></dt>
+<dd><p>The PassBand class, a child of the SpecOneD class, is a data structure
+for storing and manipulating astronomical filter transmission curves.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>passband_name</strong> (<em>str</em>) – Name of the passband. The passband names     provided with the Sculptor package are in the format [     INSTRUMENT]-[BAND] and can be found in the Sculptor data folder.</p></li>
+<li><p><strong>dispersion</strong> (<em>numpy.ndarray</em>) – A 1D array providing the dispersion axis of the     passband.</p></li>
+<li><p><strong>fluxden</strong> (<em>numpy.ndarray</em>) – A 1D array providing the transmission data of the     spectrum in quantum efficiency.</p></li>
+<li><p><strong>fluxden_err</strong> (<em>numpy.ndarray</em>) – A 1D array providing the 1-sigma error of the     passband’s transmission curve.</p></li>
+<li><p><strong>header</strong> (<em>pandas.DataFrame</em>) – A pandas DataFrame containing additional information     on the spectrum.</p></li>
+<li><p><strong>dispersion_unit</strong> (<em>astropy.units.Unit</em><em> or </em><em>astropy.units.Quantity</em><em> or     </em><em>astropy.units.CompositeUnit</em><em> or </em><em>astropy.units.IrreducibleUnit</em>) – The physical unit (including normalization     factors) of the dispersion axis of the passband.</p></li>
+<li><p><strong>fluxden_unit</strong> (<em>astropy.units.Unit</em><em> or </em><em>astropy.units.Quantity</em><em> or     </em><em>astropy.units.CompositeUnit</em><em> or </em><em>astropy.units.IrreducibleUnit</em>) – The physical unit (including normalization     factors) of the transmission curve and associated properties (e.g.     flux density error) of the spectrum.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.PassBand.convert_spectral_units">
+<span class="sig-name descname"><span class="pre">convert_spectral_units</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_dispersion_unit</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.PassBand.convert_spectral_units" title="Permalink to this definition"></a></dt>
+<dd><p>Convert the passband to new physical dispersion units.</p>
+<p>This function only converts the passband dispersion axis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_dispersion_unit</strong> – </p>
+</dd>
+<dt class="field-even">Type<span class="colon">:</span></dt>
+<dd class="field-even"><p>astropy.units.Unit or astropy.units.Quantity or         astropy.units.CompositeUnit or astropy.units.IrreducibleUnit</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.PassBand.load_passband">
+<span class="sig-name descname"><span class="pre">load_passband</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">passband_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.005</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.PassBand.load_passband" title="Permalink to this definition"></a></dt>
+<dd><p>Load a passband from the sculptor/data/passbands folder.</p>
+<p>The passband names are in the following format:
+[INSTRUMENT]-[BAND]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>passband_name</strong> (<em>str</em>) – Name of the passband, e.g. WISE-W1</p></li>
+<li><p><strong>tolerance</strong> (<em>float</em>) – Value below which the passband throughput will be         ignored when reading the passband in. In many cases the original         passband files contain a large range of 0 values below and above the         passband. The default value for the tolerance is 0.005, i.e. 0.5%         throughput.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.PassBand.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ymin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ymax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.PassBand.plot" title="Permalink to this definition"></a></dt>
+<dd><p>Plot the passband.</p>
+<p>This plot is aimed for a quick visualization of the passband spectrum
+and not for publication grade figures.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask_values</strong> (<em>bool</em>) – Boolean to indicate whether the mask will be         applied when plotting the spectrum (default:True).</p></li>
+<li><p><strong>ymin</strong> (<em>float</em>) – Minimum value for the y-axis of the plot (flux density         axis). This defaults to ‘None’. If either ymin or ymax are ‘None’ the         y-axis range will be determined automatically.</p></li>
+<li><p><strong>ymax</strong> (<em>float</em>) – Maximum value for the y-axis of the plot (flux density         axis). This defaults to ‘None’. If either ymin or ymax are ‘None’ the         y-axis range will be determined automatically.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sculptor.speconed.</span></span><span class="sig-name descname"><span class="pre">SpecOneD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluxden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluxden_err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluxden_ivar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion_unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluxden_unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">telluric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD" title="Permalink to this definition"></a></dt>
+<dd><p>The SpecOneD class provides a data structure for 1D astronomical
+spectra with extensive capabilities for spectrum analysis and manipulation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dispersion</strong> (<em>numpy.ndarray</em>) – A 1D array providing the dispersion axis of the     spectrum.</p></li>
+<li><p><strong>fluxden</strong> (<em>numpy.ndarray</em>) – A 1D array providing the flux density data of the     spectrum.</p></li>
+<li><p><strong>fluxden_err</strong> (<em>numpy.ndarray</em>) – A 1D array providing the 1-sigma flux density     error of the spectrum.</p></li>
+<li><p><strong>fluxden_ivar</strong> (<em>numpy.ndarray</em>) – A 1D array providing the inverse variance of the     flux density for the spectrum.</p></li>
+<li><p><strong>header</strong> (<em>pandas.DataFrame</em>) – A pandas DataFrame containing additional information     on the spectrum.</p></li>
+<li><p><strong>dispersion_unit</strong> (<em>astropy.units.Unit</em><em> or </em><em>astropy.units.Quantity</em><em> or     </em><em>astropy.units.CompositeUnit</em><em> or </em><em>astropy.units.IrreducibleUnit</em>) – The physical unit (including normalization     factors) of the dispersion axis of the spectrum.</p></li>
+<li><p><strong>fluxden_unit</strong> (<em>astropy.units.Unit</em><em> or </em><em>astropy.units.Quantity</em><em> or     </em><em>astropy.units.CompositeUnit</em><em> or </em><em>astropy.units.IrreducibleUnit</em>) – The physical unit (including normalization     factors) of the flux density and associated properties (e.g. flux     density error) of the spectrum.</p></li>
+<li><p><strong>obj_model</strong> (<em>numpy.ndarray</em>) – Object model from the telluric correction routine     of PypeIt.</p></li>
+<li><p><strong>telluric</strong> (<em>numpy.ndarray</em>) – Telluric (atmospheric transmission) model from the     telluric correction routine of PypeIt.</p></li>
+<li><p><strong>mask</strong> (<em>numpy.ndarray</em>) – A boolean 1D array specifying regions that allows to     mask region in the spectrum during spectral manipulation or for     display purposes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – Raises a ValueError if the supplied header is not a     pandas.DataFrame</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.apply_extinction">
+<span class="sig-name descname"><span class="pre">apply_extinction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a_v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extinction_law</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ccm89'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.apply_extinction" title="Permalink to this definition"></a></dt>
+<dd><p>Apply extinction to the spectrum (flux density ONLY).</p>
+<p>This function makes use of the python extinction package:
+<a class="reference external" href="https://github.com/kbarbary/extinction">https://github.com/kbarbary/extinction</a> .</p>
+<p>Their documentation is available at
+<a class="reference external" href="https://extinction.readthedocs.io/en/latest/">https://extinction.readthedocs.io/en/latest/</a> .</p>
+<p>Please have a careful look at their implementation and regarding
+details on the use of a_v and r_v. Possible extinction laws to use
+are “ccm89”, “odonnell94”, “calzetti00”, “fitzpatrick99”, “fm07”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a_v</strong> (<em>float</em>) – Extinction value ein the V band.</p></li>
+<li><p><strong>r_v</strong> (<em>float</em>) – Ratio of total to selective extinction r_v = a_v/E(B-V)</p></li>
+<li><p><strong>extinction_law</strong> (<em>str</em>) – Extinction law name as implemented in the         extinction package, see documentation.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns the binned spectrum as a SpecOneD object if         inplace==False.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD">SpecOneD</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.average_fluxden">
+<span class="sig-name descname"><span class="pre">average_fluxden</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dispersion_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.average_fluxden" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the average flux density over the full spectrum or the
+specified dispersion range</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dispersion_range</strong> (<em>[</em><em>float</em><em>, </em><em>float</em><em>]</em>) – Dispersion range over which to average the         flux density.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Average flux density of the full spectrum or specified         dispersion range</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.bin_by_npixels">
+<span class="sig-name descname"><span class="pre">bin_by_npixels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">npix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.bin_by_npixels" title="Permalink to this definition"></a></dt>
+<dd><p>Bin the spectrum by an integer number of pixel.</p>
+<p>The spectrum is binned by npix pixel. A new dispersion axis is
+calculated asumming that the old dispersion values marked the center
+positions of their bins.</p>
+<p>The flux density (obj_model, telluric) are averaged over the new bin
+width, whereas the flux density error is accordingly propagated.</p>
+<p>The spectrum mask will be automatically reset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>npix</strong> (<em>int</em>) – Number of pixels to be binned.</p></li>
+<li><p><strong>inplace</strong> (<em>boolean</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns the binned spectrum as a SpecOneD object if         inplace==False.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD">SpecOneD</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.broaden_by_gaussian">
+<span class="sig-name descname"><span class="pre">broaden_by_gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.broaden_by_gaussian" title="Permalink to this definition"></a></dt>
+<dd><p>The spectrum is broadened by a Gaussian with the specified FWHM (
+in km/s).</p>
+<p>The convolution of the current spectrum and the Gaussian is performed
+in logarithmic wavelength. Therefore, the spectrum is first converted to
+flux per logarithmic wavelength, then convolved with the Gaussian
+kernel and then converted back.</p>
+<p>The conversion functions will automatically take care of the unit
+conversion and input spectra can be in flux density per unit
+frequency or wavelength.</p>
+<p>This function normalizes the output of the convolved spectrum in a
+way that a Gaussian input signal of FWHM X broadened by a Gaussian
+kernel of FWHM Y, results in a Gaussian output signal of FWHM sqrt(
+X**2+Y**2) with the same amplitude as the input signal. Due to the
+normalization factor of the Gaussian itself, this results in a lower
+peak height.</p>
+<p>The input spectrum and the Gaussian kernel are matched to the same
+dispersion axis using the ‘interpolate’ function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fwhm</strong> (<em>float</em>) – FWHM of the Gaussian that the spectrum will be         convolved with in km/s.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns the binned spectrum as a SpecOneD object if         inplace==False.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD">SpecOneD</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.calculate_passband_ab_magnitude">
+<span class="sig-name descname"><span class="pre">calculate_passband_ab_magnitude</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">passband</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'interpolate'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.calculate_passband_ab_magnitude" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the AB magnitude of the spectrum in the given passband.</p>
+<p>Disclaimer: This function is written for passbands in quantum
+efficiency. Therefore, the (h*nu)^-1 term is not included in the
+integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>passband</strong> (<a class="reference internal" href="#sculptor.speconed.PassBand" title="sculptor.speconed.PassBand"><em>PassBand</em></a>) – The astronomical passband with throughput in quantum         efficiencies.</p></li>
+<li><p><strong>match_method</strong> (<em>str</em>) – Method for matching the dispersion axis of the         spectrum to the passband.</p></li>
+<li><p><strong>force</strong> (<em>bool</em>) – Boolean to indicate if they spectra will be forced to         match if the spectrum does not fully cover the passband. The         forced match will result in an inner match of the spectrum’s and the         passband’s dispersion axes. User discretion is advised.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>AB magnitude of the spectrum in the specified passband         :rtype: float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.calculate_passband_flux">
+<span class="sig-name descname"><span class="pre">calculate_passband_flux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">passband</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'interpolate'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.calculate_passband_flux" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the integrated flux in the specified passband.</p>
+<p>Disclaimer: This function is written for passbands in quantum
+efficiency. Therefore, the (h*nu)^-1 term is not included in the
+integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>passband</strong> (<a class="reference internal" href="#sculptor.speconed.PassBand" title="sculptor.speconed.PassBand"><em>PassBand</em></a>) – The astronomical passband with throughput in quantum         efficiencies.</p></li>
+<li><p><strong>match_method</strong> (<em>str</em>) – Method for matching the dispersion axis of the         spectrum to the passband.</p></li>
+<li><p><strong>force</strong> (<em>bool</em>) – Boolean to indicate if they spectra will be forced to         match if the spectrum does not fully cover the passband. The         forced match will result in an inner match of the spectrum’s and the         passband’s dispersion axes. User discretion is advised.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Integrated spectrum flux in the passband</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Quantity</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.check_dispersion_overlap">
+<span class="sig-name descname"><span class="pre">check_dispersion_overlap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">secondary_spectrum</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.check_dispersion_overlap" title="Permalink to this definition"></a></dt>
+<dd><p>Check the overlap between the active spectrum and the
+supplied secondary spectrum.</p>
+<p>This method determines whether the active spectrum (primary) and the
+supplied spectrum (secondary) have overlap in their dispersions.
+Possible cases include:
+i) The current spectrum dispersion is fully within the dispersion
+range of the ‘secondary’ spectrum -&gt; ‘primary’ overlap.
+ii) The secondary spectrum dispersion is fully within the dispersion
+range of the current spectrum -&gt; ‘secondary’ overlap.
+iii) and iv) There is only partial overlap between the spectra -&gt;
+‘partial’ overlap.
+v) There is no overlap between the spectra -&gt; ‘none’ overlap. In the
+case of no overlap np.NaN values are returned for the minimum and
+maximum dispersion limits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>secondary_spectrum</strong> (<a class="reference internal" href="#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD"><em>SpecOneD</em></a>) – </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>overlap, overlap_min, overlap_max             Returns a string indicating the dispersion             overlap type according to the cases above ‘overlap and the             minimum and maximum dispersion value of the overlap region of the             two spectra.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(str, float, float)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.check_units">
+<span class="sig-name descname"><span class="pre">check_units</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spectrum</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.check_units" title="Permalink to this definition"></a></dt>
+<dd><p>Raise a ValueError if current and input spectrum have different
+dispersion of flux density units.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>spectrum</strong> (<a class="reference internal" href="#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD"><em>SpecOneD</em></a>) – </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.convert_spectral_units">
+<span class="sig-name descname"><span class="pre">convert_spectral_units</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_dispersion_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_fluxden_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbosity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.convert_spectral_units" title="Permalink to this definition"></a></dt>
+<dd><p>Convert the spectrum to new physical dispersion and flux density
+units.</p>
+<p>The function converts the flux density, the dispersion, the flux
+density error and the inverse variance.
+Object model and telluric if they exist will not be converted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>new_dispersion_unit</strong> (<em>astropy.units.Unit</em><em> or         </em><em>astropy.units.Quantity</em><em> or </em><em>astropy.units.CompositeUnit</em><em> or         </em><em>astropy.units.IrreducibleUnit</em>) – New dispersion unit (or quantity)</p></li>
+<li><p><strong>new_fluxden_unit</strong> (<em>astropy.units.Unit</em><em> or         </em><em>astropy.units.Quantity</em><em> or </em><em>astropy.units.CompositeUnit</em><em> or         </em><em>astropy.units.IrreducibleUnit</em>) – New flux density unit (or quantity)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.copy" title="Permalink to this definition"></a></dt>
+<dd><p>Copy the current SpecOneD object to a new instance and return it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD">SpecOneD</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.create_dispersion_by_resolution">
+<span class="sig-name descname"><span class="pre">create_dispersion_by_resolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resolution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.create_dispersion_by_resolution" title="Permalink to this definition"></a></dt>
+<dd><p>This function creates a new dispersion axis in wavelength sampled by
+a fixed resolution, given in km/s.</p>
+<p>This should work for all spectra with flux densities per unit
+wavelength/frequency.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>resolution</strong> – </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns new dispersion axis with a resolution in km/s as         given by the input value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.get_fluxden_error_from_ivar">
+<span class="sig-name descname"><span class="pre">get_fluxden_error_from_ivar</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.get_fluxden_error_from_ivar" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the flux density 1-sigma error from the inverse variance
+of the flux density/</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.get_ivar_from_fluxden_error">
+<span class="sig-name descname"><span class="pre">get_ivar_from_fluxden_error</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.get_ivar_from_fluxden_error" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate inverse variance of the flux density from the flux
+density 1-sigma error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.get_specplot_ylim">
+<span class="sig-name descname"><span class="pre">get_specplot_ylim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.get_specplot_ylim" title="Permalink to this definition"></a></dt>
+<dd><dl>
+<dt>Calculate the minimum and maximum flux density values for plotting</dt><dd><p>the spectrum.</p>
+<p>The minimum value is set to -0.5 * median of the flux density. The
+maximum value is set 4 times the 84-percentile value of the flux
+density.
+This is an ‘approximate guess’ for a quick visualization of the
+spectrum and may not be optimal for all purposes. For pulication
+grade plots, the user should devise their own plots.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(ylim_min, ylim_max) Return the minimum and maximum values         for the flux density (y-axis) for the plot function.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(float, float)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.interpolate">
+<span class="sig-name descname"><span class="pre">interpolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_dispersion</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'linear'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fill_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'const'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbosity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.interpolate" title="Permalink to this definition"></a></dt>
+<dd><p>Interpolate spectrum to a new dispersion axis.</p>
+<p>The interpolation is done using scipy.interpolate.interp1d.</p>
+<p>Interpolating a spectrum to a new dispersion axis automatically
+resets the spectrum mask.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>new_dispersion</strong> (<em>numpy.ndarray</em>) – 1D array with the new dispersion axis</p></li>
+<li><p><strong>kind</strong> (<em>str</em>) – String that indicates the interpolation function (         default: ‘linear’)</p></li>
+<li><p><strong>fill_value</strong> (<em>str</em>) – A string indicating whether values outside the         dispersion range will be extrapolated (‘extrapolate’) or filled with         a constant value (‘const’) based on the median of the 10 values at         the edge.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+<li><p><strong>verbosity</strong> (<em>int</em>) – Integer indecating the verbosity level</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.mask_between">
+<span class="sig-name descname"><span class="pre">mask_between</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">limits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.mask_between" title="Permalink to this definition"></a></dt>
+<dd><p>Mask spectrum between specified dispersion limits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>limits</strong> (<em>[</em><em>float</em><em>, </em><em>float</em><em>]</em>) – A list of two floats indicating the lower and upper         dispersion limit to mask between.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.mask_by_snr">
+<span class="sig-name descname"><span class="pre">mask_by_snr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signal_to_noise_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.mask_by_snr" title="Permalink to this definition"></a></dt>
+<dd><p>Mask all regions with a signal to noise below the specified limit</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>signal_to_noise_ratio</strong> (<em>float</em>) – All regions of the spectrum with a         value below this limit will be masked.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>SpecOneD</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.match_dispersions">
+<span class="sig-name descname"><span class="pre">match_dispersions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">secondary_spectrum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_secondary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'interpolate'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'linear'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.match_dispersions" title="Permalink to this definition"></a></dt>
+<dd><p>Match the dispersion of the current spectrum and the secondary
+spectrum.</p>
+<p>Both, current and secondary, SpecOneD objects are modified in this
+process. The dispersion match identifies the maximum possible overlap
+in the dispersion direction of both spectra and automatically trims
+them to that range.</p>
+<p>If the current (primary) spectrum overlaps fully with the secondary
+spectrum the dispersion of the secondary will be interpolated/resampled
+to the primary dispersion.</p>
+<p>If the secondary spectrum overlaps fully with the primary, the primary
+spectrum will be interpolated/resampled on the secondary spectrum
+resolution, but this will only be executed if ‘force==True’ and
+‘match_secondary==False’.</p>
+<p>If there is partial overlap between the spectra and ‘force==True’
+the secondary spectrum will be interpolated/resampled to match the
+dispersion values of the primary spectrum.</p>
+<p>If there is no overlap a ValueError will be raised.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>secondary_spectrum</strong> (<a class="reference internal" href="#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD"><em>SpecOneD</em></a>) – Secondary spectrum</p></li>
+<li><p><strong>match_secondary</strong> (<em>bool</em>) – The boolean indicates whether the secondary         will always be matched to the primary or whether reverse matching,         primary to secondary is allowed.</p></li>
+<li><p><strong>force</strong> (<em>bool</em>) – The boolean sets whether the dispersions are matched if         only partial overlap between the spectral dispersions exists.</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – </p></li>
+<li><p><strong>interp_method</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – A ValueError will be raised if there is no overlap         between the spectra.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.normalize_fluxden_by_error">
+<span class="sig-name descname"><span class="pre">normalize_fluxden_by_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.normalize_fluxden_by_error" title="Permalink to this definition"></a></dt>
+<dd><p>Normalize the flux density, flux density error and object model
+numerical values by the median value of the flux density error array.</p>
+<p>The flux density unit will be scaled accordingly. Hence,
+this normalization does not affect the physical values of the flux
+density and only serves to normalize the values in the flux density
+array.</p>
+<p>This enables more efficient calculations on the flux density array by
+avoiding small numerical values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>SpecOneD</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.normalize_fluxden_by_factor">
+<span class="sig-name descname"><span class="pre">normalize_fluxden_by_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.normalize_fluxden_by_factor" title="Permalink to this definition"></a></dt>
+<dd><p>Normalize the flux density, flux density error and object model
+numerical values by the specified numerical factor.</p>
+<p>The flux density unit will be scaled accordingly. Hence,
+this normalization does not affect the physical values of the flux
+density and only serves to normalize the values in the flux density
+array.</p>
+<p>This enables more efficient calculations on the flux density array by
+avoiding small numerical values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>factor</strong> (<em>float</em>) – Scale factor by which the flux density, flux density         error and object model will be divided and the flux density unit will         be multiplied with.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>SpecOneD</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.normalize_fluxden_to_factor">
+<span class="sig-name descname"><span class="pre">normalize_fluxden_to_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.normalize_fluxden_to_factor" title="Permalink to this definition"></a></dt>
+<dd><p>Normalize the flux density, flux density error and object model
+numerical values to the specified unit factor.</p>
+<p>The flux density unit will be scaled accordingly. Hence,
+this normalization does not affect the physical values of the flux
+density and only serves to normalize the values in the flux density
+array.</p>
+<p>For example normalizing the flux density to a factor 1e-17 will
+assure that the flux density unit is 1e-17 times the original unit of
+the flux density.</p>
+<p>This enables more efficient calculations on the flux density array by
+avoiding small numerical values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>factor</strong> (<em>float</em>) – Scale factor by which the flux density, flux density         error and object model will be divided and the flux density unit will         be multiplied with.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>SpecOneD</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.peak_dispersion">
+<span class="sig-name descname"><span class="pre">peak_dispersion</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.peak_dispersion" title="Permalink to this definition"></a></dt>
+<dd><p>Return the dispersion of the maximum flux density value in the
+spectrum.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dispersion value of maximum flux density</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.peak_fluxden">
+<span class="sig-name descname"><span class="pre">peak_fluxden</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.peak_fluxden" title="Permalink to this definition"></a></dt>
+<dd><p>Return the maximum flux density value in the spectrum.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Maximum flux density value</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">show_fluxden_err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ymin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ymax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_obj_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_telluric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.plot" title="Permalink to this definition"></a></dt>
+<dd><p>Plot the spectrum.</p>
+<p>This plot is aimed for a quick visualization of the spectrum not for
+publication grade figures.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>show_fluxden_err</strong> (<em>bool</em>) – Boolean to indicate whether the error will         be plotted or not (default:True).</p></li>
+<li><p><strong>mask_values</strong> (<em>bool</em>) – Boolean to indicate whether the mask will be         applied when plotting the spectrum (default:True).</p></li>
+<li><p><strong>ymin</strong> (<em>float</em>) – Minimum value for the y-axis of the plot (flux density         axis). This defaults to ‘None’. If either ymin or ymax are ‘None’ the         y-axis range will be determined automatically.</p></li>
+<li><p><strong>ymax</strong> (<em>float</em>) – Maximum value for the y-axis of the plot (flux density         axis). This defaults to ‘None’. If either ymin or ymax are ‘None’ the         y-axis range will be determined automatically.</p></li>
+<li><p><strong>show_obj_model</strong> (<em>bool</em>) – Boolean to indicate whether the object model         will be plotted or not (default:True).</p></li>
+<li><p><strong>show_telluric</strong> (<em>bool</em>) – Boolean to indicate whether the atmospheric         model will be plotted or not (default:True).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.read_from_fits">
+<span class="sig-name descname"><span class="pre">read_from_fits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.read_from_fits" title="Permalink to this definition"></a></dt>
+<dd><p>Read in an iraf fits spectrum as a SpecOneD object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – Filename of the fits file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – Raises an error when the filename could not be         read in.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.read_from_hdf">
+<span class="sig-name descname"><span class="pre">read_from_hdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.read_from_hdf" title="Permalink to this definition"></a></dt>
+<dd><p>Read in a SpecOneD object from a hdf5 file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – Filename from which to read the new SpecOneD object in.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.read_pypeit_fits">
+<span class="sig-name descname"><span class="pre">read_pypeit_fits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exten</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.read_pypeit_fits" title="Permalink to this definition"></a></dt>
+<dd><p>Read in a pypeit fits spectrum as a SpecOneD object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>string</em>) – Filename of the fits file.</p></li>
+<li><p><strong>exten</strong> (<em>int</em>) – Extension of the pypeit fits file to read. This         defaults to exten=1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – Raises an error when the filename could not be         read in.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.read_sdss_fits">
+<span class="sig-name descname"><span class="pre">read_sdss_fits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.read_sdss_fits" title="Permalink to this definition"></a></dt>
+<dd><p>Read in an SDSS/BOSS fits spectrum as a SpecOneD object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – Filename of the fits file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – Raises an error when the filename could not be         read in.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.remove_extinction">
+<span class="sig-name descname"><span class="pre">remove_extinction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a_v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extinction_law</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ccm89'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.remove_extinction" title="Permalink to this definition"></a></dt>
+<dd><p>Remove extinction from spectrum (flux density ONLY).</p>
+<p>This function makes use of the python extinction package:
+<a class="reference external" href="https://github.com/kbarbary/extinction">https://github.com/kbarbary/extinction</a> .</p>
+<p>Their documentation is available at
+<a class="reference external" href="https://extinction.readthedocs.io/en/latest/">https://extinction.readthedocs.io/en/latest/</a> .</p>
+<p>Please have a careful look at their implementation and regarding
+details on the use of a_v and r_v. Possible extinction laws to use
+are “ccm89”, “odonnell94”, “calzetti00”, “fitzpatrick99”, “fm07”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a_v</strong> (<em>float</em>) – Extinction value ein the V band.</p></li>
+<li><p><strong>r_v</strong> (<em>float</em>) – Ratio of total to selective extinction r_v = a_v/E(B-V)</p></li>
+<li><p><strong>extinction_law</strong> (<em>str</em>) – Extinction law name as implemented in the         extinction package, see documentation.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns the binned spectrum as a SpecOneD object if         inplace==False.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD">SpecOneD</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.renormalize_by_ab_magnitude">
+<span class="sig-name descname"><span class="pre">renormalize_by_ab_magnitude</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">magnitude</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">passband</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'interpolate'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'spectrum'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.renormalize_by_ab_magnitude" title="Permalink to this definition"></a></dt>
+<dd><p>Scale the spectrum flux density and 1-sigma errors to the specified
+magnitude in the provided passband.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>magnitude</strong> (<em>float</em>) – Magnitude to scale the spectrum to.</p></li>
+<li><p><strong>passband</strong> (<a class="reference internal" href="#sculptor.speconed.PassBand" title="sculptor.speconed.PassBand"><em>PassBand</em></a>) – The astronomical passband with throughput in quantum         efficiencies.</p></li>
+<li><p><strong>match_method</strong> (<em>str</em>) – Method for matching the dispersion axis of the         spectrum to the passband.</p></li>
+<li><p><strong>force</strong> – Boolean to indicate if they spectra will be forced to         match if the spectrum does not fully cover the passband. The         forced match will result in an inner match of the spectrum’s and the         passband’s dispersion axes. User discretion is advised.         :type force: bool</p></li>
+<li><p><strong>output_mode</strong> (<em>str</em>) – Output mode of the function. The default mode         “Spectrum” returns the rescaled spectrum as a SpecOneD object or if         inplace=True updates the provided spectrum. The alternative output         mode “flux_factor” returns the factor to scale the flux with as a float.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Normalized spectrum or flux density normalization factor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.renormalize_by_spectrum">
+<span class="sig-name descname"><span class="pre">renormalize_by_spectrum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spectrum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'spectrum'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.renormalize_by_spectrum" title="Permalink to this definition"></a></dt>
+<dd><p>Scale the spectrum flux density and 1-sigma errors to match the
+provided spectrum in the full overlap region or in a specified
+dispersion range.</p>
+<p>The original SpecOneD spectrum and the normalization spectrum should be
+in the same units. If this is not the case, the normalization spectrum
+will be converted to the same units as the original SpecOneD spectrum.</p>
+<p>The dispersion limits are unitless (list of two floats) but need to
+be in the same units as the SpecOneD dispersion axis (dispersion_unit).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spectrum</strong> (<a class="reference internal" href="#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD"><em>SpecOneD</em></a>) – The provided spectrum to scale the SpecOneD spectrum         to.</p></li>
+<li><p><strong>dispersion_limits</strong> (<em>(</em><em>float</em><em>, </em><em>float</em><em>)</em>) – A list of two floats indicating the lower         and upper dispersion limits between which the spectra are normalized.</p></li>
+<li><p><strong>output_mode</strong> (<em>str</em>) – Output mode of the function. The default mode         “Spectrum” returns the rescaled spectrum as a SpecOneD object or if         inplace=True updates the provided spectrum. The alternative output         mode “flux_factor” returns the factor to scale the flux with as a float.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.resample">
+<span class="sig-name descname"><span class="pre">resample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_dispersion</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.resample" title="Permalink to this definition"></a></dt>
+<dd><p>Function for resampling spectra (and optionally associated
+uncertainties) onto a new wavelength basis.</p>
+<p>This code is making use of SpectRes
+<a class="reference external" href="https://github.com/ACCarnall/SpectRes">https://github.com/ACCarnall/SpectRes</a>
+by Adam Carnall - <a class="reference external" href="mailto:damc&#37;&#52;&#48;roe&#46;ac&#46;uk">damc<span>&#64;</span>roe<span>&#46;</span>ac<span>&#46;</span>uk</a></p>
+<p>The mask will be automatically reset.</p>
+<p>If obj_model and telluric exist for the spectrum these will be
+linearly interpolated onto the new dispersion axis and NOT resampled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>new_dispersion</strong> (<em>numpy.ndarray</em>) – Array containing the new wavelength sampling          desired for the spectrum or spectra.</p></li>
+<li><p><strong>force</strong> (<em>bool</em>) – Boolean to force the resampling of the spectrum by         reducing the new dispersion axis range to the old dispersion axis range.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns the resampled spectrum as a SpecOneD object if         inplace==False.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD">SpecOneD</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.resample_to_resolution">
+<span class="sig-name descname"><span class="pre">resample_to_resolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resolution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.resample_to_resolution" title="Permalink to this definition"></a></dt>
+<dd><p>Resample spectrum at a specific resolution specified in km/s.</p>
+<p>This should work for all spectra with flux densities per unit
+wavelength/frequency.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>resolution</strong> (<em>float</em>) – Specified resolution in km/s</p></li>
+<li><p><strong>buffer</strong> (<em>int</em>) – Integer value indicating how many pixels at the         beginning and the end of the current spectrum will be omitted in the         resampling process.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns the resampled spectrum as a SpecOneD object if         inplace==False.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD">SpecOneD</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.reset_mask">
+<span class="sig-name descname"><span class="pre">reset_mask</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.reset_mask" title="Permalink to this definition"></a></dt>
+<dd><p>Reset the spectrum mask.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.save_to_csv">
+<span class="sig-name descname"><span class="pre">save_to_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputformat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'linetools'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.save_to_csv" title="Permalink to this definition"></a></dt>
+<dd><p>Save SpecOneD object to a csv file.</p>
+<p>Output formats:
+- default: All array-like SpecOneD data will be saved to the csv
+file. Standard columns include dispersion, flux density, and flux
+density error. Additional columns can be telluric or object model
+from spectra reduced with pypeit.
+- “linetools”: In the linetool format dispersion, flux density and
+flux density error (if exists) are saved in three columns with names
+‘wave’, ‘flux’, and ‘error’.</p>
+<p>WARNING: At present the SpecOneD data will be saved independent of
+its physical units. They will not be automatically converted to a
+common format. User discretion is advised as unit information might
+get lost if saving to csv.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>str</em>) – Filename to save the SpecOneD object to.</p></li>
+<li><p><strong>outputformat</strong> (<em>str</em>) – Format of the csv file. Possible formats include         “linetools”. All other inputs will save it to the default format.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.save_to_hdf">
+<span class="sig-name descname"><span class="pre">save_to_hdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.save_to_hdf" title="Permalink to this definition"></a></dt>
+<dd><p>Save a SpecOneD object to a hdf5 file.</p>
+<p>SpecOneD hdf5 files have three extensions:
+- data: holding the array spectral information like dispersion,
+flux density, flux density error, flux density inverse variance, or mask
+- spec_meta: holding information on the spectral meta data, currently
+this includes the units of the dispersion and flux density axis.
+- header: If a header exists, it will be saved here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – Filename to save the current SpecOneD object to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.smooth">
+<span class="sig-name descname"><span class="pre">smooth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'boxcar'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.smooth" title="Permalink to this definition"></a></dt>
+<dd><p>Smoothing the flux density of the spectrum using a boxcar oder
+gaussian kernel.</p>
+<p>This function uses astropy.convolution to convolve the spectrum with
+the selected kernel.</p>
+<p>If scale_sigma=True, the fluxden error is scaled down according to
+sqrt(width).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>width</strong> – Width (in pixels) of the kernel)</p></li>
+<li><p><strong>kernel</strong> (<em>str</em>) – String indicating whether to use the Boxcar (“boxcar”)         or Gaussian (“gaussian”) kernel.</p></li>
+<li><p><strong>scale_sigma</strong> (<em>bool</em>) – Boolean to indicate whether to scale the fluxden         error according to the width of the boxcar kernel.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type<span class="colon">:</span></dt>
+<dd class="field-even"><p>width: int</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.to_fluxden_per_unit_frequency_cgs">
+<span class="sig-name descname"><span class="pre">to_fluxden_per_unit_frequency_cgs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.to_fluxden_per_unit_frequency_cgs" title="Permalink to this definition"></a></dt>
+<dd><p>Convert SpecOneD spectrum to flux density per unit frequency (Hz) in
+cgs units.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.to_fluxden_per_unit_frequency_jy">
+<span class="sig-name descname"><span class="pre">to_fluxden_per_unit_frequency_jy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.to_fluxden_per_unit_frequency_jy" title="Permalink to this definition"></a></dt>
+<dd><p>Convert SpecOneD spectrum to flux density per unit frequency (Hz) in
+Jy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.to_fluxden_per_unit_frequency_si">
+<span class="sig-name descname"><span class="pre">to_fluxden_per_unit_frequency_si</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.to_fluxden_per_unit_frequency_si" title="Permalink to this definition"></a></dt>
+<dd><p>Convert SpecOneD spectrum to flux density per unit frequency (Hz) in
+SI units.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.to_fluxden_per_unit_wavelength_cgs">
+<span class="sig-name descname"><span class="pre">to_fluxden_per_unit_wavelength_cgs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.to_fluxden_per_unit_wavelength_cgs" title="Permalink to this definition"></a></dt>
+<dd><p>Convert SpecOneD spectrum to flux density per unit wavelength (
+Angstroem) in cgs units.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sculptor.speconed.SpecOneD.trim_dispersion">
+<span class="sig-name descname"><span class="pre">trim_dispersion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">limits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'physical'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.SpecOneD.trim_dispersion" title="Permalink to this definition"></a></dt>
+<dd><p>Trim the spectrum according to the dispersion limits specified.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>limits</strong> (<em>[</em><em>float</em><em>, </em><em>float</em><em>] or </em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – A list of two floats indicating the lower and upper         dispersion limit to trim the dispersion axis to.</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – A string specifying whether the limits are in ‘physical’         values of the dispersion axis (e.g. Angstroem) or in pixel values.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – Boolean to indicate whether the active SpecOneD         object will be modified or a new SpecOneD object will be created and         returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Spectrum trimmed to the specified limits</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#sculptor.speconed.SpecOneD" title="sculptor.speconed.SpecOneD">SpecOneD</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sculptor.speconed.gaussian">
+<span class="sig-prename descclassname"><span class="pre">sculptor.speconed.</span></span><span class="sig-name descname"><span class="pre">gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor.speconed.gaussian" title="Permalink to this definition"></a></dt>
+<dd><p>1-D Gaussian function</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="scripting_sculptor_3.html" class="btn btn-neutral float-left" title="Scripting Sculptor 03 - Fitting and Analzying models using MCMC" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="specmodel.html" class="btn btn-neutral float-right" title="The SpecModel Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Jan-Torge Schindler.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

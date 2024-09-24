@@ -22,7 +22,6 @@ import numpy as np
 from lmfit import Model, Parameters
 from astropy import constants as const
 
-from sculptor import speconed as sod
 
 # ------------------------------------------------------------------------------
 # Model functions

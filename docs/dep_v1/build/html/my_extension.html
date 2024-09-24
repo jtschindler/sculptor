@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Example extension Module &mdash; Sculptor 1.1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+    <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="License" href="license.html" />
+    <link rel="prev" title="The QSO-Extension Module" href="qso_extension.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Sculptor
+          </a>
+              <div class="version">
+                1.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">The Sculptor GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_fit.html">Spectral fitting with the Sculptor GUI</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html">An introduction to the SpecOneD class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="speconed_demonstration.html#The-PassBand-class">The PassBand class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectrum_preparation.html">Preparing a composite spectrum for Sculptor modeling using the SpecOneD class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_1.html">Scripting Sculptor 01 - Modelling the example spectrum in a script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_2.html">Scripting Sculptor 02 - Analysing model fits with SpecAnalysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripting_sculptor_3.html">Scripting Sculptor 03 - Fitting and Analzying models using MCMC</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Module documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="speconed.html">The SpecOneD Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specmodel.html">The SpecModel Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specfit.html">The SpecFit Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specanalysis.html">The SpecAnalysis Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="masksmodels.html">The Masks &amp; Models Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Extensions:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="qso_extension.html">The QSO-Extension Module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Example extension Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.my_extension.model_func_dict"><code class="docutils literal notranslate"><span class="pre">model_func_dict</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.my_extension.model_func_list"><code class="docutils literal notranslate"><span class="pre">model_func_list</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.my_extension.model_setup_list"><code class="docutils literal notranslate"><span class="pre">model_setup_list</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.my_extension.my_mask"><code class="docutils literal notranslate"><span class="pre">my_mask</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.my_extension.my_model"><code class="docutils literal notranslate"><span class="pre">my_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sculptor_extensions.my_extension.setup_my_model"><code class="docutils literal notranslate"><span class="pre">setup_my_model()</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">License:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Sculptor</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Example extension Module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/my_extension.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-sculptor_extensions.my_extension">
+<span id="example-extension-module"></span><h1>Example extension Module<a class="headerlink" href="#module-sculptor_extensions.my_extension" title="Permalink to this heading"></a></h1>
+<p>An example Sculptor Extension</p>
+<p>This module defines models, masks and analysis routines as an example to
+create your own Sculptor extension.</p>
+<p>At first we define the basic model functions and their setups. The setup
+functions initialize LMFIT models and parameters using the basic model
+functions defined here.</p>
+<p>When youy define a mask you need to specify the name under which it will
+appear in the Sculptor GUI, the rest_frame keyword and the mask ranges to
+that will be included in the SpecModel masking or excluded in the SpecFit
+masking. With rest_frame=True the mask regions will automatically be adjusted
+for the object redshift specified in the SpecFit class. With rest-frame=False
+the mask will not be redshifted.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="sculptor_extensions.my_extension.model_func_dict">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.my_extension.</span></span><span class="sig-name descname"><span class="pre">model_func_dict</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'my_model':</span> <span class="pre">&lt;function</span> <span class="pre">my_model&gt;}</span></em><a class="headerlink" href="#sculptor_extensions.my_extension.model_func_dict" title="Permalink to this definition"></a></dt>
+<dd><p>List of model names</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="sculptor_extensions.my_extension.model_func_list">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.my_extension.</span></span><span class="sig-name descname"><span class="pre">model_func_list</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['My</span> <span class="pre">Model']</span></em><a class="headerlink" href="#sculptor_extensions.my_extension.model_func_list" title="Permalink to this definition"></a></dt>
+<dd><p>Dictionary of model setup function names</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="sculptor_extensions.my_extension.model_setup_list">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.my_extension.</span></span><span class="sig-name descname"><span class="pre">model_setup_list</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[&lt;function</span> <span class="pre">setup_my_model&gt;]</span></em><a class="headerlink" href="#sculptor_extensions.my_extension.model_setup_list" title="Permalink to this definition"></a></dt>
+<dd><p>Dictionary of mask presets</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="sculptor_extensions.my_extension.my_mask">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.my_extension.</span></span><span class="sig-name descname"><span class="pre">my_mask</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'mask_ranges':</span> <span class="pre">[[1265,</span> <span class="pre">1290],</span> <span class="pre">[1340,</span> <span class="pre">1375],</span> <span class="pre">[1425,</span> <span class="pre">1470],</span> <span class="pre">[1680,</span> <span class="pre">1705],</span> <span class="pre">[1905,</span> <span class="pre">2050]],</span> <span class="pre">'name':</span> <span class="pre">'My</span> <span class="pre">mask',</span> <span class="pre">'rest_frame':</span> <span class="pre">True}</span></em><a class="headerlink" href="#sculptor_extensions.my_extension.my_mask" title="Permalink to this definition"></a></dt>
+<dd><p>Dictionary of model functions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sculptor_extensions.my_extension.my_model">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.my_extension.</span></span><span class="sig-name descname"><span class="pre">my_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_km_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_km_s</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.my_extension.my_model" title="Permalink to this definition"></a></dt>
+<dd><p>Gaussian line model as an example for a model</p>
+<p>The central wavelength of the Gaussian line model is determined by the
+central wavelength cen, the redshift, z, and the velocity shift
+shift_km_s (in km/s). These parameters are degenerate in a line fit and
+it is adviseable to fix two of them (to predetermined values e.g., the
+redshift or the central wavelength).</p>
+<p>The width of the line is set by the FWHM in km/s.</p>
+<p>The Gaussian is not normalized.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.ndarray</em>) – Dispersion of the continuum model</p></li>
+<li><p><strong>z</strong> (<em>float</em>) – Redshift</p></li>
+<li><p><strong>amp</strong> (<em>float</em>) – Amplitude of the Gaussian</p></li>
+<li><p><strong>cen</strong> (<em>float</em>) – Central wavelength</p></li>
+<li><p><strong>fwhm_km_s</strong> (<em>float</em>) – FWHM of the Gaussian in km/s</p></li>
+<li><p><strong>shift_km_s</strong> (<em>float</em>) – Doppler velocity shift of the central wavelength</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Gaussian line model</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sculptor_extensions.my_extension.setup_my_model">
+<span class="sig-prename descclassname"><span class="pre">sculptor_extensions.my_extension.</span></span><span class="sig-name descname"><span class="pre">setup_my_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sculptor_extensions.my_extension.setup_my_model" title="Permalink to this definition"></a></dt>
+<dd><p>Example of a model setup function for the Gaussian emission line model.</p>
+<p>The ‘prefix’ argument needs to be included. You can use a variety of
+keyword arguments as you can see below.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> (<em>string</em>) – Model prefix</p></li>
+<li><p><strong>kwargs</strong> – Keyword arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>LMFIT model and parameters</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(lmfit.Model, lmfit.Parameters)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="qso_extension.html" class="btn btn-neutral float-left" title="The QSO-Extension Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="license.html" class="btn btn-neutral float-right" title="License" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Jan-Torge Schindler.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -23,7 +23,7 @@ from astropy import constants as const
 from astropy import units as u
 from astropy.modeling.models import BlackBody
 
-from sculptor import speconed as sod
+from sculptor.dep_v1 import speconed as sod
 
 from lmfit import Model, Parameters
 
