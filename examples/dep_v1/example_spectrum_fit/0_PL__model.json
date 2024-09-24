@@ -1,0 +1,1 @@
+{"__class__": "Tuple", "value": [{"__class__": "Tuple", "value": ["power_law_at_2500", null, "power_law_at_2500", "PL_", {"__class__": "List", "value": ["x"]}, {"__class__": "List", "value": ["amp", "slope", "z"]}, {"__class__": "Dict"}, "raise", {"__class__": "Dict"}]}, null, null]}
