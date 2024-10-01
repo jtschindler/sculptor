@@ -9,7 +9,7 @@ PyQt5
 tables
 scipy
 corner
-lmfit
+speconed
 emcee
 PyYAML
 extinction
