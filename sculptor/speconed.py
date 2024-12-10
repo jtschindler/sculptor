@@ -14,7 +14,7 @@ import scipy as sp
 import pandas as pd
 
 import h5py
-import extinction as ext
+import numba_extinction as ext
 import pkg_resources
 import spectres
 
