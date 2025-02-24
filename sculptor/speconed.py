@@ -1078,7 +1078,7 @@ class SpecOneD(object):
                 secondary_max:
             return 'partial', spec_min, secondary_max
         else:
-            return 'none', np.NaN, np.NaN
+            return 'none', np.nan, np.nan
 
     def match_dispersions(self, secondary_spectrum, match_secondary=True,
                           force=False, method='interpolate',
