@@ -20,7 +20,7 @@ from astropy import units
 from astropy.cosmology import FlatLambdaCDM
 
 from scipy.interpolate import UnivariateSpline
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid as cumtrapz
 import matplotlib.pyplot as plt
 
 from IPython import embed
