@@ -25,7 +25,7 @@ from astropy.modeling.models import BlackBody
 
 from sculptor.dep_v1 import speconed as sod
 
-from lmfit import Model, Parameters
+# from lmfit import Model, Parameters
 
 from linetools import utils as lu
 

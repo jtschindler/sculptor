@@ -1,6 +1,7 @@
 
 import os
 import emcee
+import pickle
 import itertools
 import numpy as np
 import pandas as pd
@@ -18,6 +19,7 @@ from IPython import embed
 
 from sculptor import plot as scp
 from sculptor import colors as tolc
+from sculptor import utils as scut
 
 cmap = tolc.tol_cmap(colormap='rainbow_PuRd')
 
@@ -34,9 +36,15 @@ def log_likelihood_chi_square(theta, model, x, y, yerr):
     :return:
     """
 
-    sigma2 = yerr ** 2
+    fit_mask = model.gpm_fit
 
-    logl = -0.5 * np.sum((y - model.eval(x, theta)) ** 2 /
+    # Calculate the full evaluated model at the given x values
+    model_flux = model.eval(x, theta)
+
+    # Define sigma ** 2
+    sigma2 = yerr[fit_mask] ** 2
+
+    logl = -0.5 * np.sum((y[fit_mask] - model_flux[fit_mask]) ** 2 /
                          sigma2 + np.log(sigma2))
 
     return logl
@@ -81,10 +89,11 @@ def log_probability(theta, x, model, y, yerr):
         return -np.inf
     return lp + log_likelihood_chi_square(theta, model, x, y, yerr)
 
+
 class FitModel(object):
 
     def __init__(self, components=None, parameters=None, spectrum=None,
-                 redshift=None):
+                 redshift=None, resolution=None):
         """ Initialize the FitModel class.
 
         :param components:
@@ -109,6 +118,13 @@ class FitModel(object):
 
         self.seed = 1234
         self.rng = np.random.default_rng(self.seed)
+
+        self.params_variable = dict()
+        self.params_constant = dict()
+        self.params_constant_val = []
+        self.vardim = None
+
+        self.resolution = resolution
 
         if isinstance(spectrum, sod.SpecOneD):
             self.spec = spectrum.copy()
@@ -142,12 +158,53 @@ class FitModel(object):
         self.parameters.update(parameters)
 
 
-    def eval(self, x, params_values, components=None):
+    def save(self, name, save_dir):
+        """
+        Save the model object to a pickle file.
+
+        :param name:
+        :param save_dir:
+        :return:
+        """
+
+        # Check if the directory exists
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
+        # Save the model
+        save_name = '{}.pkl'.format(name)
+        with open(os.path.join(save_dir, save_name), 'wb') as f:
+            pickle.dump(self, f)
+
+
+    def load(self, name, load_dir):
+        """
+        Load the model object from a pickle file.
+
+        :param name:
+        :param load_dir:
+        :return
+        """
+
+        # Load the model
+        load_name = '{}.pkl'.format(name)
+        with open(os.path.join(load_dir, load_name), 'rb') as f:
+            loaded_data = pickle.load(f)
+
+            self.__dict__ = loaded_data.__dict__
+
+
+    def eval(self, x, params_values, components=None,
+             broaden_by_resolution=True):
         """ Evaluate the model at the given x values."""
 
         # If no components are specified, use all components
         if components is None:
             components = self.components
+
+        # If the parameter dictionaries have not been populated, do so now
+        if len(self.params_variable) == 0:
+            self.get_params_to_sample()
 
         params = {}
         params.update(zip(self.params_variable.keys(), params_values))
@@ -166,26 +223,27 @@ class FitModel(object):
 
             y += component.eval(x, mapped)
 
+        # from IPython import embed
+        # embed()
+
+        # If resolution is provided, convolve the model with the resolution
+        if self.resolution is not None and broaden_by_resolution:
+            y = scut.broaden_spectrum(x, y, self.resolution)
+
         return y
 
 
     def get_params_to_sample(self):
 
-        params_variable = dict()
-        params_constant = dict()
-        params_constant_val = []
-
         for param in self.parameters:
             if self.parameters[param].vary:
-                params_variable.update({param: self.parameters[param]})
+                self.params_variable.update({param: self.parameters[param]})
             else:
-                params_constant.update({param: self.parameters[param]})
-                params_constant_val.append(self.parameters[param].value)
+                self.params_constant.update({param: self.parameters[param]})
+                self.params_constant_val.append(self.parameters[param].value)
 
-        self.params_variable = params_variable
         self.vardim = len(self.params_variable)
-        self.params_constant = params_constant
-        self.params_constant_val = params_constant_val
+
 
     def initialize_emcee(self, nwalkers, log_probability=log_probability,
                          spec=None):
@@ -199,9 +257,16 @@ class FitModel(object):
 
             spec = self.spec
 
-        wave = spec.dispersion[self.gpm_fit]
-        flux = spec.fluxden[self.gpm_fit]
-        flux_err = spec.fluxden_err[self.gpm_fit]
+        # TODO: Test if there is really no way to reduce the number of pixels
+        #  here, if we want to take the resolution into account
+        #  Moved application of the fit mask to the log_chi_quasared function
+        # wave = spec.dispersion[self.gpm_fit]
+        # flux = spec.fluxden[self.gpm_fit]
+        # flux_err = spec.fluxden_err[self.gpm_fit]
+
+        wave = spec.dispersion
+        flux = spec.fluxden
+        flux_err = spec.fluxden_err
 
         sampler = emcee.EnsembleSampler(nwalkers, self.vardim, log_probability,
                                         args=(wave, self, flux, flux_err))

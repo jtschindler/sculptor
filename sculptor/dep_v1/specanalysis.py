@@ -19,7 +19,7 @@ from astropy import units
 from astropy.cosmology import FlatLambdaCDM
 
 from scipy.interpolate import UnivariateSpline
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid as cumtrapz
 
 pc_in_cm = units.pc.to(units.cm)
 c_km_s = const.c.to('km/s').value

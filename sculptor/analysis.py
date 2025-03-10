@@ -22,7 +22,7 @@ from IPython import embed
 c_km_s = const.c.to('km/s').value
 
 from speconed import speconed as sod
-from sculptor import analysis as scana
+from sculptor.dep_v1 import specanalysis as scana
 
 # ------------------------------------------------------------------------------
 # Model functions
@@ -292,7 +292,8 @@ def analyze_emission_feature(model, feature_name, components, params_values,
     """
 
     # Build the model flux
-    model_fluxden = model.eval(dispersion, params_values, components=components)
+    model_fluxden = model.eval(dispersion, params_values, components=components,
+                               broaden_by_resolution=False)
 
     if a_v is not None:
         if ext_law == 'calzetti00':
@@ -306,7 +307,9 @@ def analyze_emission_feature(model, feature_name, components, params_values,
                               fluxden_unit=fluxden_unit)
 
     if cont_components is not None:
-        cont_fluxden = model.eval(dispersion, params_values, components=cont_components)
+        cont_fluxden = model.eval(dispersion, params_values,
+                                  components=cont_components,
+                                  broaden_by_resolution=False)
 
         if a_v is not None:
             if ext_law == 'calzetti00':
@@ -438,7 +441,8 @@ def analyze_continuum(model, components, params_values, rest_frame_wavelengths,
     """
 
     # Build the continuum model spectrum
-    cont_flux = model.eval(dispersion, params_values, components=components)
+    cont_flux = model.eval(dispersion, params_values, components=components,
+                           broaden_by_resolution=False)
     cont_spec = sod.SpecOneD(dispersion=dispersion, fluxden=cont_flux,
                                 dispersion_unit=dispersion_unit,
                                 fluxden_unit=fluxden_unit)
