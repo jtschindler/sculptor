@@ -21,7 +21,7 @@ from lmfit import Parameters
 
 from sculptor.dep_v1 import speconed as sod
 
-from sculptor.specmodel import SpecModel
+from sculptor.dep_v1.specmodel import SpecModel
 
 
 

@@ -485,3 +485,50 @@ def analyze_continuum(model, components, params_values, rest_frame_wavelengths,
         #     result_dict.update({wave_name + '_absmag': absmag})
 
     return result_dict
+
+
+def get_line_snr(model, flat_chain, cont_component, redshift, line_dict,
+                 sigma=2):
+
+    dispersion = model.spec.dispersion
+    resid_spec = model.spec.copy()
+
+    n_lines = len(line_dict)
+    line_snr = np.zeros((n_lines, flat_chain.shape[0]))
+    peak_snr = np.zeros((n_lines, flat_chain.shape[0]))
+
+    for idx in tqdm(range(flat_chain.shape[0])):
+        params = flat_chain[idx, :]
+
+        cont_flux = model.eval(dispersion, params, components=[cont_component],
+                               broaden_by_resolution=False)
+
+        resid_spec.fluxden = model.spec.fluxden - cont_flux
+
+        for jdx, line in enumerate(line_dict):
+
+            if line_dict[line]['l_min'] is None:
+                line_dict[line]['l_min'] = line_dict[line]['cen'] * (1 - line_dict[line]['fwhm'][
+                    idx]/2.355*sigma/const.c.to(
+                    'km/s').value)
+            if line_dict[line]['l_max'] is None:
+                line_dict[line]['l_max'] = line_dict[line]['cen'] * (1 + line_dict[line]['fwhm'][
+                    idx]/2.355*sigma/const.c.to(
+                    'km/s').value)
+
+            # Sum the flux in the line region
+            trimmed_spec = resid_spec.trim_dispersion([line_dict[line]['l_min'] * (1 + redshift),
+                                                      line_dict[line]['l_max'] * (1 + redshift)])
+            # Calculate the SNR for the line
+            errsum = np.sqrt(np.sum(trimmed_spec.fluxden_err**2))
+            line_snr[jdx, idx] = np.sum(trimmed_spec.fluxden) / errsum
+
+            peak_snr[jdx, idx] = np.max(trimmed_spec.fluxden) / trimmed_spec.fluxden_err[np.argmax(trimmed_spec.fluxden)]
+
+
+    return line_snr, peak_snr
+
+
+
+
+

@@ -28,7 +28,7 @@ from lmfit.model import save_model, load_model, save_modelresult, \
 
 from sculptor.dep_v1 import speconed as sod
 
-from sculptor.masksmodels import model_func_list, model_func_dict,\
+from sculptor.dep_v1.masksmodels import model_func_list, model_func_dict,\
     model_setup_list, mask_presets
 
 # For a full list of fitting method

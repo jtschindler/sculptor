@@ -418,7 +418,7 @@ class FitModel(object):
         self.mcmc_model_posterior = [med_model, low_model, upp_model]
 
     def plot_mcmc_result(self, discard=2000, show_fit_mask=True,
-                         show_ml_model=True, ylim=None, xlim=None,
+                         show_ml_model=True, ylim=None, xlim=None, resid_ylim=None,
                          save=False, save_dir='.', show_components=False,
                          save_name='fit_result.pdf', save_data=False):
 
@@ -582,8 +582,11 @@ class FitModel(object):
         if xlim is not None:
             ax_main.set_xlim(xlim)
 
-        yerr_lim = 2 * np.max(self.spec.fluxden_err[self.gpm_fit])
-        ax_resid.set_ylim([-yerr_lim, yerr_lim])
+        if resid_ylim is None:
+            yerr_lim = 2 * np.max(self.spec.fluxden_err[self.gpm_fit])
+            ax_resid.set_ylim([-yerr_lim, yerr_lim])
+        else:
+            ax_resid.set_ylim(resid_ylim)
 
         ax_main.legend()
         ax_resid.legend(ncol=2)

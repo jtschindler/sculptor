@@ -117,6 +117,9 @@ def create_a_spectral_model():
 
     comp_civ_b.param_mapping.update({'redsh': 'redsh_nl'})
 
+    from IPython import embed
+    embed()
+
     # Consolidate model components
     model.components = [comp_pl, comp_siiv_a, comp_siiv_b, comp_civ_a,
                         comp_civ_b]
@@ -169,9 +172,9 @@ def test_resolution_broadening(spectrum, model_name, model_dir):
     # Constant resolution
     r = 350
 
-    # Wavelength dependent resolution (step function)
-    r = np.ones_like(spectrum.dispersion) * 350
-    r[spectrum.dispersion < 1500 * (1+redshift)] = 500
+    # # Wavelength dependent resolution (step function)
+    # r = np.ones_like(spectrum.dispersion) * 350
+    # r[spectrum.dispersion < 1500 * (1+redshift)] = 500
 
 
     # Carry out a fit without the broadening and without the resolution
@@ -210,7 +213,10 @@ def test_resolution_broadening(spectrum, model_name, model_dir):
     print('Time: ', stop - start)
     # fluxden_broadened = scut.broaden_spectrum(spectrum.dispersion, spectrum.fluxden, r)
 
-
+    # Downsample the broadened spectrum to larger pixel space
+    resolution_in_km_s = 300000 / ( 2 * r)
+    # Resample using Nyquist sampling
+    spectrum_broadened = spectrum_broadened.resample_to_resolution(resolution_in_km_s)
 
     # Load the old model (again)
     model2 = scmod.FitModel()
@@ -235,11 +241,11 @@ def test_resolution_broadening(spectrum, model_name, model_dir):
     ax = fig.add_subplot(111)
     ax.plot(spectrum.dispersion, spectrum.fluxden, label='Original spectrum')
     ax.plot(spectrum.dispersion, model2.eval(spectrum.dispersion, param_values), label='Model spectrum', ls='--')
-    ax.plot(spectrum_broadened.dispersion, fluxden_broadened, label='Broadened spectrum')
+    ax.plot(spectrum_broadened.dispersion, spectrum_broadened.fluxden, label='Broadened spectrum')
 
     ax2 = ax.twinx()
 
-    ax2.plot(spectrum.dispersion, r, color='red', alpha=0.5)
+    # ax2.plot(spectrum.dispersion, r, color='red', alpha=0.5)
 
     plt.show()
 
@@ -262,6 +268,7 @@ def test_resolution_broadening(spectrum, model_name, model_dir):
 if __name__ == '__main__':
 
     spectrum = create_a_spectral_model()
+
 
     test_resolution_broadening(spectrum, 'test_model.pkl', 'test_folder')
 
