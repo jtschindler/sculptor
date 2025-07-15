@@ -116,6 +116,8 @@ class FitModel(object):
         self.nwalkers = None
         self.flat_chain = None
 
+        self.bic = None
+
         self.seed = 1234
         self.rng = np.random.default_rng(self.seed)
 
@@ -417,6 +419,32 @@ class FitModel(object):
 
         self.mcmc_model_posterior = [med_model, low_model, upp_model]
 
+    def compute_bic(self):
+        """
+        Compute the Bayesian Information Criterion (BIC) for a given model.
+        Only considers data within the good pixel mask (gpm_fit).
+        """
+
+        if self.flat_chain is None:
+            raise ValueError("No MCMC/dynesty samples available.")
+
+        x = self.spec.dispersion
+        y = self.spec.fluxden
+        yerr = self.spec.fluxden_err
+
+        logls = []
+        for theta in tqdm(self.flat_chain, desc="Computing BIC"):
+            logl = log_likelihood_chi_square(theta, self, x, y, yerr)
+            logls.append(logl)
+
+        max_logl = np.max(logls)
+        n_params = len(self.params_variable)
+        n_data = np.sum(self.gpm_fit)
+
+        bic = n_params * np.log(n_data) - 2 * max_logl
+        self.bic = bic
+
+
     def plot_mcmc_result(self, discard=2000, show_fit_mask=True,
                          show_ml_model=True, ylim=None, xlim=None, resid_ylim=None,
                          save=False, save_dir='.', show_components=False,
@@ -627,6 +655,53 @@ class FitModel(object):
                            filename=filename)
         else:
             c.plotter.plot(columns=parameters)
+
+    def get_bestfit_param(self, discard=2000, save=False,
+                          save_dir='.', save_name='best_fit_params.csv'):
+
+        chain = self.sampler.get_chain(discard=discard, flat=True)
+
+        # Get the parameter names
+        param_names = list(self.params_variable.keys())
+
+        df_chain = pd.DataFrame(chain, columns=param_names)
+        # Instantiate the chain consumer
+        c = cc.ChainConsumer()
+        chain = cc.Chain(samples=df_chain, name='MCMC chain')
+        c.add_chain(chain)
+
+        data = {}
+
+        for param in param_names:
+            bound = c.analysis.get_parameter_summary(chain, column=param)
+
+            if bound.center is None:
+                best = np.nan
+            else:
+                best = bound.center
+
+            if bound.center is None or bound.upper is None:
+                upper_err = np.nan
+            else:
+                upper_err = bound.upper - bound.center
+
+            if bound.center is None or bound.lower is None:
+                lower_err = np.nan
+            else:
+                lower_err = bound.center - bound.lower
+
+            # Store in dict under parameter name
+            data[param] = {
+                "best": best,
+                "upper_err": upper_err,
+                "lower_err": lower_err
+            }
+
+        df_bestparam = pd.DataFrame.from_dict(data, orient='index')
+        if save:
+            filename = os.path.join(save_dir, save_name)
+            df_bestparam.to_csv(filename, index=True)
+
 
 
 
