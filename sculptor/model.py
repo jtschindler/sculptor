@@ -417,7 +417,7 @@ class FitModel(object):
         low_model = np.percentile(model_fluxden, 15.87, axis=0)
         upp_model = np.percentile(model_fluxden, 84.13, axis=0)
 
-        self.mcmc_model_posterior = [med_model, low_model, upp_model]
+        self.mcmc_model = [med_model, low_model, upp_model]
 
     def compute_bic(self):
         """
