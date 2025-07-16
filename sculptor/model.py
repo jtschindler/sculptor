@@ -216,6 +216,9 @@ class FitModel(object):
 
         # Iterate over the components and evaluate them using a parameter
         # mapping
+        if not isinstance(components, list):
+            components = [components]
+
         for component in components:
 
             pmap = component.param_mapping
