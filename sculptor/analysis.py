@@ -27,7 +27,8 @@ from sculptor.dep_v1 import specanalysis as scana
 # ------------------------------------------------------------------------------
 # Model functions
 # ------------------------------------------------------------------------------
-
+def linear_continuum(x, slope, intercept):
+    return slope * x + intercept
 
 def power_law_at2500(x, redsh, amp, slope, **kwargs):
     """
