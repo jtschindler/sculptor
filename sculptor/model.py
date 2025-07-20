@@ -126,6 +126,9 @@ class FitModel(object):
 
         self.resolution = resolution
 
+        self.red_chisq = None
+        self.bic = None
+
         if isinstance(spectrum, sod.SpecOneD):
             self.spec = spectrum.copy()
             # Set mask describing the regions included in the fit for this model
@@ -327,6 +330,63 @@ class FitModel(object):
                 raise ValueError('[ERROR] Provided position array has wrong shape.')
 
         self.sampler.run_mcmc(pos, nsteps, progress=progress)
+
+    def get_components_by_prefix(self, prefixes):
+        """
+        Retrive array of components with the name starting with the provided prefix.
+
+        :return: component array
+        """
+
+        return [comp for comp in self.components if comp.name in prefixes]
+
+    def calculate_chi_sq(self):
+        """
+        Calculate chi square statistic using median model from the fit and observed data.
+        Only considers data and model within the good pixel mask (gpm_fit).
+
+        :return chi_sq, dof, reduced_chi_sq: Chi-square, degree of freedom, reduced chi-square
+        :type: tuple
+        """
+        flux_exp = self.spec.fluxden[self.gpm_fit]
+        median_model = self.mcmc_model_posterior[0]
+        flux_model = median_model[self.gpm_fit]
+        flux_exp_err = self.spec.fluxden_err[self.gpm_fit]
+        dof = len(flux_model) - len(self.parameters)
+
+        chi_sq = np.sum(((flux_exp - flux_model) / flux_exp_err) ** 2)
+
+        reduced_chi_sq = chi_sq / dof
+        self.red_chisq = reduced_chi_sq
+        return chi_sq, dof, reduced_chi_sq
+
+    def compute_bic(self):
+        """
+        Compute the Bayesian Information Criterion (BIC) for a given model.
+        Only considers data within the good pixel mask (gpm_fit).
+
+        :return bic: BIC factor
+        """
+
+        if self.flat_chain is None:
+            raise ValueError("No MCMC or dynesty samples available.")
+
+        x = self.spec.dispersion
+        y = self.spec.fluxden
+        yerr = self.spec.fluxden_err
+
+        logls = []
+        for theta in tqdm(self.flat_chain, desc="Computing BIC"):
+            logl = log_likelihood_chi_square(theta, self, x, y, yerr)
+            logls.append(logl)
+
+        max_logl = np.max(logls)
+        n_params = len(self.params_variable)
+        n_data = np.sum(self.gpm_fit)
+
+        bic = n_params * np.log(n_data) - 2 * max_logl
+        self.bic = bic
+        return bic
 
     # -----------------------------------------------------------------------
     # Functions related to the good pixel fit mask (gpm_fit)
