@@ -756,48 +756,6 @@ def initialise_balmer(prefix, model, balmer_dict=None, median_params=None):
     return comp, params
 
 
-def initialise_gaussian_line_model(prefix, line_dict):
-    """
-    Setup a gaussian model for a given emission line feature in the spectrum.
-    The central wavelength of the Gaussian line model is determined by the
-    central wavelength cen and the redshift, z. These parameters are degenerate
-    in a line fit and it is adviseable to fix one of them (to predetermined
-    values e.g., the redshift or the central wavelength).
-
-    The width of the line is set by the FWHM in km/s.
-
-    :param prefix: Model prefix
-    :type prefix: string
-    :param line_dict: Dictionary containing all the emission line parameters "flux", "fwhm_km_s","cen", "redsh", and "vel_shift".
-    Each component from this dictionary has "initial_value", "vary" and "prior"
-    which provides information on initial value of the parameter, whether the parameter should be varied, and
-    prior to be used to contrain the parameter, respectively.
-    Depending upon the lines in consideration, separate components such as narrow, broad and blue-shifted can be provided.
-
-    :return: Components and parameters for a gaussian line model
-    """
-    if "OIII" in prefix:
-        comp = sccomp.FitComponent(prefix, qso.line_model_gaussian_oiii_doublet)
-    else:
-        comp = sccomp.FitComponent(prefix, ana.line_model_gaussian)
-    params = comp.create_params()
-
-    for key in list(params.keys()):
-        par = key.split(f"{prefix}_")[1]
-        input = line_dict[par]
-
-        if "parameter" in input.keys():
-            params.pop(key)
-            comp.param_mapping.update({par: input["parameter"]})
-        else:
-            params[key].value = input["value"]
-            params[key].vary = input["vary"]
-            if input["vary"]:
-                params[key].prior = input["prior"]
-
-    return comp, params
-
-
 # ------------------------------------------------------------------------------
 # Initialise emission line components
 # ------------------------------------------------------------------------------
