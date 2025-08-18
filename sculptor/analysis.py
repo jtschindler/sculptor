@@ -153,7 +153,8 @@ def analyze_mcmc_results(model, flat_chain, cont_dict,
 
 
 def _mcmc_analyze(model, flat_chain, cont_dict, emfeat_dictlist, redshift,
-                  cosmology, dispersion=None, dispersion_unit=None,
+                  cosmology, cont_meas=None,
+                  dispersion=None, dispersion_unit=None,
                   fluxden_unit=None, width=10, emfeat_meas=None, a_v=None,
                   ext_law='calzetti00'):
 
@@ -172,6 +173,7 @@ def _mcmc_analyze(model, flat_chain, cont_dict, emfeat_dictlist, redshift,
 
         cont_result_dict = analyze_continuum(model, cont_component, params,
                                        cont_wavelengths, cosmology, redshift=redshift,
+                                       cont_meas=cont_meas,
                                        dispersion_unit=dispersion_unit,
                                        fluxden_unit=fluxden_unit,
                                        dispersion=dispersion, width=width)

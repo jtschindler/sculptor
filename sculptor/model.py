@@ -21,7 +21,7 @@ from sculptor import plot as scp
 from sculptor import colors as tolc
 from sculptor import utils as scut
 
-cmap = tolc.tol_cmap(colormap='rainbow_PuRd')
+
 
 # Definition of the likelihood function
 
@@ -36,7 +36,7 @@ def log_likelihood_chi_square(theta, model, x, y, yerr):
     :return:
     """
 
-    fit_mask = model.gpm_fit
+    fit_mask = model.gpm_fit & model.spec.mask
 
     # Calculate the full evaluated model at the given x values
     model_flux = model.eval(x, theta)
@@ -115,6 +115,10 @@ class FitModel(object):
         self.nsteps = None
         self.nwalkers = None
         self.flat_chain = None
+
+        self.reduced_chi_sq = None
+        self.chi_sq = None
+        self.dof = None
 
         self.bic = None
 
@@ -327,6 +331,7 @@ class FitModel(object):
 
         if pos is None:
             pos = self.initialize_positions()
+            # print(pos)
         else:
             if pos.shape[0] != nwalkers or pos.shape[1] != self.vardim:
                 raise ValueError('[ERROR] Provided position array has wrong shape.')
@@ -422,42 +427,69 @@ class FitModel(object):
 
         self.mcmc_model_posterior = [med_model, low_model, upp_model]
 
-    def compute_bic(self):
+    def compute_bic(self, discard):
         """
         Compute the Bayesian Information Criterion (BIC) for a given model.
         Only considers data within the good pixel mask (gpm_fit).
+        Kat: function changed to use
+            1. log_calculation from sampler
+            2. using median instead of maximum of log_likelihood
         """
+        fit_mask = self.gpm_fit & self.spec.mask
 
         if self.flat_chain is None:
             raise ValueError("No MCMC/dynesty samples available.")
 
-        x = self.spec.dispersion
-        y = self.spec.fluxden
-        yerr = self.spec.fluxden_err
+        logls = self.sampler.get_log_prob(discard=discard, flat=True)
 
-        logls = []
-        for theta in tqdm(self.flat_chain, desc="Computing BIC"):
-            logl = log_likelihood_chi_square(theta, self, x, y, yerr)
-            logls.append(logl)
-
-        max_logl = np.max(logls)
+        # max_logl = np.max(logls)
         n_params = len(self.params_variable)
-        n_data = np.sum(self.gpm_fit)
+        # n_data = np.sum(self.gpm_fit)
+        n_data = np.sum(fit_mask)
 
-        bic = n_params * np.log(n_data) - 2 * max_logl
-        self.bic = bic
+        bic = n_params * np.log(n_data) - 2 * logls
+        self.bic = np.nanmedian(bic)
 
+    def calculate_chi_sq(self):
+        """
+        Calculate chi square statistic using median model from the fit and observed data.
+        Only considers data and model within the good pixel mask (gpm_fit).
+        """
+        fit_mask = self.gpm_fit & self.spec.mask
+        flux_exp = self.spec.fluxden[fit_mask]
+        median_model = self.mcmc_model_posterior[0]
+        flux_model = median_model[fit_mask]
+        flux_exp_err = self.spec.fluxden_err[fit_mask]
+        dof = len(flux_model) - len(self.parameters)
+
+        chi_sq = np.sum(((flux_exp - flux_model) / flux_exp_err) ** 2)
+
+        reduced_chi_sq = chi_sq / dof
+
+        self.chi_sq = chi_sq
+        self.dof = dof
+        self.reduced_chi_sq = reduced_chi_sq
+
+        return chi_sq, dof, reduced_chi_sq
 
     def plot_mcmc_result(self, discard=2000, show_fit_mask=True,
                          show_ml_model=True, ylim=None, xlim=None, resid_ylim=None,
                          save=False, save_dir='.', show_components=False,
-                         save_name='fit_result.pdf', save_data=False):
+                         save_name='fit_result.pdf', save_data=False, plotting_mode='paper', colormap='rainbow_PuRd', figsize=None):
 
-        scp.set_presentation_defaults()
+        cmap = tolc.tol_cmap(colormap=colormap)
+
+        if plotting_mode == 'presentation':
+            scp.set_presentation_defaults()
+        elif plotting_mode == 'paper':
+            scp.set_paper_defaults()
 
         # Define the figure
         plt.clf()
-        fig = plt.figure(figsize=(14, 8))
+        if figsize is None:
+            figsize = (14, 8)
+
+        fig = plt.figure(figsize=figsize)
 
         # Define the gridspec
         gs = gridspec.GridSpec(2, 1,
@@ -471,6 +503,7 @@ class FitModel(object):
             ax_main.transData, ax_main.transAxes)
 
         # Plot the gpm fit mask
+        # TODO Integrate the spec mask
         if show_fit_mask:
             mask = np.ones_like(self.spec.fluxden)
             mask[np.invert(self.gpm_fit)] = -1
@@ -574,8 +607,8 @@ class FitModel(object):
         if self.redshift:
             ax_main.tick_params(axis='x', which='both', top=False)
 
-            ax_resid.set_xlabel('Observed wavelength ({})'.format(
-                self.spec.dispersion_unit.to_string(format='latex')), fontsize=14)
+            ax_resid.set_xlabel('Observed wavelength [{}]'.format(
+                self.spec.dispersion_unit.unit.to_string(format='latex_inline')), fontsize=14)
 
             def wave_to_restwave(wav):
                 return wav / (1 + self.redshift)
@@ -586,23 +619,23 @@ class FitModel(object):
             secax = ax_main.secondary_xaxis('top',
                                             functions=(wave_to_restwave,
                                                        restwave_to_wave))
-            secax.set_xlabel('Rest-frame wavelength ({})'.format(
-                self.spec.dispersion_unit.to_string(format='latex')),
+            secax.set_xlabel('Rest-frame wavelength [{}]'.format(
+                self.spec.dispersion_unit.unit.to_string(format='latex_inline')),
                 fontsize=14)
 
         else:
-            ax_resid.set_xlabel('Wavelength ({})'.format(
-                self.spec.dispersion_unit.to_string(format='latex')),
+            ax_resid.set_xlabel('Wavelength [{}]'.format(
+                self.spec.dispersion_unit.unit.to_string(format='latex_inline')),
                 fontsize=14)
 
-        ax_main.set_ylabel('Flux density ({})'.format(
-            self.spec.fluxden_unit.to_string(format='latex')), fontsize=14)
+        ax_main.set_ylabel('Flux density [{}]'.format(
+            self.spec.fluxden_unit.to_string(format='latex_inline')), fontsize=14)
 
         # Get the y-axis limits
         if ylim is None:
-            y_max = 1.1 * np.max(self.spec.fluxden[self.gpm_fit])
+            y_max = 1.1 * np.nanmax(self.spec.fluxden[self.gpm_fit])
             if self.spec.fluxden_err is not None:
-                y_min = -np.max(self.spec.fluxden_err[self.gpm_fit])
+                y_min = -np.nanmax(self.spec.fluxden_err[self.gpm_fit])
             else:
                 y_min = 0
 
@@ -614,7 +647,11 @@ class FitModel(object):
             ax_main.set_xlim(xlim)
 
         if resid_ylim is None:
-            yerr_lim = 2 * np.max(self.spec.fluxden_err[self.gpm_fit])
+            #print(self.gpm_fit.shape)
+            #print(self.spec.fluxden_err.shape)
+            #print(self.gpm_fit)
+            #print(self.spec.fluxden_err)
+            yerr_lim = 2 * np.nanmax(self.spec.fluxden_err[self.gpm_fit])
             ax_resid.set_ylim([-yerr_lim, yerr_lim])
         else:
             ax_resid.set_ylim(resid_ylim)
@@ -672,6 +709,7 @@ class FitModel(object):
         c = cc.ChainConsumer()
         chain = cc.Chain(samples=df_chain, name='MCMC chain')
         c.add_chain(chain)
+        # c.configure(summary="median")
 
         data = {}
 

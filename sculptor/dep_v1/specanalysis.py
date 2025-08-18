@@ -1199,7 +1199,7 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, method='spline'):
         #          lw=2)
         # plt.plot(dispersion, dispersion*0, 'k--')
         # plt.show()
-        return np.NaN
+        return np.nan # KJ: from numpy 2.0 np.NaN became np.nan
     else:
 
         max_idx = np.where(fluxden == np.max(fluxden))
