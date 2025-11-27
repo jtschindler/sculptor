@@ -128,7 +128,7 @@ def analyze_emission_feature(specfit, feature_name, model_names,
     if 'EW' in emfeat_meas and cont_model_names is not None:
         # Calculate the rest-frame equivalent width
         ew = get_equivalent_width(cont_spec, model_spec,
-                                        redshift=redshift)
+                                  redshift=redshift, disp_range=disp_range)
         result_dict.update({feature_name + '_EW': ew})
 
     if 'FWHM' in emfeat_meas:
@@ -904,6 +904,10 @@ def _resampled_analyze(specfit, resampled_df, foldername, continuum_dict,
                 fwhm_method = emission_feature_dict['fwhm_method']
             else:
                 fwhm_method = 'spline'
+
+            print('cont_model_names', cont_model_names)
+            print('model_names', model_names)
+            print('disp_range', disp_range)
 
             single_emfeat_result_dict = \
                 analyze_emission_feature(specfit,
