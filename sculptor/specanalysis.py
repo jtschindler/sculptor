@@ -133,7 +133,7 @@ def analyze_emission_feature(specfit, feature_name, model_names,
 
     if 'FWHM' in emfeat_meas:
         # Calculate the (composite) line model FWHM.
-        fwhm = get_fwhm(model_spec, method=fwhm_method)
+        fwhm = get_fwhm(model_spec, method=fwhm_method, disp_range=disp_range)
         result_dict.update({feature_name+'_FWHM': fwhm})
 
         if np.isnan(fwhm):
@@ -148,7 +148,8 @@ def analyze_emission_feature(specfit, feature_name, model_names,
     if 'lum' in emfeat_meas:
         # Calculate the integrated line luminosity
         lum = calc_integrated_luminosity(model_spec,
-                                         redshift=redshift, cosmology=cosmology)
+                                         redshift=redshift, cosmology=cosmology,
+                                         disp_range=disp_range)
         result_dict.update({feature_name + '_lum': lum})
 
     if 'nonparam' in emfeat_meas:
