@@ -1052,7 +1052,7 @@ def get_integrated_flux(input_spec, disp_range=None, redshift=0):
     """
 
     if disp_range is not None:
-        spec = input_spec.trim_dispersion(disp_range * (1+redshift),
+        spec = input_spec.trim_dispersion(np.array(disp_range) * (1+redshift),
                                           inplace=False)
     else:
         spec = input_spec.copy()
@@ -1188,7 +1188,7 @@ def get_fwhm(input_spec, disp_range=None, redshift=0,
     """
 
     if disp_range is not None:
-        spec = input_spec.trim_dispersion(disp_range * (1+redshift),
+        spec = input_spec.trim_dispersion(np.array(disp_range) * (1+redshift),
                                           inplace=False)
     else:
         spec = input_spec.copy()
