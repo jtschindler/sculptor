@@ -133,7 +133,8 @@ def analyze_emission_feature(specfit, feature_name, model_names,
 
     if 'FWHM' in emfeat_meas:
         # Calculate the (composite) line model FWHM.
-        fwhm = get_fwhm(model_spec, method=fwhm_method, disp_range=disp_range)
+        fwhm = get_fwhm(model_spec, method=fwhm_method, disp_range=disp_range,
+                        redshift=redshift)
         result_dict.update({feature_name+'_FWHM': fwhm})
 
         if np.isnan(fwhm):
@@ -142,7 +143,8 @@ def analyze_emission_feature(specfit, feature_name, model_names,
 
     if 'flux' in emfeat_meas:
         # Calculate the integrated line flux
-        flux = get_integrated_flux(model_spec, disp_range=disp_range)
+        flux = get_integrated_flux(model_spec, disp_range=disp_range,
+                                   redshift=redshift)
         result_dict.update({feature_name+'_flux': flux})
 
     if 'lum' in emfeat_meas:
@@ -1029,7 +1031,7 @@ def build_model_flux(specfit, model_list, dispersion=None):
 # General model measurements
 # ------------------------------------------------------------------------------
 
-def get_integrated_flux(input_spec, disp_range=None):
+def get_integrated_flux(input_spec, disp_range=None, redshift=0):
     """
     Calculate the integrated flux of a spectrum.
 
@@ -1042,13 +1044,16 @@ def get_integrated_flux(input_spec, disp_range=None):
     :param disp_range: 2 element list holding the lower and upper dispersion
         boundaries for the integration
     :type disp_range: [float, float]
+    :param redshift: Redshift of the source
+    :type redshift: float
     :return: Integrated flux
     :rtype: astropy.units.Quantity
 
     """
 
     if disp_range is not None:
-        spec = input_spec.trim_dispersion(disp_range, inplace=False)
+        spec = input_spec.trim_dispersion(disp_range * (1+redshift),
+                                          inplace=False)
     else:
         spec = input_spec.copy()
 
@@ -1150,7 +1155,8 @@ def get_equivalent_width(cont_spec, line_spec, disp_range=None,
     return ew * cont_spec.dispersion_unit
 
 
-def get_fwhm(input_spec, disp_range=None, resolution=None, method='spline'):
+def get_fwhm(input_spec, disp_range=None, redshift=0,
+             resolution=None, method='spline'):
     """
     Calculate the FWHM (in km/s) of an emission feature from the spectrum.
 
@@ -1161,12 +1167,14 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, method='spline'):
     The function will subtract a flux density value of half of the maximum
     and then find the two roots (flux density = 0) of the new flux density axis.
     If the emission feature has multiple components more than two roots can
-    be found in which case the a np.NaN value will be returned.
+    be found in which case a np.NaN value will be returned.
 
     :param input_spec: Input spectrum
     :type input_spec: sculptor.speconed.SpecOneD
     :param disp_range: Dispersion range to which the calculation is limited.
     :type disp_range: [float, float]
+    :param redshift: Redshift of the source
+    :type redshift: float
     :param resolution: Resolution in R = Lambda/Delta Lambda
     :type resolution: float
     :param method: Method to use in retrieving the FWHM. There are two
@@ -1180,7 +1188,8 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, method='spline'):
     """
 
     if disp_range is not None:
-        spec = input_spec.trim_dispersion(disp_range, inplace=False)
+        spec = input_spec.trim_dispersion(disp_range * (1+redshift),
+                                          inplace=False)
     else:
         spec = input_spec.copy()
 
