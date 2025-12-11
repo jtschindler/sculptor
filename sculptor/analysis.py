@@ -350,12 +350,13 @@ def analyze_emission_feature(model, feature_name, components, params_values,
     if 'EW' in emfeat_meas and cont_components is not None:
         # Calculate the rest-frame equivalent width
         ew = scana.get_equivalent_width(cont_spec, model_spec,
-                                  redshift=redshift)
+                                  redshift=redshift, disp_range=disp_range)
         result_dict.update({feature_name + '_EW': ew})
 
     if 'FWHM' in emfeat_meas:
         # Calculate the (composite) line model FWHM.
-        fwhm = scana.get_fwhm(model_spec, method=fwhm_method)
+        fwhm = scana.get_fwhm(model_spec, method=fwhm_method,
+                              disp_range=disp_range)
         result_dict.update({feature_name + '_FWHM': fwhm})
 
         if np.isnan(fwhm):
@@ -370,7 +371,8 @@ def analyze_emission_feature(model, feature_name, components, params_values,
     if 'lum' in emfeat_meas:
         # Calculate the integrated line luminosity
         lum = scana.calc_integrated_luminosity(model_spec,
-                                         redshift=redshift, cosmology=cosmology)
+                                         redshift=redshift, cosmology=cosmology,
+                                         disp_range=disp_range)
         result_dict.update({feature_name + '_lum': lum})
 
     if 'nonparam' in emfeat_meas:
