@@ -1258,8 +1258,8 @@ def get_equivalent_width(cont_spec, line_spec, disp_range=None, redshift=0):
     rest_line_flux = line_spec.fluxden * (1 + redshift)
 
     if disp_range is not None:
-        l_idx = np.argmin(np.abs(rest_dispersion - disp_range[0]))
-        u_idx = np.argmin(np.abs(rest_dispersion - disp_range[1]))
+        l_idx = np.argmin(np.abs(rest_dispersion - disp_range[0] / (1+redshift)))
+        u_idx = np.argmin(np.abs(rest_dispersion - disp_range[1] / (1+redshift)))
 
         ew = np.trapz(
             (rest_line_flux[l_idx:u_idx]) / rest_cont_flux[l_idx:u_idx],
