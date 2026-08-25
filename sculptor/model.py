@@ -1,4 +1,3 @@
-
 import os
 import emcee
 import pickle
@@ -6,27 +5,34 @@ import itertools
 import numpy as np
 import pandas as pd
 import chainconsumer as cc
-
+from astropy import units as u
+import multiprocessing as mp
+from multiprocessing import Pool
 from tqdm import tqdm
+from tqdm.contrib.concurrent import process_map
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.transforms as mtransforms
-
+from emcee.moves import DESnookerMove, StretchMove, GaussianMove
 from speconed import speconed as sod
-
+import time
+from astropy.constants import h, c, k_B
 from IPython import embed
+from matplotlib.lines import Line2D
 
 from sculptor import plot as scp
 from sculptor import colors as tolc
 from sculptor import utils as scut
 
-cmap = tolc.tol_cmap(colormap='rainbow_PuRd')
+
+cmap = tolc.tol_cmap(colormap="rainbow_PuRd")
 
 # Definition of the likelihood function
 
+
 def log_likelihood_chi_square(theta, model, x, y, yerr):
-    """ Calculate the chi-square log likelihood for the model.
+    """Calculate the chi-square log likelihood for the model.
 
     :param theta:
     :param model:
@@ -35,7 +41,7 @@ def log_likelihood_chi_square(theta, model, x, y, yerr):
     :param yerr:
     :return:
     """
-
+    # print(f"PID: {os.getpid()} computing log-likelihood")
     fit_mask = model.gpm_fit
 
     # Calculate the full evaluated model at the given x values
@@ -44,14 +50,15 @@ def log_likelihood_chi_square(theta, model, x, y, yerr):
     # Define sigma ** 2
     sigma2 = yerr[fit_mask] ** 2
 
-    logl = -0.5 * np.sum((y[fit_mask] - model_flux[fit_mask]) ** 2 /
-                         sigma2 + np.log(sigma2))
+    logl = -0.5 * np.sum(
+        (y[fit_mask] - model_flux[fit_mask]) ** 2 / sigma2 + np.log(sigma2)
+    )
 
     return logl
 
 
 def log_prior(theta, parameters):
-    """ Calculate the log prior for the model parameters.
+    """Calculate the log prior for the model parameters.
 
     :param theta:
     :param parameters:
@@ -75,7 +82,7 @@ def log_prior(theta, parameters):
 
 
 def log_probability(theta, x, model, y, yerr):
-    """ Calculate the log probability for the model.
+    """Calculate the log probability for the model.
 
     :param theta:
     :param x:
@@ -90,11 +97,31 @@ def log_probability(theta, x, model, y, yerr):
     return lp + log_likelihood_chi_square(theta, model, x, y, yerr)
 
 
+def _evaluate_single_sample(args):
+    """
+    Evaluate the model flux for a single parameter sample.
+
+    :param args: tuple of (fitmodel, dispersion, params, components)
+    :type args: tuple
+    :return: evaluated model flux
+    :rtype: np.ndarray
+    """
+
+    fitmodel, dispersion, params, components = args
+    return fitmodel.eval(dispersion, params, components=components)
+
+
 class FitModel(object):
 
-    def __init__(self, components=None, parameters=None, spectrum=None,
-                 redshift=None, resolution=None):
-        """ Initialize the FitModel class.
+    def __init__(
+        self,
+        components=None,
+        parameters=None,
+        spectrum=None,
+        redshift=None,
+        resolution=None,
+    ):
+        """Initialize the FitModel class.
 
         :param components:
         :param parameters:
@@ -126,6 +153,9 @@ class FitModel(object):
 
         self.resolution = resolution
 
+        self.red_chisq = None
+        self.bic = None
+
         if isinstance(spectrum, sod.SpecOneD):
             self.spec = spectrum.copy()
             # Set mask describing the regions included in the fit for this model
@@ -138,9 +168,8 @@ class FitModel(object):
             # The model flux density from the fit
             self.model_fluxden = None
 
-
     def add_component(self, component: list):
-        """ Add a component to the model.
+        """Add a component to the model.
 
         :param component:
         :return:
@@ -149,14 +178,13 @@ class FitModel(object):
         self.components.append(component)
 
     def add_parameters(self, parameters: dict):
-        """ Add a parameter to the model.
+        """Add a parameter to the model.
 
         :param parameters:
         :return:
         """
 
         self.parameters.update(parameters)
-
 
     def save(self, name, save_dir):
         """
@@ -172,10 +200,9 @@ class FitModel(object):
             os.makedirs(save_dir)
 
         # Save the model
-        save_name = '{}.pkl'.format(name)
-        with open(os.path.join(save_dir, save_name), 'wb') as f:
+        save_name = "{}.pkl".format(name)
+        with open(os.path.join(save_dir, save_name), "wb") as f:
             pickle.dump(self, f)
-
 
     def load(self, name, load_dir):
         """
@@ -187,16 +214,14 @@ class FitModel(object):
         """
 
         # Load the model
-        load_name = '{}.pkl'.format(name)
-        with open(os.path.join(load_dir, load_name), 'rb') as f:
+        load_name = "{}.pkl".format(name)
+        with open(os.path.join(load_dir, load_name), "rb") as f:
             loaded_data = pickle.load(f)
 
             self.__dict__ = loaded_data.__dict__
 
-
-    def eval(self, x, params_values, components=None,
-             broaden_by_resolution=True):
-        """ Evaluate the model at the given x values."""
+    def eval(self, x, params_values, components=None, broaden_by_resolution=False):
+        """Evaluate the model at the given x values."""
 
         # If no components are specified, use all components
         if components is None:
@@ -232,7 +257,6 @@ class FitModel(object):
 
         return y
 
-
     def get_params_to_sample(self):
 
         for param in self.parameters:
@@ -244,16 +268,16 @@ class FitModel(object):
 
         self.vardim = len(self.params_variable)
 
-
-    def initialize_emcee(self, nwalkers, log_probability=log_probability,
-                         spec=None):
+    def initialize_emcee(
+        self, nwalkers, log_probability=log_probability, spec=None, pool=None, **kwargs
+    ):
 
         self.get_params_to_sample()
 
         if spec is None:
 
             if self.spec is None:
-                raise ValueError('No spectrum provided for the model.')
+                raise ValueError("No spectrum provided for the model.")
 
             spec = self.spec
 
@@ -268,8 +292,14 @@ class FitModel(object):
         flux = spec.fluxden
         flux_err = spec.fluxden_err
 
-        sampler = emcee.EnsembleSampler(nwalkers, self.vardim, log_probability,
-                                        args=(wave, self, flux, flux_err))
+        sampler = emcee.EnsembleSampler(
+            nwalkers,
+            self.vardim,
+            log_probability,
+            args=(wave, self, flux, flux_err),
+            pool=pool,
+            **kwargs,
+        )
 
         self.sampler = sampler
 
@@ -279,31 +309,41 @@ class FitModel(object):
 
         pos = np.zeros((self.nwalkers, self.vardim))
 
-        print('[INFO] Retrieving the initial guess from the parameter priors')
+        print("[INFO] Retrieving the initial guess from the parameter priors")
 
         for idx, par_name in enumerate(self.params_variable):
 
             param = self.params_variable[par_name]
 
             if param.prior is not None:
-                print('[INFO] Sampled prior for {}'.format(par_name))
+                print("[INFO] Sampled prior for {}".format(par_name))
                 pos[:, idx] = param.prior.sample(self.nwalkers, rng=self.rng)
 
             else:
-                print('[INFO] No prior specified for {}'.format(par_name))
-                print('[INFO] Sampling Gaussian around input value {}'.format(param.value))
-                print('[INFO] with width of 20% of the absolute value.')
-                print('[WARNING] This is a hack!')
+                print("[INFO] No prior specified for {}".format(par_name))
+                print(
+                    "[INFO] Sampling Gaussian around input value {}".format(param.value)
+                )
+                print("[INFO] with width of 20% of the absolute value.")
+                print("[WARNING] This is a hack!")
                 value = param.value
-                pos[:, idx] = self.rng.normal(loc=value, scale=0.2 * np.abs(value),
-                                               size=self.nwalkers)
-
+                pos[:, idx] = self.rng.normal(
+                    loc=value, scale=0.2 * np.abs(value), size=self.nwalkers
+                )
 
         return pos
 
-    def run_emcee(self, nsteps, nwalkers, log_probability=log_probability,
-                  spec=None, pos=None, progress=True):
-        """ Run the emcee sampler.
+    def run_emcee(
+        self,
+        nsteps,
+        nwalkers,
+        log_probability=log_probability,
+        spec=None,
+        pos=None,
+        progress=True,
+        pool=None,
+    ):
+        """Run the emcee sampler.
 
         :param nsteps:
         :param nwalkers:
@@ -317,16 +357,83 @@ class FitModel(object):
         self.nsteps = nsteps
         self.nwalkers = nwalkers
 
-        self.initialize_emcee(nwalkers, log_probability=log_probability,
-                              spec=spec)
+        self.initialize_emcee(
+            nwalkers, log_probability=log_probability, spec=spec, pool=pool
+        )
 
         if pos is None:
             pos = self.initialize_positions()
         else:
             if pos.shape[0] != nwalkers or pos.shape[1] != self.vardim:
-                raise ValueError('[ERROR] Provided position array has wrong shape.')
+                raise ValueError("[ERROR] Provided position array has wrong shape.")
 
         self.sampler.run_mcmc(pos, nsteps, progress=progress)
+
+    def get_components_by_prefix(self, prefixes):
+        """
+        Retrive array of components with the name starting with the provided prefix.
+
+        :return: component array
+        """
+
+        return [comp for comp in self.components if comp.name in prefixes]
+
+    def get_all_prefix_components(self, prefix):
+        """
+        Return a list of components whose names start with the given prefix.
+
+        :param prefix: String prefix to match component names
+        :return: List of matching FitComponent instances
+        """
+        return [comp for comp in self.components if comp.name.startswith(prefix)]
+
+    def calculate_chi_sq(self):
+        """
+        Calculate chi square statistic using median model from the fit and observed data.
+        Only considers data and model within the good pixel mask (gpm_fit).
+
+        :return chi_sq, dof, reduced_chi_sq: Chi-square, degree of freedom, reduced chi-square
+        :rtype: tuple
+        """
+        flux_exp = self.spec.fluxden[self.gpm_fit]
+        median_model = self.mcmc_model_posterior[0]
+        flux_model = median_model[self.gpm_fit]
+        flux_exp_err = self.spec.fluxden_err[self.gpm_fit]
+        dof = len(flux_model) - len(self.parameters)
+
+        chi_sq = np.sum(((flux_exp - flux_model) / flux_exp_err) ** 2)
+
+        reduced_chi_sq = chi_sq / dof
+        self.red_chisq = reduced_chi_sq
+        return chi_sq, dof, reduced_chi_sq
+
+    def compute_bic(self):
+        """
+        Compute the Bayesian Information Criterion (BIC) for a given model.
+        Only considers data within the good pixel mask (gpm_fit).
+
+        :return bic: BIC factor
+        """
+
+        if self.flat_chain is None:
+            raise ValueError("No MCMC or dynesty samples available.")
+
+        x = self.spec.dispersion
+        y = self.spec.fluxden
+        yerr = self.spec.fluxden_err
+
+        logls = []
+        for theta in tqdm(self.flat_chain, desc="Computing BIC"):
+            logl = log_likelihood_chi_square(theta, self, x, y, yerr)
+            logls.append(logl)
+
+        max_logl = np.max(logls)
+        n_params = len(self.params_variable)
+        n_data = np.sum(self.gpm_fit)
+
+        bic = n_params * np.log(n_data) - 2 * max_logl
+        self.bic = bic
+        return bic
 
     # -----------------------------------------------------------------------
     # Functions related to the good pixel fit mask (gpm_fit)
@@ -337,11 +444,10 @@ class FitModel(object):
         :return: None
         """
 
-        self.gpm_fit = np.zeros_like(self.spec.dispersion, dtype='bool')
-
+        self.gpm_fit = np.zeros_like(self.spec.dispersion, dtype="bool")
 
     def add_wavelength_range_to_fit_mask(self, disp_x1, disp_x2):
-        """ Adding a wavelength region to the fit mask.
+        """Adding a wavelength region to the fit mask.
 
         The dispersion region between the two dispersion values will be added
         to the fit mask.
@@ -351,9 +457,9 @@ class FitModel(object):
         :return:
         """
 
-        print('[INFO] Manual mask range', disp_x1, disp_x2)
+        print("[INFO] Manual mask range", disp_x1, disp_x2)
 
-        if hasattr(self, 'spec'):
+        if hasattr(self, "spec"):
             mask_between = np.sort(np.array([disp_x1, disp_x2]))
             lo_index = np.argmin(np.abs(self.spec.dispersion - mask_between[0]))
             up_index = np.argmin(np.abs(self.spec.dispersion - mask_between[1]))
@@ -361,7 +467,7 @@ class FitModel(object):
             self.gpm_fit[lo_index:up_index] = True
 
     def remove_wavelength_range_from_fit_mask(self, disp_x1, disp_x2):
-        """ Removing a wavelength region to the fit mask.
+        """Removing a wavelength region to the fit mask.
 
         The dispersion region between the two dispersion values will be removed
         from the fit mask.
@@ -371,9 +477,9 @@ class FitModel(object):
         :return:
         """
 
-        print('[INFO] Manual mask range', disp_x1, disp_x2)
+        print("[INFO] Manual mask range", disp_x1, disp_x2)
 
-        if hasattr(self, 'spec'):
+        if hasattr(self, "spec"):
             mask_between = np.sort(np.array([disp_x1, disp_x2]))
             lo_index = np.argmin(np.abs(self.spec.dispersion - mask_between[0]))
             up_index = np.argmin(np.abs(self.spec.dispersion - mask_between[1]))
@@ -387,29 +493,54 @@ class FitModel(object):
     def get_mode_model(self, discard=2000):
 
         # Get the maximum likelihood model
-        max_likelihood = np.argmax(self.sampler.get_log_prob(discard=discard, flat=True))
+        max_likelihood = np.argmax(
+            self.sampler.get_log_prob(discard=discard, flat=True)
+        )
         theta_max = self.sampler.get_chain(discard=discard, flat=True)[max_likelihood]
         model_max = self.eval(self.spec.dispersion, theta_max)
 
-        print('[INFO] Maximum likelihood model: ', theta_max)
-        print('[INFO] Variable parameter names: ', self.params_variable.keys())
+        print("[INFO] Maximum likelihood model: ", theta_max)
+        print("[INFO] Variable parameter names: ", self.params_variable.keys())
 
         return model_max
 
-    def get_mcmc_model_results(self, discard=2000, components=None):
+    def get_mcmc_model_results(self, discard=2000, components=None, pool=None):
 
         if self.sampler is not None:
-             self.flat_chain = self.sampler.get_chain(discard=discard, flat=True)
+            self.flat_chain = self.sampler.get_chain(discard=discard, flat=True)
         elif self.flat_chain is None:
-            raise ValueError('No MCMC chain available. Run the MCMC first.')
+            raise ValueError("No MCMC chain available. Run the MCMC first.")
 
         dispersion = self.spec.dispersion
-        model_fluxden = np.zeros((self.flat_chain.shape[0], len(dispersion)))
+        # model_fluxden = np.zeros((self.flat_chain.shape[0], len(dispersion)))
 
-        for idx in tqdm(range(self.flat_chain.shape[0])):
-            model_fluxden[idx, :] = self.eval(dispersion,
-                                              self.flat_chain[idx, :],
-                                              components=components)
+        # for idx in tqdm(range(self.flat_chain.shape[0])):
+        #     model_fluxden[idx, :] = self.eval(
+        #         dispersion, self.flat_chain[idx, :], components=components
+        #     )
+
+        param_list = [
+            (self, dispersion, params, components) for params in self.flat_chain
+        ]
+
+        if pool:
+            print("[INFO] Evaluating MCMC model with multiprocessing.")
+            start_time = time.time()
+            model_fluxden = list(
+                tqdm(
+                    pool.imap(_evaluate_single_sample, param_list),
+                    total=len(param_list),
+                )
+            )
+            end_time = time.time()
+            print(
+                f"[INFO] MCMC model evaluation completed in {end_time - start_time:.2f} seconds."
+            )
+
+        else:
+            model_fluxden = [_evaluate_single_sample(p) for p in tqdm(param_list)]
+
+        model_fluxden = np.array(model_fluxden)
 
         med_model = np.median(model_fluxden, axis=0)
         low_model = np.percentile(model_fluxden, 15.87, axis=0)
@@ -417,134 +548,226 @@ class FitModel(object):
 
         self.mcmc_model_posterior = [med_model, low_model, upp_model]
 
-    def plot_mcmc_result(self, discard=2000, show_fit_mask=True,
-                         show_ml_model=True, ylim=None, xlim=None, resid_ylim=None,
-                         save=False, save_dir='.', show_components=False,
-                         save_name='fit_result.pdf', save_data=False):
+    def plot_mcmc_result(
+        self,
+        discard=2000,
+        show_fit_mask=True,
+        show_ml_model=True,
+        ylim=None,
+        xlim=None,
+        resid_ylim=None,
+        save=False,
+        save_dir=".",
+        show_components=False,
+        save_name="fit_result.pdf",
+        save_data=False,
+        pool=None,
+    ):
 
         scp.set_presentation_defaults()
 
         # Define the figure
-        plt.clf()
+        # plt.clf()
         fig = plt.figure(figsize=(14, 8))
 
         # Define the gridspec
-        gs = gridspec.GridSpec(2, 1,
-                               height_ratios=[3, 1])  # 3:1 ratio for main plot to residuals
+        gs = gridspec.GridSpec(
+            2, 1, height_ratios=[3, 1]
+        )  # 3:1 ratio for main plot to residuals
 
         ax_main = fig.add_subplot(gs[0])  # Main plot
         ax_resid = fig.add_subplot(gs[1], sharex=ax_main)  # Residuals plot
 
         # Generate the axis transform
         trans = mtransforms.blended_transform_factory(
-            ax_main.transData, ax_main.transAxes)
+            ax_main.transData, ax_main.transAxes
+        )
 
         # Plot the gpm fit mask
         if show_fit_mask:
             mask = np.ones_like(self.spec.fluxden)
             mask[np.invert(self.gpm_fit)] = -1
-            ax_main.fill_between(self.spec.dispersion, 0, 0.05,
-                                 where=(mask >= 0),
-                                 facecolor='0.5', alpha=0.3,
-                                 transform=trans)
+            ax_main.fill_between(
+                self.spec.dispersion,
+                0,
+                0.05,
+                where=(mask >= 0),
+                facecolor="0.5",
+                alpha=0.3,
+                transform=trans,
+            )
 
         # Plot the spectrum flux density error
         if self.spec.fluxden_err is not None:
-            ax_main.step(self.spec.dispersion[self.spec.mask],
-                         self.spec.fluxden_err[self.spec.mask],
-                         'grey', where='mid', lw=1.5)
+            ax_main.step(
+                self.spec.dispersion[self.spec.mask],
+                self.spec.fluxden_err[self.spec.mask],
+                "grey",
+                where="mid",
+                lw=1.5,
+            )
         # Plot the spectrum flux density
-        ax_main.step(self.spec.dispersion[self.spec.mask],
-                     self.spec.fluxden[self.spec.mask],
-                     'k', where='mid', lw=1.5)
+        ax_main.step(
+            self.spec.dispersion[self.spec.mask],
+            self.spec.fluxden[self.spec.mask],
+            "k",
+            where="mid",
+            lw=1.5,
+        )
 
         # Plot the MCMC model results
-        print('[INFO] Evaluating the MCMC model results.')
+        print("[INFO] Evaluating the MCMC model results.")
         n_flat_chain = (self.nsteps - discard) * self.nwalkers
-        if (self.mcmc_model_posterior is None or
-                self.flat_chain.shape[0] < n_flat_chain):
-            self.get_mcmc_model_results(discard=discard)
+        if self.mcmc_model_posterior is None or self.flat_chain.shape[0] < n_flat_chain:
+            self.get_mcmc_model_results(discard=discard, pool=pool)
 
         med_model, low_model, upp_model = self.mcmc_model_posterior
 
         if save_data:
-            filename = os.path.join(save_dir, 'mcmc_model_results.csv')
-            np.savetxt(filename, np.vstack([self.spec.dispersion, med_model, low_model, upp_model]).T,
-                       delimiter=',', header='dispersion, med_model, low_model, upp_model')
+            filename = os.path.join(save_dir, "mcmc_model_results.csv")
+            np.savetxt(
+                filename,
+                np.vstack([self.spec.dispersion, med_model, low_model, upp_model]).T,
+                delimiter=",",
+                header="dispersion, med_model, low_model, upp_model",
+            )
 
         # Plot the median model
-        ax_main.step(self.spec.dispersion, med_model, color=scp.dblue, where='mid',
-                     label='Median model', lw=2)
+        ax_main.step(
+            self.spec.dispersion,
+            med_model,
+            color=scp.dblue,
+            where="mid",
+            label="Median model",
+            lw=2,
+        )
         # Plot the 1-sigma model region
-        ax_main.fill_between(self.spec.dispersion, low_model, upp_model,
-                             color=scp.dblue, alpha=0.3, step='mid')
+        ax_main.fill_between(
+            self.spec.dispersion,
+            low_model,
+            upp_model,
+            color=scp.dblue,
+            alpha=0.3,
+            step="mid",
+        )
 
         if show_components:
             comp_names = [comp.name for comp in self.components]
             comp_dict = dict(zip(comp_names, self.components))
-            comp_array = np.zeros((self.flat_chain.shape[0],
-                                   len(comp_names),
-                                   self.spec.dispersion.shape[0]))
+            comp_array = np.zeros(
+                (
+                    self.flat_chain.shape[0],
+                    len(comp_names),
+                    self.spec.dispersion.shape[0],
+                )
+            )
 
-            print('[INFO] Evaluating the components in the MCMC chain.')
+            print("[INFO] Evaluating the components in the MCMC chain.")
             for idx in tqdm(range(self.flat_chain.shape[0])):
 
                 for ldx, comp in enumerate(comp_names):
 
                     comp_array[idx, ldx, :] = self.eval(
-                        self.spec.dispersion, self.flat_chain[idx, :],
-                        components=[comp_dict[comp]])
+                        self.spec.dispersion,
+                        self.flat_chain[idx, :],
+                        components=[comp_dict[comp]],
+                    )
 
             for ldx, comp in enumerate(comp_names):
                 c = cmap(ldx / len(comp_names))
                 med_comp = np.median(comp_array[:, ldx, :], axis=0)
-                ax_main.step(self.spec.dispersion, med_comp, where='mid',
-                             color=c, lw=1.5, label=comp)
+                ax_main.step(
+                    self.spec.dispersion,
+                    med_comp,
+                    where="mid",
+                    color=c,
+                    lw=1.5,
+                    label=comp,
+                )
 
                 if save_data:
-                    filename = os.path.join(save_dir, 'mcmc_model_results_{}.csv'.format(comp))
-                    np.savetxt(filename, np.vstack([self.spec.dispersion, med_comp]).T,
-                               delimiter=',', header='dispersion, med_comp')
+                    filename = os.path.join(
+                        save_dir, "mcmc_model_results_{}.csv".format(comp)
+                    )
+                    np.savetxt(
+                        filename,
+                        np.vstack([self.spec.dispersion, med_comp]).T,
+                        delimiter=",",
+                        header="dispersion, med_comp",
+                    )
 
         # Plot the maximum likelihood model
         if show_ml_model and self.sampler is not None:
             self.model_fluxden = self.get_mode_model(discard=discard)
-            ax_main.step(self.spec.dispersion,
-                         self.model_fluxden, color=scp.vermillion, where='mid',
-                         label='ML model', ls='--', lw=2)
+            ax_main.step(
+                self.spec.dispersion,
+                self.model_fluxden,
+                color=scp.vermillion,
+                where="mid",
+                label="ML model",
+                ls="--",
+                lw=2,
+            )
 
             if save_data:
-                filename = os.path.join(save_dir, 'mcmc_model_results_ml.csv')
-                np.savetxt(filename, np.vstack([self.spec.dispersion, self.model_fluxden]).T,
-                           delimiter=',', header='dispersion, model_flux')
+                filename = os.path.join(save_dir, "mcmc_model_results_ml.csv")
+                np.savetxt(
+                    filename,
+                    np.vstack([self.spec.dispersion, self.model_fluxden]).T,
+                    delimiter=",",
+                    header="dispersion, model_flux",
+                )
 
-        ax_main.plot(self.spec.dispersion, self.spec.dispersion * 0, 'k:',
-                     lw=1.5)
+        ax_main.plot(self.spec.dispersion, self.spec.dispersion * 0, "k:", lw=1.5)
 
         # Residual plot
-        ax_resid.fill_between(self.spec.dispersion, -self.spec.fluxden_err,
-                              self.spec.fluxden_err, color='0.5', alpha=0.3,
-                              step='mid')
+        ax_resid.fill_between(
+            self.spec.dispersion,
+            -self.spec.fluxden_err,
+            self.spec.fluxden_err,
+            color="0.5",
+            alpha=0.8,
+            step="mid",
+        )
 
         # Plot the residuals
         residuals = self.spec.fluxden[self.spec.mask] - med_model[self.spec.mask]
-        ax_resid.step(self.spec.dispersion[self.spec.mask], residuals,
-                      color=scp.dblue, where='mid', lw=1.5, label='Median residuals')
-        residuals = self.spec.fluxden[self.spec.mask] - self.model_fluxden[self.spec.mask]
-        ax_resid.step(self.spec.dispersion[self.spec.mask], residuals,
-                      color=scp.vermillion, where='mid', lw=1.5, label='ML residuals')
+        ax_resid.step(
+            self.spec.dispersion[self.spec.mask],
+            residuals,
+            color=scp.dblue,
+            where="mid",
+            lw=1.5,
+            label="Median residuals",
+            zorder=-100,
+        )
+        residuals_ml = (
+            self.spec.fluxden[self.spec.mask] - self.model_fluxden[self.spec.mask]
+        )
+        ax_resid.step(
+            self.spec.dispersion[self.spec.mask],
+            residuals_ml,
+            color=scp.vermillion,
+            where="mid",
+            lw=1.5,
+            label="ML residuals",
+            zorder=-100,
+        )
 
-        ax_resid.plot(self.spec.dispersion, self.spec.dispersion * 0, 'k:',
-                     lw=1.5)
+        ax_resid.plot(self.spec.dispersion, self.spec.dispersion * 0, "k:", lw=1.5)
 
-        ax_resid.set_ylabel('Residuals', fontsize=14)
+        ax_resid.set_ylabel("Residuals", fontsize=20)
 
         # Add the rest-frame/observed wavelength axis and labels
         if self.redshift:
-            ax_main.tick_params(axis='x', which='both', top=False)
+            ax_main.tick_params(axis="x", which="both", top=False)
 
-            ax_resid.set_xlabel('Observed wavelength ({})'.format(
-                self.spec.dispersion_unit.to_string(format='latex')), fontsize=14)
+            ax_resid.set_xlabel(
+                "Observed wavelength ({})".format(
+                    self.spec.dispersion_unit.to_string(format="latex")
+                ),
+                fontsize=14,
+            )
 
             def wave_to_restwave(wav):
                 return wav / (1 + self.redshift)
@@ -552,20 +775,41 @@ class FitModel(object):
             def restwave_to_wave(restwav):
                 return restwav * (1 + self.redshift)
 
-            secax = ax_main.secondary_xaxis('top',
-                                            functions=(wave_to_restwave,
-                                                       restwave_to_wave))
-            secax.set_xlabel('Rest-frame wavelength ({})'.format(
-                self.spec.dispersion_unit.to_string(format='latex')),
-                fontsize=14)
+            secax = ax_main.secondary_xaxis(
+                "top", functions=(wave_to_restwave, restwave_to_wave)
+            )
+            secax.set_xlabel(
+                "Rest-frame wavelength ({})".format(
+                    self.spec.dispersion_unit.to_string(format="latex")
+                ),
+                fontsize=20,
+            )
 
         else:
-            ax_resid.set_xlabel('Wavelength ({})'.format(
-                self.spec.dispersion_unit.to_string(format='latex')),
-                fontsize=14)
+            ax_resid.set_xlabel(
+                "Wavelength ({})".format(
+                    self.spec.dispersion_unit.to_string(format="latex")
+                ),
+                fontsize=20,
+            )
 
-        ax_main.set_ylabel('Flux density ({})'.format(
-            self.spec.fluxden_unit.to_string(format='latex')), fontsize=14)
+        # Add reduced-chi2 value on the plot for the fit
+        chi_sq, dof, reduced_chi_sq = self.calculate_chi_sq()
+        # bic = self.compute_bic()
+
+        stats_handle = Line2D(
+            [0], [0], color="none", label=f"reduced chi-sq = {reduced_chi_sq:.2f}"
+        )
+        handles, labels = ax_main.get_legend_handles_labels()
+        handles.append(stats_handle)
+        labels.append(stats_handle.get_label())
+
+        ax_main.set_ylabel(
+            "Flux density ({})".format(
+                self.spec.fluxden_unit.to_string(format="latex")
+            ),
+            fontsize=14,
+        )
 
         # Get the y-axis limits
         if ylim is None:
@@ -588,17 +832,25 @@ class FitModel(object):
         else:
             ax_resid.set_ylim(resid_ylim)
 
-        ax_main.legend()
+        ax_main.legend(handles=handles, labels=labels, fontsize=12)
         ax_resid.legend(ncol=2)
 
         if save:
             filename = os.path.join(save_dir, save_name)
-            plt.savefig(filename, bbox_inches='tight')
+            plt.savefig(filename, bbox_inches="tight")
         else:
             plt.show()
 
-    def plot_posterior_corner(self, discard=2000, parameters=None, save=False,
-                              save_dir='.', save_name='corner_plot.pdf'):
+        return residuals, self.spec.dispersion[self.spec.mask]
+
+    def plot_posterior_corner(
+        self,
+        discard=2000,
+        parameters=None,
+        save=False,
+        save_dir=".",
+        save_name="corner_plot.pdf",
+    ):
 
         chain = self.sampler.get_chain(discard=discard, flat=True)
 
@@ -606,7 +858,7 @@ class FitModel(object):
         param_names = list(self.params_variable.keys())
 
         # Replace underscores
-        param_names_readable = [name.replace('_', ' ') for name in param_names]
+        param_names_readable = [name.replace("_", " ") for name in param_names]
 
         # Create a pandas DataFrame with the chain
         df_chain = pd.DataFrame(chain, columns=param_names_readable)
@@ -614,25 +866,83 @@ class FitModel(object):
         if parameters is None:
             parameters = param_names_readable
         else:
-            parameters = [name.replace('_', ' ') for name in parameters]
+            parameters = [name.replace("_", " ") for name in parameters]
 
         # Instantiate the chain consumer
         c = cc.ChainConsumer()
-        chain = cc.Chain(samples=df_chain, name='MCMC chain')
+        chain = cc.Chain(samples=df_chain, name="MCMC chain")
         c.add_chain(chain)
+
+        print(c.analysis.get_summary())
 
         if save:
             filename = os.path.join(save_dir, save_name)
-            c.plotter.plot(columns=parameters,
-                           filename=filename)
+            c.plotter.plot(columns=parameters, filename=filename)
         else:
             c.plotter.plot(columns=parameters)
 
-
+        return c.analysis.get_summary()
 
     def plot_posterior_histograms(self, discard=2000, parameters=None):
 
         pass
+
+    def plot_posterior_param_histograms(
+        self, discard, save=False, save_dir=".", save_name_prefix="posterior_hist"
+    ):
+        """
+        Plot posterior histograms for MCMC samples from a given model, generating separate plots for each parameter.
+
+        :param discard: number of steps to discard as burn-in
+        :param type: int
+        :param save: whether to save the plots instead of displaying them
+        :param type: boolean
+        :param save_dir: directory to save the plots
+        :param type: str
+        :param save_name_prefix: prefix for the saved file names
+        :param type: str
+        """
+
+        if self.sampler is None:
+            raise ValueError("No MCMC sampler found in model. Run MCMC first.")
+
+        flat_chain = self.sampler.get_chain(discard=discard, thin=1, flat=True)
+        param_names = list(self.params_variable.keys())
+
+        if not param_names:
+            raise ValueError("No parameters found.")
+
+        if save:
+            os.makedirs(save_dir, exist_ok=True)
+
+        for i, param in enumerate(param_names):
+            samples = flat_chain[:, i]
+
+            median = np.percentile(samples, 50)
+            lower = np.percentile(samples, 15.9)
+            upper = np.percentile(samples, 84.1)
+
+            plt.figure(figsize=(6, 4))
+            plt.hist(samples, bins=100, color="skyblue", edgecolor="black", alpha=0.7)
+            plt.axvline(
+                median, color="k", linestyle="--", lw=2, label=f"Median: {median:.3f}"
+            )
+            plt.axvline(
+                lower, color="r", linestyle="-.", lw=2, label=f"Lower: {lower:.3f}"
+            )
+            plt.axvline(
+                upper, color="r", linestyle="-.", lw=2, label=f"Upper: {upper:.3f}"
+            )
+
+            plt.title(f"Posterior Hist: {param}")
+            plt.xlabel(param)
+            plt.legend()
+
+            if save:
+                plt.savefig(os.path.join(save_dir, f"{save_name_prefix}_{param}.pdf"))
+                plt.close()
+            else:
+                plt.show()
 
     def evaluate_parameters(self, discard=2000):
 
@@ -641,7 +951,7 @@ class FitModel(object):
         # Get the parameter names
         param_names = list(self.params_variable.keys())
         # Replace underscores
-        param_names_readable = [name.replace('_', ' ') for name in param_names]
+        param_names_readable = [name.replace("_", " ") for name in param_names]
 
         # Create a pandas DataFrame with the chain
         df_chain = pd.DataFrame(chain, columns=param_names_readable)
@@ -659,10 +969,7 @@ class FitModel(object):
         #  - display the parameter name properly
 
         for comb in combs:
-            filename = './corner_plot_{}__{}.pdf'.format(comb[0].replace(' ', '_'),
-                                                   comb[1].replace(' ', '_'))
-            c.plotter.plot(parameters=comb,
-                           filename=filename)
-
-
-
+            filename = "./corner_plot_{}__{}.pdf".format(
+                comb[0].replace(" ", "_"), comb[1].replace(" ", "_")
+            )
+            c.plotter.plot(parameters=comb, filename=filename)
