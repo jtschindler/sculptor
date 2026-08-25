@@ -4,7 +4,7 @@ import os
 import glob
 import importlib
 import numpy as np
-import pkg_resources
+# import pkg_resources
 from astropy import constants as const
 
 from lmfit import Model, Parameters

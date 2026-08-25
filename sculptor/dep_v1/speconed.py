@@ -15,7 +15,7 @@ import pandas as pd
 
 import h5py
 import extinction as ext
-import pkg_resources
+# import pkg_resources
 import spectres
 
 from astropy.io import fits
