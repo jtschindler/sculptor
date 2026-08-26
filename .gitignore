@@ -2,6 +2,10 @@
 *.pyc
 *.xml
 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.nbc
+
 # To-Do list
 ToDo.txt
 
@@ -15,7 +19,7 @@ ToDo.txt
 /sculptor/data/iron_templates/
 
 # Python egg metadata, regenerated from source files by setuptools.
-/*.egg-info
+*.egg-info/
 
 # Virtual environment folder
 /.venv

@@ -1,49 +1,45 @@
-
+# Updated with the help of Claude
+# Run src
 import numpy as np
-from numba import jit, prange
+from numba import njit, prange
 
 
-@jit
+@njit(cache=True)
 def gaussian(x, amp, cen, sigma, shift):
-    """ 1-D Gaussian function"""
     central = cen + shift
+    return (amp / (np.sqrt(2 * np.pi) * sigma)) * np.exp(
+        -((x - central) ** 2) / (2 * sigma**2)
+    )
 
-    return (amp / (np.sqrt(2*np.pi) * sigma)) * np.exp(-(x-central)**2 /
-                                                       (2*sigma**2))
 
-@jit
+@njit(cache=True)
 def _resolution_convolution(idx, dispersion, fluxden, resolution, fwhm_lim):
+    fwhm = dispersion[idx] / resolution
+    sigma = fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0)))
 
-    fwhm = dispersion[idx] / resolution  # fwhm in pixel units
-    sigma = fwhm / (2 * np.sqrt(2 * np.log(2)))  # sigma in pixel units
+    lo = dispersion[idx] - fwhm_lim * fwhm
+    hi = dispersion[idx] + fwhm_lim * fwhm
+    lo_i = np.searchsorted(dispersion, lo, side="right") 
+    hi_i = np.searchsorted(dispersion, hi, side="left")  
 
-    # Mask wavelength range within 5 fwhm
-    index_mask = (dispersion > dispersion[idx] - fwhm_lim * fwhm) & \
-                 (dispersion < dispersion[idx] + fwhm_lim * fwhm)
-
-    flux_to_convolve = fluxden[index_mask]
-
-    profile = gaussian(dispersion[index_mask], 1.0,
-                       dispersion[idx], sigma, 0)
-
-    flux_sum = np.sum(profile * flux_to_convolve)
-
-    profile_sum = np.sum(profile)
-
+    flux_sum = 0.0
+    profile_sum = 0.0
+    for j in range(lo_i, hi_i):
+        p = gaussian(dispersion[j], 1.0, dispersion[idx], sigma, 0.0)
+        flux_sum += p * fluxden[j]
+        profile_sum += p
 
     return flux_sum / profile_sum
 
 
-@jit
-def broaden_spectrum(dispersion, fluxden, resolution, fwhm_lim=5):
+@njit(cache=True, parallel=True)
+def broaden_spectrum(dispersion, fluxden, resolution, fwhm_lim=5.0):
+    n = dispersion.shape[0]
+    broadened_fluxden = np.zeros(n)
 
-    broadened_fluxden = np.zeros(len(dispersion))
-
-    if isinstance(resolution, (int, float)):
-        resolution = np.ones(len(dispersion)) * resolution
-
-    for idx in prange(len(dispersion)):
+    for idx in prange(n):
         broadened_fluxden[idx] = _resolution_convolution(
-            idx, dispersion, fluxden, resolution[idx], fwhm_lim)
+            idx, dispersion, fluxden, resolution[idx], fwhm_lim
+        )
 
     return broadened_fluxden

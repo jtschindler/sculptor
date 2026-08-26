@@ -51,6 +51,7 @@ dependencies = [
     "tables>=3.11.1",
     "sphinx>=9.1.0",
     "ipykernel>=7.3.0",
+    "numba>=0.67.0",
 ]
 
 [project.urls]
@@ -66,3 +67,8 @@ exclude = ["examples*", "docs*"]
 
 [tool.uv.workspace]
 members = ["sculptor_extensions"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
