@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=77.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sculptor-extensions"
+version = "0.1.0"
+description = "Optional QSO-fitting extensions for sculptor"
+requires-python = ">=3.13"
+dependencies = [
+    "sculptor",
+]
+
+[tool.uv.sources]
+sculptor = { workspace = true }
+
+[tool.setuptools.packages.find]
+where = ["src"]
