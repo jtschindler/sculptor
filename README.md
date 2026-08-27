@@ -29,6 +29,52 @@ A module focused on the analysis of continuum models of models of emission/absor
 
 At the heart of the *Sculptor* package is the Graphical User Interface, which offers interactive control to set up and combine multiple spectral models to fully fit the astronomical spectrum of choice. This includes masking of spectral features, defining fit regions, and setting of fit parameter boundaries. The framework allows to add interdependent fit parameters (e.g., to couple the FWHM of multiple emission/absorption lines).
 
+## Installation
+
+Sculptor and its optional extensions can be installed with `pip`, `conda`, or [`uv`](https://docs.astral.sh/uv/).
+
+### Using uv (recommended)
+
+```bash
+git clone https://github.com/jtschindler/sculptor.git
+cd sculptor
+uv sync --all-packages
+```
+
+This installs the core `sculptor` package and `sculptor_extensions` alongside it. To install only the core package:
+
+```bash
+uv sync
+```
+
+### Using pip
+
+```bash
+git clone https://github.com/jtschindler/sculptor.git
+cd sculptor
+python -m venv .venv       # Unix systems
+source .venv/bin/activate  # Unix systems, not sure about Windows!
+pip install .
+```
+
+The `sculptor_extensions` module is optional and installed separately:
+
+```bash
+pip install ./sculptor_extensions
+```
+
+### Using conda
+
+Conda is used here to manage the Python environment; the package itself is still installed with `pip`:
+
+```bash
+conda create -n sculptor python=3.13
+conda activate sculptor
+pip install .
+# optional:
+pip install ./sculptor_extensions
+```
+
 If you are interested in being involved with this project, please contact Jan-Torge Schindler via [github](https://github.com/jtschindler/sculptor).
 
 **Disclaimer:**

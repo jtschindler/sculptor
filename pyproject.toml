@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=77.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sculptor"
+dynamic = ["version"]
+description = "Interactive modeling of (electromagnetic) astronomical spectra"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["license.md"]
+authors = [
+    { name = "Jan-Torge Schindler", email = "schindler@hs.uni-hamburg.de" }
+]
+requires-python = ">=3.13"
+keywords = ["Sculptor", "astronomy", "spectroscopy", "modeling", "fitting"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: User Interfaces",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "importlib-resources",
+    "numpy",
+    "scipy",
+    "astropy",
+    "matplotlib",
+    "pandas",
+    "ipython",
+    "jupyter",
+    "tqdm",
+    "fastparquet",
+    "h5py",
+    "pyyaml",
+    "nbsphinx",
+    "nbsphinx-link",
+    "emcee",
+    "corner",
+    "extinction",
+    "linetools",
+    "speconed",
+    "spectres",
+    "chainconsumer",
+    "pyqt5>=5.15.11",
+    "tables>=3.11.1",
+    "sphinx>=9.1.0",
+    "ipykernel>=7.3.0",
+    "numba>=0.67.0",
+]
+
+[project.urls]
+Homepage = "http://github.com/jtschindler/sculptor"
+"Bug Tracker" = "http://github.com/jtschindler/sculptor/issues"
+
+[tool.setuptools.dynamic]
+version = { attr = "sculptor.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["examples*", "docs*"]
+
+[tool.uv.workspace]
+members = ["sculptor_extensions"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

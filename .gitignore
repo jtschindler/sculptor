@@ -2,6 +2,10 @@
 *.pyc
 *.xml
 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.nbc
+
 # To-Do list
 ToDo.txt
 
@@ -14,6 +18,15 @@ ToDo.txt
 # Ignore the iron templates folder (for now)
 /sculptor/data/iron_templates/
 
-
 # Python egg metadata, regenerated from source files by setuptools.
-/*.egg-info
+*.egg-info/
+
+# Virtual environment folder
+/.venv
+
+# MacOS specific files
+.DS_Store
+
+# VSCode specific files
+.vscode/
+*.code-workspace
