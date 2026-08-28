@@ -1168,7 +1168,7 @@ def get_integrated_flux(input_spec, disp_range=None):
         spec = input_spec.copy()
 
     return (
-        np.trapz(spec.fluxden, x=spec.dispersion)
+        np.trapezoid(spec.fluxden, x=spec.dispersion)
         * spec.dispersion_unit
         * spec.fluxden_unit
     )
@@ -1261,12 +1261,12 @@ def get_equivalent_width(cont_spec, line_spec, disp_range=None, redshift=0):
         l_idx = np.argmin(np.abs(rest_dispersion - disp_range[0] / (1+redshift)))
         u_idx = np.argmin(np.abs(rest_dispersion - disp_range[1] / (1+redshift)))
 
-        ew = np.trapz(
+        ew = np.trapezoid(
             (rest_line_flux[l_idx:u_idx]) / rest_cont_flux[l_idx:u_idx],
             rest_dispersion[l_idx:u_idx],
         )
     else:
-        ew = np.trapz((rest_line_flux) / rest_cont_flux, rest_dispersion)
+        ew = np.trapezoid((rest_line_flux) / rest_cont_flux, rest_dispersion)
 
     return ew * cont_spec.dispersion_unit
 
@@ -1499,7 +1499,7 @@ def calc_integrated_luminosity(input_spec, redshift, cosmology, disp_range=None)
         rest_frame_spec.trim_dispersion(disp_range, inplace=True)
 
     # Integrate the model flux
-    integrated_line_luminosity = np.trapz(
+    integrated_line_luminosity = np.trapezoid(
         rest_frame_spec.fluxden, x=rest_frame_spec.dispersion
     )
 

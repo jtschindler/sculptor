@@ -220,7 +220,7 @@ class FitModel(object):
 
             self.__dict__ = loaded_data.__dict__
 
-    def eval(self, x, params_values, components=None, broaden_by_resolution=False):
+    def eval(self, x, params_values, components=None, broaden_by_resolution=True):
         """Evaluate the model at the given x values."""
 
         # If no components are specified, use all components
