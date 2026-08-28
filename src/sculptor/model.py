@@ -248,12 +248,13 @@ class FitModel(object):
 
             y += component.eval(x, mapped)
 
-        # from IPython import embed
-        # embed()
-
         # If resolution is provided, convolve the model with the resolution
         if self.resolution is not None and broaden_by_resolution:
-            y = scut.broaden_spectrum(x, y, self.resolution)
+            resolution = self.resolution
+            if isinstance(resolution, (int, float)):
+                resolution = np.full_like(x, resolution, dtype=np.float64)
+
+            y = scut.broaden_spectrum(x, y, resolution, fwhm_lim=5.0)
 
         return y
 
