@@ -15,7 +15,7 @@ import pandas as pd
 
 import h5py
 import extinction as ext
-# import pkg_resources
+from importlib import resources
 import spectres
 
 from astropy.io import fits
@@ -2259,10 +2259,9 @@ class PassBand(SpecOneD):
         :return:
         """
 
-        passband_filename = \
-            pkg_resources.resource_filename('sculptor',
-                                    'data/passbands/{}.dat'.format(
-                                        passband_name))
+        passband_filename = str(
+            resources.files('sculptor') / 'data/passbands/{}.dat'.format(
+                passband_name))
         passband_data = np.genfromtxt(passband_filename)
 
         wavelength = passband_data[:, 0]

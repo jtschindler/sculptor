@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
+from importlib.metadata import version, PackageNotFoundError
 
-# Setting the package version
-__version__ = '2.b.0'
-
+try:
+    __version__ = version("sculptor")
+except PackageNotFoundError:
+    __version__ = "unknown"

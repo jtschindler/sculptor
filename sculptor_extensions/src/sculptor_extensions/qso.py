@@ -23,15 +23,13 @@ from astropy import constants as const
 from astropy import units as u
 from astropy.modeling.models import BlackBody
 
-from sculptor.dep_v1 import speconed as sod
-
-# from lmfit import Model, Parameters
+from speconed import speconed as sod
 
 from linetools import utils as lu
 
-import pkg_resources
+from importlib import resources
 
-datadir = pkg_resources.resource_filename('sculptor', 'data/')
+datadir = str(resources.files('sculptor') / 'data') + '/'
 
 c_km_s = const.c.to('km/s').value
 c_AngstroemPerSecond = const.c.to(u.AA/u.s).value

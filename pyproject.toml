@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sculptor"
-dynamic = ["version"]
+version = "2.0.0"
 description = "Interactive modeling of (electromagnetic) astronomical spectra"
 readme = "README.md"
 license = "BSD-3-Clause"
@@ -18,7 +18,7 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Astronomy",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Software Development :: User Interfaces",
@@ -26,7 +26,6 @@ classifiers = [
 ]
 
 dependencies = [
-    "importlib-resources",
     "numpy",
     "scipy",
     "astropy",
@@ -58,12 +57,12 @@ dependencies = [
 Homepage = "http://github.com/jtschindler/sculptor"
 "Bug Tracker" = "http://github.com/jtschindler/sculptor/issues"
 
-[tool.setuptools.dynamic]
-version = { attr = "sculptor.__version__" }
-
 [tool.setuptools.packages.find]
 where = ["src"]
 exclude = ["examples*", "docs*"]
+
+[tool.setuptools.package-data]
+sculptor = ["data/**/*"]
 
 [tool.uv.workspace]
 members = ["sculptor_extensions"]

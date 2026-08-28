@@ -38,9 +38,9 @@ import matplotlib.pyplot as plt
 from sculptor import colors as tolc
 
 cmap = tolc.tol_cmap(colormap="rainbow_PuRd")
-import pkg_resources
+from importlib import resources
 
-datadir = pkg_resources.resource_filename("sculptor", "data/")
+datadir = str(resources.files('sculptor') / 'data') + '/'
 c_kms = c.to("km/s").value
 c_AngstroemPerSecond = c.to(u.AA / u.s).value
 

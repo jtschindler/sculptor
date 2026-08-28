@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import pkg_resources
+from importlib import resources
 
 from sculptor import specfit as scfit
 from sculptor.dep_v1 import speconed as scspec
@@ -14,9 +14,8 @@ def setup_example_fit():
 
     # Load the example spectrum
     spec = scspec.SpecOneD()
-    filename = pkg_resources.resource_filename(
-        'sculptor',
-        'data/example_spectra/J030341.04-002321.8_0.fits')
+    filename = str(resources.files('sculptor') /
+                   'data/example_spectra/J030341.04-002321.8_0.fits')
     spec.read_sdss_fits(filename)
     redshift = 3.227
 

@@ -4,10 +4,12 @@ import os
 import glob
 import importlib
 import numpy as np
-# import pkg_resources
+from importlib import resources
 from astropy import constants as const
 
 from lmfit import Model, Parameters
+
+
 
 c_km_s = const.c.to('km/s').value
 
@@ -257,8 +259,7 @@ mask_presets = {}
 
 """ Automatic import of extensions into Sculptor """
 
-extension_path = pkg_resources.resource_filename('sculptor',
-                                                 '../sculptor_extensions')
+extension_path = str(resources.files('sculptor_extensions'))
 
 file_names = glob.glob(extension_path+'/*.py')
 
