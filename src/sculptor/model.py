@@ -1,30 +1,22 @@
-import os
-import emcee
-import pickle
 import itertools
+import os
+import pickle
+import time
+
+import chainconsumer as cc
+import emcee
+import matplotlib.pyplot as plt
+import matplotlib.transforms as mtransforms
 import numpy as np
 import pandas as pd
-import chainconsumer as cc
-from astropy import units as u
-import multiprocessing as mp
-from multiprocessing import Pool
-from tqdm import tqdm
-from tqdm.contrib.concurrent import process_map
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import matplotlib.transforms as mtransforms
-from emcee.moves import DESnookerMove, StretchMove, GaussianMove
-from speconed import speconed as sod
-import time
-from astropy.constants import h, c, k_B
-from IPython import embed
+from matplotlib import gridspec
 from matplotlib.lines import Line2D
+from speconed import speconed as sod
+from tqdm import tqdm
 
-from sculptor import plot as scp
 from sculptor import colors as tolc
+from sculptor import plot as scp
 from sculptor import utils as scut
-
 
 cmap = tolc.tol_cmap(colormap="rainbow_PuRd")
 
@@ -69,7 +61,6 @@ def log_prior(theta, parameters):
 
     # Possibly banish this into the model!
     for idx, param in enumerate(parameters):
-
         prior = parameters[param].prior
         # Make sure that a prior was populated
         if prior is not None:
@@ -111,8 +102,7 @@ def _evaluate_single_sample(args):
     return fitmodel.eval(dispersion, params, components=components)
 
 
-class FitModel(object):
-
+class FitModel:
     def __init__(
         self,
         components=None,
@@ -200,7 +190,7 @@ class FitModel(object):
             os.makedirs(save_dir)
 
         # Save the model
-        save_name = "{}.pkl".format(name)
+        save_name = f"{name}.pkl"
         with open(os.path.join(save_dir, save_name), "wb") as f:
             pickle.dump(self, f)
 
@@ -214,13 +204,13 @@ class FitModel(object):
         """
 
         # Load the model
-        load_name = "{}.pkl".format(name)
+        load_name = f"{name}.pkl"
         with open(os.path.join(load_dir, load_name), "rb") as f:
             loaded_data = pickle.load(f)
 
             self.__dict__ = loaded_data.__dict__
 
-    def eval(self, x, params_values, components=None, broaden_by_resolution=False):
+    def eval(self, x, params_values, components=None, broaden_by_resolution=True):
         """Evaluate the model at the given x values."""
 
         # If no components are specified, use all components
@@ -240,24 +230,25 @@ class FitModel(object):
         # Iterate over the components and evaluate them using a parameter
         # mapping
         for component in components:
-
-            pmap = component.param_mapping
-            args = component.function_args
-
-            mapped = map(params.get, map(pmap.get, args))
+            mapped = map(params.get, component.get_arg_keys())
 
             y += component.eval(x, mapped)
 
-        # from IPython import embed
-        # embed()
-
         # If resolution is provided, convolve the model with the resolution
         if self.resolution is not None and broaden_by_resolution:
-            y = scut.broaden_spectrum(x, y, self.resolution)
+            resolution = self.resolution
+            if isinstance(resolution, (int, float)):
+                resolution = np.full_like(x, resolution, dtype=np.float64)
+
+            y = scut.broaden_spectrum(x, y, resolution, fwhm_lim=5.0)
 
         return y
 
     def get_params_to_sample(self):
+
+        self.params_variable = {}
+        self.params_constant = {}
+        self.params_constant_val = []
 
         for param in self.parameters:
             if self.parameters[param].vary:
@@ -275,7 +266,6 @@ class FitModel(object):
         self.get_params_to_sample()
 
         if spec is None:
-
             if self.spec is None:
                 raise ValueError("No spectrum provided for the model.")
 
@@ -312,18 +302,15 @@ class FitModel(object):
         print("[INFO] Retrieving the initial guess from the parameter priors")
 
         for idx, par_name in enumerate(self.params_variable):
-
             param = self.params_variable[par_name]
 
             if param.prior is not None:
-                print("[INFO] Sampled prior for {}".format(par_name))
+                print(f"[INFO] Sampled prior for {par_name}")
                 pos[:, idx] = param.prior.sample(self.nwalkers, rng=self.rng)
 
             else:
-                print("[INFO] No prior specified for {}".format(par_name))
-                print(
-                    "[INFO] Sampling Gaussian around input value {}".format(param.value)
-                )
+                print(f"[INFO] No prior specified for {par_name}")
+                print(f"[INFO] Sampling Gaussian around input value {param.value}")
                 print("[INFO] with width of 20% of the absolute value.")
                 print("[WARNING] This is a hack!")
                 value = param.value
@@ -399,7 +386,7 @@ class FitModel(object):
         median_model = self.mcmc_model_posterior[0]
         flux_model = median_model[self.gpm_fit]
         flux_exp_err = self.spec.fluxden_err[self.gpm_fit]
-        dof = len(flux_model) - len(self.parameters)
+        dof = len(flux_model) - len(self.params_variable)
 
         chi_sq = np.sum(((flux_exp - flux_model) / flux_exp_err) ** 2)
 
@@ -664,9 +651,7 @@ class FitModel(object):
 
             print("[INFO] Evaluating the components in the MCMC chain.")
             for idx in tqdm(range(self.flat_chain.shape[0])):
-
                 for ldx, comp in enumerate(comp_names):
-
                     comp_array[idx, ldx, :] = self.eval(
                         self.spec.dispersion,
                         self.flat_chain[idx, :],
@@ -686,9 +671,7 @@ class FitModel(object):
                 )
 
                 if save_data:
-                    filename = os.path.join(
-                        save_dir, "mcmc_model_results_{}.csv".format(comp)
-                    )
+                    filename = os.path.join(save_dir, f"mcmc_model_results_{comp}.csv")
                     np.savetxt(
                         filename,
                         np.vstack([self.spec.dispersion, med_comp]).T,

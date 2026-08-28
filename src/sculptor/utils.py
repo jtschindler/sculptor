@@ -19,8 +19,8 @@ def _resolution_convolution(idx, dispersion, fluxden, resolution, fwhm_lim):
 
     lo = dispersion[idx] - fwhm_lim * fwhm
     hi = dispersion[idx] + fwhm_lim * fwhm
-    lo_i = np.searchsorted(dispersion, lo, side="right") 
-    hi_i = np.searchsorted(dispersion, hi, side="left")  
+    lo_i = np.searchsorted(dispersion, lo, side="right")
+    hi_i = np.searchsorted(dispersion, hi, side="left")
 
     flux_sum = 0.0
     profile_sum = 0.0
@@ -33,7 +33,7 @@ def _resolution_convolution(idx, dispersion, fluxden, resolution, fwhm_lim):
 
 
 @njit(cache=True, parallel=True)
-def broaden_spectrum(dispersion, fluxden, resolution, fwhm_lim=5.0):
+def _broaden_spectrum_jit(dispersion, fluxden, resolution, fwhm_lim=5.0):
     n = dispersion.shape[0]
     broadened_fluxden = np.zeros(n)
 
@@ -43,3 +43,20 @@ def broaden_spectrum(dispersion, fluxden, resolution, fwhm_lim=5.0):
         )
 
     return broadened_fluxden
+
+
+def broaden_spectrum(dispersion, fluxden, resolution, fwhm_lim=5.0):
+    """Convolve `fluxden` with a per-pixel resolution-dependent Gaussian.
+
+    Data loaded from FITS files (e.g. via astropy) is commonly big-endian,
+    but numba's nopython mode has no typing overload for non-native byte
+    order, so the jitted kernel below would raise a TypingError on such
+    input. Casting to native-order, contiguous float64 here makes this
+    function work regardless of the caller's array byte order/layout.
+    """
+
+    dispersion = np.ascontiguousarray(dispersion, dtype=np.float64)
+    fluxden = np.ascontiguousarray(fluxden, dtype=np.float64)
+    resolution = np.ascontiguousarray(resolution, dtype=np.float64)
+
+    return _broaden_spectrum_jit(dispersion, fluxden, resolution, fwhm_lim)

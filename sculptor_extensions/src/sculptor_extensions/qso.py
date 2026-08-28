@@ -15,33 +15,32 @@ the Hbeta and [OIII] lines consistent of six Gaussian emission lines.
 
 """
 
+import importlib.resources
 import os
+
 import numpy as np
 import scipy as sp
-
 from astropy import constants as const
 from astropy import units as u
 from astropy.modeling.models import BlackBody
 
-from sculptor.dep_v1 import speconed as sod
-
 # from lmfit import Model, Parameters
-
 from linetools import utils as lu
+from speconed import speconed as sod
 
-import pkg_resources
+resource_path = importlib.resources.files("sculptor")
+datadir = str(resource_path / "data") + "/"
 
-datadir = pkg_resources.resource_filename('sculptor', 'data/')
-
-c_km_s = const.c.to('km/s').value
-c_AngstroemPerSecond = const.c.to(u.AA/u.s).value
+c_km_s = const.c.to("km/s").value
+c_AngstroemPerSecond = const.c.to(u.AA / u.s).value
 
 # ------------------------------------------------------------------------------
 # Model functions
 # ------------------------------------------------------------------------------
 
+
 def power_law_at_2500(x, amp, slope, z):
-    """ Power law model anchored at 2500 AA
+    """Power law model anchored at 2500 AA
 
     This model is defined for a spectral dispersion axis in Angstroem.
 
@@ -58,11 +57,11 @@ def power_law_at_2500(x, amp, slope, z):
 
     """
 
-    return amp * (x / (2500. * (z+1.))) ** slope
+    return amp * (x / (2500.0 * (z + 1.0))) ** slope
 
 
 def balmer_continuum_model(x, z, amp_be, Te, tau_be, lambda_be):
-    """ Model of the Balmer continuum (Dietrich 2003)
+    """Model of the Balmer continuum (Dietrich 2003)
 
     This model is defined for a spectral dispersion axis in Angstroem.
 
@@ -97,13 +96,14 @@ def balmer_continuum_model(x, z, amp_be, Te, tau_be, lambda_be):
 
     """
 
-    x = x / (1.+z)
+    x = x / (1.0 + z)
 
-    bb = BlackBody(temperature=Te*u.K)
-    black_body_lambda = bb(x*u.AA).value * c_AngstroemPerSecond / x**2
+    bb = BlackBody(temperature=Te * u.K)
+    black_body_lambda = bb(x * u.AA).value * c_AngstroemPerSecond / x**2
 
-    fluxden = amp_be * black_body_lambda * (
-                1. - np.exp(-tau_be * (x / lambda_be) ** 3))
+    fluxden = (
+        amp_be * black_body_lambda * (1.0 - np.exp(-tau_be * (x / lambda_be) ** 3))
+    )
 
     fluxden[x >= lambda_be] = fluxden[x >= lambda_be] * 0
 
@@ -112,8 +112,7 @@ def balmer_continuum_model(x, z, amp_be, Te, tau_be, lambda_be):
     return fluxden
 
 
-def power_law_at_2500_plus_fractional_bc(x, amp, slope, z, f, Te, tau_be,
-                                       lambda_be):
+def power_law_at_2500_plus_fractional_bc(x, amp, slope, z, f, Te, tau_be, lambda_be):
     """ QSO continuum model consisting of a power law anchored at 2500 A and
     a balmer continuum contribution.
 
@@ -144,33 +143,35 @@ def power_law_at_2500_plus_fractional_bc(x, amp, slope, z, f, Te, tau_be,
 
     """
 
-    pl_fluxden = amp * (x / (2500. * (z + 1.))) ** slope
+    pl_fluxden = amp * (x / (2500.0 * (z + 1.0))) ** slope
 
-    pl_fluxden_at_be = amp * ((lambda_be * (z + 1.)) / (2500. * (z + 1.))) **\
-                       slope
+    pl_fluxden_at_be = amp * ((lambda_be * (z + 1.0)) / (2500.0 * (z + 1.0))) ** slope
 
-    x = x / (1. + z)
+    x = x / (1.0 + z)
 
-    bb = BlackBody(temperature=Te*u.K)
-    black_body_lambda = bb(x*u.AA).value * c_AngstroemPerSecond / x**2
-    black_body_lambda_be = bb(lambda_be*u.AA).value * c_AngstroemPerSecond / \
-                            lambda_be**2
+    bb = BlackBody(temperature=Te * u.K)
+    black_body_lambda = bb(x * u.AA).value * c_AngstroemPerSecond / x**2
+    black_body_lambda_be = (
+        bb(lambda_be * u.AA).value * c_AngstroemPerSecond / lambda_be**2
+    )
 
-    bc_fluxden_at_lambda_be = black_body_lambda_be * (
-                1. - np.exp(-tau_be))
+    bc_fluxden_at_lambda_be = black_body_lambda_be * (1.0 - np.exp(-tau_be))
 
-    bc_fluxden = f * pl_fluxden_at_be / bc_fluxden_at_lambda_be * \
-                black_body_lambda * (
-                1. - np.exp(-tau_be * (x / lambda_be) ** 3))
+    bc_fluxden = (
+        f
+        * pl_fluxden_at_be
+        / bc_fluxden_at_lambda_be
+        * black_body_lambda
+        * (1.0 - np.exp(-tau_be * (x / lambda_be) ** 3))
+    )
 
     bc_fluxden[x >= lambda_be] = bc_fluxden[x >= lambda_be] * 0
 
     return pl_fluxden + bc_fluxden
 
 
-def power_law_at_2500_plus_bc(x, amp, slope, z, amp_be, Te, tau_be,
-                                       lambda_be):
-    """ QSO continuum model consisting of a power law anchored at 2500 A and
+def power_law_at_2500_plus_bc(x, amp, slope, z, amp_be, Te, tau_be, lambda_be):
+    """QSO continuum model consisting of a power law anchored at 2500 A and
     a balmer continuum contribution.
 
     This model is defined for a spectral dispersion axis in Angstroem.
@@ -200,20 +201,23 @@ def power_law_at_2500_plus_bc(x, amp, slope, z, amp_be, Te, tau_be,
 
     """
 
-    pl_fluxden = amp * (x / (2500. * (z + 1.))) ** slope
+    pl_fluxden = amp * (x / (2500.0 * (z + 1.0))) ** slope
 
-    x = x / (1. + z)
+    x = x / (1.0 + z)
 
-    bb = BlackBody(temperature=Te*u.K)
-    black_body_lambda = bb(x*u.AA).value * c_AngstroemPerSecond / x**2
-    black_body_lambda_be = bb(lambda_be*u.AA).value * c_AngstroemPerSecond / \
-                            lambda_be**2
+    bb = BlackBody(temperature=Te * u.K)
+    black_body_lambda = bb(x * u.AA).value * c_AngstroemPerSecond / x**2
+    black_body_lambda_be = (
+        bb(lambda_be * u.AA).value * c_AngstroemPerSecond / lambda_be**2
+    )
 
-    bc_fluxden_0 = amp_be / (black_body_lambda_be *
-                                        (1. - np.exp(-tau_be)))
+    bc_fluxden_0 = amp_be / (black_body_lambda_be * (1.0 - np.exp(-tau_be)))
 
-    bc_fluxden = bc_fluxden_0 * black_body_lambda * \
-                 (1. - np.exp(-tau_be * (x / lambda_be) ** 3))
+    bc_fluxden = (
+        bc_fluxden_0
+        * black_body_lambda
+        * (1.0 - np.exp(-tau_be * (x / lambda_be) ** 3))
+    )
 
     bc_fluxden[x >= lambda_be] = bc_fluxden[x >= lambda_be] * 0
 
@@ -260,9 +264,8 @@ def power_law_at_2500_plus_bc(x, amp, slope, z, amp_be, Te, tau_be,
 #     return amp * np.exp(-(x-central)**2 / (2*sigma**2))
 
 
-
 def line_model_gaussian(x, z, flux, cen, fwhm_km_s):
-    """ Gaussian line model
+    """Gaussian line model
 
     The central wavelength of the Gaussian line model is determined by the
     central wavelength cen and the redshift, z. These parameters are degenerate
@@ -289,13 +292,15 @@ def line_model_gaussian(x, z, flux, cen, fwhm_km_s):
     """
 
     # Redshift central wavelength
-    cen = cen * (1+z)
+    cen = cen * (1 + z)
 
     # Calculate sigma from fwhm
     fwhm = fwhm_km_s / c_km_s * cen
-    sigma = fwhm / np.sqrt(8*np.log(2))
+    sigma = fwhm / np.sqrt(8 * np.log(2))
 
-    return flux/(sigma*np.sqrt(2*np.pi)) * np.exp(-(x-cen)**2 / (2*sigma**2))
+    return (
+        flux / (sigma * np.sqrt(2 * np.pi)) * np.exp(-((x - cen) ** 2) / (2 * sigma**2))
+    )
 
 
 def line_model_gaussian_oiii_doublet(x, z, flux, fwhm_km_s, fluxratio):
@@ -319,30 +324,35 @@ def line_model_gaussian_oiii_doublet(x, z, flux, fwhm_km_s, fluxratio):
     """
 
     # Redshift central wavelengths
-    cen_a = 4960.30 * (1+z)
-    cen_b = 5008.24 * (1+z)
+    cen_a = 4960.30 * (1 + z)
+    cen_b = 5008.24 * (1 + z)
 
     # Calculate sigma from fwhm
     fwhm_a = fwhm_km_s / c_km_s * cen_a
     fwhm_b = fwhm_km_s / c_km_s * cen_b
-    sigma_a = fwhm_a / np.sqrt(8*np.log(2))
+    sigma_a = fwhm_a / np.sqrt(8 * np.log(2))
     sigma_b = fwhm_b / np.sqrt(8 * np.log(2))
 
     flux_a = flux
     flux_b = fluxratio * flux_a
     # for flux
 
-    comp_a = flux_a / (sigma_a * np.sqrt(2 * np.pi)) * np.exp(
-        -(x - cen_a) ** 2 / (2 * sigma_a ** 2))
+    comp_a = (
+        flux_a
+        / (sigma_a * np.sqrt(2 * np.pi))
+        * np.exp(-((x - cen_a) ** 2) / (2 * sigma_a**2))
+    )
 
-    comp_b = flux_b / (sigma_b * np.sqrt(2 * np.pi)) * np.exp(
-        -(x - cen_b) ** 2 / (2 * sigma_b ** 2))
+    comp_b = (
+        flux_b
+        / (sigma_b * np.sqrt(2 * np.pi))
+        * np.exp(-((x - cen_b) ** 2) / (2 * sigma_b**2))
+    )
 
     return comp_a + comp_b
 
 
-def line_model_gaussian_nii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a,
-                                    fwhm_km_s_b):
+def line_model_gaussian_nii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s_b):
     """Doublet line model for the [NII] lines at 6549.85 A and 6585.28 A.
 
     This model ties the redshift of the forbidden transitions of [NII] at
@@ -366,26 +376,31 @@ def line_model_gaussian_nii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a,
     """
 
     # Redshift central wavelengths
-    cen_a = 6549.85 * (1+z)
-    cen_b = 6585.28 * (1+z)
+    cen_a = 6549.85 * (1 + z)
+    cen_b = 6585.28 * (1 + z)
 
     # Calculate sigma from fwhm
     fwhm_a = fwhm_km_s_a / c_km_s * cen_a
     fwhm_b = fwhm_km_s_b / c_km_s * cen_b
-    sigma_a = fwhm_a / np.sqrt(8*np.log(2))
+    sigma_a = fwhm_a / np.sqrt(8 * np.log(2))
     sigma_b = fwhm_b / np.sqrt(8 * np.log(2))
 
-    comp_a = flux_a / (sigma_a * np.sqrt(2 * np.pi)) * np.exp(
-        -(x - cen_a) ** 2 / (2 * sigma_a ** 2))
+    comp_a = (
+        flux_a
+        / (sigma_a * np.sqrt(2 * np.pi))
+        * np.exp(-((x - cen_a) ** 2) / (2 * sigma_a**2))
+    )
 
-    comp_b = flux_b / (sigma_b * np.sqrt(2 * np.pi)) * np.exp(
-        -(x - cen_b) ** 2 / (2 * sigma_b ** 2))
+    comp_b = (
+        flux_b
+        / (sigma_b * np.sqrt(2 * np.pi))
+        * np.exp(-((x - cen_b) ** 2) / (2 * sigma_b**2))
+    )
 
     return comp_a + comp_b
 
 
-def line_model_gaussian_sii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a,
-                                    fwhm_km_s_b):
+def line_model_gaussian_sii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s_b):
     """Doublet line model for the [SII] lines at 6718.29 A and 6732.67 A.
 
     This model ties the redshift,  of the forbidden transitions of [SII] at
@@ -410,29 +425,41 @@ def line_model_gaussian_sii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a,
     """
 
     # Redshift central wavelengths
-    cen_a = 6718.29 * (1+z)
-    cen_b = 6732.67 * (1+z)
+    cen_a = 6718.29 * (1 + z)
+    cen_b = 6732.67 * (1 + z)
 
     # Calculate sigma from fwhm
     fwhm_a = fwhm_km_s_a / c_km_s * cen_a
     fwhm_b = fwhm_km_s_b / c_km_s * cen_b
-    sigma_a = fwhm_a / np.sqrt(8*np.log(2))
+    sigma_a = fwhm_a / np.sqrt(8 * np.log(2))
     sigma_b = fwhm_b / np.sqrt(8 * np.log(2))
 
-    comp_a = flux_a / (sigma_a * np.sqrt(2 * np.pi)) * np.exp(
-        -(x - cen_a) ** 2 / (2 * sigma_a ** 2))
+    comp_a = (
+        flux_a
+        / (sigma_a * np.sqrt(2 * np.pi))
+        * np.exp(-((x - cen_a) ** 2) / (2 * sigma_a**2))
+    )
 
-    comp_b = flux_b / (sigma_b * np.sqrt(2 * np.pi)) * np.exp(
-        -(x - cen_b) ** 2 / (2 * sigma_b ** 2))
+    comp_b = (
+        flux_b
+        / (sigma_b * np.sqrt(2 * np.pi))
+        * np.exp(-((x - cen_b) ** 2) / (2 * sigma_b**2))
+    )
 
     return comp_a + comp_b
 
 
-
-def template_model(x, amp, z, fwhm, intr_fwhm, templ_disp=None,
-                   templ_fluxden=None,
-                   templ_disp_unit_str=None,
-                   templ_fluxden_unit_str=None):
+def template_model(
+    x,
+    amp,
+    z,
+    fwhm,
+    intr_fwhm,
+    templ_disp=None,
+    templ_fluxden=None,
+    templ_disp_unit_str=None,
+    templ_fluxden_unit_str=None,
+):
     """Template model
 
     :param x: Dispersion of the template model
@@ -461,22 +488,24 @@ def template_model(x, amp, z, fwhm, intr_fwhm, templ_disp=None,
     """
 
     if templ_disp_unit_str is not None and type(templ_disp_unit_str) is str:
-        dispersion_unit = u.Unit(templ_disp_unit_str, format='cds')
+        dispersion_unit = u.Unit(templ_disp_unit_str, format="cds")
     else:
         dispersion_unit = None
-    if templ_fluxden_unit_str is not None and \
-            type(templ_fluxden_unit_str)is str:
-        fluxden_unit = u.Unit(templ_fluxden_unit_str, format='cds')
+    if templ_fluxden_unit_str is not None and type(templ_fluxden_unit_str) is str:
+        fluxden_unit = u.Unit(templ_fluxden_unit_str, format="cds")
     else:
         fluxden_unit = None
 
     # Initialize a SpecOneD model for the template
-    template_spec = sod.SpecOneD(dispersion=templ_disp, fluxden=templ_fluxden,
-                                 dispersion_unit=dispersion_unit,
-                                 fluxden_unit=fluxden_unit)
+    template_spec = sod.SpecOneD(
+        dispersion=templ_disp,
+        fluxden=templ_fluxden,
+        dispersion_unit=dispersion_unit,
+        fluxden_unit=fluxden_unit,
+    )
 
     # Calculate the FWHM for the convolution
-    convol_fwhm = np.sqrt(fwhm**2-intr_fwhm**2)
+    convol_fwhm = np.sqrt(fwhm**2 - intr_fwhm**2)
     # Convolve the template spectrum to the goal FWHM
     spec = template_spec.broaden_by_gaussian(convol_fwhm)
 
@@ -484,19 +513,36 @@ def template_model(x, amp, z, fwhm, intr_fwhm, templ_disp=None,
     # change the amplitude of the template spectrum as is normally done for
     # cosmological redshifting. As we want to determine the amplitude it is a
     # free parameter anyway.
-    spec.dispersion = spec.dispersion * (1.+z)
+    spec.dispersion = spec.dispersion * (1.0 + z)
 
     # Return interpolation function
-    f = sp.interpolate.interp1d(spec.dispersion, spec.fluxden, kind='linear',
-                                bounds_error=False, fill_value=(0, 0))
+    f = sp.interpolate.interp1d(
+        spec.dispersion,
+        spec.fluxden,
+        kind="linear",
+        bounds_error=False,
+        fill_value=(0, 0),
+    )
 
-    return f(x)*amp
+    return f(x) * amp
 
 
-def CIII_complex_model_func(x, z, cen, cen_alIII, cen_siIII,
-                          flux, fwhm_km_s, shift_km_s,
-                          flux_alIII, fwhm_km_s_alIII, shift_km_s_alIII,
-                          flux_siIII, fwhm_km_s_siIII, shift_km_s_siIII):
+def CIII_complex_model_func(
+    x,
+    z,
+    cen,
+    cen_alIII,
+    cen_siIII,
+    flux,
+    fwhm_km_s,
+    shift_km_s,
+    flux_alIII,
+    fwhm_km_s_alIII,
+    shift_km_s_alIII,
+    flux_siIII,
+    fwhm_km_s_siIII,
+    shift_km_s_siIII,
+):
     """Model function for the CIII] emission line complex, consisting of the
     Gaussian line models with a combined redshift parameter.
 
@@ -545,22 +591,32 @@ def CIII_complex_model_func(x, z, cen, cen_alIII, cen_siIII,
     central = cIII_cen + cIII_delta_cen
     fwhm = fwhm_km_s / c_km_s * central
     sigma = fwhm / np.sqrt(8 * np.log(2))
-    gauss_cIII = flux / (sigma * np.sqrt(2 * np.pi)) * np.exp(
-        -(x - central) ** 2 / (2 * sigma ** 2))
+    gauss_cIII = (
+        flux
+        / (sigma * np.sqrt(2 * np.pi))
+        * np.exp(-((x - central) ** 2) / (2 * sigma**2))
+    )
 
     central = siIII_cen + siIII_delta_cen
     fwhm = fwhm_km_s_siIII / c_km_s * central
     sigma = fwhm / np.sqrt(8 * np.log(2))
-    gauss_siIII = flux_siIII/ (sigma * np.sqrt(2 * np.pi)) * np.exp(
-        -(x - central) ** 2 / (2 * sigma ** 2))
+    gauss_siIII = (
+        flux_siIII
+        / (sigma * np.sqrt(2 * np.pi))
+        * np.exp(-((x - central) ** 2) / (2 * sigma**2))
+    )
 
     central = alIII_cen + alIII_delta_cen
     fwhm = fwhm_km_s_alIII / c_km_s * central
     sigma = fwhm / np.sqrt(8 * np.log(2))
-    gauss_alIII = flux_alIII / (sigma * np.sqrt(2 * np.pi)) * np.exp(
-        -(x - central) ** 2 / (2 * sigma ** 2))
+    gauss_alIII = (
+        flux_alIII
+        / (sigma * np.sqrt(2 * np.pi))
+        * np.exp(-((x - central) ** 2) / (2 * sigma**2))
+    )
 
     return gauss_cIII + gauss_alIII + gauss_siIII
+
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
@@ -570,7 +626,7 @@ def CIII_complex_model_func(x, z, cen, cen_alIII, cen_siIII,
 
 
 def add_redshift_param(redshift, params, prefix):
-    """ Add the redshift parameter to the LMFIT parameters.
+    """Add the redshift parameter to the LMFIT parameters.
 
     :param redshift: Redshift
     :type redshift: float
@@ -582,14 +638,14 @@ def add_redshift_param(redshift, params, prefix):
 
     """
 
-    if redshift !=0:
+    if redshift != 0:
         z_min = max(0, 0.95 * redshift)
         z_max = min(1.05 * redshift, 1080)
     else:
         z_min = 0
         z_max = 1
 
-    params.add(prefix+'z', value=redshift, min=z_min, max=z_max, vary=False)
+    params.add(prefix + "z", value=redshift, min=z_min, max=z_max, vary=False)
 
 
 def setup_power_law_at_2500(prefix, **kwargs):
@@ -603,15 +659,15 @@ def setup_power_law_at_2500(prefix, **kwargs):
 
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
 
     params = Parameters()
 
     add_redshift_param(redshift, params, prefix)
 
-    params.add(prefix + 'amp', value=amplitude)
-    params.add(prefix + 'slope', value=-1.5, min=-2.5, max=-0.3)
+    params.add(prefix + "amp", value=amplitude)
+    params.add(prefix + "slope", value=-1.5, min=-2.5, max=-0.3)
 
     model = Model(power_law_at_2500, prefix=prefix)
 
@@ -633,17 +689,17 @@ def setup_power_law_at_2500_plus_fractional_bc(prefix, **kwargs):
 
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
 
     params = Parameters()
     add_redshift_param(redshift, params, prefix)
-    params.add(prefix + 'amp', value=amplitude)
-    params.add(prefix + 'slope', value=-1.5, min=-2.5, max=-0.3)
-    params.add(prefix + 'f', value=0.1, min=0.0, max=0.4, vary=False)
-    params.add(prefix + 'Te', value=15000, min=10000, max=20000, vary=False)
-    params.add(prefix + 'tau_be', value=1.0, min=0.1, max=2.0, vary=False)
-    params.add(prefix + 'lambda_be', value=3646, vary=False)
+    params.add(prefix + "amp", value=amplitude)
+    params.add(prefix + "slope", value=-1.5, min=-2.5, max=-0.3)
+    params.add(prefix + "f", value=0.1, min=0.0, max=0.4, vary=False)
+    params.add(prefix + "Te", value=15000, min=10000, max=20000, vary=False)
+    params.add(prefix + "tau_be", value=1.0, min=0.1, max=2.0, vary=False)
+    params.add(prefix + "lambda_be", value=3646, vary=False)
 
     model = Model(power_law_at_2500_plus_fractional_bc, prefix=prefix)
 
@@ -662,18 +718,18 @@ def setup_power_law_at_2500_plus_bc(prefix, **kwargs):
 
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
 
     params = Parameters()
     add_redshift_param(redshift, params, prefix)
 
-    params.add(prefix + 'amp', value=amplitude)
-    params.add(prefix + 'slope', value=-1.5, min=-2.5, max=-0.3)
-    params.add(prefix + 'amp_be', value=0.5, min=0.0, max=10, vary=True)
-    params.add(prefix + 'Te', value=15000, min=10000, max=20000, vary=False)
-    params.add(prefix + 'tau_be', value=1.0, min=0.1, max=2.0, vary=False)
-    params.add(prefix + 'lambda_be', value=3646, vary=False)
+    params.add(prefix + "amp", value=amplitude)
+    params.add(prefix + "slope", value=-1.5, min=-2.5, max=-0.3)
+    params.add(prefix + "amp_be", value=0.5, min=0.0, max=10, vary=True)
+    params.add(prefix + "Te", value=15000, min=10000, max=20000, vary=False)
+    params.add(prefix + "tau_be", value=1.0, min=0.1, max=2.0, vary=False)
+    params.add(prefix + "lambda_be", value=3646, vary=False)
 
     model = Model(power_law_at_2500_plus_bc, prefix=prefix)
 
@@ -724,33 +780,38 @@ def setup_line_model_gaussian(prefix, **kwargs):
 
     params = Parameters()
 
-    redshift = kwargs.pop('redshift', 0)
-    flux = kwargs.pop('flux', 100)
-    cenwave = kwargs.pop('cenwave', 1450)
-    fwhm = kwargs.pop('fwhm', 2500)
+    redshift = kwargs.pop("redshift", 0)
+    flux = kwargs.pop("flux", 100)
+    cenwave = kwargs.pop("cenwave", 1450)
+    fwhm = kwargs.pop("fwhm", 2500)
 
     add_redshift_param(redshift, params, prefix)
 
-    params.add(prefix + 'flux', value=flux)
-    params.add(prefix + 'cen', value=cenwave)
-    params.add(prefix + 'fwhm_km_s', value=fwhm)
+    params.add(prefix + "flux", value=flux)
+    params.add(prefix + "cen", value=cenwave)
+    params.add(prefix + "fwhm_km_s", value=fwhm)
 
     model = Model(line_model_gaussian, prefix=prefix)
 
     return model, params
+
 
 # ------------------------------------------------------------------------------
 # Galaxy template models
 # ------------------------------------------------------------------------------
 
 
-def setup_galaxy_template_model(prefix, template_filename,
-                              templ_disp_unit, templ_fluxden_unit,
-                              fwhm=2500,
-                              redshift=0,
-                              amplitude=1, intr_fwhm=900,
-                              dispersion_limits=None):
-
+def setup_galaxy_template_model(
+    prefix,
+    template_filename,
+    templ_disp_unit,
+    templ_fluxden_unit,
+    fwhm=2500,
+    redshift=0,
+    amplitude=1,
+    intr_fwhm=900,
+    dispersion_limits=None,
+):
     """Initialize a galaxy template model
 
     :param prefix: Model prefix
@@ -776,30 +837,33 @@ def setup_galaxy_template_model(prefix, template_filename,
     params = Parameters()
 
     # Load template model from Sculptor data directory
-    template = np.genfromtxt(datadir + 'galaxy_templates/' + template_filename)
+    template = np.genfromtxt(datadir + "galaxy_templates/" + template_filename)
 
     # Convert astropy units to string to be able to save them with LMFIT
     if type(templ_disp_unit) is u.Quantity:
-        templ_disp_unit_str = templ_disp_unit.unit.to_string('cds')
+        templ_disp_unit_str = templ_disp_unit.unit.to_string("cds")
         templ_dist_unit_factor = templ_disp_unit.value
-    elif type(templ_disp_unit) is u.Unit or type(templ_disp_unit) is \
-            u.CompositeUnit:
-        templ_disp_unit_str = templ_disp_unit.to_string('cds')
+    elif type(templ_disp_unit) is u.Unit or type(templ_disp_unit) is u.CompositeUnit:
+        templ_disp_unit_str = templ_disp_unit.to_string("cds")
     else:
-        raise ValueError('[ERROR] Template flux density unit type is not an '
-                         'astropy unit or astropy quantity. Current datatype: {}'.format(
-            type(templ_disp_unit)))
+        raise ValueError(
+            "[ERROR] Template flux density unit type is not an "
+            f"astropy unit or astropy quantity. Current datatype: {type(templ_disp_unit)}"
+        )
 
     if type(templ_fluxden_unit) is u.Quantity:
-        templ_fluxden_unit_str = templ_fluxden_unit.unit.to_string('cds')
+        templ_fluxden_unit_str = templ_fluxden_unit.unit.to_string("cds")
         templ_fluxden_unit_factor = templ_fluxden_unit.value
-    elif type(templ_fluxden_unit) is u.Unit or type(templ_fluxden_unit) is \
-            u.CompositeUnit:
-        templ_fluxden_unit_str = templ_fluxden_unit.to_string('cds')
+    elif (
+        type(templ_fluxden_unit) is u.Unit
+        or type(templ_fluxden_unit) is u.CompositeUnit
+    ):
+        templ_fluxden_unit_str = templ_fluxden_unit.to_string("cds")
     else:
-        raise ValueError('[ERROR] Template flux density unit type is not an '
-                         'astropy unit or astropy quantity. Current datatype: {}'.format(
-            type(templ_fluxden_unit)))
+        raise ValueError(
+            "[ERROR] Template flux density unit type is not an "
+            f"astropy unit or astropy quantity. Current datatype: {type(templ_fluxden_unit)}"
+        )
 
     # Apply dispersion limits
     if dispersion_limits is not None:
@@ -809,26 +873,30 @@ def setup_galaxy_template_model(prefix, template_filename,
         idx_min = np.argmin(np.abs(template[:, 0] - wav_min))
         idx_max = np.argmin(np.abs(template[:, 0] - wav_max))
 
-        model = Model(template_model,
-                      param_names=['amp', 'z', 'fwhm', 'intr_fwhm'],
-                      templ_disp=template[idx_min:idx_max, 0],
-                      templ_fluxden=template[idx_min:idx_max, 1],
-                      templ_disp_unit_str=templ_disp_unit_str,
-                      templ_fluxden_unit_str=templ_fluxden_unit_str,
-                      prefix=prefix)
+        model = Model(
+            template_model,
+            param_names=["amp", "z", "fwhm", "intr_fwhm"],
+            templ_disp=template[idx_min:idx_max, 0],
+            templ_fluxden=template[idx_min:idx_max, 1],
+            templ_disp_unit_str=templ_disp_unit_str,
+            templ_fluxden_unit_str=templ_fluxden_unit_str,
+            prefix=prefix,
+        )
     else:
-        model = Model(template_model,
-                      param_names=['amp', 'z', 'fwhm', 'intr_fwhm'],
-                      templ_disp=template[:, 0],
-                      templ_fluxden=template[:, 1],
-                      templ_disp_unit_str=templ_disp_unit_str,
-                      templ_fluxden_unit_str=templ_fluxden_unit_str,
-                      prefix=prefix)
+        model = Model(
+            template_model,
+            param_names=["amp", "z", "fwhm", "intr_fwhm"],
+            templ_disp=template[:, 0],
+            templ_fluxden=template[:, 1],
+            templ_disp_unit_str=templ_disp_unit_str,
+            templ_fluxden_unit_str=templ_fluxden_unit_str,
+            prefix=prefix,
+        )
 
     add_redshift_param(redshift, params, prefix)
-    params.add(prefix + 'fwhm', value=fwhm, min=0, max=10000, vary=False)
-    params.add(prefix + 'amp', value=amplitude, min=1, max=1e+3)
-    params.add(prefix + 'intr_fwhm', value=intr_fwhm, vary=False)
+    params.add(prefix + "fwhm", value=fwhm, min=0, max=10000, vary=False)
+    params.add(prefix + "amp", value=amplitude, min=1, max=1e3)
+    params.add(prefix + "intr_fwhm", value=intr_fwhm, vary=False)
 
     return model, params
 
@@ -849,16 +917,22 @@ def setup_SWIRE_Ell2_template(prefix, **kwargs):
     """
 
     templ_disp_unit = u.AA
-    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm**2 / u.AA
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
-    fwhm = kwargs.pop('fwhm', 2500)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
+    fwhm = kwargs.pop("fwhm", 2500)
 
     model, params = setup_galaxy_template_model(
-        'SWIRE_Ell2_', 'swire_library/Ell2_template_norm.sed', templ_disp_unit,
-        templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
-        amplitude=amplitude, intr_fwhm=900)
+        "SWIRE_Ell2_",
+        "swire_library/Ell2_template_norm.sed",
+        templ_disp_unit,
+        templ_fluxden_unit,
+        fwhm=fwhm,
+        redshift=redshift,
+        amplitude=amplitude,
+        intr_fwhm=900,
+    )
 
     return model, params
 
@@ -879,17 +953,22 @@ def setup_SWIRE_NGC6090_template(prefix, **kwargs):
     """
 
     templ_disp_unit = u.AA
-    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm**2 / u.AA
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
-    fwhm = kwargs.pop('fwhm', 2500)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
+    fwhm = kwargs.pop("fwhm", 2500)
 
     model, params = setup_galaxy_template_model(
-        'SWIRE_NGC6090_', 'swire_library/N6090_template_norm.sed',
+        "SWIRE_NGC6090_",
+        "swire_library/N6090_template_norm.sed",
         templ_disp_unit,
-        templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
-        amplitude=amplitude, intr_fwhm=900)
+        templ_fluxden_unit,
+        fwhm=fwhm,
+        redshift=redshift,
+        amplitude=amplitude,
+        intr_fwhm=900,
+    )
 
     return model, params
 
@@ -898,12 +977,18 @@ def setup_SWIRE_NGC6090_template(prefix, **kwargs):
 # Iron template models
 # ------------------------------------------------------------------------------
 
-def setup_iron_template_model(prefix, template_filename,
-                              templ_disp_unit, templ_fluxden_unit,
-                              fwhm=2500,
-                              redshift=0,
-                              amplitude=1, intr_fwhm=900,
-                              dispersion_limits=None):
+
+def setup_iron_template_model(
+    prefix,
+    template_filename,
+    templ_disp_unit,
+    templ_fluxden_unit,
+    fwhm=2500,
+    redshift=0,
+    amplitude=1,
+    intr_fwhm=900,
+    dispersion_limits=None,
+):
     """Initialize an iron template model
 
     :param prefix: Model prefix
@@ -929,28 +1014,33 @@ def setup_iron_template_model(prefix, template_filename,
     params = Parameters()
 
     # Load template model from Sculptor data directory
-    template = np.genfromtxt(datadir+'iron_templates/'+template_filename)
+    template = np.genfromtxt(datadir + "iron_templates/" + template_filename)
 
     # Convert astropy units to string to be able to save them with LMFIT
     if type(templ_disp_unit) is u.Quantity:
-        templ_disp_unit_str = templ_disp_unit.unit.to_string('cds')
+        templ_disp_unit_str = templ_disp_unit.unit.to_string("cds")
         templ_dist_unit_factor = templ_disp_unit.value
-    elif type(templ_disp_unit) is u.Unit or type(templ_disp_unit) is \
-            u.CompositeUnit:
-        templ_disp_unit_str = templ_disp_unit.to_string('cds')
+    elif type(templ_disp_unit) is u.Unit or type(templ_disp_unit) is u.CompositeUnit:
+        templ_disp_unit_str = templ_disp_unit.to_string("cds")
     else:
-        raise ValueError('[ERROR] Template flux density unit type is not an '
-                         'astropy unit or astropy quantity. Current datatype: {}'.format(type(templ_disp_unit)))
+        raise ValueError(
+            "[ERROR] Template flux density unit type is not an "
+            f"astropy unit or astropy quantity. Current datatype: {type(templ_disp_unit)}"
+        )
 
     if type(templ_fluxden_unit) is u.Quantity:
-        templ_fluxden_unit_str = templ_fluxden_unit.unit.to_string('cds')
+        templ_fluxden_unit_str = templ_fluxden_unit.unit.to_string("cds")
         templ_fluxden_unit_factor = templ_fluxden_unit.value
-    elif type(templ_fluxden_unit) is u.Unit or type(templ_fluxden_unit) is \
-            u.CompositeUnit:
-        templ_fluxden_unit_str = templ_fluxden_unit.to_string('cds')
+    elif (
+        type(templ_fluxden_unit) is u.Unit
+        or type(templ_fluxden_unit) is u.CompositeUnit
+    ):
+        templ_fluxden_unit_str = templ_fluxden_unit.to_string("cds")
     else:
-        raise ValueError('[ERROR] Template flux density unit type is not an '
-                         'astropy unit or astropy quantity. Current datatype: {}'.format(type(templ_fluxden_unit)))
+        raise ValueError(
+            "[ERROR] Template flux density unit type is not an "
+            f"astropy unit or astropy quantity. Current datatype: {type(templ_fluxden_unit)}"
+        )
 
     # Apply dispersion limits
     if dispersion_limits is not None:
@@ -960,32 +1050,35 @@ def setup_iron_template_model(prefix, template_filename,
         idx_min = np.argmin(np.abs(template[:, 0] - wav_min))
         idx_max = np.argmin(np.abs(template[:, 0] - wav_max))
 
-        model = Model(template_model,
-                      param_names=['amp', 'z', 'fwhm', 'intr_fwhm'],
-                      templ_disp=template[idx_min:idx_max, 0],
-                      templ_fluxden=template[idx_min:idx_max, 1],
-                      templ_disp_unit_str=templ_disp_unit_str,
-                      templ_fluxden_unit_str=templ_fluxden_unit_str,
-                      prefix=prefix)
+        model = Model(
+            template_model,
+            param_names=["amp", "z", "fwhm", "intr_fwhm"],
+            templ_disp=template[idx_min:idx_max, 0],
+            templ_fluxden=template[idx_min:idx_max, 1],
+            templ_disp_unit_str=templ_disp_unit_str,
+            templ_fluxden_unit_str=templ_fluxden_unit_str,
+            prefix=prefix,
+        )
     else:
-        model = Model(template_model,
-                      param_names=['amp', 'z', 'fwhm', 'intr_fwhm'],
-                      templ_disp=template[:, 0],
-                      templ_fluxden=template[:, 1],
-                      templ_disp_unit_str=templ_disp_unit_str,
-                      templ_fluxden_unit_str=templ_fluxden_unit_str,
-                      prefix=prefix)
+        model = Model(
+            template_model,
+            param_names=["amp", "z", "fwhm", "intr_fwhm"],
+            templ_disp=template[:, 0],
+            templ_fluxden=template[:, 1],
+            templ_disp_unit_str=templ_disp_unit_str,
+            templ_fluxden_unit_str=templ_fluxden_unit_str,
+            prefix=prefix,
+        )
 
     add_redshift_param(redshift, params, prefix)
-    params.add(prefix + 'fwhm', value=fwhm, min=0, max=10000, vary=False)
-    params.add(prefix + 'amp', value=amplitude, min=1, max=1e+3)
-    params.add(prefix + 'intr_fwhm', value=intr_fwhm, vary=False)
+    params.add(prefix + "fwhm", value=fwhm, min=0, max=10000, vary=False)
+    params.add(prefix + "amp", value=amplitude, min=1, max=1e3)
+    params.add(prefix + "intr_fwhm", value=intr_fwhm, vary=False)
 
     return model, params
 
 
-def setup_subdivided_iron_template(templ_list, fwhm=2500, redshift=0,
-                                   amplitude=1):
+def setup_subdivided_iron_template(templ_list, fwhm=2500, redshift=0, amplitude=1):
     """Setup iron template models from a predefined list of templates and \
     dispersion ranges.
 
@@ -1007,142 +1100,202 @@ def setup_subdivided_iron_template(templ_list, fwhm=2500, redshift=0,
     model_list = []
 
     templ_disp_unit = u.AA
-    templ_fluxden_unit = u.erg/u.s/u.cm**2/u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm**2 / u.AA
 
-    if 'UV01_VW01' in templ_list:
+    if "UV01_VW01" in templ_list:
         # 1200-1560 Vestergaard 2001
         model, params = setup_iron_template_model(
-            'UV01_VW01_', 'Fe_UVtemplt_A.asc',
+            "UV01_VW01_",
+            "Fe_UVtemplt_A.asc",
             templ_disp_unit,
             templ_fluxden_unit,
             fwhm=fwhm,
             redshift=redshift,
-            amplitude=amplitude, intr_fwhm=900, dispersion_limits=[1200, 1560])
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[1200, 1560],
+        )
         param_list.append(params)
         model_list.append(model)
-    if 'UV02_VW01' in templ_list or not templ_list:
+    if "UV02_VW01" in templ_list or not templ_list:
         # 1560-1875 Vestergaard 2001
         model, params = setup_iron_template_model(
-            'UV02_VW01_', 'Fe_UVtemplt_A.asc',
-            templ_disp_unit,
-            templ_fluxden_unit,
-            fwhm=fwhm, redshift=redshift,
-            amplitude=amplitude, intr_fwhm=900, dispersion_limits=[1560, 1875])
-        param_list.append(params)
-        model_list.append(model)
-    if 'UV03_VW01' in templ_list or not templ_list:
-        # 1875-2200 Vestergaard 2001
-        model, params = setup_iron_template_model(
-            'UV03_VW01_', 'Fe_UVtemplt_A.asc',
-            templ_disp_unit,
-            templ_fluxden_unit,
-            fwhm=fwhm, redshift=redshift,
-            amplitude=amplitude, intr_fwhm=900, dispersion_limits=[1875, 2200])
-        param_list.append(params)
-        model_list.append(model)
-    if 'FeIIIUV34_VW01' in templ_list or not templ_list:
-        # Vestergaard 2001 - FeIII UV34 template
-        model, params = setup_iron_template_model(
-            'FeIIIUV34_VW01_', 'Fe3UV34modelB2.asc',
+            "UV02_VW01_",
+            "Fe_UVtemplt_A.asc",
             templ_disp_unit,
             templ_fluxden_unit,
             fwhm=fwhm,
             redshift=redshift,
-            amplitude=amplitude, intr_fwhm=900, dispersion_limits=[1875, 2200])
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[1560, 1875],
+        )
         param_list.append(params)
         model_list.append(model)
-    if 'UV04_T06' in templ_list or not templ_list:
+    if "UV03_VW01" in templ_list or not templ_list:
+        # 1875-2200 Vestergaard 2001
+        model, params = setup_iron_template_model(
+            "UV03_VW01_",
+            "Fe_UVtemplt_A.asc",
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm,
+            redshift=redshift,
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[1875, 2200],
+        )
+        param_list.append(params)
+        model_list.append(model)
+    if "FeIIIUV34_VW01" in templ_list or not templ_list:
+        # Vestergaard 2001 - FeIII UV34 template
+        model, params = setup_iron_template_model(
+            "FeIIIUV34_VW01_",
+            "Fe3UV34modelB2.asc",
+            templ_disp_unit,
+            templ_fluxden_unit,
+            fwhm=fwhm,
+            redshift=redshift,
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[1875, 2200],
+        )
+        param_list.append(params)
+        model_list.append(model)
+    if "UV04_T06" in templ_list or not templ_list:
         # 2200-2660 Tsuzuki 2006
         model, params = setup_iron_template_model(
-            'UV04_T06_', 'Tsuzuki06.txt',
+            "UV04_T06_",
+            "Tsuzuki06.txt",
             templ_disp_unit,
             templ_fluxden_unit,
-            fwhm=fwhm, redshift=redshift,
-            amplitude=amplitude, intr_fwhm=900, dispersion_limits=[2200, 2660])
+            fwhm=fwhm,
+            redshift=redshift,
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[2200, 2660],
+        )
         param_list.append(params)
         model_list.append(model)
-    if 'UV05_T06' in templ_list or not templ_list:
+    if "UV05_T06" in templ_list or not templ_list:
         # 2660-3000 Tsuzuki 2006
         model, params = setup_iron_template_model(
-            'UV05_T06_', 'Tsuzuki06.txt',
+            "UV05_T06_",
+            "Tsuzuki06.txt",
             templ_disp_unit,
             templ_fluxden_unit,
-            fwhm=fwhm, redshift=redshift,
-            amplitude=amplitude, intr_fwhm=900, dispersion_limits=[2660, 3000])
+            fwhm=fwhm,
+            redshift=redshift,
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[2660, 3000],
+        )
         param_list.append(params)
         model_list.append(model)
-    if 'UV06_T06' in templ_list or not templ_list:
+    if "UV06_T06" in templ_list or not templ_list:
         # 3000-3500 Tsuzuki 2006
         model, params = setup_iron_template_model(
-            'UV06_T06_', 'Tsuzuki06.txt',
+            "UV06_T06_",
+            "Tsuzuki06.txt",
             templ_disp_unit,
             templ_fluxden_unit,
-            fwhm=fwhm, redshift=redshift,
-            amplitude=amplitude, intr_fwhm=900, dispersion_limits=[3000, 3500])
+            fwhm=fwhm,
+            redshift=redshift,
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[3000, 3500],
+        )
         param_list.append(params)
         model_list.append(model)
-    if 'OPT01_BG92' in templ_list or not templ_list:
+    if "OPT01_BG92" in templ_list or not templ_list:
         # 4400-4700 Boronson & Green 1992
         model, params = setup_iron_template_model(
-            'OPT01_BG92_', 'Fe_OPT_BR92_linear.txt',
+            "OPT01_BG92_",
+            "Fe_OPT_BR92_linear.txt",
             templ_disp_unit,
             templ_fluxden_unit,
             fwhm=fwhm,
-            redshift=redshift, amplitude=amplitude, intr_fwhm=900,
-            dispersion_limits=[3700, 4700])
+            redshift=redshift,
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[3700, 4700],
+        )
         param_list.append(params)
         model_list.append(model)
-    if 'OPT02_BG92' in templ_list or not templ_list:
+    if "OPT02_BG92" in templ_list or not templ_list:
         # 4700-5100 Boronson & Green 1992
         model, params = setup_iron_template_model(
-            'OPT02_BG92_', 'Fe_OPT_BR92_linear.txt',
+            "OPT02_BG92_",
+            "Fe_OPT_BR92_linear.txt",
             templ_disp_unit,
             templ_fluxden_unit,
             fwhm=fwhm,
-            redshift=redshift, amplitude=amplitude, intr_fwhm=900,
-            dispersion_limits=[4700, 5100])
+            redshift=redshift,
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[4700, 5100],
+        )
         param_list.append(params)
         model_list.append(model)
-    if 'OPT03_BG92' in templ_list or not templ_list:
+    if "OPT03_BG92" in templ_list or not templ_list:
         # 5100-5600 Boronson & Green 1992
         model, params = setup_iron_template_model(
-            'OPT03_BG92_', 'Fe_OPT_BR92_linear.txt',
+            "OPT03_BG92_",
+            "Fe_OPT_BR92_linear.txt",
             templ_disp_unit,
             templ_fluxden_unit,
             fwhm=fwhm,
-            redshift=redshift, amplitude=amplitude, intr_fwhm=900,
-            dispersion_limits=[5100, 5600])
+            redshift=redshift,
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[5100, 5600],
+        )
         param_list.append(params)
         model_list.append(model)
     # Vestergaard templates
-    if 'UV04_VW01' in templ_list or not templ_list:
+    if "UV04_VW01" in templ_list or not templ_list:
         # 2200-2660 Vestergaard 2001
         model, params = setup_iron_template_model(
-            'UV04_VW01_', 'Fe_UVtemplt_A.asc',
+            "UV04_VW01_",
+            "Fe_UVtemplt_A.asc",
             templ_disp_unit,
             templ_fluxden_unit,
-            fwhm=fwhm, redshift=redshift,
-            amplitude=amplitude, intr_fwhm=900, dispersion_limits=[2200, 2660])
+            fwhm=fwhm,
+            redshift=redshift,
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[2200, 2660],
+        )
         param_list.append(params)
         model_list.append(model)
-    if 'UV05_VW01' in templ_list or not templ_list:
+    if "UV05_VW01" in templ_list or not templ_list:
         # 2660-3000 Vestergaard 2001
         model, params = setup_iron_template_model(
-            'UV05_VW01_', 'Fe_UVtemplt_A.asc',
+            "UV05_VW01_",
+            "Fe_UVtemplt_A.asc",
             templ_disp_unit,
             templ_fluxden_unit,
-            fwhm=fwhm, redshift=redshift,
-            amplitude=amplitude, intr_fwhm=900, dispersion_limits=[2660, 3000])
+            fwhm=fwhm,
+            redshift=redshift,
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[2660, 3000],
+        )
         param_list.append(params)
         model_list.append(model)
-    if 'UV06_VW01' in templ_list or not templ_list:
+    if "UV06_VW01" in templ_list or not templ_list:
         # 3000-3500 Vestergaard 2001
         model, params = setup_iron_template_model(
-            'UV06_VW01_', 'Fe_UVtemplt_A.asc',
+            "UV06_VW01_",
+            "Fe_UVtemplt_A.asc",
             templ_disp_unit,
             templ_fluxden_unit,
-            fwhm=fwhm, redshift=redshift,
-            amplitude=amplitude, intr_fwhm=900, dispersion_limits=[3000, 3500])
+            fwhm=fwhm,
+            redshift=redshift,
+            amplitude=amplitude,
+            intr_fwhm=900,
+            dispersion_limits=[3000, 3500],
+        )
         param_list.append(params)
         model_list.append(model)
 
@@ -1165,16 +1318,22 @@ def setup_iron_template_T06(prefix, **kwargs):
     """
 
     templ_disp_unit = u.AA
-    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm**2 / u.AA
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
-    fwhm = kwargs.pop('fwhm', 2500)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
+    fwhm = kwargs.pop("fwhm", 2500)
     # Tsuzuki 2006
     model, params = setup_iron_template_model(
-        'FeII_T06_', 'Tsuzuki06.txt', templ_disp_unit,
-        templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
-        amplitude=amplitude, intr_fwhm=900)
+        "FeII_T06_",
+        "Tsuzuki06.txt",
+        templ_disp_unit,
+        templ_fluxden_unit,
+        fwhm=fwhm,
+        redshift=redshift,
+        amplitude=amplitude,
+        intr_fwhm=900,
+    )
 
     return model, params
 
@@ -1196,17 +1355,23 @@ def setup_iron_template_UV_VW01(prefix, **kwargs):
     """
 
     templ_disp_unit = u.AA
-    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm**2 / u.AA
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
-    fwhm = kwargs.pop('fwhm', 2500)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
+    fwhm = kwargs.pop("fwhm", 2500)
     # 1200-2200 Vestergaard 2001
     model, params = setup_iron_template_model(
-        'FeIIUV_VW01_', 'Fe_UVtemplt_A.asc', templ_disp_unit,
+        "FeIIUV_VW01_",
+        "Fe_UVtemplt_A.asc",
+        templ_disp_unit,
         templ_fluxden_unit,
-        fwhm=fwhm, redshift=redshift,
-        amplitude=amplitude, intr_fwhm=900, dispersion_limits=[1200, 2200])
+        fwhm=fwhm,
+        redshift=redshift,
+        amplitude=amplitude,
+        intr_fwhm=900,
+        dispersion_limits=[1200, 2200],
+    )
 
     return model, params
 
@@ -1227,16 +1392,17 @@ def setup_split_iron_template_UV_VW01(prefix, **kwargs):
 
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
-    fwhm = kwargs.pop('fwhm', 2500)
-    templ_list = ['UV01_VW01', 'UV02_VW01', 'UV03_VW01']
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
+    fwhm = kwargs.pop("fwhm", 2500)
+    templ_list = ["UV01_VW01", "UV02_VW01", "UV03_VW01"]
 
-    model_list, param_list = setup_subdivided_iron_template(templ_list,
-                                                   fwhm=fwhm,
-                                                   redshift=redshift,
-                                                   amplitude=amplitude,
-                                                   )
+    model_list, param_list = setup_subdivided_iron_template(
+        templ_list,
+        fwhm=fwhm,
+        redshift=redshift,
+        amplitude=amplitude,
+    )
 
     return model_list, param_list
 
@@ -1257,16 +1423,23 @@ def setup_iron_template_MgII_T06(prefix, **kwargs):
     """
 
     templ_disp_unit = u.AA
-    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm**2 / u.AA
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
-    fwhm = kwargs.pop('fwhm', 2500)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
+    fwhm = kwargs.pop("fwhm", 2500)
     # 2200-3500 Tsuzuki 2006
     model, params = setup_iron_template_model(
-        'FeIIMgII_T06_', 'Tsuzuki06.txt', templ_disp_unit,
-        templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
-        amplitude=amplitude, intr_fwhm=900, dispersion_limits=[2200, 3500])
+        "FeIIMgII_T06_",
+        "Tsuzuki06.txt",
+        templ_disp_unit,
+        templ_fluxden_unit,
+        fwhm=fwhm,
+        redshift=redshift,
+        amplitude=amplitude,
+        intr_fwhm=900,
+        dispersion_limits=[2200, 3500],
+    )
 
     return model, params
 
@@ -1287,13 +1460,14 @@ def setup_split_iron_template_MgII_T06(prefix, **kwargs):
 
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
-    fwhm = kwargs.pop('fwhm', 2500)
-    templ_list = ['UV04_T06', 'UV05_T06', 'UV06_T06']
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
+    fwhm = kwargs.pop("fwhm", 2500)
+    templ_list = ["UV04_T06", "UV05_T06", "UV06_T06"]
 
     model_list, param_list = setup_subdivided_iron_template(
-        templ_list, fwhm=fwhm, redshift=redshift, amplitude=amplitude)
+        templ_list, fwhm=fwhm, redshift=redshift, amplitude=amplitude
+    )
 
     return model_list, param_list
 
@@ -1315,16 +1489,23 @@ def setup_iron_template_MgII_VW01(prefix, **kwargs):
     """
 
     templ_disp_unit = u.AA
-    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm**2 / u.AA
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
-    fwhm = kwargs.pop('fwhm', 2500)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
+    fwhm = kwargs.pop("fwhm", 2500)
     # 2200-3500 Vestergaard 2001
     model, params = setup_iron_template_model(
-        'FeIIMgII_VW01_', 'Fe_UVtemplt_A.asc', templ_disp_unit,
-        templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
-        amplitude=amplitude, intr_fwhm=900, dispersion_limits=[2200, 3500])
+        "FeIIMgII_VW01_",
+        "Fe_UVtemplt_A.asc",
+        templ_disp_unit,
+        templ_fluxden_unit,
+        fwhm=fwhm,
+        redshift=redshift,
+        amplitude=amplitude,
+        intr_fwhm=900,
+        dispersion_limits=[2200, 3500],
+    )
 
     return model, params
 
@@ -1345,13 +1526,14 @@ def setup_split_iron_template_MgII_VW01(prefix, **kwargs):
 
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
-    fwhm = kwargs.pop('fwhm', 2500)
-    templ_list = ['UV04_VW01', 'UV05_VW01', 'UV06_VW01']
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
+    fwhm = kwargs.pop("fwhm", 2500)
+    templ_list = ["UV04_VW01", "UV05_VW01", "UV06_VW01"]
 
     model_list, param_list = setup_subdivided_iron_template(
-        templ_list, fwhm=fwhm, redshift=redshift, amplitude=amplitude)
+        templ_list, fwhm=fwhm, redshift=redshift, amplitude=amplitude
+    )
     return model_list, param_list
 
 
@@ -1372,16 +1554,23 @@ def setup_iron_template_OPT_BG92(prefix, **kwargs):
     """
 
     templ_disp_unit = u.AA
-    templ_fluxden_unit = u.erg / u.s / u.cm ** 2 / u.AA
+    templ_fluxden_unit = u.erg / u.s / u.cm**2 / u.AA
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
-    fwhm = kwargs.pop('fwhm', 2500)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
+    fwhm = kwargs.pop("fwhm", 2500)
     # 3700-5600 Boronson & Green 1992
     model, params = setup_iron_template_model(
-        'FeIIOPT_BG92_', 'Fe_OPT_BR92_linear.txt', templ_disp_unit,
-        templ_fluxden_unit, fwhm=fwhm, redshift=redshift,
-        amplitude=amplitude, intr_fwhm=900, dispersion_limits=[3700, 7480])
+        "FeIIOPT_BG92_",
+        "Fe_OPT_BR92_linear.txt",
+        templ_disp_unit,
+        templ_fluxden_unit,
+        fwhm=fwhm,
+        redshift=redshift,
+        amplitude=amplitude,
+        intr_fwhm=900,
+        dispersion_limits=[3700, 7480],
+    )
 
     return model, params
 
@@ -1402,15 +1591,17 @@ def setup_split_iron_template_OPT_BG92(prefix, **kwargs):
 
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
-    fwhm = kwargs.pop('fwhm', 2500)
-    templ_list = ['OPT01_BG92', 'OPT02_BG92', 'OPT03_BG92']
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
+    fwhm = kwargs.pop("fwhm", 2500)
+    templ_list = ["OPT01_BG92", "OPT02_BG92", "OPT03_BG92"]
 
     model_list, param_list = setup_subdivided_iron_template(
-        templ_list, fwhm=fwhm, redshift=redshift, amplitude=amplitude)
+        templ_list, fwhm=fwhm, redshift=redshift, amplitude=amplitude
+    )
 
     return model_list, param_list
+
 
 # ------------------------------------------------------------------------------
 # Emission line models
@@ -1436,14 +1627,14 @@ def setup_line_model_SiIV_2G(prefix, **kwargs):
 
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 0.1)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 0.1)
 
     # CIV 2G model params
-    prefixes = ['SiIV_A_', 'SiIV_B_']
+    prefixes = ["SiIV_A_", "SiIV_B_"]
     fwhms = np.array([2500, 2500])
-    sigmas = fwhms / np.sqrt(8*np.log(2))
-    fluxes = np.array([2, 2]) * amplitude * sigmas * np.sqrt(2*np.pi)
+    sigmas = fwhms / np.sqrt(8 * np.log(2))
+    fluxes = np.array([2, 2]) * amplitude * sigmas * np.sqrt(2 * np.pi)
 
     # SiIV + OIV] http://classic.sdss.org/dr6/algorithms/linestable.html
     cenwaves = [1399.8, 1399.8]
@@ -1453,19 +1644,21 @@ def setup_line_model_SiIV_2G(prefix, **kwargs):
 
     # Build parameter and model list
     for idx, prefix in enumerate(prefixes):
-        model, params = setup_line_model_gaussian(prefix,
-                                                  redshift=redshift,
-                                                  flux=fluxes[idx],
-                                                  cenwave=cenwaves[idx],
-                                                  fwhm=fwhms[idx])
+        model, params = setup_line_model_gaussian(
+            prefix,
+            redshift=redshift,
+            flux=fluxes[idx],
+            cenwave=cenwaves[idx],
+            fwhm=fwhms[idx],
+        )
         param_list.append(params)
         model_list.append(model)
 
     # Set parameter properties
     for idx, (params, prefix) in enumerate(zip(param_list, prefixes)):
-        params[prefix + 'cen'].set(vary=False)
-        params[prefix + 'flux'].set(min=0, max=fluxes[idx]*1000)
-        params[prefix + 'fwhm_km_s'].set(min=300, max=20000)
+        params[prefix + "cen"].set(vary=False)
+        params[prefix + "flux"].set(min=0, max=fluxes[idx] * 1000)
+        params[prefix + "fwhm_km_s"].set(min=300, max=20000)
 
     return model_list, param_list
 
@@ -1489,15 +1682,15 @@ def setup_line_model_CIV_2G(prefix, **kwargs):
 
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 1)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 1)
 
     # CIV 2G model params
-    prefixes = ['CIV_A_', 'CIV_B_']
+    prefixes = ["CIV_A_", "CIV_B_"]
 
     fwhms = [2500, 2500]
-    sigmas = fwhms / np.sqrt(8*np.log(2))
-    fluxes = np.array([1, 1]) * amplitude * sigmas * np.sqrt(2*np.pi)
+    sigmas = fwhms / np.sqrt(8 * np.log(2))
+    fluxes = np.array([1, 1]) * amplitude * sigmas * np.sqrt(2 * np.pi)
     cenwaves = [1549.06, 1549.06]  # Vanden Berk 2001
 
     param_list = []
@@ -1505,20 +1698,21 @@ def setup_line_model_CIV_2G(prefix, **kwargs):
 
     # Build parameter and model list
     for idx, prefix in enumerate(prefixes):
-
-        model, params = setup_line_model_gaussian(prefix,
-                                                  redshift=redshift,
-                                                  amplitude=fluxes[idx],
-                                                  cenwave=cenwaves[idx],
-                                                  fwhm=fwhms[idx])
+        model, params = setup_line_model_gaussian(
+            prefix,
+            redshift=redshift,
+            amplitude=fluxes[idx],
+            cenwave=cenwaves[idx],
+            fwhm=fwhms[idx],
+        )
         param_list.append(params)
         model_list.append(model)
 
     # Set parameter properties
     for idx, (params, prefix) in enumerate(zip(param_list, prefixes)):
-        params[prefix + 'cen'].set(vary=False)
-        params[prefix + 'flux'].set(min=0, max=fluxes[idx]*1000)
-        params[prefix + 'fwhm_km_s'].set(min=300, max=20000)
+        params[prefix + "cen"].set(vary=False)
+        params[prefix + "flux"].set(min=0, max=fluxes[idx] * 1000)
+        params[prefix + "fwhm_km_s"].set(min=300, max=20000)
 
     return model_list, param_list
 
@@ -1541,15 +1735,15 @@ def setup_line_model_MgII_2G(prefix, **kwargs):
     :rtype: (list, list)
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 0.05)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 0.05)
 
-    prefixes = ['MgII_A_', 'MgII_B_']
+    prefixes = ["MgII_A_", "MgII_B_"]
 
     # MgII 2G model params
     fwhms = [2500, 1000]
-    sigmas = fwhms / np.sqrt(8*np.log(2))
-    fluxes = np.array([2, 1]) * amplitude * sigmas * np.sqrt(2*np.pi)
+    sigmas = fwhms / np.sqrt(8 * np.log(2))
+    fluxes = np.array([2, 1]) * amplitude * sigmas * np.sqrt(2 * np.pi)
     cenwaves = [2798.75, 2798.75]  # Vanden Berk 2001
 
     param_list = []
@@ -1557,25 +1751,27 @@ def setup_line_model_MgII_2G(prefix, **kwargs):
 
     # Build parameter and model list
     for idx, prefix in enumerate(prefixes):
-        model, params = setup_line_model_gaussian(prefix,
-                                                   redshift=redshift,
-                                                   flux=fluxes[idx],
-                                                   cenwave=cenwaves[idx],
-                                                   fwhm=fwhms[idx])
+        model, params = setup_line_model_gaussian(
+            prefix,
+            redshift=redshift,
+            flux=fluxes[idx],
+            cenwave=cenwaves[idx],
+            fwhm=fwhms[idx],
+        )
         param_list.append(params)
         model_list.append(model)
 
     # Set parameter properties
     for idx, (params, prefix) in enumerate(zip(param_list, prefixes)):
-        params[prefix + 'cen'].set(vary=False)
-        params[prefix + 'flux'].set(min=0, max=fluxes[idx]*1000)
-        params[prefix + 'fwhm_km_s'].set(min=300, max=20000)
+        params[prefix + "cen"].set(vary=False)
+        params[prefix + "flux"].set(min=0, max=fluxes[idx] * 1000)
+        params[prefix + "fwhm_km_s"].set(min=300, max=20000)
 
     return model_list, param_list
 
 
 def setup_line_model_Hbeta_2G(prefix, **kwargs):
-    """ Set up a 2 component Gaussian line model for the HBeta emission line.
+    """Set up a 2 component Gaussian line model for the HBeta emission line.
 
     This model is defined for a spectral dispersion axis in Angstroem.
 
@@ -1587,21 +1783,21 @@ def setup_line_model_Hbeta_2G(prefix, **kwargs):
     :rtype: (list, list)
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 0.05)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 0.05)
 
     print(prefix)
 
-    if prefix is None or prefix == 'None':
-        prefixes = ['HBeta_A_', 'HBeta_B_']
+    if prefix is None or prefix == "None":
+        prefixes = ["HBeta_A_", "HBeta_B_"]
     else:
-        prefixes = [prefix+'A_', prefix+'B_']
+        prefixes = [prefix + "A_", prefix + "B_"]
 
     # Hbeta 2G model params
     fwhms = [2500, 900]
     sigmas = fwhms / np.sqrt(8 * np.log(2))
     fluxes = np.array([2, 1]) * amplitude * sigmas * np.sqrt(2 * np.pi)
-    print('Fluxes', fluxes)
+    print("Fluxes", fluxes)
 
     # Line wavelengths from Vanden Berk 2001 Table 2 (in Angstroem)
     cenwaves = [4862.68, 4862.68]
@@ -1611,27 +1807,28 @@ def setup_line_model_Hbeta_2G(prefix, **kwargs):
 
     # Build parameter and model list
     for idx, prefix in enumerate(prefixes):
-        model, params = setup_line_model_gaussian(prefix,
-                                                   redshift=redshift,
-                                                   flux=fluxes[idx],
-                                                   cenwave=cenwaves[idx],
-                                                   fwhm=fwhms[idx])
+        model, params = setup_line_model_gaussian(
+            prefix,
+            redshift=redshift,
+            flux=fluxes[idx],
+            cenwave=cenwaves[idx],
+            fwhm=fwhms[idx],
+        )
         param_list.append(params)
         model_list.append(model)
 
     # Set parameter properties
     for idx, (params, prefix) in enumerate(zip(param_list, prefixes)):
         print(params, prefix)
-        params[prefix + 'cen'].set(vary=False)
-        params[prefix + 'flux'].set(min=0,
-                                   max=fluxes[idx] * 1000)
-        params[prefix + 'fwhm_km_s'].set(min=300, max=20000)
+        params[prefix + "cen"].set(vary=False)
+        params[prefix + "flux"].set(min=0, max=fluxes[idx] * 1000)
+        params[prefix + "fwhm_km_s"].set(min=300, max=20000)
 
     return model_list, param_list
 
 
 def setup_line_model_Halpha_2G(prefix, **kwargs):
-    """ Set up a 2 component Gaussian line model for the HAlpha emission line.
+    """Set up a 2 component Gaussian line model for the HAlpha emission line.
 
     This model is defined for a spectral dispersion axis in Angstroem.
 
@@ -1643,21 +1840,21 @@ def setup_line_model_Halpha_2G(prefix, **kwargs):
     :rtype: (list, list)
     """
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 0.05)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 0.05)
 
     print(prefix)
 
-    if prefix is None or prefix == 'None':
-        prefixes = ['HAlpha_A_', 'HAlpha_B_']
+    if prefix is None or prefix == "None":
+        prefixes = ["HAlpha_A_", "HAlpha_B_"]
     else:
-        prefixes = [prefix+'A_', prefix+'B_']
+        prefixes = [prefix + "A_", prefix + "B_"]
 
     # Hbeta 2G model params
     fwhms = [2500, 900]
     sigmas = fwhms / np.sqrt(8 * np.log(2))
     fluxes = np.array([2, 1]) * amplitude * sigmas * np.sqrt(2 * np.pi)
-    print('Fluxes', fluxes)
+    print("Fluxes", fluxes)
 
     # Line wavelengths from Vanden Berk 2001 Table 2 (in Angstroem)
     cenwaves = [6564.61, 6564.61]
@@ -1667,27 +1864,28 @@ def setup_line_model_Halpha_2G(prefix, **kwargs):
 
     # Build parameter and model list
     for idx, prefix in enumerate(prefixes):
-        model, params = setup_line_model_gaussian(prefix,
-                                                   redshift=redshift,
-                                                   flux=fluxes[idx],
-                                                   cenwave=cenwaves[idx],
-                                                   fwhm=fwhms[idx])
+        model, params = setup_line_model_gaussian(
+            prefix,
+            redshift=redshift,
+            flux=fluxes[idx],
+            cenwave=cenwaves[idx],
+            fwhm=fwhms[idx],
+        )
         param_list.append(params)
         model_list.append(model)
 
     # Set parameter properties
     for idx, (params, prefix) in enumerate(zip(param_list, prefixes)):
         print(params, prefix)
-        params[prefix + 'cen'].set(vary=False)
-        params[prefix + 'flux'].set(min=fluxes[idx] / 100,
-                                   max=fluxes[idx] * 1000)
-        params[prefix + 'fwhm_km_s'].set(min=300, max=20000)
+        params[prefix + "cen"].set(vary=False)
+        params[prefix + "flux"].set(min=fluxes[idx] / 100, max=fluxes[idx] * 1000)
+        params[prefix + "fwhm_km_s"].set(min=300, max=20000)
 
     return model_list, param_list
 
 
 def setup_doublet_line_model_oiii(prefix, **kwargs):
-    """ Set up a double line model for the [OIII] emission lines at 4960.30 A
+    """Set up a double line model for the [OIII] emission lines at 4960.30 A
     and 5008.24 A.
 
     This model is defined for a spectral dispersion axis in Angstroem.
@@ -1700,11 +1898,11 @@ def setup_doublet_line_model_oiii(prefix, **kwargs):
     :rtype: (list, list)
     """
 
-    if prefix is None or prefix == 'None_' or prefix == 'None':
-        prefix = '[OIII]_doublet_'
+    if prefix is None or prefix == "None_" or prefix == "None":
+        prefix = "[OIII]_doublet_"
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 0.05)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 0.05)
 
     fwhm = 900
     sigma = fwhm / np.sqrt(8 * np.log(2))
@@ -1716,12 +1914,12 @@ def setup_doublet_line_model_oiii(prefix, **kwargs):
     params = Parameters()
     add_redshift_param(redshift, params, prefix)
 
-    params.add(prefix + 'flux', value=flux, min=flux/100, max=flux*1000)
-    params.add(prefix + 'fwhm_km_s', value=fwhm, min=100, max=1200)
+    params.add(prefix + "flux", value=flux, min=flux / 100, max=flux * 1000)
+    params.add(prefix + "fwhm_km_s", value=fwhm, min=100, max=1200)
     # Set the flux ratio for the doublet line model
     # for [OIII] the value is 2.98 from the reference:
     # https://academic.oup.com/mnras/article/374/3/1181/1046179
-    params.add(prefix + 'fluxratio', value=2.98, vary=False)
+    params.add(prefix + "fluxratio", value=2.98, vary=False)
 
     model = Model(line_model_gaussian_oiii_doublet, prefix=prefix)
 
@@ -1730,8 +1928,9 @@ def setup_doublet_line_model_oiii(prefix, **kwargs):
 
     return model_list, param_list
 
+
 def setup_doublet_line_model_nii(prefix, **kwargs):
-    """ Set up a double line model for the [NII] emission lines at 6549.85 A and
+    """Set up a double line model for the [NII] emission lines at 6549.85 A and
     6585.28 A.
 
     This model is defined for a spectral dispersion axis in Angstroem.
@@ -1744,11 +1943,11 @@ def setup_doublet_line_model_nii(prefix, **kwargs):
     :rtype: (list, list)
     """
 
-    if prefix is None or prefix == 'None_' or prefix == 'None':
-        prefix = '[NII]_doublet_'
+    if prefix is None or prefix == "None_" or prefix == "None":
+        prefix = "[NII]_doublet_"
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 0.1)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 0.1)
 
     fwhms = np.array([350, 350])
     sigmas = fwhms / np.sqrt(8 * np.log(2))
@@ -1761,12 +1960,10 @@ def setup_doublet_line_model_nii(prefix, **kwargs):
     params = Parameters()
     add_redshift_param(redshift, params, prefix)
 
-    params.add(prefix + 'flux_a', value=fluxes[0], min=0,
-               max=fluxes[0]*1000)
-    params.add(prefix + 'fwhm_km_s_a', value=fwhms[0], min=50, max=1200)
-    params.add(prefix + 'flux_b', value=fluxes[1], min=0,
-               max=fluxes[1]*1000)
-    params.add(prefix + 'fwhm_km_s_b', value=fwhms[1], min=50, max=1200)
+    params.add(prefix + "flux_a", value=fluxes[0], min=0, max=fluxes[0] * 1000)
+    params.add(prefix + "fwhm_km_s_a", value=fwhms[0], min=50, max=1200)
+    params.add(prefix + "flux_b", value=fluxes[1], min=0, max=fluxes[1] * 1000)
+    params.add(prefix + "fwhm_km_s_b", value=fwhms[1], min=50, max=1200)
 
     model = Model(line_model_gaussian_nii_doublet, prefix=prefix)
 
@@ -1777,7 +1974,7 @@ def setup_doublet_line_model_nii(prefix, **kwargs):
 
 
 def setup_doublet_line_model_sii(prefix, **kwargs):
-    """ Set up a double line model for the [SII] emission lines at 6718.29 A and
+    """Set up a double line model for the [SII] emission lines at 6718.29 A and
     6732.67 A.
 
     This model is defined for a spectral dispersion axis in Angstroem.
@@ -1790,11 +1987,11 @@ def setup_doublet_line_model_sii(prefix, **kwargs):
     :rtype: (list, list)
     """
 
-    if prefix is None or prefix == 'None_' or prefix == 'None':
-        prefix = '[NII]_doublet_'
+    if prefix is None or prefix == "None_" or prefix == "None":
+        prefix = "[NII]_doublet_"
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 0.1)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 0.1)
 
     fwhms = np.array([250, 250])
     sigmas = fwhms / np.sqrt(8 * np.log(2))
@@ -1807,12 +2004,10 @@ def setup_doublet_line_model_sii(prefix, **kwargs):
     params = Parameters()
     add_redshift_param(redshift, params, prefix)
 
-    params.add(prefix + 'flux_a', value=fluxes[0], min=0,
-               max=fluxes[0]*1000)
-    params.add(prefix + 'fwhm_km_s_a', value=fwhms[0], min=300, max=900)
-    params.add(prefix + 'flux_b', value=fluxes[1], min=0,
-               max=fluxes[1]*1000)
-    params.add(prefix + 'fwhm_km_s_b', value=fwhms[1], min=30, max=900)
+    params.add(prefix + "flux_a", value=fluxes[0], min=0, max=fluxes[0] * 1000)
+    params.add(prefix + "fwhm_km_s_a", value=fwhms[0], min=300, max=900)
+    params.add(prefix + "flux_b", value=fluxes[1], min=0, max=fluxes[1] * 1000)
+    params.add(prefix + "fwhm_km_s_b", value=fwhms[1], min=30, max=900)
 
     model = Model(line_model_gaussian_sii_doublet, prefix=prefix)
 
@@ -1820,7 +2015,6 @@ def setup_doublet_line_model_sii(prefix, **kwargs):
     model_list.append(model)
 
     return model_list, param_list
-
 
 
 def setup_line_model_CIII_complex(prefix, **kwargs):
@@ -1839,50 +2033,67 @@ def setup_line_model_CIII_complex(prefix, **kwargs):
     :param kwargs:
     :return: Return model and model parameters
     """
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 0.001)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 0.001)
 
     fwhm_cIII = 2000
     fwhm_alIII = 800
     fwhm_siIII = 300
 
-    prefix = 'CIII_'
+    prefix = "CIII_"
 
-    flux_cIII = 21.19 * amplitude * fwhm_cIII / np.sqrt(8 * np.log(2)) * \
-                np.sqrt(2 * np.pi)
-    flux_alIII = 0.4 * amplitude * fwhm_alIII / np.sqrt(8 * np.log(2)) * \
-                np.sqrt(2 * np.pi)
-    flux_siIII = 0.16 * amplitude * fwhm_siIII / np.sqrt(8 * np.log(2)) * \
-                np.sqrt(2 * np.pi)
+    flux_cIII = (
+        21.19 * amplitude * fwhm_cIII / np.sqrt(8 * np.log(2)) * np.sqrt(2 * np.pi)
+    )
+    flux_alIII = (
+        0.4 * amplitude * fwhm_alIII / np.sqrt(8 * np.log(2)) * np.sqrt(2 * np.pi)
+    )
+    flux_siIII = (
+        0.16 * amplitude * fwhm_siIII / np.sqrt(8 * np.log(2)) * np.sqrt(2 * np.pi)
+    )
 
     params = Parameters()
     # Line wavelengths from Vanden Berk 2001 Table 2 (in Angstroem)
-    params.add(prefix + 'cen', value=1908.73, vary=False)
-    params.add(prefix + 'cen_siIII', value=1892.03, vary=False)
-    params.add(prefix + 'cen_alIII', value=1857.40, vary=False)
+    params.add(prefix + "cen", value=1908.73, vary=False)
+    params.add(prefix + "cen_siIII", value=1892.03, vary=False)
+    params.add(prefix + "cen_alIII", value=1857.40, vary=False)
 
     add_redshift_param(redshift, params, prefix)
 
-    params.add(prefix + 'flux', value=flux_cIII, vary=True,
-               min=0 / 100, max=flux_cIII * 1000)
-    params.add(prefix + 'flux_alIII', value=flux_alIII, vary=True,
-               min=0 / 100, max=flux_alIII * 1000)
-    params.add(prefix + 'flux_siIII', value=flux_siIII, vary=True,
-               min=0 / 100, max=flux_siIII * 1000)
+    params.add(
+        prefix + "flux", value=flux_cIII, vary=True, min=0 / 100, max=flux_cIII * 1000
+    )
+    params.add(
+        prefix + "flux_alIII",
+        value=flux_alIII,
+        vary=True,
+        min=0 / 100,
+        max=flux_alIII * 1000,
+    )
+    params.add(
+        prefix + "flux_siIII",
+        value=flux_siIII,
+        vary=True,
+        min=0 / 100,
+        max=flux_siIII * 1000,
+    )
 
-    params.add(prefix + 'fwhm_km_s', value=fwhm_cIII, vary=True, min=500, max=1e+4)
-    params.add(prefix + 'fwhm_km_s_alIII', value=fwhm_alIII, vary=True, min=500,
-               max=7e+3)
-    params.add(prefix + 'fwhm_km_s_siIII', value=fwhm_siIII, vary=True, min=100,
-               max=7e+3)
+    params.add(prefix + "fwhm_km_s", value=fwhm_cIII, vary=True, min=500, max=1e4)
+    params.add(
+        prefix + "fwhm_km_s_alIII", value=fwhm_alIII, vary=True, min=500, max=7e3
+    )
+    params.add(
+        prefix + "fwhm_km_s_siIII", value=fwhm_siIII, vary=True, min=100, max=7e3
+    )
 
-    params.add(prefix + 'shift_km_s', value=0, vary=False)
-    params.add(prefix + 'shift_km_s_alIII', value=0, vary=False)
-    params.add(prefix + 'shift_km_s_siIII', value=0, vary=False)
+    params.add(prefix + "shift_km_s", value=0, vary=False)
+    params.add(prefix + "shift_km_s_alIII", value=0, vary=False)
+    params.add(prefix + "shift_km_s_siIII", value=0, vary=False)
 
-    model = Model(CIII_complex_model_func, prefix='CIII_')
+    model = Model(CIII_complex_model_func, prefix="CIII_")
 
     return model, params
+
 
 # ------------------------------------------------------------------------------
 # Masks
@@ -1900,52 +2111,72 @@ uum windows free of strong emission lines (except for Fe ii):
 2480–2675 Å, 2925–3500 Å, 4200–4230 Å, 4435–4700 Å,
 5100–5535 Å, 6000–6250 Å, and 6800–7000 Å.
 """
-qso_cont_feII = {'name': 'QSO Continuum+FeII',
-                'rest_frame': True,
-                'mask_ranges': [[1350, 1360],  # from Shen 2012, EUV, no FeII
-                                [1445, 1465],  # from Shen 2012, EUV, no FeII
-                                [1690, 1705],  # modified Shen 2012, EUV,
-                                # no FeII
-                                [2480, 2650],  # modified Shen 2012, UV w FeII
-                                [2925, 3090],  # modified Shen 2012, UV w FeII
-                                [4200, 4230],  # from Shen 2012, OPT, w [FeII]
-                                [4435, 4700],  # from Shen 2012, OPT, w [FeII]
-                                [5100, 5535],  # from Shen 2012, OPT, w FeII
-                                [6000, 6250],  # from Shen 2012, OPT, w [FeII]
-                                [6800, 7000],  # from Shen 2012, OPT, no FeII
-                                ]}
+qso_cont_feII = {
+    "name": "QSO Continuum+FeII",
+    "rest_frame": True,
+    "mask_ranges": [
+        [1350, 1360],  # from Shen 2012, EUV, no FeII
+        [1445, 1465],  # from Shen 2012, EUV, no FeII
+        [1690, 1705],  # modified Shen 2012, EUV,
+        # no FeII
+        [2480, 2650],  # modified Shen 2012, UV w FeII
+        [2925, 3090],  # modified Shen 2012, UV w FeII
+        [4200, 4230],  # from Shen 2012, OPT, w [FeII]
+        [4435, 4700],  # from Shen 2012, OPT, w [FeII]
+        [5100, 5535],  # from Shen 2012, OPT, w FeII
+        [6000, 6250],  # from Shen 2012, OPT, w [FeII]
+        [6800, 7000],  # from Shen 2012, OPT, no FeII
+    ],
+}
 
 
 # QSO continuum windows, see Vestergaard & Peterson 2006
-qso_cont_VP06 = {'name': 'QSO Cont. VP06' ,
-                 'rest_frame': True,
-                 'mask_ranges': [[1265, 1290], [1340, 1375], [1425, 1470],
-                                 [1680, 1705], [1950, 2050]]}
+qso_cont_VP06 = {
+    "name": "QSO Cont. VP06",
+    "rest_frame": True,
+    "mask_ranges": [
+        [1265, 1290],
+        [1340, 1375],
+        [1425, 1470],
+        [1680, 1705],
+        [1950, 2050],
+    ],
+}
 
 # QSO continuum + iron windows, see Shen+2011
-qso_contfe_MgII_Shen11 = {'name': 'QSO Cont. MgII Shen11',
-                          'rest_frame': True,
-                          'mask_ranges':[[2200, 2700], [2900, 3090]]}
+qso_contfe_MgII_Shen11 = {
+    "name": "QSO Cont. MgII Shen11",
+    "rest_frame": True,
+    "mask_ranges": [[2200, 2700], [2900, 3090]],
+}
 
-qso_contfe_HBeta_Shen11 = {'name': 'QSO Cont. HBeta Shen11',
-                           'rest_frame': True,
-                           'mask_ranges':[[4435, 4700], [5100, 5535]]}
+qso_contfe_HBeta_Shen11 = {
+    "name": "QSO Cont. HBeta Shen11",
+    "rest_frame": True,
+    "mask_ranges": [[4435, 4700], [5100, 5535]],
+}
 
-qso_contfe_HAlpha_Shen11 = {'name': 'QSO Cont. HAlpha Shen11',
-                            'rest_frame': True,
-                            'mask_ranges':[[6000, 6250], [6800, 7000]]}
+qso_contfe_HAlpha_Shen11 = {
+    "name": "QSO Cont. HAlpha Shen11",
+    "rest_frame": True,
+    "mask_ranges": [[6000, 6250], [6800, 7000]],
+}
 
-qso_contfe_CIV_Shen11 = {'name': 'QSO Cont. CIV Shen11',
-                         'rest_frame': True,
-                         'mask_ranges':[[1445, 1465], [1700, 1705]]}
+qso_contfe_CIV_Shen11 = {
+    "name": "QSO Cont. CIV Shen11",
+    "rest_frame": True,
+    "mask_ranges": [[1445, 1465], [1700, 1705]],
+}
 
 # Dictionary with all masks
-mask_presets = {'QSO Continuum+FeII': qso_cont_feII,
-                'QSO Cont.W. VP06': qso_cont_VP06,
-                'QSO Fe+Cont.W. CIV Shen11': qso_contfe_CIV_Shen11,
-                'QSO Fe+Cont.W. MgII Shen11': qso_contfe_MgII_Shen11,
-                'QSO Fe+Cont.W. HBeta Shen11': qso_contfe_HBeta_Shen11,
-                'QSO Fe+Cont.W. HAlpha Shen11': qso_contfe_HAlpha_Shen11}
+mask_presets = {
+    "QSO Continuum+FeII": qso_cont_feII,
+    "QSO Cont.W. VP06": qso_cont_VP06,
+    "QSO Fe+Cont.W. CIV Shen11": qso_contfe_CIV_Shen11,
+    "QSO Fe+Cont.W. MgII Shen11": qso_contfe_MgII_Shen11,
+    "QSO Fe+Cont.W. HBeta Shen11": qso_contfe_HBeta_Shen11,
+    "QSO Fe+Cont.W. HAlpha Shen11": qso_contfe_HAlpha_Shen11,
+}
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
@@ -1954,96 +2185,99 @@ mask_presets = {'QSO Continuum+FeII': qso_cont_feII,
 # ------------------------------------------------------------------------------
 
 # Dictionary listing all models for load/save functionality
-model_func_dict = {'power_law_at_2500': power_law_at_2500,
-                   'power_law_at_2500_plus_bc':
-                       power_law_at_2500_plus_bc,
-                   'power_law_at_2500_plus_fractional_bc':
-                   power_law_at_2500_plus_fractional_bc,
-                   'template_model': template_model,
-                   'line_model_gaussian': line_model_gaussian,
-                   # 'line_model_gaussian_amp': line_model_gaussian_amp,
-                   'CIII_complex_model_func': CIII_complex_model_func,
-                   'line_model_gaussian_nii_doublet':
-                       line_model_gaussian_nii_doublet,
-                   'line_model_gaussian_oiii_doublet':
-                       line_model_gaussian_oiii_doublet,
-                   'line_model_gaussian_sii_doublet':
-                       line_model_gaussian_sii_doublet}
+model_func_dict = {
+    "power_law_at_2500": power_law_at_2500,
+    "power_law_at_2500_plus_bc": power_law_at_2500_plus_bc,
+    "power_law_at_2500_plus_fractional_bc": power_law_at_2500_plus_fractional_bc,
+    "template_model": template_model,
+    "line_model_gaussian": line_model_gaussian,
+    # 'line_model_gaussian_amp': line_model_gaussian_amp,
+    "CIII_complex_model_func": CIII_complex_model_func,
+    "line_model_gaussian_nii_doublet": line_model_gaussian_nii_doublet,
+    "line_model_gaussian_oiii_doublet": line_model_gaussian_oiii_doublet,
+    "line_model_gaussian_sii_doublet": line_model_gaussian_sii_doublet,
+}
 
 
 # Model function name list and setup function list.
 # Note that both lists need to contain the same number of elements
-model_func_list = ['Power Law (2500A)',
-                   'Power Law (2500A) + BC',
-                   'Power Law (2500A) + BC (fractional)',
-                   'Line model Gaussian',
-                   # 'Line model Gaussian (amp)',
-                   'SiIV (2G components)',
-                   'CIV (2G components)',
-                   'MgII (2G components)',
-                   'HBeta (2G components)',
-                   'HAlpha (2G components)',
-                   '[OIII] doublet (2G)',
-                   '[NII] doublet (2G)',
-                   '[SII] doublet (2G)',
-                   'CIII] complex (3G components)'
-                   ]
+model_func_list = [
+    "Power Law (2500A)",
+    "Power Law (2500A) + BC",
+    "Power Law (2500A) + BC (fractional)",
+    "Line model Gaussian",
+    # 'Line model Gaussian (amp)',
+    "SiIV (2G components)",
+    "CIV (2G components)",
+    "MgII (2G components)",
+    "HBeta (2G components)",
+    "HAlpha (2G components)",
+    "[OIII] doublet (2G)",
+    "[NII] doublet (2G)",
+    "[SII] doublet (2G)",
+    "CIII] complex (3G components)",
+]
 
-model_setup_list = [setup_power_law_at_2500,
-                    setup_power_law_at_2500_plus_bc,
-                    setup_power_law_at_2500_plus_fractional_bc,
-                    setup_line_model_gaussian,
-                    # setup_line_model_gaussian_amp,
-                    setup_line_model_SiIV_2G,
-                    setup_line_model_CIV_2G,
-                    setup_line_model_MgII_2G,
-                    setup_line_model_Hbeta_2G,
-                    setup_line_model_Halpha_2G,
-                    setup_doublet_line_model_oiii,
-                    setup_doublet_line_model_nii,
-                    setup_doublet_line_model_sii,
-                    setup_line_model_CIII_complex]
+model_setup_list = [
+    setup_power_law_at_2500,
+    setup_power_law_at_2500_plus_bc,
+    setup_power_law_at_2500_plus_fractional_bc,
+    setup_line_model_gaussian,
+    # setup_line_model_gaussian_amp,
+    setup_line_model_SiIV_2G,
+    setup_line_model_CIV_2G,
+    setup_line_model_MgII_2G,
+    setup_line_model_Hbeta_2G,
+    setup_line_model_Halpha_2G,
+    setup_doublet_line_model_oiii,
+    setup_doublet_line_model_nii,
+    setup_doublet_line_model_sii,
+    setup_line_model_CIII_complex,
+]
 
 # Test if swire library galaxy templates are present and then add the model and
 # setup functions
-if os.path.isdir(datadir+'galaxy_templates/swire_library/'):
-    print('[INFO] SWIRE library found.')
+if os.path.isdir(datadir + "galaxy_templates/swire_library/"):
+    print("[INFO] SWIRE library found.")
 
-    model_funcs = ['SWIRE Ell2',
-                   'SWIRE NGC6090']
+    model_funcs = ["SWIRE Ell2", "SWIRE NGC6090"]
 
-    model_setups = [setup_SWIRE_Ell2_template,
-                    setup_SWIRE_NGC6090_template]
+    model_setups = [setup_SWIRE_Ell2_template, setup_SWIRE_NGC6090_template]
 
     model_func_list.extend(model_funcs)
     model_setup_list.extend(model_setups)
 
 # Test if iron templates are present and then add the model and setup functions.
-if os.path.isfile(datadir+'iron_templates/'+'Fe_UVtemplt_A.asc'):
-    print('[INFO] FeII iron template of Vestergaard & Wilkes 2001 found. If '
-          'you will be using these templates in your model fit and '
-          'publication, please add the citation to the original work, '
-          'ADS bibcode: 2001ApJS..134....1V')
+if os.path.isfile(datadir + "iron_templates/" + "Fe_UVtemplt_A.asc"):
+    print(
+        "[INFO] FeII iron template of Vestergaard & Wilkes 2001 found. If "
+        "you will be using these templates in your model fit and "
+        "publication, please add the citation to the original work, "
+        "ADS bibcode: 2001ApJS..134....1V"
+    )
     model_funcs = [
-                   # 'FeII template (V01, cont)',
-                   'FeII template 1200-2200 (VW01, cont)',
-                   'FeII template 1200-2200 (VW01, split)',
-                   'FeII template 2200-3500 (VW01, cont)',
-                   'FeII template 2200-3500 (VW01, split)']
+        # 'FeII template (V01, cont)',
+        "FeII template 1200-2200 (VW01, cont)",
+        "FeII template 1200-2200 (VW01, split)",
+        "FeII template 2200-3500 (VW01, cont)",
+        "FeII template 2200-3500 (VW01, split)",
+    ]
     model_setups = [
-                    # setup_iron_template_VW01,
-                    setup_iron_template_UV_VW01,
-                    setup_split_iron_template_UV_VW01,
-                    setup_iron_template_MgII_VW01,
-                    setup_split_iron_template_MgII_VW01
-        ]
+        # setup_iron_template_VW01,
+        setup_iron_template_UV_VW01,
+        setup_split_iron_template_UV_VW01,
+        setup_iron_template_MgII_VW01,
+        setup_split_iron_template_MgII_VW01,
+    ]
     model_func_list.extend(model_funcs)
     model_setup_list.extend(model_setups)
 else:
-    print('[WARNING] FeII iron template of Vestergaard & Wilkes 2001 NOT '
-          'found. If you want to use the pre-defined iron models, please '
-          'contact Marianne Vestergaard at mvester@nbi.ku.dk and add the '
-          'Fe_UVtemplt_A.asc file to the sculptor/data/iron_templates folder.')
+    print(
+        "[WARNING] FeII iron template of Vestergaard & Wilkes 2001 NOT "
+        "found. If you want to use the pre-defined iron models, please "
+        "contact Marianne Vestergaard at mvester@nbi.ku.dk and add the "
+        "Fe_UVtemplt_A.asc file to the sculptor/data/iron_templates folder."
+    )
 # if os.path.isfile(datadir+'iron_templates/'+'Fe3UV34modelB2.asc'):
 #     print('[INFO] FeIII iron template of Vestergaard & Wilkes 2001 found. If '
 #           'you will be using these templates in your model fit and '
@@ -2056,38 +2290,48 @@ else:
 #           'contact Marianne Vestergaard at mvester@nbi.ku.dk and add the '
 #           'Fe3UV34modelB2.asc file to the sculptor/data/iron_templates folder.')
 
-if os.path.isfile(datadir+'iron_templates/'+'Tsuzuki06.txt'):
-    print('[INFO] FeII iron template of Tsuzuki et al. 2006 found. If '
-          'you will be using these templates in your model fit and '
-          'publication, please add the citation to the original work, '
-          'ADS bibcode: 2006ApJ...650...57T')
+if os.path.isfile(datadir + "iron_templates/" + "Tsuzuki06.txt"):
+    print(
+        "[INFO] FeII iron template of Tsuzuki et al. 2006 found. If "
+        "you will be using these templates in your model fit and "
+        "publication, please add the citation to the original work, "
+        "ADS bibcode: 2006ApJ...650...57T"
+    )
 
-    model_funcs = ['FeII template 2200-3500 (T06, cont)',
-                   'FeII template 2200-3500 (T06, split)']
-    model_setups = [setup_iron_template_MgII_T06,
-                    setup_split_iron_template_MgII_T06]
+    model_funcs = [
+        "FeII template 2200-3500 (T06, cont)",
+        "FeII template 2200-3500 (T06, split)",
+    ]
+    model_setups = [setup_iron_template_MgII_T06, setup_split_iron_template_MgII_T06]
     model_func_list.extend(model_funcs)
     model_setup_list.extend(model_setups)
 else:
-    print('[WARNING] FeII iron template of Tsuzuki et al. 2006 NOT found. '
-          'The template should come with Sculptor. Please contact the '
-          'Sculptor developer through github.')
+    print(
+        "[WARNING] FeII iron template of Tsuzuki et al. 2006 NOT found. "
+        "The template should come with Sculptor. Please contact the "
+        "Sculptor developer through github."
+    )
 
-if os.path.isfile(datadir+'iron_templates/'+'Fe_OPT_BR92_linear.txt'):
-    print('[INFO] FeII iron template of Boroson & Green 1992 found. If '
-          'you will be using these templates in your model fit and '
-          'publication, please add the citation to the original work, '
-          'ADS bibcode: 1992ApJS...80..109B')
-    model_funcs = ['FeII template 3700-7480 (BG92, cont)',
-                  'FeII template 3700-5600 (BG92, split)']
-    model_setups = [setup_iron_template_OPT_BG92,
-                    setup_split_iron_template_OPT_BG92]
+if os.path.isfile(datadir + "iron_templates/" + "Fe_OPT_BR92_linear.txt"):
+    print(
+        "[INFO] FeII iron template of Boroson & Green 1992 found. If "
+        "you will be using these templates in your model fit and "
+        "publication, please add the citation to the original work, "
+        "ADS bibcode: 1992ApJS...80..109B"
+    )
+    model_funcs = [
+        "FeII template 3700-7480 (BG92, cont)",
+        "FeII template 3700-5600 (BG92, split)",
+    ]
+    model_setups = [setup_iron_template_OPT_BG92, setup_split_iron_template_OPT_BG92]
     model_func_list.extend(model_funcs)
     model_setup_list.extend(model_setups)
 else:
-    print('[WARNING] FeII iron template of Boroson & Green 1992 NOT found. '
-          'The template should come with Sculptor. Please contact the '
-          'Sculptor developer through github.')
+    print(
+        "[WARNING] FeII iron template of Boroson & Green 1992 NOT found. "
+        "The template should come with Sculptor. Please contact the "
+        "Sculptor developer through github."
+    )
 
 
 # ------------------------------------------------------------------------------
@@ -2140,7 +2384,7 @@ def calc_eddington_luminosity(bh_mass):
 
 
 def calc_eddington_ratio(lbol, bh_mass):
-    """ Calculate the Eddington ratio for a provided bolometric luminosity
+    """Calculate the Eddington ratio for a provided bolometric luminosity
     and black hole mass.
 
     :param lbol: Bolometric luminosity
@@ -2155,7 +2399,7 @@ def calc_eddington_ratio(lbol, bh_mass):
     return lbol / edd_lum
 
 
-def se_bhmass_hbeta_vp06(hbeta_fwhm, cont_lwav, cont_wav=5100*u.AA):
+def se_bhmass_hbeta_vp06(hbeta_fwhm, cont_lwav, cont_wav=5100 * u.AA):
     """Calculate the single-epoch virial BH mass based on the Hbeta FWHM and
     monochromatic continuum luminosity at 5100A.
 
@@ -2188,20 +2432,25 @@ def se_bhmass_hbeta_vp06(hbeta_fwhm, cont_lwav, cont_wav=5100*u.AA):
     """
 
     if cont_wav.value == 5100:
+        reference = "Hbeta_VP06_fwhm"
 
-        reference = 'Hbeta_VP06_fwhm'
-
-        bhmass = 10 ** 6.91 * (hbeta_fwhm / (1000.*u.km/u.s))**2 \
-                 * (cont_wav * cont_lwav / (10**44*u.erg/u.s))**0.5 * u.Msun
+        bhmass = (
+            10**6.91
+            * (hbeta_fwhm / (1000.0 * u.km / u.s)) ** 2
+            * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.5
+            * u.Msun
+        )
 
         return bhmass, reference
 
     else:
-        raise ValueError('[ERROR] The monochromatic continuum luminosity '
-                         'should be estimated at 5100A.')
+        raise ValueError(
+            "[ERROR] The monochromatic continuum luminosity "
+            "should be estimated at 5100A."
+        )
 
 
-def se_bhmass_hbeta_park12(hbeta_fwhm, cont_lwav, cont_wav=5100*u.AA):
+def se_bhmass_hbeta_park12(hbeta_fwhm, cont_lwav, cont_wav=5100 * u.AA):
     """Calculate the single-epoch virial BH mass based on the Hbeta FWHM and
     monochromatic continuum luminosity at 5100A.
 
@@ -2248,35 +2497,38 @@ def se_bhmass_hbeta_park12(hbeta_fwhm, cont_lwav, cont_wav=5100*u.AA):
     """
 
     if cont_wav.value == 5100:
-
         if np.median(hbeta_fwhm.value) > 3000:
+            reference = "Hbeta_Park12_fwhm_eq15"
 
-            reference = 'Hbeta_Park12_fwhm_eq15'
-
-            bhmass = 10 ** 6.966 * (hbeta_fwhm / (1000. * u.km / u.s)) ** 1.734 \
-                     * (cont_wav * cont_lwav / (10 ** 44 * u.erg / u.s)) ** 0.518 * u.Msun
+            bhmass = (
+                10**6.966
+                * (hbeta_fwhm / (1000.0 * u.km / u.s)) ** 1.734
+                * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.518
+                * u.Msun
+            )
 
             return bhmass, reference
 
         else:
+            reference = "Hbeta_Park12_fwhm_eq16"
 
-
-            reference = 'Hbeta_Park12_fwhm_eq16'
-
-            bhmass = 10 ** 6.985 * (hbeta_fwhm / (1000.*u.km/u.s))**1.666 \
-                     * (cont_wav * cont_lwav / (10**44*u.erg/u.s))**0.518 * u.Msun
+            bhmass = (
+                10**6.985
+                * (hbeta_fwhm / (1000.0 * u.km / u.s)) ** 1.666
+                * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.518
+                * u.Msun
+            )
 
             return bhmass, reference
 
     else:
-        raise ValueError('[ERROR] The monochromatic continuum luminosity '
-                         'should be estimated at 5100A.')
+        raise ValueError(
+            "[ERROR] The monochromatic continuum luminosity "
+            "should be estimated at 5100A."
+        )
 
 
-
-
-
-def se_bhmass_gh05(line_fwhm, lwav, single_epoch_rel='Ha_LHa'):
+def se_bhmass_gh05(line_fwhm, lwav, single_epoch_rel="Ha_LHa"):
     """Calculate the single-epoch virial BH mass based on the Hbeta FWHM and
     monochromatic continuum luminosity at 5100A.
 
@@ -2322,41 +2574,49 @@ def se_bhmass_gh05(line_fwhm, lwav, single_epoch_rel='Ha_LHa'):
 
     """
 
+    if single_epoch_rel == "Ha_LHa":
+        reference = "Halpha_GH05_HaLHa"
 
-    if single_epoch_rel == 'Ha_LHa':
-
-        reference = 'Halpha_GH05_HaLHa'
-
-        bhmass = (2.0e+6 * (line_fwhm / (1000. * u.km / u.s)) ** 2.06
-                  * (lwav / (10 ** 42 * u.erg / u.s)) ** 0.55 * u.Msun)
+        bhmass = (
+            2.0e6
+            * (line_fwhm / (1000.0 * u.km / u.s)) ** 2.06
+            * (lwav / (10**42 * u.erg / u.s)) ** 0.55
+            * u.Msun
+        )
 
         return bhmass, reference
 
-    elif single_epoch_rel == 'Hb_L5100':
-
-        reference = 'Hbeta_GH05_HaL5100'
+    elif single_epoch_rel == "Hb_L5100":
+        reference = "Hbeta_GH05_HaL5100"
 
         cont_wav = 5100 * u.AA
 
-        bhmass = 4.4e+6 * (line_fwhm / (1000. * u.km / u.s)) ** 2 \
-                 * (cont_wav * lwav / (10 ** 44 * u.erg / u.s)) ** 0.64 * u.Msun
+        bhmass = (
+            4.4e6
+            * (line_fwhm / (1000.0 * u.km / u.s)) ** 2
+            * (cont_wav * lwav / (10**44 * u.erg / u.s)) ** 0.64
+            * u.Msun
+        )
 
         return bhmass, reference
 
+    elif single_epoch_rel == "Hb_LHb":
+        reference = "Halpha_GH05_HbLHb"
 
-    elif single_epoch_rel == 'Hb_LHb':
-
-        reference = 'Halpha_GH05_HbLHb'
-
-        bhmass = (3.6e+6 * (line_fwhm / (1000. * u.km / u.s)) ** 2.0
-                  * (lwav / (10 ** 42 * u.erg / u.s)) ** 0.56 * u.Msun)
+        bhmass = (
+            3.6e6
+            * (line_fwhm / (1000.0 * u.km / u.s)) ** 2.0
+            * (lwav / (10**42 * u.erg / u.s)) ** 0.56
+            * u.Msun
+        )
 
         return bhmass, reference
 
     else:
-        raise ValueError('[ERROR] Single epoch relation {} not supported. '
-                         'Possible relations are Ha_LHa, Ha_L5100, Hb_LHb')
-
+        raise ValueError(
+            "[ERROR] Single epoch relation {} not supported. "
+            "Possible relations are Ha_LHa, Ha_L5100, Hb_LHb"
+        )
 
 
 def se_bhmass_civ_vp06_fwhm(civ_fwhm, cont_lwav, cont_wav):
@@ -2392,17 +2652,22 @@ def se_bhmass_civ_vp06_fwhm(civ_fwhm, cont_lwav, cont_wav):
     """
 
     if cont_wav.value == 1450 or cont_wav.value == 1350:
+        reference = "CIV_VP06_fwhm"
 
-        reference = 'CIV_VP06_fwhm'
-
-        bhmass = 10**6.66 * (civ_fwhm / (1000.*u.kms/u.s))**2 \
-                 * (cont_wav * cont_lwav / (10**44*u.erg/u.s))**0.53 * u.Msun
+        bhmass = (
+            10**6.66
+            * (civ_fwhm / (1000.0 * u.km / u.s)) ** 2
+            * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.53
+            * u.Msun
+        )
 
         return bhmass, reference
 
     else:
-        raise ValueError('[ERROR] The monochromatic continuum luminosity '
-                         'should be estimated at either 1350A or 1450A.')
+        raise ValueError(
+            "[ERROR] The monochromatic continuum luminosity "
+            "should be estimated at either 1350A or 1450A."
+        )
 
 
 def se_bhmass_civ_vp06_sigma(civ_sigma, cont_lwav, cont_wav):
@@ -2441,17 +2706,22 @@ def se_bhmass_civ_vp06_sigma(civ_sigma, cont_lwav, cont_wav):
     """
 
     if cont_wav.value == 1450 or cont_wav.value == 1350:
+        reference = "CIV_VP06_sigma"
 
-        reference = 'CIV_VP06_sigma'
-
-        bhmass = 10**6.73 * (civ_sigma / (1000.*u.kms/u.s))**2 \
-                 * (cont_wav * cont_lwav / (10**44*u.erg/u.s))**0.53 * u.Msun
+        bhmass = (
+            10**6.73
+            * (civ_sigma / (1000.0 * u.km / u.s)) ** 2
+            * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.53
+            * u.Msun
+        )
 
         return bhmass, reference
 
     else:
-        raise ValueError('[ERROR] The monochromatic continuum luminosity '
-                         'should be estimated at either 1350A or 1450A.')
+        raise ValueError(
+            "[ERROR] The monochromatic continuum luminosity "
+            "should be estimated at either 1350A or 1450A."
+        )
 
 
 def se_bhmass_mgii_vo09_fwhm(mgii_fwhm, cont_lwav, cont_wav):
@@ -2497,20 +2767,25 @@ def se_bhmass_mgii_vo09_fwhm(mgii_fwhm, cont_lwav, cont_wav):
     zero_points = {1350: 6.72, 2100: 6.79, 3000: 6.86, 5100: 6.96}
 
     if cont_wav.value in [1350, 2100, 3000, 5100]:
-
-        reference = 'MgII_VO09_fwhm_{}'.format(cont_wav.value)
+        reference = f"MgII_VO09_fwhm_{cont_wav.value}"
 
         zp = zero_points[cont_wav.value]
 
-        bhmass = 10**zp * (mgii_fwhm / (1000.*u.km/u.s))**2 \
-                 * (cont_wav * cont_lwav / (10**44*u.erg/u.s))**0.5 * u.Msun
+        bhmass = (
+            10**zp
+            * (mgii_fwhm / (1000.0 * u.km / u.s)) ** 2
+            * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.5
+            * u.Msun
+        )
 
         return bhmass, reference
 
     else:
-        raise ValueError('[ERROR] The monochromatic continuum luminosity '
-                         'should be estimated at 1350A, 2100A, 3000A, or '
-                         '5100A.')
+        raise ValueError(
+            "[ERROR] The monochromatic continuum luminosity "
+            "should be estimated at 1350A, 2100A, 3000A, or "
+            "5100A."
+        )
 
 
 def se_bhmass_mgii_s11_fwhm(mgii_fwhm, cont_lwav, cont_wav):
@@ -2547,24 +2822,28 @@ def se_bhmass_mgii_s11_fwhm(mgii_fwhm, cont_lwav, cont_wav):
 
     """
 
-
     if cont_wav.value == 3000:
-
-        reference = 'MgII_S11_fwhm_3000'
+        reference = "MgII_S11_fwhm_3000"
 
         zp = 6.74
 
-        bhmass = 10**zp * (mgii_fwhm / (1000.*u.km/u.s))**2 \
-                 * (cont_wav * cont_lwav / (10**44*u.erg/u.s))**0.62 * u.Msun
+        bhmass = (
+            10**zp
+            * (mgii_fwhm / (1000.0 * u.km / u.s)) ** 2
+            * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.62
+            * u.Msun
+        )
 
         return bhmass, reference
 
     else:
-        raise ValueError('[ERROR] The monochromatic continuum luminosity '
-                         'should be estimated at 3000A.')
+        raise ValueError(
+            "[ERROR] The monochromatic continuum luminosity "
+            "should be estimated at 3000A."
+        )
 
 
-def calc_bolometric_luminosity(cont_lwav, cont_wav, reference='Shen2011'):
+def calc_bolometric_luminosity(cont_lwav, cont_wav, reference="Shen2011"):
     """Calculate the bolometric luminosity from the monochromatic continuum
     luminosity (erg/s/A) using bolometric correction factors from the
     literature.
@@ -2592,21 +2871,23 @@ def calc_bolometric_luminosity(cont_lwav, cont_wav, reference='Shen2011'):
 
     """
 
-    if cont_wav.value == 1350 and reference == 'Shen2011':
-        reference = 'Shen2011_1350'
+    if cont_wav.value == 1350 and reference == "Shen2011":
+        reference = "Shen2011_1350"
         return cont_lwav * cont_wav * 3.81, reference
 
-    if cont_wav.value == 3000 and reference == 'Shen2011':
-        reference = 'Shen2011_3000'
+    if cont_wav.value == 3000 and reference == "Shen2011":
+        reference = "Shen2011_3000"
         return cont_lwav * cont_wav * 5.15, reference
 
-    if cont_wav.value == 5100 and reference == 'Shen2011':
-        reference = 'Shen2011_5100'
+    if cont_wav.value == 5100 and reference == "Shen2011":
+        reference = "Shen2011_5100"
         return cont_lwav * cont_wav * 9.26, reference
     else:
-        raise ValueError('[ERROR] No bolometric correction available for the '
-                         'supplied combination of continuum wavelength and '
-                         'reference.')
+        raise ValueError(
+            "[ERROR] No bolometric correction available for the "
+            "supplied combination of continuum wavelength and "
+            "reference."
+        )
 
 
 def correct_CIV_fwhm_for_blueshift(civ_fwhm, blueshift):
@@ -2624,7 +2905,7 @@ def correct_CIV_fwhm_for_blueshift(civ_fwhm, blueshift):
 
     """
 
-    return civ_fwhm / (0.41 * blueshift/(1000*u.km/u.s) + 0.62)
+    return civ_fwhm / (0.41 * blueshift / (1000 * u.km / u.s) + 0.62)
 
 
 def se_bhmass_civ_c17_fwhm(civ_fwhm, cont_lwav, cont_wav):
@@ -2658,15 +2939,19 @@ def se_bhmass_civ_c17_fwhm(civ_fwhm, cont_lwav, cont_wav):
     """
 
     if cont_wav.value == 1350:
+        reference = "CIV_C17_fwhm"
 
-        reference = 'CIV_C17_fwhm'
-
-        bhmass = 10 ** 6.71 * (civ_fwhm / (1000.*u.kms/u.s))**2 \
-                 * (cont_wav * cont_lwav / (10**44*u.erg/u.s))**0.53 * u.Msun
+        bhmass = (
+            10**6.71
+            * (civ_fwhm / (1000.0 * u.km / u.s)) ** 2
+            * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.53
+            * u.Msun
+        )
 
         return bhmass, reference
 
     else:
-        raise ValueError('[ERROR] The monochromatic continuum luminosity '
-                         'should be estimated at 1350A.')
-
+        raise ValueError(
+            "[ERROR] The monochromatic continuum luminosity "
+            "should be estimated at 1350A."
+        )

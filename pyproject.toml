@@ -71,7 +71,18 @@ members = ["sculptor_extensions"]
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
+    "ruff>=0.16.5",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = ["tests/ground_truth"]
+
+[tool.ruff]
+extend-exclude = ["tests/ground_truth", "_ground_truth"]
+# pre-commit passes explicit filenames to ruff, which otherwise ignores
+# exclude/extend-exclude for paths given directly on the command line.
+force-exclude = true
+
+[tool.ruff.lint]
+extend-select = ["B", "I", "UP"]
