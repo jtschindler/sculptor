@@ -231,7 +231,7 @@ def plot_burnin(model, save_dir=".", plot_name="burnin_all_params.pdf"):
     n_params = len(param_names)
     n_steps, n_walkers, _ = samples.shape
 
-    fig, axes = plt.subplots(n_params, 1, figsize=(12, 2.0 * n_params), sharex=True)
+    _fig, axes = plt.subplots(n_params, 1, figsize=(12, 2.0 * n_params), sharex=True)
 
     if n_params == 1:
         axes = [axes]
@@ -309,7 +309,7 @@ def Balmer_continuum_with_hol(x, z, amp_be, Te, tau_be, lambda_be, fwhm):
     emiss = df[:, 1]
     flux_density = np.zeros_like(rest_wavelength)
 
-    for line, em in zip(transitions, emiss):
+    for line, em in zip(transitions, emiss, strict=True):
         sigma = (fwhm / c_kms) * line / 2.35
         profile = np.exp(-0.5 * ((rest_wavelength - line) / sigma) ** 2)
         flux_density += em * profile / sigma
@@ -531,7 +531,7 @@ def initialise_power_law(prefix, redsh, powerlaw_dict=None):
     params = comp.create_params()
 
     if powerlaw_dict:
-        for key in params.keys():
+        for key in params:
             par = key.split(f"{prefix}_")[1]
             input = powerlaw_dict[par]
 
@@ -572,7 +572,7 @@ def initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
     params = comp.create_params()
 
     if Fe_dict:
-        for key in params.keys():
+        for key in params:
             par = key.split(f"{prefix}_")[1]
             if par == "templ_disp":
                 params[key].value = Fe_dispersion
@@ -621,7 +621,7 @@ def initialise_balmer_without_hol(prefix, balmer_dict=None):
     params = comp.create_params()
 
     if balmer_dict:
-        for key in params.keys():
+        for key in params:
             par = key.split(f"{prefix}_")[1]
             input = balmer_dict[par]
 
@@ -662,7 +662,7 @@ def initialise_balmer(prefix, model, balmer_dict=None):
     params = comp.create_params()
 
     if balmer_dict:
-        for key in params.keys():
+        for key in params:
             par = key.split(f"{prefix}_")[1]
             if par == "x":
                 params[key].value = model.gpm_fit
@@ -726,7 +726,7 @@ def initialise_gaussian_line_model(prefix, line_dict):
         par = key.split(f"{prefix}_")[1]
         input = line_dict[par]
 
-        if "parameter" in input.keys():
+        if "parameter" in input:
             params.pop(key)
             comp.param_mapping.update({par: input["parameter"]})
         else:
@@ -1349,8 +1349,6 @@ def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None):
 
     Note: Flux values from the iron template are in units of 1e-17 erg/s/cm2
     """
-    Hbeta_disp = [4435, 5535]
-
     template = np.loadtxt(datadir + "iron_templates/" + "Fe_OPT_Hbeta_Park22.txt")
     Fe_dispersion = template[:, 0]
     Fe_fluxden = template[:, 1] * 1.0e17
@@ -1579,7 +1577,7 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
                             row[z_key], z_sys=redshift, relativistic=True
                         )
                         df.at[idx, "delta_v_MgII" + key] = delta_v.value
-                    except Exception as e:
+                    except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
                         print(f"[INFO] Velocity shift calc failed at row {idx}: {e}")
                 else:
                     print(f"[INFO] Column '{z_key}' missing — skipping velocity shift.")
@@ -1596,7 +1594,7 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
                     try:
                         fe_flux_ratio = row[fe_key] * 1e-17 / row[flux_key]
                         df.at[idx, "FeII_over_MgII" + key] = fe_flux_ratio
-                    except Exception as e:
+                    except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
                         print(f"[INFO] FeII/MgII flux ratio failed at row {idx}: {e}")
                 else:
                     print(
@@ -1714,7 +1712,7 @@ def get_line_prop_Hbeta_OIII(
                             row[z_key], z_sys=redshift, relativistic=True
                         )
                         df.at[idx, "delta_v_Hbeta" + key] = delta_v_Hbeta.value
-                    except Exception as e:
+                    except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
                         print(
                             f"[INFO] Failed to calculate velocity shift for '{z_key}' at row {idx}: {e}"
                         )
@@ -1795,7 +1793,7 @@ def add_line_snr_stats(
     :type df: pd.DataFrame
     """
 
-    for idx, row in df.iterrows():
+    for idx, _row in df.iterrows():
         line_dict = {
             line_name: {"cen": line_center, "fwhm": fwhm, "l_min": None, "l_max": None}
         }

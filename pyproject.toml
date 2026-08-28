@@ -86,3 +86,8 @@ force-exclude = true
 
 [tool.ruff.lint]
 extend-select = ["B", "I", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Filename matches upstream jtschindler/sculptor for parity tracking; renaming
+# it would break that correspondence (see tests/ground_truth/*/Qso_autofit.py).
+"sculptor_extensions/src/sculptor_extensions/Qso_autofit.py" = ["N999"]

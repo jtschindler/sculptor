@@ -221,3 +221,27 @@ def test_get_arg_keys_reflects_param_mapping_reassignment_after_caching():
     comp.param_mapping = {"amp": "shared_amp", "cen": "line_cen", "sigma": "line_sigma"}
 
     assert comp.get_arg_keys() == ["shared_amp", "line_cen", "line_sigma"]
+
+
+# --------------------------------------------------------------------------
+# `FitModel.eval()` zips `params_variable`/`params_constant` keys against the
+# caller-supplied values with `strict=True`, so a length mismatch (e.g. an
+# `emcee` walker position with the wrong dimensionality) raises immediately
+# instead of silently zipping only up to the shorter length and evaluating
+# with a wrong/incomplete parameter set.
+# --------------------------------------------------------------------------
+
+
+def test_eval_raises_on_params_values_length_mismatch():
+    fit_model = _build_model_with_fixed_and_variable_params()
+    fit_model.get_params_to_sample()
+
+    x = np.linspace(4900, 5100, 50)
+    too_few = np.ones(len(fit_model.params_variable) - 1)
+
+    try:
+        fit_model.eval(x, too_few)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("expected ValueError for mismatched params_values length")

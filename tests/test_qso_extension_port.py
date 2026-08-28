@@ -685,3 +685,29 @@ def test_qam_absorption_transmission_not_registered_as_absorption_component():
     from sculptor.component import FitComponent
 
     assert "is_absorption" not in inspect.signature(FitComponent.__init__).parameters
+
+
+# --------------------------------------------------------------------------
+# `sculptor_extensions.qso` used to define ~30 `setup_*` functions that built
+# `lmfit.Model`/`lmfit.Parameters` objects, referencing `Model`/`Parameters`
+# names that were never actually importable (the `lmfit` import was
+# commented out, and `lmfit` isn't a project dependency) -- calling any of
+# them raised `NameError`. They were dead code, superseded by
+# `Qso_autofit.py`'s `initialise_*`/`setup_iron_template_*` functions, and
+# have been removed.
+# --------------------------------------------------------------------------
+
+
+def test_qso_module_has_no_leftover_lmfit_setup_functions():
+    assert not hasattr(new_qso, "setup_power_law_at_2500")
+    assert not hasattr(new_qso, "setup_line_model_gaussian")
+    assert not hasattr(new_qso, "setup_iron_template_model")
+    assert not hasattr(new_qso, "add_redshift_param")
+    assert not hasattr(new_qso, "model_func_list")
+    assert not hasattr(new_qso, "model_setup_list")
+
+
+def test_qso_module_does_not_reference_lmfit():
+    source = inspect.getsource(new_qso)
+    assert "lmfit" not in source
+    assert "Parameters()" not in source

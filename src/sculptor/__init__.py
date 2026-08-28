@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from importlib.metadata import PackageNotFoundError, version
 
 try:

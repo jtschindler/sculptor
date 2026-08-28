@@ -229,7 +229,7 @@ def initialise_balmer_with_hol(prefix, balmer_dict=None):
     params = comp.create_params()
 
     if balmer_dict:
-        for key in params.keys():
+        for key in params:
             par = key.split(f"{prefix}_")[1]
             input = balmer_dict[par]
 

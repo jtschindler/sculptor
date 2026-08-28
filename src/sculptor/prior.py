@@ -1,17 +1,14 @@
-
-
-import os
-import pickle
 import numpy as np
 
-class Prior(object):
+
+class Prior:
     def __init__(self, name, distribution, **kwargs):
         self.name = name
         self.distribution = distribution
         self.kwargs = kwargs
 
     def __str__(self):
-        return f'{self.name}: {self.distribution}'
+        return f"{self.name}: {self.distribution}"
 
     # def save(self, save_dir, save_prefix=None):
     #
@@ -48,7 +45,7 @@ class UniformPrior(Prior):
         self.low = low
         self.upp = upp
 
-        super().__init__(name, 'uniform', low=low, upp=upp)
+        super().__init__(name, "uniform", low=low, upp=upp)
 
     def evaluate(self, x):
         if self.low <= x <= self.upp:
@@ -78,13 +75,17 @@ class GaussianPrior(Prior):
         self.mean = mean
         self.sigma = sigma
 
-        super().__init__(name, 'gaussian', mean=mean, sigma=sigma)
+        super().__init__(name, "gaussian", mean=mean, sigma=sigma)
 
     def evaluate(self, x):
-        return np.exp(-0.5 * ((x - self.mean) / self.sigma) ** 2) / (self.sigma * np.sqrt(2 * np.pi))
+        return np.exp(-0.5 * ((x - self.mean) / self.sigma) ** 2) / (
+            self.sigma * np.sqrt(2 * np.pi)
+        )
 
     def logprior(self, x):
-        return -0.5 * ((x - self.mean) / self.sigma) ** 2 - np.log(self.sigma * np.sqrt(2 * np.pi))
+        return -0.5 * ((x - self.mean) / self.sigma) ** 2 - np.log(
+            self.sigma * np.sqrt(2 * np.pi)
+        )
 
     def sample(self, n, rng=None, seed=None):
 

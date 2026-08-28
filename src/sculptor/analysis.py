@@ -247,10 +247,9 @@ def _mcmc_analyze(
             result_table = QTable(names=result_dict.keys())
             # Initialize column units
             for column in result_table.columns:
-                if (
-                    isinstance(result_dict[column], units.Quantity)
-                    or isinstance(result_dict[column], units.IrreducibleUnit)
-                    or isinstance(result_dict[column], units.CompositeUnit)
+                if isinstance(
+                    result_dict[column],
+                    (units.Quantity, units.IrreducibleUnit, units.CompositeUnit),
                 ):
                     result_table[column].unit = result_dict[column].unit
 

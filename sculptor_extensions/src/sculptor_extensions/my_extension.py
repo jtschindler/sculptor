@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """An example Sculptor Extension
 
 This module defines models, masks and analysis routines as an example to
@@ -19,16 +17,16 @@ the mask will not be redshifted.
 """
 
 import numpy as np
-from lmfit import Model, Parameters
 from astropy import constants as const
-
+from lmfit import Model, Parameters
 
 # ------------------------------------------------------------------------------
 # Model functions
 # ------------------------------------------------------------------------------
 
+
 def my_model(x, z, amp, cen, fwhm_km_s, shift_km_s):
-    """ Gaussian line model as an example for a model
+    """Gaussian line model as an example for a model
 
     The central wavelength of the Gaussian line model is determined by the
     central wavelength cen, the redshift, z, and the velocity shift
@@ -57,16 +55,17 @@ def my_model(x, z, amp, cen, fwhm_km_s, shift_km_s):
 
     """
 
-    c_km_s = const.c.to('km/s').value
+    c_km_s = const.c.to("km/s").value
 
-    cen = cen * (1+z)
+    cen = cen * (1 + z)
 
     delta_cen = shift_km_s / c_km_s * cen
     central = cen + delta_cen
     fwhm = fwhm_km_s / c_km_s * central
-    sigma = fwhm / np.sqrt(8*np.log(2))
+    sigma = fwhm / np.sqrt(8 * np.log(2))
 
-    return amp * np.exp(-(x-central)**2 / (2*sigma**2))
+    return amp * np.exp(-((x - central) ** 2) / (2 * sigma**2))
+
 
 # ------------------------------------------------------------------------------
 # Model setups
@@ -89,21 +88,21 @@ def setup_my_model(prefix, **kwargs):
 
     params = Parameters()
 
-    redshift = kwargs.pop('redshift', 0)
-    amplitude = kwargs.pop('amplitude', 100)
-    cenwave = kwargs.pop('cenwave', 1450)
-    fwhm = kwargs.pop('fwhm', 2500)
-    vshift = kwargs.pop('vshift', 0)
+    redshift = kwargs.pop("redshift", 0)
+    amplitude = kwargs.pop("amplitude", 100)
+    cenwave = kwargs.pop("cenwave", 1450)
+    fwhm = kwargs.pop("fwhm", 2500)
+    vshift = kwargs.pop("vshift", 0)
 
     z_min = min(redshift * 1.05, 1080)
     z_max = max(1.0, redshift * 0.95)
 
-    params.add(prefix + 'z', value=redshift, min=z_min, max=z_max, vary=False)
+    params.add(prefix + "z", value=redshift, min=z_min, max=z_max, vary=False)
 
-    params.add(prefix + 'amp', value=amplitude)
-    params.add(prefix + 'cen', value=cenwave)
-    params.add(prefix + 'fwhm_km_s', value=fwhm)
-    params.add(prefix + 'shift_km_s', value=vshift, vary=False)
+    params.add(prefix + "amp", value=amplitude)
+    params.add(prefix + "cen", value=cenwave)
+    params.add(prefix + "fwhm_km_s", value=fwhm)
+    params.add(prefix + "shift_km_s", value=vshift, vary=False)
 
     model = Model(my_model, prefix=prefix)
 
@@ -121,10 +120,17 @@ masking. With rest_frame=True the mask regions will automatically be adjusted
 for the object redshift specified in the SpecFit class. With rest-frame=False 
 the mask will not be redshifted."""
 
-my_mask = {'name': 'My mask',
-                 'rest_frame': True,
-                 'mask_ranges': [[1265, 1290], [1340, 1375], [1425, 1470],
-                                 [1680, 1705], [1905, 2050]]}
+my_mask = {
+    "name": "My mask",
+    "rest_frame": True,
+    "mask_ranges": [
+        [1265, 1290],
+        [1340, 1375],
+        [1425, 1470],
+        [1680, 1705],
+        [1905, 2050],
+    ],
+}
 
 
 # ------------------------------------------------------------------------------
@@ -134,13 +140,14 @@ my_mask = {'name': 'My mask',
 # ------------------------------------------------------------------------------
 
 """ dict: Dictionary of model functions"""
-model_func_dict = {'my_model': my_model}
+model_func_dict = {"my_model": my_model}
 
 """ list of str: List of model names"""
-model_func_list = ['My Model']
+model_func_list = ["My Model"]
 
 """ dict: Dictionary of model setup function names"""
 model_setup_list = [setup_my_model]
 """ dict: Dictionary of mask presets"""
-mask_presets = {'My mask': my_mask,
-                }
+mask_presets = {
+    "My mask": my_mask,
+}

@@ -136,8 +136,8 @@ class FitModel:
         self.seed = 1234
         self.rng = np.random.default_rng(self.seed)
 
-        self.params_variable = dict()
-        self.params_constant = dict()
+        self.params_variable = {}
+        self.params_constant = {}
         self.params_constant_val = []
         self.vardim = None
 
@@ -222,8 +222,10 @@ class FitModel:
             self.get_params_to_sample()
 
         params = {}
-        params.update(zip(self.params_variable.keys(), params_values))
-        params.update(zip(self.params_constant.keys(), self.params_constant_val))
+        params.update(zip(self.params_variable.keys(), params_values, strict=True))
+        params.update(
+            zip(self.params_constant.keys(), self.params_constant_val, strict=True)
+        )
 
         y = np.zeros_like(x, dtype=float)
 
@@ -640,7 +642,7 @@ class FitModel:
 
         if show_components:
             comp_names = [comp.name for comp in self.components]
-            comp_dict = dict(zip(comp_names, self.components))
+            comp_dict = dict(zip(comp_names, self.components, strict=True))
             comp_array = np.zeros(
                 (
                     self.flat_chain.shape[0],
@@ -777,7 +779,7 @@ class FitModel:
             )
 
         # Add reduced-chi2 value on the plot for the fit
-        chi_sq, dof, reduced_chi_sq = self.calculate_chi_sq()
+        _chi_sq, _dof, reduced_chi_sq = self.calculate_chi_sq()
         # bic = self.compute_bic()
 
         stats_handle = Line2D(

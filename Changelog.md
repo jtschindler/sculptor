@@ -1,5 +1,53 @@
 # Changelog
 
+## 2026-08-28 (2)
+
+### `sculptor_extensions.qso`
+- Removed ~30 dead `setup_*` functions (`setup_power_law_at_2500`,
+  `setup_iron_template_model`, `setup_line_model_*`, `setup_doublet_line_model_*`,
+  etc.) plus `add_redshift_param` and `model_func_list`/`model_setup_list`/
+  `model_func_dict`. They built `lmfit.Model`/`lmfit.Parameters` objects, but
+  the `lmfit` import was commented out (and `lmfit` isn't a dependency), so
+  every one of them raised `NameError` if called. Superseded by
+  `Qso_autofit.py`'s `initialise_*`/`setup_iron_template_*` functions, which
+  build `sculptor.component.FitComponent` objects instead. Also dropped the
+  now-unused `os` import and the stray executable shebang.
+
+### Lint cleanup (`src/sculptor`, `sculptor_extensions`; `src/sculptor/dep_v1`
+  and `tests/ground_truth` intentionally excluded/out of scope, see
+  `pyproject.toml`)
+- Fixed all `ruff check` findings in the maintained package: unused
+  variables/imports, `zip()` without `strict=` (added `strict=True`
+  throughout -- all zipped pairs are same-length by construction, so this
+  also hardens `FitModel.eval()` against silently evaluating with a
+  wrong/truncated parameter vector), `dict.keys()` iteration, an unnecessary
+  `dict()` call, a merge-able `isinstance` chain, an empty docstring,
+  spurious/missing shebangs, and a stray executable bit on `model.py`.
+  Three `except Exception` blocks in `Qso_autofit.py`'s per-row batch
+  post-processing (log-and-continue on a per-row failure) were kept broad
+  and annotated `# noqa: BLE001` with the reason, rather than narrowed,
+  since the failure modes there are genuinely unpredictable.
+  `Qso_autofit.py` keeps its upstream-matching filename via a `ruff`
+  per-file-ignore (`N999`) rather than being renamed.
+  Also removed an unused `Hbeta_disp` local in
+  `setup_iron_template_Park22_OPT_Hbeta` (present in the upstream ground
+  truth too; confirmed harmless dead code, not a masking bug worth fixing
+  here).
+- Ran `ruff format` over the same scope (quote-style/wrapping only, no
+  behavior change).
+- `sculptor_extensions/__init__.py`: narrowed `except BaseException` to
+  `except PackageNotFoundError`, and fixed the same invalid-PEP-440
+  `"unknown"` version fallback as `sculptor/__init__.py`'s earlier fix.
+
+### Tests
+- `tests/test_model_bugfixes.py`: added
+  `test_eval_raises_on_params_values_length_mismatch`, verifying the new
+  `strict=True` zip in `FitModel.eval()` raises on a mismatched parameter
+  vector instead of silently truncating.
+- `tests/test_qso_extension_port.py`: added
+  `test_qso_module_has_no_leftover_lmfit_setup_functions` and
+  `test_qso_module_does_not_reference_lmfit`.
+
 ## 2026-08-28
 
 ### `sculptor.model.FitModel`

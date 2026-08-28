@@ -1,5 +1,6 @@
+from importlib.metadata import PackageNotFoundError, version
+
 try:
-    from importlib.metadata import version
     __version__ = version("sculptor-extensions")
-except BaseException:
-    __version__ = "unknown"
+except PackageNotFoundError:
+    __version__ = "0.0.0"
