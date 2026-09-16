@@ -2384,7 +2384,7 @@ def se_bhmass_db20(line_fwhm, lwav, single_epoch_rel='Hb_LHb', virial_factor=1.0
         reference = 'DB20_Hb_LHb'
 
         log_bhmass = np.log10(virial_factor) + 7.015 + 0.784 * (np.log10(lwav.value) - 42) + \
-        1.387 * (np.log10(line_fwhm.value / 1000.) - 3.5)
+        1.387 * (np.log10(line_fwhm.value) - 3.5)
 
         bhmass = 10**log_bhmass * u.Msun
 
