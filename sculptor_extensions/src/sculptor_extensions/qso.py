@@ -2356,6 +2356,44 @@ def se_bhmass_gh05(line_fwhm, lwav, single_epoch_rel='Ha_LHa'):
                          'Possible relations are Ha_LHa, Ha_L5100, Hb_LHb')
 
 
+def se_bhmass_db20(line_fwhm, lwav, single_epoch_rel='Hb_LHb', virial_factor=1.0):
+    """ 
+    
+    Calculate the single-poch virial mass based on the HB FWHM and the
+    Hb line luminosity based on the relation of Dalla Bonta 2020
+    
+    Reference: https://ui.adsabs.harvard.edu/abs/2020ApJ...903..112D/abstract
+    
+    :param line_fwhm: FWHM of the emission line in km/s
+    :type line_fwhm: astropy.units.Quantity
+    :param lwav: Line luminosity in erg/s
+    :type lwav: astropy.units.Quantity
+    :param single_epoch_rel: Single-epoch scaling relation to use. Default is 'Hb_LHb'.
+    :type single_epoch_rel: str
+    :param virial_factor: Virial factor to scale the BH mass estimate.
+    :type virial_factor: float
+    :return: Returns a tuple of the BH mass estimate and a reference string for the single-epoch scaling relationship.
+    :rtype: astropy.units.Quantity, string
+    
+    """
+
+    print('[INFO] The virial factor is set to {}'.format(virial_factor))
+
+    if single_epoch_rel == 'Hb_LHb':
+
+        reference = 'DB20_Hb_LHb'
+
+        log_bhmass = np.log10(virial_factor) + 7.015 + 0.784 * (np.log10(lwav.value) - 42) + \
+        1.387 * (np.log10(line_fwhm.value / 1000.) - 3.5)
+
+        bhmass = 10**log_bhmass * u.Msun
+
+        return bhmass, reference
+
+    else:
+        raise ValueError('[ERROR] Single epoch relation {} not supported. '
+                         'Possible relations are Hb_LHb'.format(single_epoch_rel))
+
 
 def se_bhmass_civ_vp06_fwhm(civ_fwhm, cont_lwav, cont_wav):
     """Calculate the single-epoch virial BH mass based on the CIV FWHM and
@@ -2606,6 +2644,28 @@ def calc_bolometric_luminosity(cont_lwav, cont_wav, reference='Shen2011'):
                          'supplied combination of continuum wavelength and '
                          'reference.')
 
+
+def calc_bolometric_luminosity_db20(line_lwav):
+
+    """Calculate the bolometric luminosity using the DB20 bolometric correction 
+    for the Hb line luminosity.
+
+    :param line_lwav: Line luminosity in erg/s.
+    :type line_lwav: astropy.units.Quantity
+    :return: Returns a tuple of the bolometric luminosity in erg/s and a \
+        reference string indicating the publication and continuum wavelength \
+        of the bolometric correction.
+    :rtype: astropy.units.Quantity, string
+
+    """
+
+    log_lbol = 44.717 + 0.802 * (np.log10(line_lwav/(u.erg/u.s)) - 41.746)
+
+    lbol = 10**log_lbol * u.erg/u.s
+
+    reference = 'DB20_Hb'
+
+    return lbol, reference
 
 def correct_CIV_fwhm_for_blueshift(civ_fwhm, blueshift):
     """Correct the CIV FWHM for the CIV blueshifts using the relation

@@ -358,6 +358,9 @@ class FitModel(object):
         self.nsteps = nsteps
         self.nwalkers = nwalkers
 
+        self.flat_chain = None
+        self.mcmc_model_posterior = None
+
         self.initialize_emcee(
             nwalkers, log_probability=log_probability, spec=spec, pool=pool
         )
