@@ -33,7 +33,9 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import sculptor_extensions.qso as new_qso
 import sculptor_extensions.Qso_autofit as new_qso_autofit
+from astropy import units as u
 
 import sculptor.component as new_component
 import sculptor.model as new_model
@@ -290,3 +292,52 @@ def test_feii_over_mgii_missing_columns_skips_gracefully():
             fit_name="Vest",
         )
     assert "FeII_over_MgII_median" not in result.columns
+
+
+# --------------------------------------------------------------------------
+# sculptor_extensions.qso -- Dalla Bonta et al. 2020 Hbeta BH mass and
+# bolometric luminosity (upstream v2_dev 33b78d5 + fix a5a1749).
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("virial_factor", [1.0, 4.3])
+def test_se_bhmass_db20_matches_upstream(upstream_qso, virial_factor):
+    fwhm = 4500.0 * u.km / u.s
+    lwav = 3e42 * u.erg / u.s
+
+    orig_mass, orig_ref = upstream_qso.se_bhmass_db20(
+        fwhm, lwav, virial_factor=virial_factor
+    )
+    new_mass, new_ref = new_qso.se_bhmass_db20(fwhm, lwav, virial_factor=virial_factor)
+
+    assert new_ref == orig_ref == "DB20_Hb_LHb"
+    np.testing.assert_allclose(new_mass.to(u.Msun).value, orig_mass.to(u.Msun).value)
+
+
+def test_se_bhmass_db20_values_and_units():
+    # At the pivot point (L = 1e42 erg/s, FWHM = 10^3.5 km/s) only the zero
+    # point remains: log M = 7.015.
+    mass, _ = new_qso.se_bhmass_db20(10**3.5 * u.km / u.s, 1e42 * u.erg / u.s)
+    assert np.log10(mass.to(u.Msun).value) == pytest.approx(7.015)
+
+    # Unit-aware: the same inputs in other units give the same mass.
+    other, _ = new_qso.se_bhmass_db20(10**3.5 * 1e3 * u.m / u.s, 1e35 * u.W)
+    assert other.to(u.Msun).value == pytest.approx(mass.to(u.Msun).value)
+
+    with pytest.raises(ValueError, match="not supported"):
+        new_qso.se_bhmass_db20(3000 * u.km / u.s, 1e42 * u.erg / u.s, "Ha_LHa")
+
+
+def test_calc_bolometric_luminosity_db20_matches_upstream(upstream_qso):
+    lwav = 3e42 * u.erg / u.s
+
+    orig_lbol, orig_ref = upstream_qso.calc_bolometric_luminosity_db20(lwav)
+    new_lbol, new_ref = new_qso.calc_bolometric_luminosity_db20(lwav)
+
+    assert new_ref == orig_ref == "DB20_Hb"
+    np.testing.assert_allclose(
+        new_lbol.to(u.erg / u.s).value, orig_lbol.to(u.erg / u.s).value
+    )
+    # At the pivot only the zero point remains.
+    pivot, _ = new_qso.calc_bolometric_luminosity_db20(10**41.746 * u.erg / u.s)
+    assert np.log10(pivot.to(u.erg / u.s).value) == pytest.approx(44.717)

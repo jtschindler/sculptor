@@ -2,6 +2,21 @@
 
 ## 2026-10-19
 
+### Sync with upstream `v2_dev` (up to a5a1749)
+- New `qso.se_bhmass_db20` (Hbeta single-epoch BH mass) and
+  `qso.calc_bolometric_luminosity_db20` (Hbeta bolometric correction),
+  Dalla Bonta et al. 2020, ported from upstream (33b78d5, with the FWHM fix
+  a5a1749). Same results as upstream for inputs in km/s and erg/s; ours
+  also convert other units, log the virial factor instead of printing it,
+  and raise without the `[ERROR]` prefix.
+- The rest of upstream `v2_dev` since the uv-migration merge was already
+  here (importlib.resources, standalone speconed, trapezoid, resolution
+  broadening default, clearing old results on a new emcee run). Kept on
+  purpose: the "Beta" status / `2.0.0b0` (upstream: 2.0.0, Stable), packaging
+  only the runtime data files, and the `0.0.0` version fallback.
+- The upstream reference copies in `tests/ground_truth/v2_dev/` were
+  refreshed to `v2_dev` a5a1749 (`qso.py`, `model.py`).
+
 ### Docstrings (convention: reST)
 - Every public function, method and class in `sculptor` and
   `sculptor_extensions` has a reST (`:param:` / `:type:` / `:return:`)

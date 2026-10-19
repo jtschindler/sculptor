@@ -13,12 +13,15 @@ components.
 """
 
 import importlib.resources
+import logging
 
 import numpy as np
 from astropy import constants as const
 from astropy import units as u
 from astropy.modeling.models import BlackBody
 from linetools import utils as lu
+
+logger = logging.getLogger(__name__)
 
 resource_path = importlib.resources.files("sculptor")
 datadir = str(resource_path / "data") + "/"
@@ -605,6 +608,53 @@ def se_bhmass_gh05(line_fwhm, lwav, single_epoch_rel="Ha_LHa"):
         )
 
 
+def se_bhmass_db20(line_fwhm, lwav, single_epoch_rel="Hb_LHb", virial_factor=1.0):
+    """Calculate the single-epoch virial BH mass based on the Hbeta FWHM and
+    the Hbeta line luminosity, following Dalla Bonta et al. 2020, ApJ 903, 112
+    (https://ui.adsabs.harvard.edu/abs/2020ApJ...903..112D/abstract):
+
+    log(M_BH / M_sun) = log(f) + 7.015 + 0.784 log(L_Hb / 10^42 erg/s)
+                        + 1.387 log(FWHM / 10^3.5 km/s)
+
+    Ported from upstream `v2_dev` (commits 33b78d5, a5a1749).
+
+    :param line_fwhm: FWHM of the Hbeta line in km/s
+    :type line_fwhm: astropy.units.Quantity
+    :param lwav: Hbeta line luminosity in erg/s
+    :type lwav: astropy.units.Quantity
+    :param single_epoch_rel: Single-epoch scaling relation to use; only
+        "Hb_LHb" (default)
+    :type single_epoch_rel: str
+    :param virial_factor: Virial factor f to scale the BH mass estimate
+    :type virial_factor: float
+    :return: Returns a tuple of the BH mass estimate and a reference string
+        for the single-epoch scaling relationship.
+    :rtype: astropy.units.Quantity, string
+    """
+
+    logger.info(f"The virial factor is set to {virial_factor}")
+
+    if single_epoch_rel == "Hb_LHb":
+        reference = "DB20_Hb_LHb"
+
+        log_bhmass = (
+            np.log10(virial_factor)
+            + 7.015
+            + 0.784 * (np.log10(lwav.to(u.erg / u.s).value) - 42)
+            + 1.387 * (np.log10(line_fwhm.to(u.km / u.s).value) - 3.5)
+        )
+
+        bhmass = 10**log_bhmass * u.Msun
+
+        return bhmass, reference
+
+    else:
+        raise ValueError(
+            f"Single epoch relation {single_epoch_rel} not supported. "
+            "Possible relations are Hb_LHb"
+        )
+
+
 def se_bhmass_civ_vp06_fwhm(civ_fwhm, cont_lwav, cont_wav):
     """Calculate the single-epoch virial BH mass based on the CIV FWHM and
     monochromatic continuum luminosity at 1350A.
@@ -873,6 +923,31 @@ def calc_bolometric_luminosity(cont_lwav, cont_wav, reference="Shen2011"):
             "supplied combination of continuum wavelength and "
             "reference."
         )
+
+
+def calc_bolometric_luminosity_db20(line_lwav):
+    """Calculate the bolometric luminosity from the Hbeta line luminosity
+    with the bolometric correction of Dalla Bonta et al. 2020:
+
+    log(L_bol / erg/s) = 44.717 + 0.802 (log(L_Hb / erg/s) - 41.746)
+
+    Ported from upstream `v2_dev` (commit 33b78d5).
+
+    :param line_lwav: Hbeta line luminosity in erg/s
+    :type line_lwav: astropy.units.Quantity
+    :return: Returns a tuple of the bolometric luminosity in erg/s and a
+        reference string indicating the publication of the bolometric
+        correction.
+    :rtype: astropy.units.Quantity, string
+    """
+
+    log_lbol = 44.717 + 0.802 * (np.log10(line_lwav.to(u.erg / u.s).value) - 41.746)
+
+    lbol = 10**log_lbol * u.erg / u.s
+
+    reference = "DB20_Hb"
+
+    return lbol, reference
 
 
 def correct_CIV_fwhm_for_blueshift(civ_fwhm, blueshift):
