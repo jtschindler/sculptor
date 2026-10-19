@@ -57,6 +57,26 @@ class _ObservableParamMapping(dict):
         self._invalidate()
 
 
+class FakeCode:
+    """Stand-in for a function's `__code__`, for callable objects used as a
+    `FitComponent` function.
+
+    `FitComponent` reads the model's argument names from
+    `function.__code__.co_argcount` / `co_varnames`; a callable object (e.g.
+    `sculptor.analysis.TemplateModel`) sets `self.__code__ = FakeCode(...)`
+    with the argument names of its `__call__` (without `self`).
+
+    :param co_argcount: Number of arguments, including `x`
+    :type co_argcount: int
+    :param co_varnames: Argument names, starting with "x"
+    :type co_varnames: tuple(str)
+    """
+
+    def __init__(self, co_argcount, co_varnames):
+        self.co_argcount = co_argcount
+        self.co_varnames = co_varnames
+
+
 class FitComponent(PickleMixin):
     """One additive model component: a model function and the mapping of its
     arguments onto the model's parameters.

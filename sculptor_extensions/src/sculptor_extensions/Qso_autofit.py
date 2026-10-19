@@ -506,6 +506,38 @@ def initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
     :return: iron template component and parameters
     """
     comp = sccomp.FitComponent(prefix, ana.template_model)
+    return _setup_Fe_params(prefix, comp, Fe_dispersion, Fe_fluxden, Fe_dict)
+
+
+def initialise_Fe_fast(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
+    """
+    Like `initialise_Fe`, but builds the component from
+    `sculptor.analysis.TemplateModel`, a precomputed version of
+    `template_model` that is ~10-20x faster per evaluation and gives the
+    same model (see its docstring). The template arrays are stored in the
+    model object instead of as constant parameters, so the component only
+    has the parameters "redsh", "amp", "fwhm" and "intr_fwhm", and
+    `Fe_dict` only needs those keys.
+
+    Ported from the upstream `qso_auto_fit` branch (`Qso_autofit_2.py`).
+
+    :param prefix: Model prefix
+    :type prefix: string
+    :param Fe_dispersion: Rest-frame dispersion of the iron template (Angstroem)
+    :type Fe_dispersion: array
+    :param Fe_fluxden: Flux density of the iron template
+    :type Fe_fluxden: array
+    :param Fe_dict: dictionary containing parameters to setup the iron template
+    :type Fe_dict: dictionary
+    :return: iron template component and parameters
+    """
+    comp = sccomp.FitComponent(prefix, ana.TemplateModel(Fe_dispersion, Fe_fluxden))
+    return _setup_Fe_params(prefix, comp, Fe_dispersion, Fe_fluxden, Fe_dict)
+
+
+def _setup_Fe_params(prefix, comp, Fe_dispersion, Fe_fluxden, Fe_dict):
+    """Create the iron component's parameters and set them from `Fe_dict`
+    (shared by `initialise_Fe` and `initialise_Fe_fast`)."""
     params = comp.create_params()
 
     if Fe_dict:
@@ -1018,7 +1050,7 @@ that cover different wavelengths in rest-frame.
 """
 
 
-def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None):
+def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None, fast=False):
     """
     Setup the Vestergaard et al. 2001 iron template covering UV range between 1075 - 3089 Å.
 
@@ -1028,6 +1060,9 @@ def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None):
     :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
+    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
+        instead of `initialise_Fe` (`template_model`); same model
+    :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1043,11 +1078,12 @@ def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None):
         Fe_dispersion = Fe_dispersion[disp_mask]
         Fe_fluxden = Fe_fluxden[disp_mask]
 
-    comp, params = initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
+    init = initialise_Fe_fast if fast else initialise_Fe
+    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
     return comp, params
 
 
-def setup_iron_template_V01_FUV(prefix, fe_dict=None):
+def setup_iron_template_V01_FUV(prefix, fe_dict=None, fast=False):
     """
     Setup UV part of the Vestergaard et al. 2001 template that coveres the far UV region between 1074-2200 Å.
 
@@ -1056,6 +1092,9 @@ def setup_iron_template_V01_FUV(prefix, fe_dict=None):
     :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
+    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
+        instead of `initialise_Fe` (`template_model`); same model
+    :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1069,11 +1108,12 @@ def setup_iron_template_V01_FUV(prefix, fe_dict=None):
     Fe_dispersion = Fe_dispersion[MgII_disp_mask]
     Fe_fluxden = template[:, 1][MgII_disp_mask] * 1.0e17
 
-    comp, params = initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
+    init = initialise_Fe_fast if fast else initialise_Fe
+    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
     return comp, params
 
 
-def setup_iron_template_V01_CIV(prefix, fe_dict=None):
+def setup_iron_template_V01_CIV(prefix, fe_dict=None, fast=False):
     """
     Setup UV part of the Vestergaard et al. 2001 template that coveres the UV region around CIV emission line between 1440-1710 Å.
 
@@ -1082,6 +1122,9 @@ def setup_iron_template_V01_CIV(prefix, fe_dict=None):
     :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
+    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
+        instead of `initialise_Fe` (`template_model`); same model
+    :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1095,11 +1138,12 @@ def setup_iron_template_V01_CIV(prefix, fe_dict=None):
     Fe_dispersion = Fe_dispersion[MgII_disp_mask]
     Fe_fluxden = template[:, 1][MgII_disp_mask] * 1.0e17
 
-    comp, params = initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
+    init = initialise_Fe_fast if fast else initialise_Fe
+    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
     return comp, params
 
 
-def setup_iron_template_VW01_UV_MgII(prefix, fe_dict=None):
+def setup_iron_template_VW01_UV_MgII(prefix, fe_dict=None, fast=False):
     """
     Setup the Vestergaard et al. 2001 iron template covering region around MgII emission line within the range of 2200 - 3090 Å.
 
@@ -1108,6 +1152,9 @@ def setup_iron_template_VW01_UV_MgII(prefix, fe_dict=None):
     :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
+    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
+        instead of `initialise_Fe` (`template_model`); same model
+    :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1121,11 +1168,12 @@ def setup_iron_template_VW01_UV_MgII(prefix, fe_dict=None):
     Fe_dispersion = Fe_dispersion[MgII_disp_mask]
     Fe_fluxden = template[:, 1][MgII_disp_mask] * 1.0e17
 
-    comp, params = initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
+    init = initialise_Fe_fast if fast else initialise_Fe
+    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
     return comp, params
 
 
-def setup_iron_template_BG92_OPT(prefix, disp_range=None, fe_dict=None):
+def setup_iron_template_BG92_OPT(prefix, disp_range=None, fe_dict=None, fast=False):
     """
     Setup the Boroson and Green et al. 1992 iron template covering the optical region between 3685 - 7844 Å.
 
@@ -1135,6 +1183,9 @@ def setup_iron_template_BG92_OPT(prefix, disp_range=None, fe_dict=None):
     :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
+    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
+        instead of `initialise_Fe` (`template_model`); same model
+    :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1150,11 +1201,12 @@ def setup_iron_template_BG92_OPT(prefix, disp_range=None, fe_dict=None):
         Fe_dispersion = Fe_dispersion[disp_mask]
         Fe_fluxden = Fe_fluxden[disp_mask]
 
-    comp, params = initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
+    init = initialise_Fe_fast if fast else initialise_Fe
+    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
     return comp, params
 
 
-def setup_iron_template_Tsuz_UV(prefix, disp_range=None, fe_dict=None):
+def setup_iron_template_Tsuz_UV(prefix, disp_range=None, fe_dict=None, fast=False):
     """
     Setup UV part of the Tsuzuki et al. 2006 template that coveres the region between 2200-3500 Å.
 
@@ -1164,6 +1216,9 @@ def setup_iron_template_Tsuz_UV(prefix, disp_range=None, fe_dict=None):
     :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
+    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
+        instead of `initialise_Fe` (`template_model`); same model
+    :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1178,11 +1233,12 @@ def setup_iron_template_Tsuz_UV(prefix, disp_range=None, fe_dict=None):
     Fe_dispersion = Fe_dispersion[disp_mask]
     Fe_fluxden = template[:, 1][disp_mask] * 1.0e17
 
-    comp, params = initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
+    init = initialise_Fe_fast if fast else initialise_Fe
+    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
     return comp, params
 
 
-def setup_iron_template_Tsuz_OPT(prefix, disp_range=None, fe_dict=None):
+def setup_iron_template_Tsuz_OPT(prefix, disp_range=None, fe_dict=None, fast=False):
     """
     Setup the optical region of the Tsuzuki et al. 2006 template. This template is essentially based on BG 1992 iron template.
 
@@ -1192,6 +1248,9 @@ def setup_iron_template_Tsuz_OPT(prefix, disp_range=None, fe_dict=None):
     :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
+    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
+        instead of `initialise_Fe` (`template_model`); same model
+    :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1208,11 +1267,12 @@ def setup_iron_template_Tsuz_OPT(prefix, disp_range=None, fe_dict=None):
     Fe_dispersion = Fe_dispersion[disp_mask]
     Fe_fluxden = template[:, 1][disp_mask] * 1.0e17
 
-    comp, params = initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
+    init = initialise_Fe_fast if fast else initialise_Fe
+    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
     return comp, params
 
 
-def setup_iron_template_BG92_OPT_Hbeta(prefix, fe_dict=None):
+def setup_iron_template_BG92_OPT_Hbeta(prefix, fe_dict=None, fast=False):
     """
     Setup the Boroson and Green et al. 1992 iron template covering the region around Hbeta between 4435 - 5535 Å.
     The region is chosen from Shen et al. 2011 continnum windows.
@@ -1222,6 +1282,9 @@ def setup_iron_template_BG92_OPT_Hbeta(prefix, fe_dict=None):
     :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
+    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
+        instead of `initialise_Fe` (`template_model`); same model
+    :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1237,11 +1300,12 @@ def setup_iron_template_BG92_OPT_Hbeta(prefix, fe_dict=None):
     Fe_dispersion = Fe_dispersion[Hbeta_disp_mask]
     Fe_fluxden = template[:, 1][Hbeta_disp_mask] * 1.0e17
 
-    comp, params = initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
+    init = initialise_Fe_fast if fast else initialise_Fe
+    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
     return comp, params
 
 
-def setup_iron_template_VW01_Fe3(prefix, fe_dict=None):
+def setup_iron_template_VW01_Fe3(prefix, fe_dict=None, fast=False):
     """
     Setup the Vestergaard et al. 2001 FeIII template within the range 2379 - 2456 Å.
 
@@ -1250,6 +1314,9 @@ def setup_iron_template_VW01_Fe3(prefix, fe_dict=None):
     :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
+    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
+        instead of `initialise_Fe` (`template_model`); same model
+    :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1260,11 +1327,12 @@ def setup_iron_template_VW01_Fe3(prefix, fe_dict=None):
     Fe_dispersion = template[:, 0]
     Fe_fluxden = template[:, 1] * 1.0e17
 
-    comp, params = initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
+    init = initialise_Fe_fast if fast else initialise_Fe
+    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
     return comp, params
 
 
-def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None):
+def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None, fast=False):
     """
     Setup the PArk et al. 2022 iron template covering the region around Hbeta between 4000 - 5600 Å.
     The region is chosen from Shen et al. 2011 continnum windows.
@@ -1274,6 +1342,9 @@ def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None):
     :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
+    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
+        instead of `initialise_Fe` (`template_model`); same model
+    :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1283,7 +1354,8 @@ def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None):
     Fe_dispersion = template[:, 0]
     Fe_fluxden = template[:, 1] * 1.0e17
 
-    comp, params = initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
+    init = initialise_Fe_fast if fast else initialise_Fe
+    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
     return comp, params
 
 

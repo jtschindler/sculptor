@@ -29,6 +29,31 @@ identical in both copies.
   and `docutils` into every environment that installs sculptor. They belong
   in an optional `docs` extra.
 
+## To review: `SpecOneD.broaden_by_gaussian`
+
+Used by `sculptor.analysis.template_model` for every iron template, and
+reproduced on purpose by `sculptor.analysis.TemplateModel` so both give
+the same model. Both points change fitted values, so decide before fixing:
+
+- [ ] **Normalisation depends on the template's wavelength range.** The
+  convolution is divided by the number of pixels (`conv / len(kernel)`)
+  and by `(2 sqrt(2 ln 2))^2`. With a kernel sampled from a normalised
+  Gaussian (sum ~ 1/dlnlambda), the result is the flux-conserving
+  convolution times 1 / (N dlnlambda) / (8 ln 2), i.e. roughly
+  1 / (8 ln 2 ln(lambda_max / lambda_min)). The docstring's "same
+  amplitude as the input" only holds for one specific range. A fit absorbs
+  this in the template amplitude `amp`, but anything derived from `amp`
+  (e.g. the FeII/MgII ratio in `Qso_autofit.get_line_prop_MgII`) depends on
+  which template and wavelength range were used. The upstream
+  `Qso_autofit_2.py` fast template skipped the 1/(N dlnlambda) factor and
+  was 5.6% higher for the UV template.
+- [ ] **Half-pixel shift for an even number of pixels.**
+  `np.convolve(..., mode="same")` with an even-length kernel shifts the
+  broadened spectrum by +1/2 pixel in ln(lambda): about **53 km/s** for
+  the `Fe_OPT_BR92_linear` and `Tsuzuki06` iron templates (2000 and 4414
+  pixels), none for the UV templates (4181 pixels). This biases fitted
+  iron-template redshifts with those templates by that amount.
+
 ## Differences between the bundled copy and the package
 
 The two files differ by about 30 lines; everything else is identical.

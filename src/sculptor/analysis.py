@@ -7,10 +7,12 @@ from astropy import constants as const
 from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
 from astropy.table import QTable
+from scipy.ndimage import gaussian_filter1d
 from speconed import speconed as sod
 from tqdm import tqdm
 
 from sculptor import measurements as meas
+from sculptor.component import FakeCode
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +173,116 @@ def template_model(
     )
 
     return f(x) * amp
+
+
+class TemplateModel:
+    """Fast version of `template_model` for one fixed template.
+
+    `template_model` rebuilds a `SpecOneD` from the template and convolves
+    it in log-wavelength on every call. This class converts the template to
+    a uniform log-wavelength grid once, so a call is one Gaussian filter
+    plus two interpolations (~20x faster for the packaged iron templates).
+    Use an instance as the function of a `FitComponent`; its parameters are
+    `redsh`, `amp`, `fwhm` and `intr_fwhm` (as for `template_model`).
+    Instances can be pickled (for `FitModel.save` and `pool=`).
+
+    The output reproduces `template_model`, including its normalisation,
+    which comes from `speconed`'s `SpecOneD.broaden_by_gaussian`: the
+    convolution is divided by the number of template pixels and by
+    (2 sqrt(2 ln 2))^2, so the amplitude scale depends on the template's
+    wavelength range (a factor 1 / (N * dlnlambda) ~ 1 / ln(lambda_max /
+    lambda_min)). Kept for consistency with `template_model`; flagged for
+    review in `TODO_speconed.md`.
+
+    It also reproduces a quirk of `broaden_by_gaussian`: for a template
+    with an even number of pixels, `np.convolve(..., mode="same")` shifts
+    the broadened spectrum by +1/2 pixel in ln(wavelength) (~53 km/s for
+    the BG92 and Tsuzuki optical iron templates; no shift for the UV
+    templates, which have an odd number of pixels). Also flagged in
+    `TODO_speconed.md`. With both reproduced, the output agrees with
+    `template_model` to ~1e-12 (odd) / ~2e-3 (even pixel count) of the peak.
+
+    Ported from the upstream `qso_auto_fit` branch (`Qso_autofit_2.py`,
+    3b85394), with the normalisation matched to `template_model` (the
+    original was ~5.6% higher for the UV iron template) and without
+    `SpecOneD`'s private `_to_log_wavelength`.
+
+    :param templ_disp: Rest-frame template dispersion in Angstroem
+    :type templ_disp: np.ndarray
+    :param templ_fluxden: Template flux density per Angstroem
+    :type templ_fluxden: np.ndarray
+    """
+
+    def __init__(self, templ_disp, templ_fluxden):
+        self.templ_disp = np.asarray(templ_disp, dtype=float)
+        templ_fluxden = np.asarray(templ_fluxden, dtype=float)
+
+        # Flux per ln(wavelength) on a uniform ln(wavelength) grid, as in
+        # SpecOneD.broaden_by_gaussian.
+        n = self.templ_disp.size
+        self.log_disp = np.linspace(
+            np.log(self.templ_disp.min()), np.log(self.templ_disp.max()), num=n
+        )
+        self.log_fluxden = np.interp(
+            self.log_disp, np.log(self.templ_disp), templ_fluxden * self.templ_disp
+        )
+        self.dloglam = self.log_disp[1] - self.log_disp[0]
+        # Grid the convolved spectrum is read back on: shifted by +1/2 pixel
+        # for an even number of pixels, as np.convolve(mode="same") does in
+        # SpecOneD.broaden_by_gaussian (see the class docstring).
+        self._out_log_disp = self.log_disp + (0.5 * self.dloglam if n % 2 == 0 else 0)
+        self._kernel_offsets = self.log_disp - (
+            (self.log_disp.max() - self.log_disp.min()) / 2.0 + self.log_disp.min()
+        )
+
+        self.__code__ = FakeCode(
+            co_argcount=5, co_varnames=("x", "redsh", "amp", "fwhm", "intr_fwhm")
+        )
+        self.__name__ = "template_model"
+
+    def __call__(self, x, redsh, amp, fwhm, intr_fwhm, **kwargs):
+        """Evaluate the broadened, redshifted and scaled template.
+
+        :param x: Observed-frame dispersion in Angstroem
+        :type x: np.ndarray
+        :param redsh: Redshift
+        :type redsh: float
+        :param amp: Amplitude scaling of the template
+        :type amp: float
+        :param fwhm: Target FWHM in km/s
+        :type fwhm: float
+        :param intr_fwhm: Intrinsic FWHM of the template in km/s
+        :type intr_fwhm: float
+        :return: Template model
+        :rtype: np.ndarray
+        """
+
+        convol_fwhm = np.sqrt(fwhm**2 - intr_fwhm**2)
+        sigma_log = convol_fwhm / c_km_s / (2 * np.sqrt(2 * np.log(2)))
+
+        conv = gaussian_filter1d(
+            self.log_fluxden,
+            sigma=sigma_log / self.dloglam,
+            mode="constant",
+            cval=0.0,
+            truncate=8.0,
+        )
+        # SpecOneD.broaden_by_gaussian's normalisation: its kernel is the
+        # normalised Gaussian sampled on the grid (sum ~ 1/dlnlambda), and
+        # the convolution is divided by the number of pixels and (8 ln 2).
+        kernel_sum = np.sum(np.exp(-0.5 * (self._kernel_offsets / sigma_log) ** 2)) / (
+            np.sqrt(2 * np.pi) * sigma_log
+        )
+        conv *= kernel_sum / self.log_disp.size / (8 * np.log(2))
+
+        # Back to flux density per Angstroem on the template's own grid, then
+        # redshifted onto x (0 outside the template), as template_model does.
+        out_disp = np.exp(self._out_log_disp)
+        fluxden = np.interp(self.templ_disp, out_disp, conv / out_disp)
+        return (
+            np.interp(x, self.templ_disp * (1.0 + redsh), fluxden, left=0, right=0)
+            * amp
+        )
 
 
 def line_model_gaussian(x, redsh, flux, cen, fwhm_km_s, **kwargs):

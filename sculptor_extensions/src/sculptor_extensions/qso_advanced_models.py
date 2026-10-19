@@ -64,14 +64,6 @@ C_KM_S = c.to("km/s").value
 # ------------------------------------------------------------------------------
 
 
-class _FakeCode:
-    """Mimics the two attributes FitComponent needs from a real code object."""
-
-    def __init__(self, co_argcount, co_varnames):
-        self.co_argcount = co_argcount
-        self.co_varnames = co_varnames
-
-
 class BalmerContinuumWithHOL:
     """
     Callable Balmer pseudo-continuum + high-order-line (HOL) model.
@@ -91,7 +83,7 @@ class BalmerContinuumWithHOL:
         # tau_be, lambda_be, fwhm -> co_argcount=7. FitComponent slices
         # co_varnames[1:co_argcount] to get the param names, excluding
         # the first ("x"), exactly as it does for a plain function.
-        self.__code__ = _FakeCode(
+        self.__code__ = sccomp.FakeCode(
             co_argcount=7,
             co_varnames=("x", "redsh", "amp_be", "Te", "tau_be", "lambda_be", "fwhm"),
         )
@@ -155,7 +147,7 @@ class CachedBalmerContinuumWithHOL:
     """
 
     def __init__(self):
-        self.__code__ = _FakeCode(
+        self.__code__ = sccomp.FakeCode(
             co_argcount=7,
             co_varnames=("x", "redsh", "amp_be", "Te", "tau_be", "lambda_be", "fwhm"),
         )
@@ -300,6 +292,12 @@ def fast_balmer_continuum_model(x, redsh, amp_be, Te, tau_be, lambda_be):
     Used by `Qso_autofit.initialise_balmer_without_hol`. Replaces the former
     `qso.balmer_continuum_model` (same formula, ~7x faster; matches it to
     ~1e-15, see `tests/test_qso_extension_port.py`).
+
+    Possible improvement (not done): cache the shape for fixed `redsh`,
+    `Te`, `tau_be` and `lambda_be`, so that only `amp_be` is applied per
+    call, as upstream's `Qso_autofit_2.balmer_continuum_model2` does (~9x
+    faster when only `amp_be` varies). That version uses one module-wide
+    cache keyed on `x.tobytes()`; a per-model cache would be safer.
 
     :param x: Dispersion of the Balmer continuum
     :type x: np.ndarray

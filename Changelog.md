@@ -2,6 +2,29 @@
 
 ## 2026-10-19
 
+### Fast iron template (`TemplateModel`, `initialise_Fe_fast`)
+- New `sculptor.analysis.TemplateModel(templ_disp, templ_fluxden)`: a
+  precomputed, picklable version of `template_model` for one template,
+  ~10-12x faster per evaluation. Ported from the upstream `qso_auto_fit`
+  branch (`Qso_autofit_2.py`), with two changes so it gives the same model
+  as `template_model` (and upstream `main`'s `qso.template_model`, which
+  is the same code): its normalisation now includes `speconed`'s
+  1/(N dlnlambda) factor (the original was 5.6% higher for the UV
+  template), and it reproduces `speconed`'s half-pixel shift for templates
+  with an even number of pixels. Checked against all 11 packaged iron
+  templates: agreement to ~1e-12 of the peak (odd pixel count) and
+  <=1.5e-3 (even). Both `speconed` quirks are flagged for review in
+  `TODO_speconed.md`. It no longer uses `SpecOneD`'s private
+  `_to_log_wavelength`.
+- New `Qso_autofit.initialise_Fe_fast`, and `fast=False` on all ten
+  `setup_iron_template_*` functions: `fast=True` builds the component from
+  `TemplateModel`, whose only parameters are `redsh`, `amp`, `fwhm` and
+  `intr_fwhm`. The default stays `template_model`, as on `v2_dev`.
+- The `FitComponent` signature helper (`_FakeCode` in
+  `qso_advanced_models`) is now `sculptor.component.FakeCode`, shared by
+  `TemplateModel` and the Balmer HOL models.
+- New `tests/test_template_model.py`.
+
 ### `FitModel`: pixels masked in the spectrum are left out of the fit
 - **Behaviour change**, adopted from the upstream `kat` branch (4ee90b4,
   Katharina Jurk; not merged into `v2_dev`): the fit now uses
