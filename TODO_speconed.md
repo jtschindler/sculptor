@@ -14,6 +14,16 @@ identical in both copies.
   `AttributeError` on the current numpy (2.5):
   `calculate_passband_flux`, `calculate_passband_ab_magnitude`,
   `renormalize_by_spectrum`. Replace with `np.trapezoid`.
+- [ ] **`np.NaN` was removed in numpy 2.0.** `check_dispersion_overlap`
+  returns `'none', np.NaN, np.NaN` when the two spectra do not overlap, so
+  that case raises `AttributeError` (it is also used by
+  `match_dispersions`). Replace with `np.nan`. Upstream sculptor fixed the
+  same line in its bundled v1 copy on `main` (dd12a57, 2025-02-24); the
+  standalone package still has it.
+- [ ] **`extinction` vs `numba_extinction`.** Upstream sculptor's `stable`
+  branch (d13aabf) switched the bundled v1 `SpecOneD` to the
+  `numba_extinction` package. sculptor keeps `extinction` for now; worth
+  considering for both packages in the long run.
 - [ ] **Docs tools declared as runtime dependencies:** `nbsphinx`,
   `nbsphinx-link`, `notebook`, `sphinx-rtd-theme`. They pull Jupyter, Sphinx
   and `docutils` into every environment that installs sculptor. They belong
