@@ -87,9 +87,9 @@ def test_parameter_round_trip(tmp_path):
     par = scpar.FitParameter("redsh_nl", value=REDSHIFT, vary=True)
     par.prior = scpri.UniformPrior("redsh_nl", 3.2, 3.3)
 
-    par.save(tmp_path, save_prefix="run1")
+    par.save("redsh_nl", tmp_path, prefix="run1")
     loaded = scpar.FitParameter()
-    loaded.load("redsh_nl", tmp_path, load_prefix="run1")
+    loaded.load("redsh_nl", tmp_path, prefix="run1")
 
     assert (tmp_path / "run1_redsh_nl.pkl").exists()
     assert (loaded.name, loaded.value, loaded.vary) == ("redsh_nl", REDSHIFT, True)
@@ -112,7 +112,7 @@ def test_component_with_param_mapping_pickles():
 def test_component_round_trip(tmp_path):
     comp, _ = _line_component()
     comp.param_mapping.update({"redsh": "redsh_nl"})
-    comp.save(tmp_path)
+    comp.save("SiIV_a", tmp_path)
 
     loaded = sccomp.FitComponent("other", ana.power_law_at2500)
     loaded.load("SiIV_a", tmp_path)
@@ -173,3 +173,22 @@ def test_model_evaluates_in_spawned_worker():
         ).get(timeout=60)
 
     assert result == pytest.approx(expected)
+
+
+def test_load_rejects_a_different_class(tmp_path):
+    comp, _ = _line_component()
+    comp.save("SiIV_a", tmp_path)
+
+    with pytest.raises(TypeError, match="holds a FitComponent, not a FitParameter"):
+        scpar.FitParameter().load("SiIV_a", tmp_path)
+
+
+def test_save_load_signatures_are_identical():
+    import inspect
+
+    for method in ("save", "load"):
+        signatures = {
+            str(inspect.signature(getattr(cls, method)))
+            for cls in (scpar.FitParameter, sccomp.FitComponent, scmod.FitModel)
+        }
+        assert len(signatures) == 1, signatures

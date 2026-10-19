@@ -2,6 +2,16 @@
 
 ## 2026-10-19
 
+### Saving and loading (`sculptor.persistence`, new)
+- The three copies of the pickle `save`/`load` code in `FitParameter`,
+  `FitComponent` and `FitModel` are replaced by one `PickleMixin`.
+- **Signature change:** all three now use `save(name, save_dir,
+  prefix=None)` / `load(name, load_dir, prefix=None)` (`FitModel`'s old
+  order). `FitParameter`/`FitComponent.save` used to be
+  `save(save_dir, save_prefix=None)` with the name taken from `self.name`;
+  `load_prefix`/`save_prefix` are now `prefix`.
+- `load` raises `TypeError` if the file holds a different class.
+
 ### `sculptor.prior`
 - Fixed: `sample(seed=...)` ignored the seed (an unseeded generator was
   always created first). `sample()` now lives once in the `Prior` base

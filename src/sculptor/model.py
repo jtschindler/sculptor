@@ -1,6 +1,5 @@
 import itertools
 import os
-import pickle
 import time
 
 import chainconsumer as cc
@@ -17,6 +16,7 @@ from tqdm import tqdm
 from sculptor import colors as tolc
 from sculptor import plot as scp
 from sculptor import utils as scut
+from sculptor.persistence import PickleMixin
 
 cmap = tolc.tol_cmap(colormap="rainbow_PuRd")
 
@@ -102,7 +102,7 @@ def _evaluate_single_sample(args):
     return fitmodel.eval(dispersion, params, components=components)
 
 
-class FitModel:
+class FitModel(PickleMixin):
     def __init__(
         self,
         components=None,
@@ -175,40 +175,6 @@ class FitModel:
         """
 
         self.parameters.update(parameters)
-
-    def save(self, name, save_dir):
-        """
-        Save the model object to a pickle file.
-
-        :param name:
-        :param save_dir:
-        :return:
-        """
-
-        # Check if the directory exists
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-
-        # Save the model
-        save_name = f"{name}.pkl"
-        with open(os.path.join(save_dir, save_name), "wb") as f:
-            pickle.dump(self, f)
-
-    def load(self, name, load_dir):
-        """
-        Load the model object from a pickle file.
-
-        :param name:
-        :param load_dir:
-        :return
-        """
-
-        # Load the model
-        load_name = f"{name}.pkl"
-        with open(os.path.join(load_dir, load_name), "rb") as f:
-            loaded_data = pickle.load(f)
-
-            self.__dict__ = loaded_data.__dict__
 
     def eval(self, x, params_values, components=None, broaden_by_resolution=True):
         """Evaluate the model at the given x values."""
