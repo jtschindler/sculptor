@@ -40,3 +40,4 @@ ToDo.txt
 # Local-only folders (kept on disk, not tracked)
 /.claude/
 /deprecated/
+/_ground_truth/
