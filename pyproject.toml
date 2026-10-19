@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sculptor"
-dynamic = ["version"]
-description = "Interactive modeling of (electromagnetic) astronomical spectra"
+version = "2.0.0b0"
+description = "Modeling and MCMC fitting of (electromagnetic) astronomical spectra"
 readme = "README.md"
 license = "BSD-3-Clause"
 license-files = ["license.md"]
@@ -15,13 +15,14 @@ authors = [
 requires-python = ">=3.13"
 keywords = ["Sculptor", "astronomy", "spectroscopy", "modeling", "fitting"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Astronomy",
     "Topic :: Scientific/Engineering :: Physics",
-    "Topic :: Software Development :: User Interfaces",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
@@ -43,12 +44,14 @@ dependencies = [
 Homepage = "http://github.com/jtschindler/sculptor"
 "Bug Tracker" = "http://github.com/jtschindler/sculptor/issues"
 
-[tool.setuptools.dynamic]
-version = { attr = "sculptor.__version__" }
-
 [tool.setuptools.packages.find]
 where = ["src"]
-exclude = ["examples*", "docs*"]
+
+[tool.setuptools.package-data]
+# Runtime data read by sculptor_extensions via
+# importlib.resources.files("sculptor") / "data". The example spectra
+# (~20 MB) stay in the repository only and are not packaged.
+sculptor = ["data/iron_templates/*", "data/wave_2.txt"]
 
 [tool.uv.workspace]
 members = ["sculptor_extensions"]

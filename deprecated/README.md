@@ -17,7 +17,8 @@ history from before the move.
 | `src/sculptor/dep_v1/scripts/` | `run_sculptor` GUI launcher |
 | `src/sculptor/dep_v1/specfit.py`, `specmodel.py` | lmfit-based v1 fitting classes (`SpecFit`, `SpecModel`) the GUI was built on; replaced by `sculptor.model.FitModel` / `sculptor.component.FitComponent` |
 | `src/sculptor/dep_v1/specanalysis.py` | v1 analysis module. The measurement helpers still in use were ported to `sculptor.measurements`; the `SpecFit`-based `analyze_*` routines are superseded by `sculptor.analysis` |
-| `src/sculptor/dep_v1/speconed.py` | Bundled copy of `SpecOneD`; replaced by the standalone `speconed` package |
+| `src/sculptor/dep_v1/speconed.py` | Bundled copy of `SpecOneD`; replaced by the standalone `speconed` package (differences: `TODO_speconed.md`) |
+| `src/sculptor/data/passbands/` | Filter curves read only by the bundled `load_passband`; `speconed` ships its own, except three Euclid NISP bands (see `TODO_speconed.md`) |
 | `sculptor_extensions/src/sculptor_extensions/my_extension.py` | Example plugin for the v1 GUI (lmfit models, mask presets) |
 | `examples/dep_v1/` | Scripts and notebooks for the v1 API and GUI |
 

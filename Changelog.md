@@ -2,6 +2,25 @@
 
 ## 2026-10-19
 
+### Packaging (`pyproject.toml`)
+- Static `version = "2.0.0b0"` (the intended `2.b.0`, PEP 440-normalised).
+  The previous dynamic version read `sculptor.__version__`, which itself
+  reads the installed metadata, so every build came out as `0.0.0`.
+- Runtime data files (`data/iron_templates/*`, `data/wave_2.txt`, read by
+  `sculptor_extensions`) are now packaged; before, the wheel contained no
+  data files at all, so the extensions only worked from a source checkout.
+  `data/example_spectra/` (~20 MB) stays repository-only.
+- Classifiers: `Development Status :: 4 - Beta`, Python 3.13 / 3-only
+  (was 3.10), dropped `User Interfaces` (no GUI at present). Description no
+  longer says "Interactive". Removed the obsolete `examples*`/`docs*`
+  package excludes.
+
+### `speconed`
+- `src/sculptor/data/passbands/` moved to `deprecated/`: only the bundled
+  v1 `SpecOneD.load_passband` read it.
+- New `TODO_speconed.md`: differences between the bundled v1 copy and the
+  standalone package, and open upstream issues (deferred).
+
 ### Dependencies
 - Removed from `sculptor`'s runtime dependencies (only used by the v1 code
   now in `deprecated/`, by the deleted Sphinx docs, or not at all):
