@@ -36,3 +36,7 @@ ToDo.txt
 
 # Temporary upstream clone used for syncing (delete when done)
 /updated_pkg/
+
+# Local-only folders (kept on disk, not tracked)
+/.claude/
+/deprecated/
