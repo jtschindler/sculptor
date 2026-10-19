@@ -114,6 +114,7 @@ def _set_common_defaults():
 
 def set_paper_defaults():
     # Defining the paper plotting style (needs a LaTeX installation)
+    """Matplotlib style for papers: LaTeX text (needs a LaTeX installation) and inward ticks on all sides."""
 
     matplotlib.rc("text", usetex=True)
     _set_common_defaults()
@@ -121,6 +122,7 @@ def set_paper_defaults():
 
 def set_presentation_defaults():
     # Defining the presentation plotting style (uses the Roboto font)
+    """Matplotlib style for presentations: Roboto font (must be installed) and inward ticks on all sides."""
 
     matplotlib.rc("font", weight=500)
     matplotlib.rc("font", **{"family": "sans-serif", "sans-serif": ["Roboto"]})

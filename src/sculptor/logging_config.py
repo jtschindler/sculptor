@@ -57,6 +57,8 @@ class LogFilter(logging.Filter):
         self.level = level
 
     def filter(self, record):
+        """Keep the record if its level is below the threshold."""
+
         return record.levelno < self.level
 
 
@@ -74,12 +76,14 @@ class _StdStreamHandler(logging.StreamHandler):
 
     @property
     def stream(self):
+        """The current `sys.stdout` / `sys.stderr`."""
+
         return getattr(sys, self._stream_name)
 
     @stream.setter
     def stream(self, value):
-        # StreamHandler.__init__ assigns the stream; always use the live one.
-        pass
+        """Ignore assignments (StreamHandler.__init__ sets the stream); the
+        live stream is always used."""
 
 
 def _parse_level(value, source="level"):

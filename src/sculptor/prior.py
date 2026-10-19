@@ -2,6 +2,18 @@ import numpy as np
 
 
 class Prior:
+    """Base class for parameter priors.
+
+    Subclasses implement `logprior(x)`, `evaluate(x)` and `_draw(rng, n)`
+    (used by `sample`).
+
+    :param name: Prior name
+    :type name: str
+    :param distribution: Name of the distribution, e.g. "uniform"
+    :type distribution: str
+    :param kwargs: The distribution's parameters, kept in `self.kwargs`
+    """
+
     def __init__(self, name, distribution, **kwargs):
         self.name = name
         self.distribution = distribution
@@ -38,6 +50,16 @@ class Prior:
 
 
 class UniformPrior(Prior):
+    """Flat prior on the closed interval [`low`, `upp`].
+
+    :param name: Prior name
+    :type name: str
+    :param low: Lower bound
+    :type low: float
+    :param upp: Upper bound
+    :type upp: float
+    """
+
     def __init__(self, name, low, upp):
 
         self.low = low
@@ -46,12 +68,26 @@ class UniformPrior(Prior):
         super().__init__(name, "uniform", low=low, upp=upp)
 
     def evaluate(self, x):
+        """Probability density at `x`: 1 / (upp - low) inside the interval, else 0.
+
+        :param x: Parameter value
+        :type x: float
+        :rtype: float
+        """
+
         if self.low <= x <= self.upp:
             return 1 / (self.upp - self.low)
         else:
             return 0.0
 
     def logprior(self, x):
+        """Log prior at `x`, up to a constant: 0 inside the interval, -inf outside.
+
+        :param x: Parameter value
+        :type x: float
+        :rtype: float
+        """
+
         if self.low <= x <= self.upp:
             return 0.0
         else:
@@ -62,6 +98,16 @@ class UniformPrior(Prior):
 
 
 class GaussianPrior(Prior):
+    """Normal prior.
+
+    :param name: Prior name
+    :type name: str
+    :param mean: Mean
+    :type mean: float
+    :param sigma: Standard deviation
+    :type sigma: float
+    """
+
     def __init__(self, name, mean, sigma):
 
         self.mean = mean
@@ -70,11 +116,23 @@ class GaussianPrior(Prior):
         super().__init__(name, "gaussian", mean=mean, sigma=sigma)
 
     def evaluate(self, x):
+        """Normalised probability density at `x`.
+
+        :param x: Parameter value
+        :type x: float or np.ndarray
+        """
+
         return np.exp(-0.5 * ((x - self.mean) / self.sigma) ** 2) / (
             self.sigma * np.sqrt(2 * np.pi)
         )
 
     def logprior(self, x):
+        """Normalised log probability density at `x`.
+
+        :param x: Parameter value
+        :type x: float or np.ndarray
+        """
+
         return -0.5 * ((x - self.mean) / self.sigma) ** 2 - np.log(
             self.sigma * np.sqrt(2 * np.pi)
         )

@@ -786,7 +786,7 @@ def setup_Halpha_NII_lines(spec, line_dict, narrow=True, Halpha_broad=2, model=N
     Users can specify the number of gaussians to fit depending upon the nature of their source.
 
     :param spec: input spectrum
-    :type spec: sculptor.speconed.SpecOneD
+    :type spec: speconed.speconed.SpecOneD
     :param line_dict: dictionary containing emission line parameters that contains necessary parameters to fit the Halpha and [NII] emission lines.
     such as "flux", "redshift", "fwhm_km_s", "cen", "vel_shift".
     In this dictionary, each component should have "initial_value", "vary" and "prior" which provides information on initial value of the parameter, whether the parameter should be varied, and
@@ -832,7 +832,7 @@ def setup_MgII_lines(
     components are used to capture the broader feature originating from BLR.
 
     :param spec: input spectrum
-    :type spec: sculptor.speconed.SpecOneD
+    :type spec: speconed.speconed.SpecOneD
     :param line_dict: dictionary containing emission line parameters that contains necessary parameters to fit the MgII emission line
     such as "flux", "redshift", "fwhm_km_s", "cen", "vel_shift". In this dictionary, each component should have "initial_value", "vary" and "prior"
     which provides information on initial value of the parameter, whether the parameter should be varied, and
@@ -884,7 +884,7 @@ def setup_CIV_lines(
     which account for AGN driven outflows and winds resulting in asymmetric line profiles.
 
     :param spec: input spectrum
-    :type spec: sculptor.speconed.SpecOneD
+    :type spec: speconed.speconed.SpecOneD
     :param line_dict: dictionary containing emission line parameters that contains necessary parameters to fit the CIV emission line
     such as "flux", "redshift", "fwhm_km_s", "cen", "vel_shift". In this dictionary, each component should have "initial_value", "vary" and "prior"
     which provides information on initial value of the parameter, whether the parameter should be varied, and
@@ -941,7 +941,7 @@ def setup_hb_o3_lines(
     Users can specify the number of gaussians to fit depending upon the nature of their source.
 
     :param spec: Input spectrum
-    :type spec: sculptor.speconed.SpecOneD
+    :type spec: speconed.speconed.SpecOneD
     :param line_dict: dictionary containing emission line parameters that contains necessary parameters to fit the Hbeta and [OIII] emission lines.
     such as "flux", "redshift", "fwhm_km_s", "cen", "vel_shift".
     In this dictionary, each component should have "initial_value", "vary" and "prior" which provides information on initial value of the parameter, whether the parameter should be varied, and
@@ -1023,12 +1023,11 @@ def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None):
     Setup the Vestergaard et al. 2001 iron template covering UV range between 1075 - 3089 Å.
 
     :param prefix: component prefix
-    :param type: str
+    :type prefix: str
     :param disp_range: optional [min, max] dispersion range (Å) to restrict the template to. Defaults to the full template range.
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWWHM,
+    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fe_dict:
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1053,11 +1052,10 @@ def setup_iron_template_V01_FUV(prefix, fe_dict=None):
     Setup UV part of the Vestergaard et al. 2001 template that coveres the far UV region between 1074-2200 Å.
 
     :param prefix: component prefix
-    :param type: str
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWWHM,
+    :type prefix: str
+    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fe_dict:
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1080,11 +1078,10 @@ def setup_iron_template_V01_CIV(prefix, fe_dict=None):
     Setup UV part of the Vestergaard et al. 2001 template that coveres the UV region around CIV emission line between 1440-1710 Å.
 
     :param prefix: component prefix
-    :param type: str
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWWHM,
+    :type prefix: str
+    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fe_dict:
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1107,11 +1104,10 @@ def setup_iron_template_VW01_UV_MgII(prefix, fe_dict=None):
     Setup the Vestergaard et al. 2001 iron template covering region around MgII emission line within the range of 2200 - 3090 Å.
 
     :param prefix: component prefix
-    :param type: str
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWWHM,
+    :type prefix: str
+    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fe_dict:
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1134,12 +1130,11 @@ def setup_iron_template_BG92_OPT(prefix, disp_range=None, fe_dict=None):
     Setup the Boroson and Green et al. 1992 iron template covering the optical region between 3685 - 7844 Å.
 
     :param prefix: component prefix
-    :param type: str
+    :type prefix: str
     :param disp_range: optional [min, max] dispersion range (Å) to restrict the template to. Defaults to the full template range.
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWWHM,
+    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fe_dict:
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1164,12 +1159,11 @@ def setup_iron_template_Tsuz_UV(prefix, disp_range=None, fe_dict=None):
     Setup UV part of the Tsuzuki et al. 2006 template that coveres the region between 2200-3500 Å.
 
     :param prefix: component prefix
-    :param type: str
+    :type prefix: str
     :param disp_range: optional [min, max] dispersion range (Å) to restrict the template to. Defaults to [2200, 3500].
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWWHM,
+    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fe_dict:
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1193,12 +1187,11 @@ def setup_iron_template_Tsuz_OPT(prefix, disp_range=None, fe_dict=None):
     Setup the optical region of the Tsuzuki et al. 2006 template. This template is essentially based on BG 1992 iron template.
 
     :param prefix: component prefix
-    :param type: str
+    :type prefix: str
     :param disp_range: optional [min, max] dispersion range (Å) to restrict the template to. Defaults to [3500, max].
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWWHM,
+    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fe_dict:
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1225,11 +1218,10 @@ def setup_iron_template_BG92_OPT_Hbeta(prefix, fe_dict=None):
     The region is chosen from Shen et al. 2011 continnum windows.
 
     :param prefix: component prefix
-    :param type: str
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWWHM,
+    :type prefix: str
+    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fe_dict:
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1254,11 +1246,10 @@ def setup_iron_template_VW01_Fe3(prefix, fe_dict=None):
     Setup the Vestergaard et al. 2001 FeIII template within the range 2379 - 2456 Å.
 
     :param prefix: component prefix
-    :param type: str
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWWHM,
+    :type prefix: str
+    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fe_dict:
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1279,11 +1270,10 @@ def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None):
     The region is chosen from Shen et al. 2011 continnum windows.
 
     :param prefix: component prefix
-    :param type: str
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWWHM,
+    :type prefix: str
+    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fe_dict:
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
 
@@ -1315,7 +1305,7 @@ def get_fwhm_int_flux(input_spec, low, upp, redsh, **kwargs):
     numpy.trapz function is used for the integration.
 
     :param input_spec: input spectrum
-    :type input_spec: sculptor.speconed.SpecOneD
+    :type input_spec: speconed.speconed.SpecOneD
     :param low: lower limit of the dispersion range
     :param upp: upper limit of the dispersion range
     :param redsh: redshift of the source
@@ -1347,15 +1337,15 @@ def create_emission_line_dict(input_spec, redsh, line_dict):
     The same approach can be extended for other emission lines as well.
 
     :param input_spec: input spectrum
-    :param type: sculptor.speconed.SpecOneD
+    :type input_spec: speconed.speconed.SpecOneD
     :param redsh: redshift of the source
-    :param type: float
+    :type redsh: float
     :param line_dict: emission line dictionary containing the parameters required to fit each of the mentioned emission lines.
     These parameters include flux, redshift, central_wavelength, FWHM and velocity shift.
-    :param type: dict
+    :type line_dict: dict
 
     :return line_dict: an update line dictionary
-    :return type: dict
+    :rtype: dict
     """
     line_range = {
         "Lya": [1150, 1290],

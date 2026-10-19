@@ -38,20 +38,47 @@ class _ObservableParamMapping(dict):
         self._invalidate()
 
     def update(self, *args, **kwargs):
+        """Like `dict.update`; then invalidate the owner's argument-key cache."""
+
         super().update(*args, **kwargs)
         self._invalidate()
 
     def pop(self, *args, **kwargs):
+        """Like `dict.pop`; then invalidate the owner's argument-key cache."""
+
         result = super().pop(*args, **kwargs)
         self._invalidate()
         return result
 
     def clear(self):
+        """Like `dict.clear`; then invalidate the owner's argument-key cache."""
+
         super().clear()
         self._invalidate()
 
 
 class FitComponent(PickleMixin):
+    """One additive model component: a model function and the mapping of its
+    arguments onto the model's parameters.
+
+    The function's first argument is the dispersion axis `x`; every further
+    argument is a fit parameter (`function_args`). By default
+    `create_params()` names them `<name>_<argument>`; `param_mapping` can
+    point an argument at any other parameter, e.g. a shared redshift.
+
+    :param name: Component name, also the prefix of its parameter names
+    :type name: str
+    :param function: Model function `f(x, *params)`, or a callable object
+        exposing a compatible `__code__` (see
+        `sculptor_extensions.qso_advanced_models.BalmerContinuumWithHOL`)
+    :type function: callable
+    :param parameters: Unused; kept for backwards compatibility.
+    :param param_names: Unused; kept for backwards compatibility.
+    :param param_mapping: Function argument name -> parameter name. Usually
+        set by `create_params()`.
+    :type param_mapping: dict
+    """
+
     def __init__(
         self, name, function, parameters=None, param_names=None, param_mapping=None
     ):
@@ -70,16 +97,24 @@ class FitComponent(PickleMixin):
         return f"{self.name}: {self.function}"
 
     def info(self):
+        """Print the component's name, function name and function arguments."""
+
         print(f"[INFO] Component name: {self.name}")
         print(f"[INFO] Function name: {self.function.__name__}")
         print(f"[INFO] Function arguments: {self.function_args}")
 
     @property
     def param_mapping(self):
+        """Function argument name -> parameter name (a key of the model's
+        parameter dict). Mutating it in place, or assigning a new dict, keeps
+        `get_arg_keys()` up to date.
+        """
+
         return self._param_mapping
 
     @param_mapping.setter
     def param_mapping(self, value):
+        """Set the mapping (wrapped so that in-place edits invalidate the cache)."""
         self._arg_keys = None
         if value is None:
             self._param_mapping = None
@@ -87,6 +122,15 @@ class FitComponent(PickleMixin):
             self._param_mapping = _ObservableParamMapping(self, value)
 
     def eval(self, x, params):
+        """Evaluate the component.
+
+        :param x: Dispersion axis
+        :type x: np.ndarray
+        :param params: Parameter values in the order of `function_args`
+        :type params: iterable
+        :return: Model flux density
+        :rtype: np.ndarray
+        """
 
         return self.function(x, *params)
 
@@ -107,6 +151,16 @@ class FitComponent(PickleMixin):
         return self._arg_keys
 
     def create_params(self):
+        """Create one `FitParameter` per function argument and map the arguments
+        onto them.
+
+        The parameters are named `<component name>_<argument>`, start at value
+        0 and vary by default; set values, `vary` and priors on the returned
+        objects.
+
+        :return: Parameter name -> FitParameter
+        :rtype: dict
+        """
 
         parameters = {}
         mapping = {}

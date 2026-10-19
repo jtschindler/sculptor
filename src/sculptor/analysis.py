@@ -22,13 +22,15 @@ c_km_s = const.c.to("km/s").value
 
 
 def power_law_at2500(x, redsh, amp, slope, **kwargs):
-    """
+    """Power law anchored at rest-frame 2500 Angstroem.
 
-    :param x: Dispersion
+    :param x: Observed-frame dispersion in Angstroem
     :type x: np.ndarray
-    :param amp: Amplitude of the power law
+    :param redsh: Redshift
+    :type redsh: float
+    :param amp: Amplitude at rest-frame 2500 Angstroem
     :type amp: float
-    :param slope: Slope of the power law
+    :param slope: Power-law slope (in f_lambda)
     :type slope: float
     :return: Power law model
     :rtype: np.ndarray
@@ -38,6 +40,22 @@ def power_law_at2500(x, redsh, amp, slope, **kwargs):
 
 
 def ext_power_law_at2500(x, redsh, amp, slope, a_v, **kwargs):
+    """Power law anchored at rest-frame 2500 Angstroem, reddened by a Calzetti
+    et al. (2000) attenuation law (R_V = 4.05) in the rest frame.
+
+    :param x: Observed-frame dispersion in Angstroem
+    :type x: np.ndarray
+    :param redsh: Redshift
+    :type redsh: float
+    :param amp: Amplitude at rest-frame 2500 Angstroem
+    :type amp: float
+    :param slope: Power-law slope (in f_lambda)
+    :type slope: float
+    :param a_v: V-band attenuation in magnitudes
+    :type a_v: float
+    :return: Reddened power law model
+    :rtype: np.ndarray
+    """
 
     flux = amp * ((x / (2500 * (redsh + 1))) ** slope)
 
@@ -47,6 +65,22 @@ def ext_power_law_at2500(x, redsh, amp, slope, a_v, **kwargs):
 
 
 def scattered_power_law_at2500(x, redsh, amp, slope, f_sc, **kwargs):
+    """Power law anchored at rest-frame 2500 Angstroem, scaled by 10**f_sc
+    (e.g. a scattered-light fraction, in dex).
+
+    :param x: Observed-frame dispersion in Angstroem
+    :type x: np.ndarray
+    :param redsh: Redshift
+    :type redsh: float
+    :param amp: Amplitude at rest-frame 2500 Angstroem
+    :type amp: float
+    :param slope: Power-law slope (in f_lambda)
+    :type slope: float
+    :param f_sc: Scaling in dex
+    :type f_sc: float
+    :return: Scaled power law model
+    :rtype: np.ndarray
+    """
 
     flux = amp * ((x / (2500 * (redsh + 1))) ** slope)
 
@@ -65,12 +99,45 @@ def template_model(
     templ_fluxden_unit_str=None,
     **kwargs,
 ):
+    """Template spectrum (e.g. an iron template) broadened, redshifted and
+    scaled.
 
-    if templ_disp_unit_str is not None and type(templ_disp_unit_str) is str:
+    The template is convolved to a total FWHM of `fwhm` (with a Gaussian of
+    FWHM sqrt(fwhm^2 - intr_fwhm^2), `SpecOneD.broaden_by_gaussian`), its
+    dispersion is multiplied by (1 + redsh) without changing the flux
+    density (the amplitude is a free parameter), and it is linearly
+    interpolated onto `x` (0 outside the template).
+
+    :param x: Observed-frame dispersion
+    :type x: np.ndarray
+    :param redsh: Redshift
+    :type redsh: float
+    :param amp: Amplitude scaling of the template
+    :type amp: float
+    :param fwhm: Target FWHM in km/s
+    :type fwhm: float
+    :param intr_fwhm: Intrinsic FWHM of the template in km/s
+    :type intr_fwhm: float
+    :param templ_disp: Rest-frame template dispersion, in the same unit as
+        `x`
+    :type templ_disp: np.ndarray
+    :param templ_fluxden: Template flux density
+    :type templ_fluxden: np.ndarray
+    :param templ_disp_unit_str: Template dispersion unit (astropy "cds"
+        format)
+    :type templ_disp_unit_str: str
+    :param templ_fluxden_unit_str: Template flux density unit (astropy
+        "cds" format)
+    :type templ_fluxden_unit_str: str
+    :return: Template model
+    :rtype: np.ndarray
+    """
+
+    if isinstance(templ_disp_unit_str, str):
         dispersion_unit = u.Unit(templ_disp_unit_str, format="cds")
     else:
         dispersion_unit = None
-    if templ_fluxden_unit_str is not None and type(templ_fluxden_unit_str) is str:
+    if isinstance(templ_fluxden_unit_str, str):
         fluxden_unit = u.Unit(templ_fluxden_unit_str, format="cds")
     else:
         fluxden_unit = None
@@ -304,51 +371,55 @@ def analyze_emission_feature(
     a_v=None,
     ext_law="calzetti00",
 ):
-    """Calculate measurements of an emission feature for a spectral fit (
-    SpecFit object).
+    """Measure an emission feature on the model built from one parameter
+    vector (e.g. one posterior sample).
 
     At present this analysis assumes that the spectra are in the following
-    units:
-    flux density - erg/s/cm^2/AA
-    dispersion - AA
+    units: flux density - erg/s/cm^2/AA, dispersion - AA.
 
-    :param specfit: SpecFit class object to extract the model flux from
-    :type specfit: sculptor.specfit.SpecFit
-    :param feature_name: Name of the emission feature, which will be used to
-        name the resulting measurements in the output dictionary.
-    :type feature_name: string
-    :param model_names: List of model names to create the emission feature flux
-        from.
-    :type model_names: list
-    :param rest_frame_wavelength: Rest-frame wavelength of the emission feature
+    :param model: Fitted model
+    :type model: sculptor.model.FitModel
+    :param feature_name: Name of the feature, used as the prefix of the
+        result keys (e.g. "CIV_FWHM")
+    :type feature_name: str
+    :param components: Components that make up the feature
+    :type components: list(sculptor.component.FitComponent)
+    :param params_values: Values of the model's variable parameters
+    :type params_values: np.ndarray
+    :param rest_frame_wavelength: Rest-frame wavelength of the feature
     :type rest_frame_wavelength: float
-    :param cont_model_names:  List of model names to create the continuum
-        flux model from. The continuum spectrum is for example used in the
-        calculation of some emission feature properties (e.g. equivalent width).
-    :type cont_model_names: list
-    :param redshift: Redshift of the object. This keyword argument defaults
-        to 'None', in which case the redshift from the SpecFit object is used.
+    :param cont_components: Continuum components, needed for the
+        equivalent width
+    :type cont_components: list(sculptor.component.FitComponent)
+    :param redshift: Redshift of the source (required)
     :type redshift: float
-    :param dispersion: This keyword argument allows to input a dispersion
-        axis (e.g., wavelengths) for which the model fluxes are calculated. The
-        value defaults to 'None', in which case the dispersion from the SpecFit
-        spectrum is being used.
-    :type dispersion: np.array
-    :param emfeat_meas: This keyword argument allows to specify the list of
-        emission feature measurements.
-        Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
-        'FWHM', 'flux']. The value defaults to 'None' in which all measurements
-        are calculated
-    :type emfeat_meas: list
-    :param disp_range: 2 element list holding the lower and upper dispersion
-        boundaries for the integration
-    :type disp_range: list
-    :param cosmology: Cosmology for calculating luminosities
-    :type cosmology: astropy.cosmology class
-    :param fwhm_method: Method to use for calculating the FWHM. Possible
-        values are 'sign' or 'spline' (default).
-    :type fwhm_method: string
-    :return: Dictionary with measurement results (with units)
+    :param dispersion: Dispersion axis on which the models are evaluated
+    :type dispersion: np.ndarray
+    :param emfeat_meas: Measurements to compute, any of "peak_fluxden",
+        "peak_redsh", "EW", "FWHM", "flux", "lum" (the default,
+        `emfeat_measures_default`) and "nonparam" (v05...v95 velocities,
+        slower)
+    :type emfeat_meas: list(str)
+    :param disp_range: Observed-frame dispersion range to restrict the
+        measurements to
+    :type disp_range: [float, float]
+    :param cosmology: Cosmology for luminosities (default: FlatLambdaCDM
+        with H0=70, Om0=0.3, Tcmb0=2.725, with a warning)
+    :type cosmology: astropy.cosmology.Cosmology
+    :param fwhm_method: "spline" (default) or "sign", see
+        `sculptor.measurements.get_fwhm`
+    :type fwhm_method: str
+    :param dispersion_unit: Unit of `dispersion`
+    :type dispersion_unit: astropy.units.Unit
+    :param fluxden_unit: Unit of the model flux density
+    :type fluxden_unit: astropy.units.Unit
+    :param a_v: If given, correct line and continuum for this V-band
+        attenuation (magnitudes) before measuring
+    :type a_v: float
+    :param ext_law: Extinction law; only "calzetti00"
+    :type ext_law: str
+    :raises ValueError: if `redshift` is None or `ext_law` is unknown
+    :return: Measurement name -> value (with units)
     :rtype: dict
     """
 
@@ -489,43 +560,40 @@ def analyze_continuum(
     cont_meas=None,
     width=10,
 ):
-    """Calculate measurements of the continuum at a range of specified
-    wavelengths for a spectral fit (SpecFit object).
+    """Measure the continuum at a list of rest-frame wavelengths on the model
+    built from one parameter vector (e.g. one posterior sample).
 
     At present this analysis assumes that the spectra are in the following
-    units:
-    flux density - erg/s/cm^2/AA
-    dispersion - AA
+    units: flux density - erg/s/cm^2/AA, dispersion - AA.
 
-    :param specfit: SpecFit class object to extract the model flux from
-    :type specfit: sculptor.specfit.SpecFit
-    :param model_names: List of model names to create the emission feature flux
-        from.
-    :type model_names: list(string)
-    :param rest_frame_wavelengths: Rest-frame wavelength of the emission feature
+    :param model: Fitted model
+    :type model: sculptor.model.FitModel
+    :param components: Continuum components
+    :type components: list(sculptor.component.FitComponent)
+    :param params_values: Values of the model's variable parameters
+    :type params_values: np.ndarray
+    :param rest_frame_wavelengths: Rest-frame wavelengths to measure at;
+        the result keys start with the wavelength (e.g. "1450.0_Lwav")
     :type rest_frame_wavelengths: list(float)
-    :param cosmology: Cosmology for calculation of absolute properties
+    :param cosmology: Cosmology for luminosities
     :type cosmology: astropy.cosmology.Cosmology
-    :param redshift: Redshift of the object. This keyword argument defaults
-        to 'None', in which case the redshift from the SpecFit object is used.
+    :param redshift: Redshift of the source (required)
     :type redshift: float
-    :param dispersion: This keyword argument allows to input a dispersion
-        axis (e.g., wavelengths) for which the model fluxes are calculated. The
-        value defaults to 'None', in which case the dispersion from the SpecFit
-        spectrum is being used.
-    :type dispersion: np.array
-    :param cont_meas: This keyword argument allows to specify the list of
-        emission feature measurements.
-        Currently possible measurements are ['peak_fluxden', 'peak_redsh', 'EW',
-        'FWHM', 'flux']. The value defaults to 'None' in which all measurements
-        are calculated
-    :type cont_meas: list(string)
-    :param width: Window width in dispersion units to calculate the average
-        flux density in.
-    :type width: [float, float]
-    :return: Dictionary with measurement results (with units)
+    :param dispersion_unit: Unit of `dispersion`
+    :type dispersion_unit: astropy.units.Unit
+    :param fluxden_unit: Unit of the model flux density
+    :type fluxden_unit: astropy.units.Unit
+    :param dispersion: Dispersion axis on which the model is evaluated
+    :type dispersion: np.ndarray
+    :param cont_meas: Measurements to compute, any of "fluxden_avg",
+        "Lwav", "appmag" (default: all, `cont_measures_default`)
+    :type cont_meas: list(str)
+    :param width: Rest-frame width of the averaging window, in dispersion
+        units
+    :type width: float
+    :raises ValueError: if `redshift` is None
+    :return: Measurement name -> value (with units)
     :rtype: dict
-
     """
 
     if redshift is None:
@@ -581,6 +649,32 @@ def analyze_continuum(
 
 
 def get_line_snr(model, flat_chain, cont_component, redshift, line_dict, sigma=2):
+    """Signal-to-noise ratio of emission lines for every posterior sample.
+
+    For each sample the continuum model is subtracted from the observed
+    spectrum and, for each line, the flux and the peak are compared with
+    the uncertainties within a window of +-`sigma` Gaussian sigmas (from
+    that sample's FWHM) around the line centre, unless a fixed window is
+    given.
+
+    :param model: Fitted model (its `spec` is used)
+    :type model: sculptor.model.FitModel
+    :param flat_chain: Posterior samples, shape (n_samples, n_params)
+    :type flat_chain: np.ndarray
+    :param cont_component: Continuum component to subtract
+    :type cont_component: sculptor.component.FitComponent
+    :param redshift: Redshift, to place the rest-frame window
+    :type redshift: float
+    :param line_dict: Line name -> {"cen": rest-frame centre,
+        "fwhm": FWHM in km/s per sample, "l_min"/"l_max": fixed rest-frame
+        window bounds or None}
+    :type line_dict: dict
+    :param sigma: Half-width of the window in Gaussian sigmas
+    :type sigma: float
+    :return: Integrated-flux SNR and peak SNR, each of shape
+        (n_lines, n_samples)
+    :rtype: tuple(np.ndarray, np.ndarray)
+    """
 
     dispersion = model.spec.dispersion
     resid_spec = model.spec.copy()

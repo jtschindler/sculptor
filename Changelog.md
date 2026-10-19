@@ -2,6 +2,24 @@
 
 ## 2026-10-19
 
+### Docstrings (convention: reST)
+- Every public function, method and class in `sculptor` and
+  `sculptor_extensions` has a reST (`:param:` / `:type:` / `:return:`)
+  docstring. Written for the 34 that had none (`FitModel` and its fit and
+  plot methods, `FitComponent`, `FitParameter`, the priors, three
+  `analysis` model functions, `get_line_snr`, plot styles, ...) and for
+  the likelihood functions whose `:param x:` fields were empty.
+- Rewrote the stale `analyze_emission_feature` / `analyze_continuum`
+  docstrings (they still described v1 `SpecFit` arguments).
+- Fixed `:param type: X` -> `:type <name>: X` and `:return type:` ->
+  `:rtype:` (17 + 1 places), removed 10 duplicated empty
+  `:param fe_dict:` lines, "FWWHM" typos, and `sculptor.speconed.SpecOneD`
+  -> `speconed.speconed.SpecOneD`.
+- `FitModel.add_component` / `add_parameters` lost their wrong type hints
+  (`component: list`); `template_model` uses `isinstance` for its unit
+  strings.
+- New `tests/test_docstrings.py` keeps it that way.
+
 ### Convention: the redshift fit parameter is `redsh` (breaking)
 - Model functions now all call the redshift argument `redsh`, as
   `sculptor.analysis` already did. Renamed from `z`:

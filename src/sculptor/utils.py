@@ -6,6 +6,16 @@ from numba import njit, prange
 
 @njit(cache=True)
 def gaussian(x, amp, cen, sigma, shift):
+    """Normalised Gaussian (numba-compiled).
+
+    :param x: Evaluation points
+    :param amp: Integral of the Gaussian
+    :param cen: Centre
+    :param sigma: Standard deviation
+    :param shift: Offset added to the centre
+    :return: amp / (sqrt(2 pi) sigma) * exp(-(x - cen - shift)^2 / (2 sigma^2))
+    """
+
     central = cen + shift
     return (amp / (np.sqrt(2 * np.pi) * sigma)) * np.exp(
         -((x - central) ** 2) / (2 * sigma**2)

@@ -25,14 +25,24 @@ cmap = scp.component_cmap
 
 
 def log_likelihood_chi_square(theta, model, x, y, yerr):
-    """Calculate the chi-square log likelihood for the model.
+    """Gaussian log-likelihood of the data given the model, over the fit mask.
 
-    :param theta:
-    :param model:
-    :param x:
-    :param y:
-    :param yerr:
-    :return:
+    log L = -1/2 sum[(y - m)^2 / yerr^2 + ln(yerr^2)], summed over the
+    pixels in `model.gpm_fit`.
+
+    :param theta: Values of the variable parameters, in the order of
+        `model.params_variable`
+    :type theta: np.ndarray
+    :param model: The model
+    :type model: FitModel
+    :param x: Dispersion axis
+    :type x: np.ndarray
+    :param y: Observed flux density
+    :type y: np.ndarray
+    :param yerr: Flux density uncertainty
+    :type yerr: np.ndarray
+    :return: Log-likelihood
+    :rtype: float
     """
     # print(f"PID: {os.getpid()} computing log-likelihood")
     fit_mask = model.gpm_fit
@@ -51,11 +61,19 @@ def log_likelihood_chi_square(theta, model, x, y, yerr):
 
 
 def log_prior(theta, parameters):
-    """Calculate the log prior for the model parameters.
+    """Sum of the log priors of the variable parameters.
 
-    :param theta:
-    :param parameters:
-    :return:
+    Parameters without a prior contribute 0. Returns as soon as the sum is
+    not finite (a value outside a prior's support).
+
+    :param theta: Values of the variable parameters, in the order of
+        `model.params_variable`
+    :type theta: np.ndarray
+    :param parameters: The model's variable parameters
+        (`FitModel.params_variable`), name -> FitParameter
+    :type parameters: dict
+    :return: Log prior
+    :rtype: float
     """
 
     sum = 0
@@ -74,14 +92,22 @@ def log_prior(theta, parameters):
 
 
 def log_probability(theta, x, model, y, yerr):
-    """Calculate the log probability for the model.
+    """Log posterior probability (log prior + log-likelihood), the function
+    sampled by emcee.
 
-    :param theta:
-    :param x:
-    :param model:
-    :param y:
-    :param yerr:
-    :return:
+    :param theta: Values of the variable parameters, in the order of
+        `model.params_variable`
+    :type theta: np.ndarray
+    :param x: Dispersion axis
+    :type x: np.ndarray
+    :param model: The model
+    :type model: FitModel
+    :param y: Observed flux density
+    :type y: np.ndarray
+    :param yerr: Flux density uncertainty
+    :type yerr: np.ndarray
+    :return: Log probability; -inf outside the prior support
+    :rtype: float
     """
     # The priors are looked up in model.params_variable, which eval() only
     # fills on first use; fill it here, or the first call (on a model that
@@ -110,6 +136,15 @@ def _evaluate_single_sample(args):
 
 
 class FitModel(PickleMixin):
+    """A spectral model: a sum of components, its parameters, the spectrum
+    to fit and the fit results.
+
+    The model flux density is the sum of the components, optionally
+    broadened by the instrumental resolution (`eval`). Fits use emcee
+    (`run_emcee`); results are read through `get_flat_chain` and the
+    plotting/analysis methods.
+    """
+
     def __init__(
         self,
         components=None,
@@ -118,12 +153,21 @@ class FitModel(PickleMixin):
         redshift=None,
         resolution=None,
     ):
-        """Initialize the FitModel class.
-
-        :param components:
-        :param parameters:
-        :param spectrum:
-        :param redshift:
+        """:param components: Model components
+        :type components: list(sculptor.component.FitComponent)
+        :param parameters: Parameter name -> FitParameter, for all components
+            (including shared parameters)
+        :type parameters: dict
+        :param spectrum: Spectrum to fit; a copy is stored in `spec` and an
+            empty fit mask (`gpm_fit`) is created
+        :type spectrum: speconed.speconed.SpecOneD
+        :param redshift: Redshift of the source, used for the rest-frame axis
+            in plots
+        :type redshift: float
+        :param resolution: Instrumental resolution R = lambda / delta lambda,
+            scalar or one value per pixel; if set, `eval` broadens the model by
+            it
+        :type resolution: float or np.ndarray
         """
 
         if parameters is None:
@@ -186,20 +230,20 @@ class FitModel(PickleMixin):
                 "FitModel or assign `model.spec` first."
             )
 
-    def add_component(self, component: list):
+    def add_component(self, component):
         """Add a component to the model.
 
-        :param component:
-        :return:
+        :param component: The component
+        :type component: sculptor.component.FitComponent
         """
 
         self.components.append(component)
 
-    def add_parameters(self, parameters: dict):
-        """Add a parameter to the model.
+    def add_parameters(self, parameters):
+        """Add parameters to the model (existing names are replaced).
 
-        :param parameters:
-        :return:
+        :param parameters: Parameter name -> FitParameter
+        :type parameters: dict
         """
 
         self.parameters.update(parameters)
@@ -241,6 +285,10 @@ class FitModel(PickleMixin):
         return y
 
     def get_params_to_sample(self):
+        """Split the parameters into variable (`params_variable`, sampled) and
+        constant ones (`params_constant`, values in `params_constant_val`),
+        and set `vardim` to the number of variable parameters.
+        """
 
         self.params_variable = {}
         self.params_constant = {}
@@ -258,6 +306,22 @@ class FitModel(PickleMixin):
     def initialize_emcee(
         self, nwalkers, log_probability=log_probability, spec=None, pool=None, **kwargs
     ):
+        """Create the emcee sampler (`self.sampler`).
+
+        Clears everything derived from a previous chain (cached flat chain,
+        log-probabilities and posterior model).
+
+        :param nwalkers: Number of walkers
+        :type nwalkers: int
+        :param log_probability: Function to sample, with the signature of
+            `sculptor.model.log_probability`
+        :type log_probability: callable
+        :param spec: Spectrum to fit instead of `self.spec`
+        :type spec: speconed.speconed.SpecOneD
+        :param pool: Pool for parallel evaluation (e.g. `multiprocessing.Pool`)
+        :param kwargs: Passed on to `emcee.EnsembleSampler`
+        :raises ValueError: if neither `spec` nor `self.spec` is set
+        """
 
         self.get_params_to_sample()
 
@@ -295,6 +359,15 @@ class FitModel(PickleMixin):
         self.sampler = sampler
 
     def initialize_positions(self):
+        """Initial walker positions, drawn from each variable parameter's prior.
+
+        A parameter without a prior is drawn from a Gaussian around its value
+        with a width of 20% of its absolute value (a warning is logged).
+        Uses `self.nwalkers` and the model's random generator `self.rng`.
+
+        :return: Positions, shape (nwalkers, number of variable parameters)
+        :rtype: np.ndarray
+        """
 
         self.get_params_to_sample()
 
@@ -334,13 +407,22 @@ class FitModel(PickleMixin):
     ):
         """Run the emcee sampler.
 
-        :param nsteps:
-        :param nwalkers:
-        :param log_probability:
-        :param spec:
-        :param pos:
-        :param progress:
-        :return:
+        :param nsteps: Number of steps
+        :type nsteps: int
+        :param nwalkers: Number of walkers
+        :type nwalkers: int
+        :param log_probability: Function to sample (see `initialize_emcee`)
+        :type log_probability: callable
+        :param spec: Spectrum to fit instead of `self.spec`
+        :type spec: speconed.speconed.SpecOneD
+        :param pos: Initial positions, shape (nwalkers, number of variable
+            parameters); drawn from the priors if not given
+            (`initialize_positions`)
+        :type pos: np.ndarray
+        :param progress: Show emcee's progress bar
+        :type progress: bool
+        :param pool: Pool for parallel evaluation
+        :raises ValueError: if `pos` has the wrong shape
         """
 
         self.nsteps = nsteps
@@ -562,6 +644,17 @@ class FitModel(PickleMixin):
         return self.flat_log_prob
 
     def get_mode_model(self, discard=2000):
+        """Model at the posterior sample with the highest log-probability.
+
+        Called the "maximum likelihood" (ML) model in the plots; strictly it is
+        the maximum of the posterior among the samples, as the log-probability
+        includes the priors.
+
+        :param discard: Number of burn-in steps to discard
+        :type discard: int
+        :return: Model flux density on `self.spec.dispersion`
+        :rtype: np.ndarray
+        """
 
         self._require_spectrum("evaluate the mode model")
 
@@ -618,6 +711,16 @@ class FitModel(PickleMixin):
         return med_model, low_model, upp_model
 
     def get_mcmc_model_results(self, discard=2000, components=None, pool=None):
+        """Evaluate the model for every posterior sample and store the median and
+        the 1-sigma band (15.87 and 84.13 percentiles) in
+        `mcmc_model_posterior` (and the `discard` used in `posterior_discard`).
+
+        :param discard: Number of burn-in steps to discard
+        :type discard: int
+        :param components: Only evaluate these components (default: all)
+        :type components: list(sculptor.component.FitComponent)
+        :param pool: Pool for parallel evaluation (anything with `imap`)
+        """
 
         self.mcmc_model_posterior = list(
             self._posterior_model_bands(
@@ -641,6 +744,40 @@ class FitModel(PickleMixin):
         save_data=False,
         pool=None,
     ):
+        """Plot the spectrum with the posterior model and the residuals.
+
+        Shows the median model with its 1-sigma band, optionally the
+        maximum-likelihood model, the per-component medians and the fit mask,
+        and the reduced chi-square in the legend.
+
+        :param discard: Number of burn-in steps to discard
+        :type discard: int
+        :param show_fit_mask: Shade the fitted regions
+        :type show_fit_mask: bool
+        :param show_ml_model: Also plot the maximum-likelihood model and its
+            residuals (see `get_mode_model`)
+        :type show_ml_model: bool
+        :param ylim: y-axis limits of the spectrum panel
+        :type ylim: [float, float]
+        :param xlim: x-axis limits
+        :type xlim: [float, float]
+        :param resid_ylim: y-axis limits of the residual panel
+        :type resid_ylim: [float, float]
+        :param save: Save the figure instead of showing it
+        :type save: bool
+        :param save_dir: Directory for the figure and data files
+        :type save_dir: str
+        :param show_components: Plot the posterior median of every component
+        :type show_components: bool
+        :param save_name: File name of the figure
+        :type save_name: str
+        :param save_data: Also write the plotted models as CSV files
+        :type save_data: bool
+        :param pool: Pool for parallel evaluation of the posterior models
+        :return: Residuals of the median model and the matching dispersion
+            (both within the spectrum's mask)
+        :rtype: tuple(np.ndarray, np.ndarray)
+        """
 
         self._require_spectrum("plot the MCMC result")
 
@@ -835,9 +972,13 @@ class FitModel(PickleMixin):
             )
 
             def wave_to_restwave(wav):
+                """Observed to rest-frame wavelength."""
+
                 return wav / (1 + self.redshift)
 
             def restwave_to_wave(restwav):
+                """Rest-frame to observed wavelength."""
+
                 return restwav * (1 + self.redshift)
 
             secax = ax_main.secondary_xaxis(
@@ -916,6 +1057,22 @@ class FitModel(PickleMixin):
         save_dir=".",
         save_name="corner_plot.pdf",
     ):
+        """Corner plot of the posterior (chainconsumer), and its summary.
+
+        :param discard: Number of burn-in steps to discard
+        :type discard: int
+        :param parameters: Parameter names to plot (default: all variable
+            parameters)
+        :type parameters: list(str)
+        :param save: Save the figure instead of showing it
+        :type save: bool
+        :param save_dir: Directory for the figure
+        :type save_dir: str
+        :param save_name: File name of the figure
+        :type save_name: str
+        :return: chainconsumer summary (parameter name -> bounds)
+        :rtype: dict
+        """
 
         chain = self.get_flat_chain(discard=discard)
 
@@ -955,13 +1112,13 @@ class FitModel(PickleMixin):
         Plot posterior histograms for MCMC samples from a given model, generating separate plots for each parameter.
 
         :param discard: number of steps to discard as burn-in
-        :param type: int
+        :type discard: int
         :param save: whether to save the plots instead of displaying them
-        :param type: boolean
+        :type save: boolean
         :param save_dir: directory to save the plots
-        :param type: str
+        :type save_dir: str
         :param save_name_prefix: prefix for the saved file names
-        :param type: str
+        :type save_name_prefix: str
         """
 
         flat_chain = self.get_flat_chain(discard=discard)
