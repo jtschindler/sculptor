@@ -188,5 +188,8 @@ def test_get_components_by_prefix(fit_model):
     assert fit_model.get_components_by_prefix(["CIV"]) == []
 
 
-def test_empty_posterior_histograms_stub_removed():
+def test_removed_methods():
+    # Empty stub (§2.2) and the broken pairwise corner plots (§2.3, moved to
+    # deprecated/src/sculptor/model_evaluate_parameters.py).
     assert not hasattr(scmod.FitModel, "plot_posterior_histograms")
+    assert not hasattr(scmod.FitModel, "evaluate_parameters")

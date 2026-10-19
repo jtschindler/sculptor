@@ -2,6 +2,15 @@
 
 ## 2026-10-19
 
+### `FitModel.evaluate_parameters` removed
+- It saved one corner plot per parameter pair, but used the pre-1.0
+  chainconsumer API and failed on the installed 1.3
+  (`AttributeError: 'DataFrame' object has no attribute 'name'`); it also
+  wrote to the current directory only and read the chain straight from the
+  sampler. Nothing called it. Its code is kept in
+  `deprecated/src/sculptor/model_evaluate_parameters.py`; use
+  `plot_posterior_corner(parameters=[...])` for corner plots.
+
 ### `measurements.get_nonparametric_measurements`: `disp_range`
 - Fixed: `disp_range` (observed-frame dispersion in the spectrum's own
   unit, e.g. Angstrom, like every other measurement's `disp_range`) was
