@@ -12,7 +12,7 @@ c_km_s = const.c.to("km/s").value
 
 from speconed import speconed as sod
 
-from sculptor.dep_v1 import specanalysis as scana
+from sculptor import measurements as meas
 
 # ------------------------------------------------------------------------------
 # Model functions
@@ -397,21 +397,21 @@ def analyze_emission_feature(
         # Calculate the peak redshift
         result_dict.update(
             {
-                feature_name + "_peak_redsh": scana.get_peak_redshift(
+                feature_name + "_peak_redsh": meas.get_peak_redshift(
                     model_spec, rest_frame_wavelength
                 )
             }
         )
     if "EW" in emfeat_meas and cont_components is not None:
         # Calculate the rest-frame equivalent width
-        ew = scana.get_equivalent_width(
+        ew = meas.get_equivalent_width(
             cont_spec, model_spec, redshift=redshift, disp_range=disp_range
         )
         result_dict.update({feature_name + "_EW": ew})
 
     if "FWHM" in emfeat_meas:
         # Calculate the (composite) line model FWHM.
-        fwhm = scana.get_fwhm(model_spec, method=fwhm_method, disp_range=disp_range)
+        fwhm = meas.get_fwhm(model_spec, method=fwhm_method, disp_range=disp_range)
         result_dict.update({feature_name + "_FWHM": fwhm})
 
         if np.isnan(fwhm):
@@ -419,12 +419,12 @@ def analyze_emission_feature(
 
     if "flux" in emfeat_meas:
         # Calculate the integrated line flux
-        flux = scana.get_integrated_flux(model_spec, disp_range=disp_range)
+        flux = meas.get_integrated_flux(model_spec, disp_range=disp_range)
         result_dict.update({feature_name + "_flux": flux})
 
     if "lum" in emfeat_meas:
         # Calculate the integrated line luminosity
-        lum = scana.calc_integrated_luminosity(
+        lum = meas.calc_integrated_luminosity(
             model_spec, redshift=redshift, cosmology=cosmology, disp_range=disp_range
         )
         result_dict.update({feature_name + "_lum": lum})
@@ -434,7 +434,7 @@ def analyze_emission_feature(
         # Note that this might be computationally expensive!
 
         v50, v05, v10, v90, v95, v_res_at_line, freq_v50, wave_v50, z_v50 = (
-            scana.get_nonparametric_measurements(
+            meas.get_nonparametric_measurements(
                 model_spec, rest_frame_wavelength, redshift, disp_range=disp_range
             )
         )
@@ -529,7 +529,7 @@ def analyze_continuum(
 
     for wave in rest_frame_wavelengths:
         wave_name = str(wave)
-        fluxden_avg = scana.get_average_fluxden(
+        fluxden_avg = meas.get_average_fluxden(
             cont_spec, wave, redshift=redshift, width=width
         )
 
@@ -537,13 +537,13 @@ def analyze_continuum(
             result_dict.update({wave_name + "_fluxden_avg": fluxden_avg})
 
         if "Lwav" in cont_meas:
-            lwav = scana.calc_lwav_from_fwav(
+            lwav = meas.calc_lwav_from_fwav(
                 fluxden_avg, redshift=redshift, cosmology=cosmology
             )
             result_dict.update({wave_name + "_Lwav": lwav})
 
         if "appmag" in cont_meas:
-            appmag = scana.calc_apparent_mag_from_fluxden(
+            appmag = meas.calc_apparent_mag_from_fluxden(
                 fluxden_avg, wave * (1.0 + redshift) * units.AA
             )
             result_dict.update({wave_name + "_appmag": appmag})

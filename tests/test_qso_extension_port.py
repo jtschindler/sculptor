@@ -73,7 +73,7 @@ def hol_data_file():
 
 
 @pytest.fixture(scope="module")
-def original_qso():
+def original_qso(deprecated_dep_v1):
     # Ensure the ported module (which explicitly does
     # `import importlib.resources`) has already run first, so the bare
     # `import importlib` in the original file also gets a working
@@ -84,7 +84,7 @@ def original_qso():
 
 
 @pytest.fixture(scope="module")
-def original_qso_autofit():
+def original_qso_autofit(deprecated_dep_v1):
     assert new_qso_autofit is not None
     return _load_module_from_path(
         "_original_fgu_qso_autofit", FGU_DIR / "Qso_autofit.py"
@@ -92,7 +92,7 @@ def original_qso_autofit():
 
 
 @pytest.fixture(scope="module")
-def original_out(hol_data_file):
+def original_out(hol_data_file, deprecated_dep_v1):
     assert new_qam is not None
     return _load_module_from_path("_original_fgu_out", FGU_DIR / "out.py")
 

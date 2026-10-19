@@ -68,7 +68,7 @@ def upstream_qso():
 
 
 @pytest.fixture(scope="module")
-def upstream_qso_autofit():
+def upstream_qso_autofit(deprecated_dep_v1):
     return _load_module_from_path(
         "_v2_dev_qso_autofit", V2_DEV_DIR / "sculptor_extensions" / "Qso_autofit.py"
     )

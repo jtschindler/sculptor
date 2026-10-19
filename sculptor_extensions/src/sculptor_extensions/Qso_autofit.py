@@ -27,8 +27,8 @@ from astropy.modeling.models import BlackBody
 from sculptor import analysis as ana
 from sculptor import colors as tolc
 from sculptor import component as sccomp
+from sculptor import measurements as meas
 from sculptor import prior as scpri
-from sculptor.dep_v1 import specanalysis as scana
 from sculptor_extensions import qso
 
 cmap = tolc.tol_cmap(colormap="rainbow_PuRd")
@@ -1382,14 +1382,14 @@ def get_fwhm_int_flux(input_spec, low, upp, redsh, **kwargs):
     :return: FWHM and integrated flux of the spectral feature
     :rtype: astropy.units.Quantity
     """
-    fwhm = scana.get_fwhm(
+    fwhm = meas.get_fwhm(
         input_spec, [low * (1 + redsh), upp * (1 + redsh)], s=100, method="spline"
     )
     if not np.isnan(fwhm):
         fwhm = fwhm.value
 
     int_flux = (
-        scana.get_integrated_flux(
+        meas.get_integrated_flux(
             input_spec, [low * (1 + redsh), upp * (1 + redsh)]
         ).value
         * 1e17
@@ -1742,7 +1742,7 @@ def get_line_prop_Hbeta_OIII(
             #             Fe_spec = sod.SpecOneD(dispersion=Fe_dispersion,
             #                                    fluxden=Fe_fluxden * row[fe_key],
             #                                    dispersion_unit = dispersion_unit, fluxden_unit=fluxden_unit)
-            #             fe_int_flux = scana.get_integrated_flux(Fe_spec, disp_range = [4434, 4684])
+            #             fe_int_flux = meas.get_integrated_flux(Fe_spec, disp_range = [4434, 4684])
             #             fe_flux_ratio = fe_int_flux.value / row[flux_key]
 
             #             df.at[idx, "fe_int_flux" + key] = fe_int_flux.value

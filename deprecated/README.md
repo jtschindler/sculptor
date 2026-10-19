@@ -16,7 +16,15 @@ history from before the move.
 | `src/sculptor/dep_v1/specfitgui.py`, `specmodelwidget.py`, `masksmodels.py`, `menu_dialogs.py`, `specfitcanvas.py`, `specmodelcanvas.py` | PyQt5 GUI of sculptor v1 |
 | `src/sculptor/dep_v1/scripts/` | `run_sculptor` GUI launcher |
 | `src/sculptor/dep_v1/specfit.py`, `specmodel.py` | lmfit-based v1 fitting classes (`SpecFit`, `SpecModel`) the GUI was built on; replaced by `sculptor.model.FitModel` / `sculptor.component.FitComponent` |
+| `src/sculptor/dep_v1/specanalysis.py` | v1 analysis module. The measurement helpers still in use were ported to `sculptor.measurements`; the `SpecFit`-based `analyze_*` routines are superseded by `sculptor.analysis` |
+| `src/sculptor/dep_v1/speconed.py` | Bundled copy of `SpecOneD`; replaced by the standalone `speconed` package |
 | `sculptor_extensions/src/sculptor_extensions/my_extension.py` | Example plugin for the v1 GUI (lmfit models, mask presets) |
 | `examples/dep_v1/` | Scripts and notebooks for the v1 API and GUI |
 
-None of this runs as-is: it needs `lmfit` (not a dependency) and `PyQt5`.
+The GUI and `SpecFit`/`SpecModel` do not run as-is: they need `lmfit`
+(not a dependency). `specanalysis.py` uses `np.trapz`, removed in numpy 2.4.
+
+The test-only ground-truth copies in `tests/ground_truth/` still import
+`sculptor.dep_v1.speconed` / `.specanalysis`; the `deprecated_dep_v1` fixture
+in `tests/conftest.py` makes this folder importable under that name for
+those tests only.

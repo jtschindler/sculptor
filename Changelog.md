@@ -1,5 +1,38 @@
 # Changelog
 
+## 2026-10-19
+
+### Repository layout: `deprecated/`
+- New top-level `deprecated/` folder for old code, mirroring the original
+  paths (not packaged, excluded from `ruff`, not collected by `pytest`; see
+  `deprecated/README.md`). Moved there: the PyQt5 v1 GUI (`specfitgui`,
+  `specmodelwidget`, `masksmodels`, `menu_dialogs`, `specfitcanvas`,
+  `specmodelcanvas`, `scripts/run_sculptor`), the lmfit-based
+  `SpecFit`/`SpecModel`, `dep_v1/specanalysis.py`, the bundled
+  `dep_v1/speconed.py`, `sculptor_extensions/my_extension.py` and
+  `examples/dep_v1/`. The `sculptor.dep_v1` package no longer exists.
+
+### `sculptor.measurements` (new)
+- The nine `dep_v1.specanalysis` helpers still used by `sculptor.analysis`
+  and `Qso_autofit.py` (`get_integrated_flux`, `get_average_fluxden`,
+  `get_peak_redshift`, `get_equivalent_width`, `get_fwhm`,
+  `get_nonparametric_measurements`, `calc_lwav_from_fwav`,
+  `calc_integrated_luminosity`, `calc_apparent_mag_from_fluxden`) were
+  ported unchanged in name and signature.
+- Fixed: `np.trapz` (removed in numpy 2.4) replaced by `np.trapezoid`.
+  Previously `get_integrated_flux`, `get_equivalent_width` and
+  `calc_integrated_luminosity` raised `AttributeError`, and with them
+  `analysis.analyze_emission_feature` with its default measurements
+  (`EW`, `flux`, `lum`).
+- `calc_integrated_luminosity` now builds its rest-frame spectrum with the
+  standalone `speconed.SpecOneD` (it used the bundled v1 copy, mixing two
+  `SpecOneD` classes).
+- New `tests/test_measurements.py`: analytic checks for every helper and a
+  regression test for `analyze_emission_feature`'s default measurements.
+- Tests loading the `tests/ground_truth/` reference copies use the new
+  `deprecated_dep_v1` fixture (`tests/conftest.py`) to resolve their
+  `sculptor.dep_v1` imports.
+
 ## 2026-08-28 (2)
 
 ### `sculptor_extensions.qso`
