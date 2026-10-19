@@ -80,7 +80,7 @@ testpaths = ["tests"]
 norecursedirs = ["tests/ground_truth"]
 
 [tool.ruff]
-extend-exclude = ["tests/ground_truth", "_ground_truth"]
+extend-exclude = ["tests/ground_truth", "_ground_truth", "deprecated"]
 # pre-commit passes explicit filenames to ruff, which otherwise ignores
 # exclude/extend-exclude for paths given directly on the command line.
 force-exclude = true
