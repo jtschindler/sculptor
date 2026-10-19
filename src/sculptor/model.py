@@ -28,7 +28,8 @@ def log_likelihood_chi_square(theta, model, x, y, yerr):
     """Gaussian log-likelihood of the data given the model, over the fit mask.
 
     log L = -1/2 sum[(y - m)^2 / yerr^2 + ln(yerr^2)], summed over the
-    pixels in `model.gpm_fit`.
+    fitted pixels, `model.get_fit_mask()`: the fit regions (`gpm_fit`) minus
+    the pixels masked in the spectrum (`spec.mask`).
 
     :param theta: Values of the variable parameters, in the order of
         `model.params_variable`
@@ -45,7 +46,7 @@ def log_likelihood_chi_square(theta, model, x, y, yerr):
     :rtype: float
     """
     # print(f"PID: {os.getpid()} computing log-likelihood")
-    fit_mask = model.gpm_fit
+    fit_mask = model.get_fit_mask()
 
     # Calculate the full evaluated model at the given x values
     model_flux = model.eval(x, theta)
@@ -143,6 +144,10 @@ class FitModel(PickleMixin):
     broadened by the instrumental resolution (`eval`). Fits use emcee
     (`run_emcee`); results are read through `get_flat_chain` and the
     plotting/analysis methods.
+
+    The fit uses the pixels inside the fit regions (`gpm_fit`, set with
+    `add_wavelength_range_to_fit_mask`) that are not masked in the spectrum
+    (`spec.mask`); see `get_fit_mask`.
     """
 
     def __init__(
@@ -468,7 +473,7 @@ class FitModel(PickleMixin):
     def calculate_chi_sq(self):
         """
         Calculate chi square statistic using median model from the fit and observed data.
-        Only considers data and model within the good pixel mask (gpm_fit).
+        Only considers the fitted pixels (`get_fit_mask()`).
 
         :return chi_sq, dof, reduced_chi_sq: Chi-square, degree of freedom, reduced chi-square
         :rtype: tuple
@@ -478,10 +483,11 @@ class FitModel(PickleMixin):
             raise ValueError(
                 "No posterior model available. Run get_mcmc_model_results() first."
             )
-        flux_exp = self.spec.fluxden[self.gpm_fit]
+        fit_mask = self.get_fit_mask()
+        flux_exp = self.spec.fluxden[fit_mask]
         median_model = self.mcmc_model_posterior[0]
-        flux_model = median_model[self.gpm_fit]
-        flux_exp_err = self.spec.fluxden_err[self.gpm_fit]
+        flux_model = median_model[fit_mask]
+        flux_exp_err = self.spec.fluxden_err[fit_mask]
         dof = len(flux_model) - len(self.params_variable)
 
         chi_sq = np.sum(((flux_exp - flux_model) / flux_exp_err) ** 2)
@@ -493,7 +499,7 @@ class FitModel(PickleMixin):
     def compute_bic(self, discard=2000):
         """
         Compute the Bayesian Information Criterion (BIC) for a given model.
-        Only considers data within the good pixel mask (gpm_fit).
+        Only considers the fitted pixels (`get_fit_mask()`).
 
         :param discard: Number of burn-in steps to discard
         :type discard: int
@@ -514,7 +520,7 @@ class FitModel(PickleMixin):
 
         max_logl = np.max(logls)
         n_params = len(self.params_variable)
-        n_data = np.sum(self.gpm_fit)
+        n_data = np.sum(self.get_fit_mask())
 
         bic = n_params * np.log(n_data) - 2 * max_logl
         self.bic = bic
@@ -523,6 +529,23 @@ class FitModel(PickleMixin):
     # -----------------------------------------------------------------------
     # Functions related to the good pixel fit mask (gpm_fit)
     # -----------------------------------------------------------------------
+    def get_fit_mask(self):
+        """Pixels used in the fit: inside the fit regions (`gpm_fit`) and not
+        masked in the spectrum (`spec.mask`, True = good pixel).
+
+        Pixels masked in the spectrum (e.g. bad or NaN pixels) are excluded
+        from the likelihood, the chi-square and the BIC even if they lie in a
+        fit region. Adopted from the upstream `kat` branch (4ee90b4).
+
+        :return: Boolean mask over `spec.dispersion`
+        :rtype: np.ndarray
+        """
+
+        spec_mask = getattr(self.spec, "mask", None)
+        if spec_mask is None:
+            return self.gpm_fit
+        return self.gpm_fit & spec_mask
+
     def reset_fit_mask(self):
         """Reset the fit mask based on the supplied astronomical spectrum.
 
@@ -803,7 +826,7 @@ class FitModel(PickleMixin):
         # Plot the gpm fit mask
         if show_fit_mask:
             mask = np.ones_like(self.spec.fluxden)
-            mask[np.invert(self.gpm_fit)] = -1
+            mask[np.invert(self.get_fit_mask())] = -1
             ax_main.fill_between(
                 self.spec.dispersion,
                 0,
@@ -1019,9 +1042,9 @@ class FitModel(PickleMixin):
 
         # Get the y-axis limits
         if ylim is None:
-            y_max = 1.1 * np.max(self.spec.fluxden[self.gpm_fit])
+            y_max = 1.1 * np.max(self.spec.fluxden[self.get_fit_mask()])
             if self.spec.fluxden_err is not None:
-                y_min = -np.max(self.spec.fluxden_err[self.gpm_fit])
+                y_min = -np.max(self.spec.fluxden_err[self.get_fit_mask()])
             else:
                 y_min = 0
 
@@ -1033,7 +1056,7 @@ class FitModel(PickleMixin):
             ax_main.set_xlim(xlim)
 
         if resid_ylim is None:
-            yerr_lim = 2 * np.max(self.spec.fluxden_err[self.gpm_fit])
+            yerr_lim = 2 * np.max(self.spec.fluxden_err[self.get_fit_mask()])
             ax_resid.set_ylim([-yerr_lim, yerr_lim])
         else:
             ax_resid.set_ylim(resid_ylim)

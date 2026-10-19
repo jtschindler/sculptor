@@ -2,6 +2,24 @@
 
 ## 2026-10-19
 
+### `FitModel`: pixels masked in the spectrum are left out of the fit
+- **Behaviour change**, adopted from the upstream `kat` branch (4ee90b4,
+  Katharina Jurk; not merged into `v2_dev`): the fit now uses
+  `gpm_fit & spec.mask`, i.e. the fit regions minus the pixels masked in
+  the `SpecOneD` (`spec.mask`, True = good pixel). Before, `spec.mask` was
+  ignored by the fit (only the plots used it), so a bad pixel inside a fit
+  region -- e.g. a NaN flux -- entered the likelihood (making it NaN) and
+  the chi-square.
+- New `FitModel.get_fit_mask()` returns that combined mask; it is used by
+  `log_likelihood_chi_square`, `calculate_chi_sq` (also the degrees of
+  freedom), `compute_bic` (number of data points) and `plot_mcmc_result`
+  (shaded fit regions and default axis limits). With the default
+  all-good `spec.mask` nothing changes. A spectrum whose `mask` is `None`
+  uses `gpm_fit` alone.
+- Not adopted from `kat`: its degrees of freedom counted all parameters
+  (ours count only the varying ones), its median-based BIC, and the other
+  feature additions.
+
 ### `measurements.calc_integrated_luminosity`: observed-frame `disp_range`
 - Fixed: `disp_range` was applied to the rest-frame spectrum, so an
   observed-frame range -- the convention of every other measurement and of

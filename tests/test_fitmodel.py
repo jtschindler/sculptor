@@ -216,3 +216,60 @@ def test_removed_methods():
     # deprecated/src/sculptor/model_evaluate_parameters.py).
     assert not hasattr(scmod.FitModel, "plot_posterior_histograms")
     assert not hasattr(scmod.FitModel, "evaluate_parameters")
+
+
+# -- spectrum mask (adopted from upstream `kat` 4ee90b4) -----------------------
+
+
+def _bad_pixel(model):
+    """Turn one pixel inside the fit regions into a NaN, masked in the
+    spectrum."""
+
+    idx = int(np.flatnonzero(model.gpm_fit)[10])
+    model.spec.fluxden[idx] = np.nan
+    model.spec.mask[idx] = False
+    return idx
+
+
+def test_fit_mask_combines_fit_regions_and_spectrum_mask(fit_model):
+    idx = _bad_pixel(fit_model)
+
+    fit_mask = fit_model.get_fit_mask()
+    assert fit_model.gpm_fit[idx] and not fit_mask[idx]
+    assert fit_mask.sum() == fit_model.gpm_fit.sum() - 1
+
+
+def test_masked_pixels_are_left_out_of_the_likelihood(fit_model):
+    theta = fit_model.get_flat_chain(discard=DISCARD)[-1]
+    spec = fit_model.spec
+    args = (spec.dispersion, spec.fluxden, spec.fluxden_err)
+    before = scmod.log_likelihood_chi_square(theta, fit_model, *args)
+
+    idx = int(np.flatnonzero(fit_model.gpm_fit)[10])
+    model_flux = fit_model.eval(spec.dispersion, theta)[idx]
+    sigma2 = spec.fluxden_err[idx] ** 2
+    term = -0.5 * ((spec.fluxden[idx] - model_flux) ** 2 / sigma2 + np.log(sigma2))
+
+    assert _bad_pixel(fit_model) == idx
+    after = scmod.log_likelihood_chi_square(theta, fit_model, *args)
+
+    # The NaN pixel would make the likelihood NaN if it were still used;
+    # masking it removes exactly its term.
+    assert after == pytest.approx(before - term, rel=1e-12)
+
+
+def test_chi_sq_and_bic_count_only_fitted_pixels(fit_model):
+    fit_model.get_mcmc_model_results(discard=DISCARD)
+    _, dof_before, _ = fit_model.calculate_chi_sq()
+
+    _bad_pixel(fit_model)
+    chi_sq, dof_after, _ = fit_model.calculate_chi_sq()
+
+    assert dof_after == dof_before - 1
+    assert np.isfinite(chi_sq)
+    assert np.isfinite(fit_model.compute_bic(discard=DISCARD))
+
+
+def test_fit_mask_without_spectrum_mask(fit_model):
+    fit_model.spec.mask = None
+    assert np.array_equal(fit_model.get_fit_mask(), fit_model.gpm_fit)
