@@ -54,7 +54,7 @@ def _load_module_from_path(module_name, path):
 
 
 @pytest.fixture(scope="module")
-def upstream_model():
+def upstream_model(deprecated_sculptor):
     return _load_module_from_path(
         "_v2_dev_model", V2_DEV_DIR / "src" / "sculptor" / "model.py"
     )
@@ -68,7 +68,7 @@ def upstream_qso():
 
 
 @pytest.fixture(scope="module")
-def upstream_qso_autofit(deprecated_dep_v1):
+def upstream_qso_autofit(deprecated_sculptor):
     return _load_module_from_path(
         "_v2_dev_qso_autofit", V2_DEV_DIR / "sculptor_extensions" / "Qso_autofit.py"
     )

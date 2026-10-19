@@ -20,18 +20,18 @@ import string
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import tol_colors
 from astropy import units as u
 from astropy.constants import c
 from astropy.modeling.models import BlackBody
 
 from sculptor import analysis as ana
-from sculptor import colors as tolc
 from sculptor import component as sccomp
 from sculptor import measurements as meas
 from sculptor import prior as scpri
 from sculptor_extensions import qso
 
-cmap = tolc.tol_cmap(colormap="rainbow_PuRd")
+cmap = tol_colors.rainbow_PuRd
 
 resource_path = importlib.resources.files("sculptor")
 datadir = str(resource_path / "data") + "/"

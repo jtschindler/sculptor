@@ -38,6 +38,7 @@ dependencies = [
     "speconed",
     "chainconsumer",
     "numba>=0.67.0",
+    "tol-colors>=2.2.0",
 ]
 
 [project.urls]

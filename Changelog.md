@@ -2,6 +2,24 @@
 
 ## 2026-10-19
 
+### Plotting (`sculptor.plot`)
+- Colours now come from the `tol-colors` package (Paul Tol's own release)
+  instead of the vendored 774-line `sculptor/colors.py` (moved to
+  `deprecated/`; its `rainbow_PuRd` is identical to the package's).
+  `tol-colors` is a new dependency of both `sculptor` and
+  `sculptor-extensions`.
+- The plot colour names (`dblue`, `vermillion`, ...) default to Tol's
+  "bright" scheme. Set `SCULPTOR_PALETTE=okabe-ito` before importing
+  sculptor to get the previous Okabe & Ito colours; an unknown value
+  raises `ValueError`. The component colour map is
+  `plot.component_cmap` (Tol `rainbow_PuRd`) in both palettes.
+- `set_paper_defaults` / `set_presentation_defaults` share one
+  `_set_common_defaults` for the tick/axis settings; the dead commented
+  LaTeX-preamble lines are gone.
+- Tests: the `deprecated_dep_v1` fixture is now `deprecated_sculptor`
+  and covers any module under `deprecated/src/sculptor/` (the reference
+  copies also import `sculptor.colors`). New `tests/test_plot.py`.
+
 ### `sculptor.analysis` / `sculptor.measurements`
 - `analyze_mcmc_results` is now the working routine (the old public one
   only printed a message); it is the former private `_mcmc_analyze`, with

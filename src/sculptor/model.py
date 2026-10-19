@@ -13,12 +13,11 @@ from matplotlib.lines import Line2D
 from speconed import speconed as sod
 from tqdm import tqdm
 
-from sculptor import colors as tolc
 from sculptor import plot as scp
 from sculptor import utils as scut
 from sculptor.persistence import PickleMixin
 
-cmap = tolc.tol_cmap(colormap="rainbow_PuRd")
+cmap = scp.component_cmap
 
 # Definition of the likelihood function
 

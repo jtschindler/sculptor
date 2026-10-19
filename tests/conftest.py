@@ -17,11 +17,12 @@ DEPRECATED_SCULPTOR_DIR = REPO_ROOT / "deprecated" / "src" / "sculptor"
 
 
 @pytest.fixture(scope="module")
-def deprecated_dep_v1():
-    """Make `sculptor.dep_v1.*` (now under `deprecated/`) importable.
+def deprecated_sculptor():
+    """Make the deprecated `sculptor` modules importable under their old names.
 
-    The ground-truth reference copies in `tests/ground_truth/` import
-    `sculptor.dep_v1.speconed` / `.specanalysis` under their old names. This
+    The ground-truth reference copies in `tests/ground_truth/` import e.g.
+    `sculptor.dep_v1.speconed`, `sculptor.dep_v1.specanalysis` and
+    `sculptor.colors`, which now live in `deprecated/src/sculptor/`. This
     exposes them only for the test module that requests the fixture, so the
     maintained package cannot silently depend on deprecated code.
     """
@@ -30,10 +31,15 @@ def deprecated_dep_v1():
         yield
     finally:
         sculptor.__path__.remove(str(DEPRECATED_SCULPTOR_DIR))
-        for name in [m for m in sys.modules if m.startswith("sculptor.dep_v1")]:
-            del sys.modules[name]
-        if hasattr(sculptor, "dep_v1"):
-            del sculptor.dep_v1
+        for name, module in list(sys.modules.items()):
+            origin = getattr(module, "__file__", None) or ""
+            if name.startswith("sculptor.") and origin.startswith(
+                str(DEPRECATED_SCULPTOR_DIR)
+            ):
+                del sys.modules[name]
+                attr = name.split(".")[1]
+                if hasattr(sculptor, attr):
+                    delattr(sculptor, attr)
 
 
 REDSHIFT = 3.227  # used by the model fixtures below

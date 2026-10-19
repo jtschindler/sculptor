@@ -10,6 +10,7 @@ requires-python = ">=3.13"
 dependencies = [
     "linetools>=0.3.2",
     "sculptor",
+    "tol-colors>=2.2.0",
 ]
 
 [tool.uv.sources]
