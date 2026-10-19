@@ -52,7 +52,7 @@ where = ["src"]
 # Runtime data read by sculptor_extensions via
 # importlib.resources.files("sculptor") / "data". The example spectra
 # (~20 MB) stay in the repository only and are not packaged.
-sculptor = ["data/iron_templates/*", "data/wave_2.txt"]
+sculptor = ["data/iron_templates/*", "data/balmer_hol_storey_hummer1995.txt"]
 
 [tool.uv.workspace]
 members = ["sculptor_extensions"]

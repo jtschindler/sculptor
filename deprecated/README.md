@@ -22,6 +22,7 @@ history from before the move.
 | `src/sculptor/colors.py` | Vendored copy of Paul Tol's colour schemes; replaced by the `tol-colors` package (identical `rainbow_PuRd`) |
 | `src/sculptor/data/passbands/` | Filter curves read only by the bundled `load_passband`; `speconed` ships its own, except three Euclid NISP bands (see `TODO_speconed.md`) |
 | `sculptor_extensions/src/sculptor_extensions/qso_duplicates.py` | Five model functions removed from `qso.py` as duplicates (review §3); the file's docstring lists the maintained replacement for each. Not a module of the old package, just the functions' code |
+| `sculptor_extensions/src/sculptor_extensions/qso_autofit_balmer_hol.py` | `Qso_autofit.Balmer_continuum_with_hol`, replaced by `qso_advanced_models.BalmerContinuumWithHOL` (different normalisation, see the file's docstring) |
 | `sculptor_extensions/src/sculptor_extensions/my_extension.py` | Example plugin for the v1 GUI (lmfit models, mask presets) |
 | `examples/dep_v1/` | Scripts and notebooks for the v1 API and GUI |
 | `examples/test_saving.py`, `examples/test_resolution.py` | Interactive scratch scripts (`IPython.embed` breakpoints, missing input files, a non-existent `SpecOneD.broaden_by_resolution`). Replaced by `tests/test_save_load.py`, `tests/test_broadening.py` and `benchmarks/bench_broaden_spectrum.py` |

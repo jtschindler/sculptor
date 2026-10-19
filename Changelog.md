@@ -2,6 +2,31 @@
 
 ## 2026-10-19
 
+### `sculptor_extensions`: doublets and Balmer + high-order lines
+- `Qso_autofit.initialise_gaussian_line_model` takes `tied_doublet=True`.
+  For [NII]/[SII] the default stays the tied model (one FWHM, flux ratio
+  as parameter); `tied_doublet=False` selects
+  `qso.line_model_gaussian_nii_doublet` / `_sii_doublet` (independent
+  fluxes and FWHMs). Those two now name the redshift `redsh` (was `z`),
+  like the tied models, so both modes use the same `line_dict` key.
+- **Behaviour change:** `Qso_autofit.initialise_balmer` now builds its
+  component from `qso_advanced_models.BalmerContinuumWithHOL` (the newer
+  model from `out.py`, ~3x faster) via `initialise_balmer_with_hol`.
+  The old `Balmer_continuum_with_hol` normalised and scaled differently
+  (~2e17 in amplitude, up to ~40% in shape below the Balmer edge), so
+  `amp_be` values and priors from older setups need rescaling. Its code
+  is in `deprecated/.../qso_autofit_balmer_hol.py`. The `model` argument
+  of `initialise_balmer` is unused and now optional.
+- Data file `sculptor/data/wave_2.txt` renamed to
+  `balmer_hol_storey_hummer1995.txt`, with a header documenting its
+  origin (Storey & Hummer 1995 case-B emissivities, VizieR VI/64; Balmer
+  n = 7..50, wavelengths from the Rydberg formula with R_inf) and columns.
+  The data itself is unchanged. `qso_advanced_models.HOL_DATA_FILE` holds
+  the name. Earlier comments calling it a synthetic placeholder were wrong.
+- Tests: tied/untied doublet switch (both agree for equal widths and
+  `flux_b = ratio * flux_a`); `initialise_balmer` uses the new model; the
+  missing-data guard is tested without deleting the packaged file.
+
 ### `sculptor_extensions`: duplicate model functions (review §3)
 - Removed from `qso.py` (code kept in
   `deprecated/sculptor_extensions/src/sculptor_extensions/qso_duplicates.py`):

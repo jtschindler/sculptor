@@ -1,14 +1,12 @@
-"""Experimental QSO continuum/line models.
+"""QSO continuum/line models ported from ``tests/ground_truth/fgu/out.py``.
 
-This module holds new, not-yet-validated physics ported from
-``tests/ground_truth/fgu/out.py``: a Balmer-continuum model that
-includes the higher-order Balmer lines (HOL) blending into a pseudo-
-continuum, and a Voigt-profile damping-wing absorption model (used for
-e.g. intervening/associated Lya absorption).
-
-These are kept separate from ``Qso_autofit.py`` because they are
-experimental and, in the case of the Balmer+HOL model, depend on a data
-file (``wave_2.txt``) that is not yet part of the packaged data.
+A Balmer-continuum model that includes the higher-order Balmer lines (HOL)
+blending into a pseudo-continuum (used by
+``Qso_autofit.initialise_balmer``), faster versions of the plain Balmer
+continuum and of the power law + fractional Balmer continuum, and a
+Voigt-profile damping-wing absorption model (e.g. intervening/associated
+Lya absorption). The HOL model reads
+``sculptor/data/balmer_hol_storey_hummer1995.txt`` (see its header).
 """
 
 import importlib.resources
@@ -33,12 +31,13 @@ _KB_CGS = k_B.cgs.value  # erg/K
 _SIGMA_TO_FWHM = 2.0 * np.sqrt(2.0 * np.log(2.0))
 
 # High-order Balmer line transitions/emissivities (Storey & Hummer 1995,
-# case B, model B, 7<=n<=50), used by BalmerContinuumWithHOL /
-# CachedBalmerContinuumWithHOL. The data file is not yet included in
-# `sculptor/data/` -- these stay None (and the HOL models raise a clear
-# error if actually called) until `wave_2.txt` is added there.
+# case B, 7<=n<=50), used by BalmerContinuumWithHOL /
+# CachedBalmerContinuumWithHOL. Origin and columns are documented in the
+# file header. If the file is missing these stay None and the HOL models
+# raise a clear error when called.
+HOL_DATA_FILE = "balmer_hol_storey_hummer1995.txt"
 try:
-    _HOL_DATA = np.loadtxt(datadir + "wave_2.txt")
+    _HOL_DATA = np.loadtxt(datadir + HOL_DATA_FILE)
     _HOL_TRANSITIONS = _HOL_DATA[:, 0]
     _HOL_EMISS = _HOL_DATA[:, 1]
 except OSError:
@@ -112,9 +111,9 @@ class BalmerContinuumWithHOL:
     def _hol_shape(self, x_rest, fwhm, lambda_be, continuum_shape):
         if _HOL_TRANSITIONS is None:
             raise FileNotFoundError(
-                "wave_2.txt (high-order Balmer line transitions/emissivities) "
-                "is missing from sculptor/data/ -- add it to use the "
-                "Balmer+HOL models."
+                f"{HOL_DATA_FILE} (high-order Balmer line transitions/"
+                "emissivities) is missing from sculptor/data/ -- add it to "
+                "use the Balmer+HOL models."
             )
         sigma = (fwhm / c_kms) * _HOL_TRANSITIONS / _SIGMA_TO_FWHM
         diff2 = (x_rest[:, None] - _HOL_TRANSITIONS[None, :]) ** 2
@@ -173,9 +172,9 @@ class CachedBalmerContinuumWithHOL:
         # for a content-based check (e.g. hashing x.tobytes()).
         if _HOL_TRANSITIONS is None:
             raise FileNotFoundError(
-                "wave_2.txt (high-order Balmer line transitions/emissivities) "
-                "is missing from sculptor/data/ -- add it to use the "
-                "Balmer+HOL models."
+                f"{HOL_DATA_FILE} (high-order Balmer line transitions/"
+                "emissivities) is missing from sculptor/data/ -- add it to "
+                "use the Balmer+HOL models."
             )
         cache_key = (id(x), z)
         if cache_key != self._cache_key:

@@ -1,4 +1,23 @@
-# wave emissivity
+# High-order Balmer lines (n = 7..50 -> 2), 44 transitions, for the Balmer
+# pseudo-continuum + high-order-line model
+# (sculptor_extensions.qso_advanced_models.BalmerContinuumWithHOL).
+#
+# Origin
+#   Emissivities: Storey & Hummer 1995, MNRAS 272, 41, hydrogen case B,
+#     VizieR catalogue VI/64 (http://cdsarc.u-strasbg.fr/ftp/cats/VI/64/).
+#     Per the original sculptor docstring: Te = 15000 K, log n_e = 9 (not
+#     re-checked against the catalogue here).
+#   Wavelengths: Rydberg formula with R_inf (infinite nuclear mass), so
+#     about 2 A (0.05%) shorter than vacuum hydrogen wavelengths (R_H).
+#     Negligible for the broadened model.
+#   Formerly sculptor/data/wave_2.txt (added in commit 629fc36; renamed
+#     2026-10-19).
+#
+# Columns
+#   1: wavelength [Angstrom]
+#   2: emissivity (consistent with S&H's tabulated 4 pi j / (n_e n_p) in
+#      erg cm^3 s^-1; only the relative values matter, the model rescales
+#      the high-order lines to the continuum at the Balmer edge)
 3.650909455128205536e+03 6.790999999999999473e-29
 3.651150716729244778e+03 7.215999999999999929e-29
 3.651407248695652470e+03 7.678000000000000023e-29

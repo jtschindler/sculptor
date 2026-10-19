@@ -17,6 +17,7 @@ comparisons.
 
 import importlib.util
 import inspect
+import shutil
 import sys
 from pathlib import Path
 
@@ -45,33 +46,23 @@ def _load_module_from_path(module_name, path):
 
 @pytest.fixture(scope="module")
 def hol_data_file():
-    """`out.py` and `Qso_autofit.py`'s HOL classes/functions need
-    `wave_2.txt` in `sculptor/data/`. A synthetic placeholder now lives at
-    `src/sculptor/data/wave_2.txt` (to be replaced with the real Storey &
-    Hummer 1995 data), so this fixture normally just confirms it's there;
-    it falls back to writing the same placeholder itself if the file is
-    ever absent (e.g. a fresh checkout before it's added), and only
-    removes what it created.
+    """The high-order Balmer line data, packaged as
+    `sculptor/data/balmer_hol_storey_hummer1995.txt` (formerly
+    `wave_2.txt`). The original `out.py` reference copy still loads
+    `wave_2.txt` at import, so provide a temporary copy under that name and
+    remove it afterwards (only if this fixture created it).
     """
-    target = SCULPTOR_DATA_DIR / "wave_2.txt"
-    pre_existing = target.exists()
-    if not pre_existing:
-        # A handful of synthetic (transition wavelength [AA], emissivity)
-        # rows spanning a plausible high-order-Balmer-line range.
-        data = np.array(
-            [
-                [3200.0, 0.05],
-                [3350.0, 0.08],
-                [3500.0, 0.12],
-                [3620.0, 0.20],
-            ]
-        )
-        np.savetxt(target, data)
+    data_file = SCULPTOR_DATA_DIR / new_qam.HOL_DATA_FILE
+    assert data_file.exists(), data_file
+    legacy = SCULPTOR_DATA_DIR / "wave_2.txt"
+    created = not legacy.exists()
+    if created:
+        shutil.copyfile(data_file, legacy)
     try:
-        yield target
+        yield data_file
     finally:
-        if not pre_existing and target.exists():
-            target.unlink()
+        if created and legacy.exists():
+            legacy.unlink()
 
 
 @pytest.fixture(scope="module")
@@ -160,6 +151,49 @@ def test_line_model_gaussian_matches_original_qso_gaussian(original_qso):
     orig = original_qso.line_model_gaussian(x, z=2.0, **kwargs)
     new = sculptor_analysis.line_model_gaussian(x, redsh=2.0, **kwargs)
     np.testing.assert_allclose(orig, new, rtol=1e-12)
+
+
+def _line_dict(**values):
+    return {par: {"value": v, "vary": False} for par, v in values.items()}
+
+
+@pytest.mark.parametrize(
+    ("prefix", "tied_func", "untied_func", "ratio"),
+    [
+        (
+            "NII",
+            "line_model_gaussian_NII_doublet",
+            "line_model_gaussian_nii_doublet",
+            2.96,
+        ),
+        (
+            "SII",
+            "line_model_gaussian_SII_doublet",
+            "line_model_gaussian_sii_doublet",
+            1.0,
+        ),
+    ],
+)
+def test_doublet_switch_tied_by_default(prefix, tied_func, untied_func, ratio):
+    tied_dict = _line_dict(redsh=0.1, flux=5.0, fwhm_km_s=300.0, fluxratio=ratio)
+    comp, params = new_qso_autofit.initialise_gaussian_line_model(prefix, tied_dict)
+    assert comp.function is getattr(new_qso_autofit, tied_func)
+    assert sorted(params) == sorted(f"{prefix}_{p}" for p in tied_dict)
+
+    untied_dict = _line_dict(
+        redsh=0.1, flux_a=5.0, flux_b=5.0 * ratio, fwhm_km_s_a=300.0, fwhm_km_s_b=300.0
+    )
+    comp_u, params_u = new_qso_autofit.initialise_gaussian_line_model(
+        prefix, untied_dict, tied_doublet=False
+    )
+    assert comp_u.function is getattr(new_qso, untied_func)
+    assert sorted(params_u) == sorted(f"{prefix}_{p}" for p in untied_dict)
+
+    # With equal widths and flux_b = ratio * flux_a, both models agree.
+    x = np.linspace(7000, 7600, 2000)
+    tied = comp.function(x, 0.1, 5.0, 300.0, ratio)
+    untied = comp_u.function(x, 0.1, 5.0, 5.0 * ratio, 300.0, 300.0)
+    np.testing.assert_allclose(tied, untied, rtol=1e-12)
 
 
 def test_qso_duplicates_were_removed():
@@ -556,21 +590,14 @@ def test_qso_autofit_civ_mask_range_edits_applied():
     assert new_qso_autofit.CIV_range["mask_ranges"] == [[1465, 1600]]
 
 
-def test_qso_autofit_balmer_continuum_with_hol_loadtxt_bug_was_fixed(
-    original_qso_autofit,
-):
-    """`Balmer_continuum_with_hol` originally (and still, in the untracked
-    fgu source) called `np.loadtxt(datadir, "wave_2.txt")` -- passing
-    `datadir` as the filename and `"wave_2.txt"` as `loadtxt`'s `dtype`
-    argument, instead of `np.loadtxt(datadir + "wave_2.txt")` -- so it
-    always raised `TypeError` before ever reaching the data file. Fixed in
-    the ported function; verify the original still fails and the fix now
-    produces a finite result using the placeholder `wave_2.txt`.
+def test_original_balmer_with_hol_was_broken_and_is_replaced(original_qso_autofit):
+    """The original `Qso_autofit.Balmer_continuum_with_hol` called
+    `np.loadtxt(datadir, "wave_2.txt")` (filename passed as `dtype`), so it
+    always raised `TypeError`. The local copy, fixed, was then replaced by
+    `qso_advanced_models.BalmerContinuumWithHOL` (review §3): check that
+    the original still fails and that `initialise_balmer` builds the new
+    model and evaluates on the packaged data.
     """
-    # z=0 so the rest-frame dispersion axis (x here, since z=0) actually
-    # brackets lambda_be=3646 -- required for the Balmer-edge normalization
-    # (`np.interp(lambda_be, rest_wavelength, flux_density)`) to land on a
-    # non-degenerate point of the synthetic placeholder `wave_2.txt` data.
     x = np.linspace(3000, 4000, 50)
     kwargs = {
         "z": 0.0,
@@ -583,8 +610,17 @@ def test_qso_autofit_balmer_continuum_with_hol_loadtxt_bug_was_fixed(
     with pytest.raises(TypeError, match="not understood"):
         original_qso_autofit.Balmer_continuum_with_hol(x, **kwargs)
 
-    result = new_qso_autofit.Balmer_continuum_with_hol(x, **kwargs)
-    assert np.all(np.isfinite(result))
+    assert not hasattr(new_qso_autofit, "Balmer_continuum_with_hol")
+
+    balmer_dict = {par: {"value": v, "vary": False} for par, v in kwargs.items()}
+    comp, params = new_qso_autofit.initialise_balmer("BC", None, balmer_dict)
+    assert isinstance(comp.function, new_qam.BalmerContinuumWithHOL)
+    assert sorted(params) == sorted(f"BC_{p}" for p in kwargs)
+
+    result = comp.function(x, **kwargs)
+    expected = new_qam.BalmerContinuumWithHOL()(x, **kwargs)
+    np.testing.assert_allclose(result, expected)
+    assert np.all(np.isfinite(result)) and result.max() > 0
 
 
 # --------------------------------------------------------------------------
@@ -650,15 +686,14 @@ _QAM_PATH = (
 
 
 def test_qam_balmer_continuum_with_hol_matches_original(original_out, hol_data_file):
-    # `new_qam` (imported at module top) was loaded before `hol_data_file`
-    # created wave_2.txt, so its module-level `_HOL_TRANSITIONS` is still
-    # None. Load a fresh copy now that the data file is in place.
-    fresh_new_qam = _load_module_from_path("_qam_with_hol_data", _QAM_PATH)
-    assert fresh_new_qam._HOL_TRANSITIONS is not None
+    # The data file is packaged, so the module-level data is loaded.
+    assert new_qam._HOL_TRANSITIONS is not None
+    assert len(new_qam._HOL_TRANSITIONS) == 44  # Balmer n = 7..50
+    fresh_new_qam = new_qam
 
     # z=0 so the rest-frame axis (x here) actually brackets lambda_be=3646
-    # and the real wave_2.txt transitions (~3650-4000 A) -- otherwise the
-    # Balmer-edge normalization interpolates outside the data range.
+    # and the transitions (3650-3970 A) -- otherwise the Balmer-edge
+    # normalization interpolates outside the data range.
     x = np.linspace(2800, 4200, 500)
     kwargs = {
         "z": 0.0,
@@ -678,36 +713,27 @@ def test_qam_balmer_continuum_with_hol_matches_original(original_out, hol_data_f
 
 
 def test_qam_hol_models_raise_clearly_without_data_file():
-    """Without `wave_2.txt` present, the HOL models must fail predictably
-    (FileNotFoundError) rather than silently producing wrong numbers --
-    this is the guard added since `wave_2.txt` is a known-missing data
-    file. Manages the file's presence itself (save aside/restore) so it
-    doesn't depend on `hol_data_file` fixture ordering relative to other
-    tests in this module.
+    """Without the high-order Balmer line data, the HOL models must fail
+    predictably (FileNotFoundError) rather than silently producing wrong
+    numbers. Simulated on a fresh copy of the module, so the packaged data
+    file is never touched.
     """
-    target = SCULPTOR_DATA_DIR / "wave_2.txt"
-    saved_bytes = target.read_bytes() if target.exists() else None
-    if target.exists():
-        target.unlink()
+    fresh = _load_module_from_path("_qam_no_hol_data", _QAM_PATH)
+    fresh._HOL_TRANSITIONS = None
+    fresh._HOL_EMISS = None
 
-    try:
-        fresh = _load_module_from_path("_qam_no_hol_data", _QAM_PATH)
-        assert fresh._HOL_TRANSITIONS is None
-
-        x = np.linspace(2800, 4200, 50)
-        with pytest.raises(FileNotFoundError):
-            fresh.BalmerContinuumWithHOL()(
-                x,
-                z=2.0,
-                amp_be=1.0,
-                Te=15000.0,
-                tau_be=1.0,
-                lambda_be=3646.0,
-                fwhm=2000.0,
-            )
-    finally:
-        if saved_bytes is not None:
-            target.write_bytes(saved_bytes)
+    x = np.linspace(2800, 4200, 50)
+    kwargs = {
+        "z": 2.0,
+        "amp_be": 1.0,
+        "Te": 15000.0,
+        "tau_be": 1.0,
+        "lambda_be": 3646.0,
+        "fwhm": 2000.0,
+    }
+    for model in (fresh.BalmerContinuumWithHOL(), fresh.CachedBalmerContinuumWithHOL()):
+        with pytest.raises(FileNotFoundError, match=fresh.HOL_DATA_FILE):
+            model(x, **kwargs)
 
 
 def test_qam_absorption_transmission_not_registered_as_absorption_component():

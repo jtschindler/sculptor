@@ -23,7 +23,6 @@ import pandas as pd
 import tol_colors
 from astropy import units as u
 from astropy.constants import c
-from astropy.modeling.models import BlackBody
 
 from sculptor import analysis as ana
 from sculptor import component as sccomp
@@ -255,72 +254,6 @@ def plot_burnin(model, save_dir=".", plot_name="burnin_all_params.pdf"):
     plt.savefig(save_path)
     plt.close()
     print(f"[INFO] Burn-in plot saved to: {save_path}")
-
-
-def Balmer_continuum_with_hol(x, z, amp_be, Te, tau_be, lambda_be, fwhm):
-    """
-    Compute the Balmer pseudo-continuum with high-order line (HOL) emission created due to super-position
-    of higher order Balmer lines (from n >= 7).
-
-    This function returns the total flux from Balmer contribution in units of 1e-17 erg/s/cm2.
-    Line intensities are provided in Storey and Hummer 1995 (http://adsabs.harvard.edu/abs/1995MNRAS.272...41S).
-    Data files downloaded from (http://cdsarc.u-strasbg.fr/ftp/cats/VI/64/).
-    The function uses their case B approximation for Hydrogen,
-    with temperature 15000K and electon density of log nH =9.
-    One can customise the parameters depending on the case.
-
-    :param x: Dispersion of the Balmer continuum
-    :type x: np.ndarray
-    :param z: Redshift
-    :type z: float
-    :param amp_be: Amplitude of the Balmer continuum at the Balmer edge
-    :type amp_be: float
-    :param Te: Electron temperature
-    :type Te: float
-    :param tau_be: Optical depth at the Balmer edge
-    :type tau_be: float
-    :param lambda_be: Wavelength of the Balmer edge
-    :type lambda_be: float
-    :param fwhm: FWHM of the Gaussian profile to broaden the template (km/s)
-    :type fwhm: int
-
-    :return total_flux: Balmer continuum model
-    :rtype: np.ndarray
-    """
-    rest_wavelength = x / (1 + z)
-
-    # Blackbody continuum till Balmer_limit
-    bb = BlackBody(temperature=Te * u.K)
-    black_body_lambda = (
-        bb(rest_wavelength * u.AA).value * c_AngstroemPerSecond / rest_wavelength**2
-    )
-    raw_continuum = black_body_lambda * (
-        1 - np.exp(-tau_be * (rest_wavelength / lambda_be) ** 3)
-    )
-
-    transition_width = 20.0
-    smooth_cutoff = 1 / (1 + np.exp((rest_wavelength - lambda_be) / transition_width))
-    continuum = raw_continuum
-    continuum[continuum > lambda_be] = continuum[continuum > lambda_be] * smooth_cutoff
-    continuum /= np.max(continuum)
-
-    # High-order line emissivities
-    df = np.loadtxt(datadir + "wave_2.txt")
-    transitions = df[:, 0]
-    emiss = df[:, 1]
-    flux_density = np.zeros_like(rest_wavelength)
-
-    for line, em in zip(transitions, emiss, strict=True):
-        sigma = (fwhm / c_kms) * line / 2.35
-        profile = np.exp(-0.5 * ((rest_wavelength - line) / sigma) ** 2)
-        flux_density += em * profile / sigma
-
-    # Normalizing hol to continuum at the Balmer edge
-    edge_val = np.interp(lambda_be, rest_wavelength, flux_density)
-    flux_density /= (1 / 0.3) * edge_val
-
-    total_flux = (amp_be * (continuum + flux_density)) * 1e17
-    return total_flux
 
 
 def get_sampled_values(model, param_name, discard=0):
@@ -641,49 +574,33 @@ def initialise_balmer_without_hol(prefix, balmer_dict=None):
     return comp, params
 
 
-def initialise_balmer(prefix, model, balmer_dict=None):
+def initialise_balmer(prefix, model=None, balmer_dict=None):
     """
-    Initialise Balmer continuum including the higher order balmer lines that blend as a pseudo-continuum.
-    Following Storey and Hummer 1995, we consider higher order lines generatinf from transitions with (7<=n<=50). Higher order line emissivities were calculated
-    from the database provided in under the case B approximation for Hydrogen, for a given temperature, electron density, and braodening Doppler velocity.
-    A Balmer template is defined using "amp_be", "redshift", "Te", "Tau_be", "lambda_be" and "FWHM".
-    A dictionary should be provided wherein each parameter needed for Balmer template has "initial_value", "vary" and "prior"
-    which provides information on initial value of the parameter, whether the parameter should be varied, and the
-    priors to be used to contrain the parameter, respectively.
+    Initialise Balmer continuum including the higher order balmer lines that
+    blend as a pseudo-continuum (Storey & Hummer 1995, case B, 7 <= n <= 50).
+
+    Builds the component from
+    `qso_advanced_models.BalmerContinuumWithHOL` (via
+    `qso_advanced_models.initialise_balmer_with_hol`). The previous model,
+    `Balmer_continuum_with_hol`, was removed (see
+    `deprecated/sculptor_extensions/src/sculptor_extensions/qso_autofit_balmer_hol.py`);
+    its output was normalised and scaled differently, so `amp_be` values
+    and priors from older setups need rescaling.
+
+    `balmer_dict` must contain "z", "amp_be", "Te", "tau_be", "lambda_be"
+    and "fwhm"; each entry has "value", "vary" and "prior", or "parameter"
+    to map it onto an existing (global) parameter.
 
     :param prefix: Model prefix
     :type prefix: string
-    :param balmer_dict: dictionary containing parameters to setup the Balmer continuum model
-    :type Balmer_dict: dictionary
-
-    :return comp: Balmer continuuum with HOL component
-    return pars: Balmer continuuum with HOL parameters
+    :param model: Unused; kept so existing calls keep working.
+    :param balmer_dict: dictionary containing parameters to setup the Balmer
+        continuum model
+    :type balmer_dict: dictionary
+    :return comp: Balmer continuum with HOL component
+    :return pars: Balmer continuum with HOL parameters
     """
-    comp = sccomp.FitComponent(prefix, Balmer_continuum_with_hol)
-    params = comp.create_params()
-
-    if balmer_dict:
-        for key in params:
-            par = key.split(f"{prefix}_")[1]
-            if par == "x":
-                params[key].value = model.gpm_fit
-                params[key].vary = False
-                continue
-            input = balmer_dict[par]
-
-            if "parameter" in input:
-                params.pop(key)
-                comp.param_mapping.update({par: input["parameter"]})
-            else:
-                params[key].value = input["value"]
-                params[key].vary = input["vary"]
-                if input["vary"]:
-                    params[key].prior = input["prior"]
-
-    else:
-        raise ValueError("Provide `balmer_dict`")
-
-    return comp, params
+    return qam.initialise_balmer_with_hol(prefix, balmer_dict)
 
 
 # ------------------------------------------------------------------------------
@@ -691,7 +608,7 @@ def initialise_balmer(prefix, model, balmer_dict=None):
 # ------------------------------------------------------------------------------
 
 
-def initialise_gaussian_line_model(prefix, line_dict):
+def initialise_gaussian_line_model(prefix, line_dict, tied_doublet=True):
     """
     Setup a gaussian model for a given emission line feature in the spectrum.
     The central wavelength of the Gaussian line model is determined by the
@@ -711,14 +628,33 @@ def initialise_gaussian_line_model(prefix, line_dict):
 
     :return comps: Gaussian line components
     :return params: Gaussian line parameters
+    :param tied_doublet: For [NII] and [SII] (prefix containing "NII" /
+        "SII"): if True (default), both lines share one FWHM and the flux
+        ratio is a parameter (`line_model_gaussian_NII_doublet` /
+        `line_model_gaussian_SII_doublet`; `line_dict` keys "redsh", "flux",
+        "fwhm_km_s", "fluxratio"). If False, each line has its own flux and
+        FWHM (`qso.line_model_gaussian_nii_doublet` /
+        `qso.line_model_gaussian_sii_doublet`; keys "redsh", "flux_a",
+        "flux_b", "fwhm_km_s_a", "fwhm_km_s_b"). Ignored for other lines.
+    :type tied_doublet: bool
     """
 
     if "OIII" in prefix:
         comp = sccomp.FitComponent(prefix, qso.line_model_gaussian_oiii_doublet)
     elif "NII" in prefix:
-        comp = sccomp.FitComponent(prefix, line_model_gaussian_NII_doublet)
+        model = (
+            line_model_gaussian_NII_doublet
+            if tied_doublet
+            else qso.line_model_gaussian_nii_doublet
+        )
+        comp = sccomp.FitComponent(prefix, model)
     elif "SII" in prefix:
-        comp = sccomp.FitComponent(prefix, line_model_gaussian_SII_doublet)
+        model = (
+            line_model_gaussian_SII_doublet
+            if tied_doublet
+            else qso.line_model_gaussian_sii_doublet
+        )
+        comp = sccomp.FitComponent(prefix, model)
     else:
         comp = sccomp.FitComponent(prefix, ana.line_model_gaussian)
     params = comp.create_params()

@@ -174,7 +174,7 @@ def line_model_gaussian_oiii_doublet(x, z, flux, fwhm_km_s, fluxratio):
     return comp_a + comp_b
 
 
-def line_model_gaussian_nii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s_b):
+def line_model_gaussian_nii_doublet(x, redsh, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s_b):
     """Doublet line model for the [NII] lines at 6549.85 A and 6585.28 A.
 
     This model ties the redshift of the forbidden transitions of [NII] at
@@ -183,8 +183,8 @@ def line_model_gaussian_nii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s
 
     :param x: Dispersion of the continuum model
     :type x: np.ndarray
-    :param z: Redshift
-    :type z: float
+    :param redsh: Redshift
+    :type redsh: float
     :param flux_a: Amplitude of the 1st Gaussian component
     :type flux_a: float
     :param flux_b: Amplitude of the 2nd Gaussian component
@@ -198,8 +198,8 @@ def line_model_gaussian_nii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s
     """
 
     # Redshift central wavelengths
-    cen_a = 6549.85 * (1 + z)
-    cen_b = 6585.28 * (1 + z)
+    cen_a = 6549.85 * (1 + redsh)
+    cen_b = 6585.28 * (1 + redsh)
 
     # Calculate sigma from fwhm
     fwhm_a = fwhm_km_s_a / c_km_s * cen_a
@@ -222,7 +222,7 @@ def line_model_gaussian_nii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s
     return comp_a + comp_b
 
 
-def line_model_gaussian_sii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s_b):
+def line_model_gaussian_sii_doublet(x, redsh, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s_b):
     """Doublet line model for the [SII] lines at 6718.29 A and 6732.67 A.
 
     This model ties the redshift,  of the forbidden transitions of [SII] at
@@ -231,8 +231,8 @@ def line_model_gaussian_sii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s
 
     :param x: Dispersion of the continuum model
     :type x: np.ndarray
-    :param z: Redshift
-    :type z: float
+    :param redsh: Redshift
+    :type redsh: float
     :param flux_a: Amplitude of the 1st Gaussian component
     :type flux_a: float
     :param flux_b: Amplitude of the 2nd Gaussian component
@@ -247,8 +247,8 @@ def line_model_gaussian_sii_doublet(x, z, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s
     """
 
     # Redshift central wavelengths
-    cen_a = 6718.29 * (1 + z)
-    cen_b = 6732.67 * (1 + z)
+    cen_a = 6718.29 * (1 + redsh)
+    cen_b = 6732.67 * (1 + redsh)
 
     # Calculate sigma from fwhm
     fwhm_a = fwhm_km_s_a / c_km_s * cen_a
