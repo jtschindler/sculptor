@@ -213,7 +213,7 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, s=0, method="spline")
 
 
 def get_nonparametric_measurements(
-    input_spec, line_rest_wavel, redshift, disp_range=None
+    input_spec, line_rest_wavel, redshift, disp_range=None, inplace=False
 ):
     """Measure the velocities at different ratios of the total emission line
     flux.
@@ -225,8 +225,9 @@ def get_nonparametric_measurements(
     flux and then determines the closest dispersion values in velocity space
     to the 5%, 10%, 50%, 90% and 95% total flux ratios.
 
-    Note: `input_spec` is modified in place (converted to flux density per
-    unit frequency and, if `disp_range` is given, trimmed).
+    The spectrum is converted to flux density per unit frequency and, if
+    `disp_range` is given, trimmed. By default this happens on a copy; with
+    `inplace=True` the input spectrum itself is modified (the v1 behaviour).
 
     :param input_spec: Input spectrum
     :type input_spec: speconed.speconed.SpecOneD
@@ -237,6 +238,8 @@ def get_nonparametric_measurements(
     :param disp_range: Observed-frame dispersion range to which the
         calculation is limited.
     :type disp_range: [float, float]
+    :param inplace: Modify `input_spec` instead of a copy
+    :type inplace: bool
     :return: median velocity, 5% velocity, 10% velocity, 90% velocity,
         95% velocity, velocity resolution at median velocity, frequency of
         median velocity, wavelength of median velocity, redshift of median
@@ -246,6 +249,9 @@ def get_nonparametric_measurements(
         astropy.units.Quantity, astropy.units.Quantity,
         astropy.units.Quantity, astropy.units.Quantity, float
     """
+
+    if not inplace:
+        input_spec = input_spec.copy()
 
     # Convert input spectrum to frequency
     input_spec.to_fluxden_per_unit_frequency_cgs()

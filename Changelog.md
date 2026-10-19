@@ -2,6 +2,22 @@
 
 ## 2026-10-19
 
+### `sculptor.analysis` / `sculptor.measurements`
+- `analyze_mcmc_results` is now the working routine (the old public one
+  only printed a message); it is the former private `_mcmc_analyze`, with
+  its full signature and a docstring. `_mcmc_analyze` stays as an alias
+  (used by `_ground_truth/agn_fit_new.py`).
+- The Calzetti extinction correction, duplicated for line and continuum
+  in `analyze_emission_feature`, is one helper, `_remove_extinction`.
+- Fixed: `analyze_emission_feature` used `redshift` for the extinction
+  correction before checking it was set (`TypeError` with `a_v`); the
+  check now comes first. `analyze_continuum` gained the same check (it
+  failed with `TypeError` on the default `redshift=None`).
+- `measurements.get_nonparametric_measurements` works on a copy by
+  default; `inplace=True` restores the v1 behaviour of converting and
+  trimming the input spectrum itself.
+- New `tests/test_analysis.py`, more tests in `tests/test_measurements.py`.
+
 ### `sculptor.model.FitModel`
 - **One chain accessor.** New `get_flat_chain(discard)` (and
   `get_flat_log_prob(discard)`) is the only place the chain is read;

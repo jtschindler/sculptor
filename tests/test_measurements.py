@@ -195,3 +195,29 @@ def test_analyze_emission_feature_default_measurements(dispersion):
     )
     assert result["CIV_FWHM"].value == pytest.approx(FWHM_KM_S, rel=0.01)
     assert result["CIV_peak_redsh"] == pytest.approx(REDSHIFT, abs=1e-4)
+
+
+def test_get_nonparametric_measurements_copies_by_default(line_spec):
+    before = line_spec.copy()
+
+    measurements.get_nonparametric_measurements(line_spec, REST_CEN, REDSHIFT)
+
+    assert line_spec.dispersion_unit == before.dispersion_unit
+    assert np.array_equal(line_spec.dispersion, before.dispersion)
+    assert np.array_equal(line_spec.fluxden, before.fluxden)
+
+
+def test_get_nonparametric_measurements_inplace(line_spec):
+    n_before = line_spec.dispersion.size
+    default = measurements.get_nonparametric_measurements(
+        line_spec.copy(), REST_CEN, REDSHIFT
+    )
+
+    inplace = measurements.get_nonparametric_measurements(
+        line_spec, REST_CEN, REDSHIFT, disp_range=[1e14, 1e15], inplace=True
+    )
+
+    # The v1 behaviour: converted to frequency and trimmed in place.
+    assert line_spec.dispersion_unit.physical_type == "frequency"
+    assert line_spec.dispersion.size < n_before
+    assert default[0].unit == inplace[0].unit

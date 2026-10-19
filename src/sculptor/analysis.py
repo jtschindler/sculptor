@@ -148,23 +148,25 @@ def line_model_gaussian(x, redsh, flux, cen, fwhm_km_s, **kwargs):
 # ------------------------------------------------------------------------------
 
 
+def _remove_extinction(fluxden, dispersion, redshift, a_v, ext_law="calzetti00"):
+    """Correct an observed-frame model flux density for host extinction.
+
+    :param fluxden: Model flux density
+    :param dispersion: Observed-frame dispersion in Angstroem
+    :param redshift: Redshift, to compute the rest-frame wavelengths
+    :param a_v: V-band extinction in magnitudes
+    :param ext_law: Extinction law; only "calzetti00" (R_V = 4.05)
+    :return: Extinction-corrected flux density
+    """
+
+    if ext_law == "calzetti00":
+        ext = extinction.calzetti00(dispersion / (1 + redshift), a_v, 4.05)
+    else:
+        raise ValueError("No valid extinction law specified")
+    return extinction.remove(ext, fluxden)
+
+
 def analyze_mcmc_results(
-    model,
-    flat_chain,
-    cont_dict,
-    emfeat_dictlist,
-    redshift,
-    cosmology,
-    dispersion=None,
-    dispersion_unit=None,
-    fluxden_unit=None,
-    width=10,
-):
-
-    print("[INFO] Analyzing MCMC results")
-
-
-def _mcmc_analyze(
     model,
     flat_chain,
     cont_dict,
@@ -179,6 +181,24 @@ def _mcmc_analyze(
     a_v=None,
     ext_law="calzetti00",
 ):
+    """Analyse the continuum and emission features for every posterior sample.
+
+    :param model: Fitted model
+    :type model: sculptor.model.FitModel
+    :param flat_chain: Posterior samples, shape (n_samples, n_variable_params)
+    :type flat_chain: np.ndarray
+    :param cont_dict: Continuum setup with keys "components" and
+        "rest_frame_wavelengths" (see `analyze_continuum`)
+    :type cont_dict: dict
+    :param emfeat_dictlist: One dict per emission feature with keys
+        "feature_name", "components", "rest_frame_wavelength" and optionally
+        "disp_range" and "fwhm_method" (see `analyze_emission_feature`)
+    :type emfeat_dictlist: list(dict)
+    :return: One row of measurements (with units) per sample
+    :rtype: astropy.table.QTable
+    """
+
+    print("[INFO] Analyzing MCMC results")
 
     cont_component = cont_dict["components"]
     cont_wavelengths = cont_dict["rest_frame_wavelengths"]
@@ -258,6 +278,9 @@ def _mcmc_analyze(
     return result_table
 
 
+# Old private name, still used by scripts written against it.
+_mcmc_analyze = analyze_mcmc_results
+
 emfeat_measures_default = ["peak_fluxden", "peak_redsh", "EW", "FWHM", "flux", "lum"]
 
 
@@ -327,17 +350,18 @@ def analyze_emission_feature(
     :rtype: dict
     """
 
+    if redshift is None:
+        raise ValueError("No redshift specified for the analysis.")
+
     # Build the model flux
     model_fluxden = model.eval(
         dispersion, params_values, components=components, broaden_by_resolution=False
     )
 
     if a_v is not None:
-        if ext_law == "calzetti00":
-            ext = extinction.calzetti00(dispersion / (1 + redshift), a_v, 4.05)
-        else:
-            raise ValueError("No valid extinction law specified")
-        model_fluxden = extinction.remove(ext, model_fluxden)
+        model_fluxden = _remove_extinction(
+            model_fluxden, dispersion, redshift, a_v, ext_law
+        )
 
     model_spec = sod.SpecOneD(
         dispersion=dispersion,
@@ -355,11 +379,9 @@ def analyze_emission_feature(
         )
 
         if a_v is not None:
-            if ext_law == "calzetti00":
-                ext = extinction.calzetti00(dispersion / (1 + redshift), a_v, 4.05)
-            else:
-                raise ValueError("No valid extinction law specified")
-            cont_fluxden = extinction.remove(ext, cont_fluxden)
+            cont_fluxden = _remove_extinction(
+                cont_fluxden, dispersion, redshift, a_v, ext_law
+            )
 
         cont_spec = sod.SpecOneD(
             dispersion=dispersion,
@@ -373,9 +395,6 @@ def analyze_emission_feature(
 
     if emfeat_meas is None:
         emfeat_meas = emfeat_measures_default
-
-    if redshift is None:
-        raise ValueError("No redshift specified for the analysis.")
 
     if cosmology is None:
         cosmology = FlatLambdaCDM(H0=70, Om0=0.3, Tcmb0=2.725)
@@ -506,6 +525,9 @@ def analyze_continuum(
     :rtype: dict
 
     """
+
+    if redshift is None:
+        raise ValueError("No redshift specified for the analysis.")
 
     # Build the continuum model spectrum
     cont_flux = model.eval(
