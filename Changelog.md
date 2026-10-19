@@ -2,6 +2,17 @@
 
 ## 2026-10-19
 
+### `sculptor.model.log_probability`: prior skipped on first call
+- Fixed: the prior was read from `model.params_variable` before `eval()`
+  had filled it, so the first `log_probability` call on a model that had
+  not been evaluated yet returned the likelihood without the prior. emcee
+  runs were not affected (`initialize_emcee` fills it first), but
+  `get_flat_log_prob` on a chain-only model got its first sample wrong,
+  which made `test_log_prob_is_recomputed_without_sampler` fail
+  intermittently (only when the missing prior term exceeded the test's
+  relative tolerance). That test now compares at `rtol=1e-12`, plus a
+  direct regression test.
+
 ### Logging (`sculptor.logging_config`, new)
 - All progress/diagnostic `print("[INFO] ...")` / `"[WARNING]"` /
   `"[ERROR]"` calls in `sculptor` and `sculptor_extensions` now go through

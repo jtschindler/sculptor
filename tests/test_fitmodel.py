@@ -81,11 +81,34 @@ def test_log_prob_is_recomputed_without_sampler(fit_model):
     expected = fit_model.sampler.get_log_prob(discard=DISCARD, flat=True)
     other = _chain_only_copy(fit_model)
 
-    assert other.get_flat_log_prob(discard=DISCARD) == pytest.approx(expected)
+    np.testing.assert_allclose(
+        other.get_flat_log_prob(discard=DISCARD), expected, rtol=1e-12
+    )
     assert np.array_equal(
         other.get_mode_model(discard=DISCARD),
         fit_model.get_mode_model(discard=DISCARD),
     )
+
+
+def test_log_probability_includes_prior_on_a_fresh_model(fit_model):
+    """Regression: on a model whose `params_variable` was not populated yet,
+    the first `log_probability` call skipped the prior (it was read before
+    `eval()` filled the dict). This made `get_flat_log_prob` on a
+    chain-only model wrong for its first sample."""
+
+    theta = fit_model.get_flat_chain(discard=DISCARD)[0]
+    spec = fit_model.spec
+    args = (spec.dispersion, spec.fluxden, spec.fluxden_err)
+    expected = scmod.log_prior(
+        theta, fit_model.params_variable
+    ) + scmod.log_likelihood_chi_square(theta, fit_model, *args)
+
+    fresh = _chain_only_copy(fit_model)
+    assert fresh.params_variable == {}
+    got = scmod.log_probability(theta, args[0], fresh, args[1], args[2])
+
+    assert scmod.log_prior(theta, fit_model.params_variable) != 0.0
+    assert got == expected
 
 
 # -- plotting a chain-only model (§5.4) ---------------------------------------

@@ -83,6 +83,12 @@ def log_probability(theta, x, model, y, yerr):
     :param yerr:
     :return:
     """
+    # The priors are looked up in model.params_variable, which eval() only
+    # fills on first use; fill it here, or the first call (on a model that
+    # has not been evaluated yet) silently skips the prior.
+    if len(model.params_variable) == 0:
+        model.get_params_to_sample()
+
     lp = log_prior(theta, model.params_variable)
     if not np.isfinite(lp):
         return -np.inf
