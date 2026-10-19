@@ -473,8 +473,7 @@ def se_bhmass_hbeta_vp06(hbeta_fwhm, cont_lwav, cont_wav=5100 * u.AA):
 
     else:
         raise ValueError(
-            "[ERROR] The monochromatic continuum luminosity "
-            "should be estimated at 5100A."
+            "The monochromatic continuum luminosity should be estimated at 5100A."
         )
 
 
@@ -551,8 +550,7 @@ def se_bhmass_hbeta_park12(hbeta_fwhm, cont_lwav, cont_wav=5100 * u.AA):
 
     else:
         raise ValueError(
-            "[ERROR] The monochromatic continuum luminosity "
-            "should be estimated at 5100A."
+            "The monochromatic continuum luminosity should be estimated at 5100A."
         )
 
 
@@ -642,7 +640,7 @@ def se_bhmass_gh05(line_fwhm, lwav, single_epoch_rel="Ha_LHa"):
 
     else:
         raise ValueError(
-            "[ERROR] Single epoch relation {} not supported. "
+            "Single epoch relation {} not supported. "
             "Possible relations are Ha_LHa, Ha_L5100, Hb_LHb"
         )
 
@@ -693,7 +691,7 @@ def se_bhmass_civ_vp06_fwhm(civ_fwhm, cont_lwav, cont_wav):
 
     else:
         raise ValueError(
-            "[ERROR] The monochromatic continuum luminosity "
+            "The monochromatic continuum luminosity "
             "should be estimated at either 1350A or 1450A."
         )
 
@@ -747,7 +745,7 @@ def se_bhmass_civ_vp06_sigma(civ_sigma, cont_lwav, cont_wav):
 
     else:
         raise ValueError(
-            "[ERROR] The monochromatic continuum luminosity "
+            "The monochromatic continuum luminosity "
             "should be estimated at either 1350A or 1450A."
         )
 
@@ -810,7 +808,7 @@ def se_bhmass_mgii_vo09_fwhm(mgii_fwhm, cont_lwav, cont_wav):
 
     else:
         raise ValueError(
-            "[ERROR] The monochromatic continuum luminosity "
+            "The monochromatic continuum luminosity "
             "should be estimated at 1350A, 2100A, 3000A, or "
             "5100A."
         )
@@ -866,8 +864,7 @@ def se_bhmass_mgii_s11_fwhm(mgii_fwhm, cont_lwav, cont_wav):
 
     else:
         raise ValueError(
-            "[ERROR] The monochromatic continuum luminosity "
-            "should be estimated at 3000A."
+            "The monochromatic continuum luminosity should be estimated at 3000A."
         )
 
 
@@ -912,7 +909,7 @@ def calc_bolometric_luminosity(cont_lwav, cont_wav, reference="Shen2011"):
         return cont_lwav * cont_wav * 9.26, reference
     else:
         raise ValueError(
-            "[ERROR] No bolometric correction available for the "
+            "No bolometric correction available for the "
             "supplied combination of continuum wavelength and "
             "reference."
         )
@@ -980,6 +977,5 @@ def se_bhmass_civ_c17_fwhm(civ_fwhm, cont_lwav, cont_wav):
 
     else:
         raise ValueError(
-            "[ERROR] The monochromatic continuum luminosity "
-            "should be estimated at 1350A."
+            "The monochromatic continuum luminosity should be estimated at 1350A."
         )

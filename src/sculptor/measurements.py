@@ -6,12 +6,16 @@ emission-line properties of model spectra. Ported from the v1
 same function names and signatures.
 """
 
+import logging
+
 import numpy as np
 from astropy import constants as const
 from astropy import units
 from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import UnivariateSpline
 from speconed import speconed as sod
+
+logger = logging.getLogger(__name__)
 
 c_km_s = const.c.to("km/s").value
 
@@ -190,13 +194,14 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, s=0, method="spline")
         roots = dispersion[roots_idx]
     else:
         raise ValueError(
-            '[ERROR] Value for "method" keyword argument not '
+            'Value for "method" keyword argument not '
             'recognized. Possible values are "sign" or "spline".'
         )
 
     if len(roots) != 2:
-        print(f"[ERROR] Found {len(roots)} roots. Cannot determine FWHM")
-        print("[ERROR] Setting FWHM to NaN")
+        logger.warning(
+            f"Found {len(roots)} roots, cannot determine FWHM; returning NaN."
+        )
         return np.nan
 
     max_idx = np.where(fluxden == np.max(fluxden))
@@ -207,7 +212,7 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, s=0, method="spline")
     if resolution is None:
         return fwhm[0] * units.km / units.s
 
-    print(f"[INFO] FWHM is corrected for the provided resolution of R={resolution}")
+    logger.info(f"FWHM is corrected for the provided resolution of R={resolution}")
     resolution_km_s = c_km_s / resolution
     return np.sqrt(fwhm**2 - resolution_km_s**2)[0] * units.km / units.s
 

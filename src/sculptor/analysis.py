@@ -1,18 +1,20 @@
+import logging
+
 import extinction
 import numpy as np
 import scipy as sp
 from astropy import constants as const
-from astropy import units
 from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
 from astropy.table import QTable
+from speconed import speconed as sod
 from tqdm import tqdm
 
-c_km_s = const.c.to("km/s").value
-
-from speconed import speconed as sod
-
 from sculptor import measurements as meas
+
+logger = logging.getLogger(__name__)
+
+c_km_s = const.c.to("km/s").value
 
 # ------------------------------------------------------------------------------
 # Model functions
@@ -198,7 +200,7 @@ def analyze_mcmc_results(
     :rtype: astropy.table.QTable
     """
 
-    print("[INFO] Analyzing MCMC results")
+    logger.info("Analyzing MCMC results")
 
     cont_component = cont_dict["components"]
     cont_wavelengths = cont_dict["rest_frame_wavelengths"]
@@ -269,7 +271,7 @@ def analyze_mcmc_results(
             for column in result_table.columns:
                 if isinstance(
                     result_dict[column],
-                    (units.Quantity, units.IrreducibleUnit, units.CompositeUnit),
+                    (u.Quantity, u.IrreducibleUnit, u.CompositeUnit),
                 ):
                     result_table[column].unit = result_dict[column].unit
 
@@ -398,8 +400,8 @@ def analyze_emission_feature(
 
     if cosmology is None:
         cosmology = FlatLambdaCDM(H0=70, Om0=0.3, Tcmb0=2.725)
-        print(
-            "[WARNING] No Cosmology specified. Assuming default "
+        logger.warning(
+            "No Cosmology specified. Assuming default "
             "FlatLambdaCDM cosmology with H0=70, Om0=0.3, Tcmb0=2.725."
         )
 
@@ -434,7 +436,7 @@ def analyze_emission_feature(
         result_dict.update({feature_name + "_FWHM": fwhm})
 
         if np.isnan(fwhm):
-            print(f"[WARNING] FWHM could not be calculated for feature {feature_name}")
+            logger.warning(f"FWHM could not be calculated for feature {feature_name}")
 
     if "flux" in emfeat_meas:
         # Calculate the integrated line flux
@@ -566,13 +568,13 @@ def analyze_continuum(
 
         if "appmag" in cont_meas:
             appmag = meas.calc_apparent_mag_from_fluxden(
-                fluxden_avg, wave * (1.0 + redshift) * units.AA
+                fluxden_avg, wave * (1.0 + redshift) * u.AA
             )
             result_dict.update({wave_name + "_appmag": appmag})
 
         # if 'absmag' in cont_meas:
         #     absmag = calc_absolute_mag_from_monochromatic_luminosity(
-        #             lwav, wave*units.AA)
+        #             lwav, wave*u.AA)
         #     result_dict.update({wave_name + '_absmag': absmag})
 
     return result_dict

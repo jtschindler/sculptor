@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 
@@ -15,6 +16,8 @@ from tqdm import tqdm
 from sculptor import plot as scp
 from sculptor import utils as scut
 from sculptor.persistence import PickleMixin
+
+logger = logging.getLogger(__name__)
 
 cmap = scp.component_cmap
 
@@ -291,20 +294,21 @@ class FitModel(PickleMixin):
 
         pos = np.zeros((self.nwalkers, self.vardim))
 
-        print("[INFO] Retrieving the initial guess from the parameter priors")
+        logger.info("Retrieving the initial guess from the parameter priors")
 
         for idx, par_name in enumerate(self.params_variable):
             param = self.params_variable[par_name]
 
             if param.prior is not None:
-                print(f"[INFO] Sampled prior for {par_name}")
+                logger.info(f"Sampled prior for {par_name}")
                 pos[:, idx] = param.prior.sample(self.nwalkers, rng=self.rng)
 
             else:
-                print(f"[INFO] No prior specified for {par_name}")
-                print(f"[INFO] Sampling Gaussian around input value {param.value}")
-                print("[INFO] with width of 20% of the absolute value.")
-                print("[WARNING] This is a hack!")
+                logger.warning(
+                    f"No prior specified for {par_name}: sampling the initial "
+                    f"walker positions from a Gaussian around {param.value} "
+                    "with a width of 20% of its absolute value."
+                )
                 value = param.value
                 pos[:, idx] = self.rng.normal(
                     loc=value, scale=0.2 * np.abs(value), size=self.nwalkers
@@ -344,7 +348,7 @@ class FitModel(PickleMixin):
             pos = self.initialize_positions()
         else:
             if pos.shape[0] != nwalkers or pos.shape[1] != self.vardim:
-                raise ValueError("[ERROR] Provided position array has wrong shape.")
+                raise ValueError("Provided position array has wrong shape.")
 
         self.sampler.run_mcmc(pos, nsteps, progress=progress)
 
@@ -451,7 +455,7 @@ class FitModel(PickleMixin):
         :return:
         """
 
-        print("[INFO] Manual mask range", disp_x1, disp_x2)
+        logger.info(f"Manual mask range: {disp_x1} - {disp_x2}")
 
         self._require_spectrum("add a range to the fit mask")
         if self.gpm_fit is None:
@@ -474,7 +478,7 @@ class FitModel(PickleMixin):
         :return:
         """
 
-        print("[INFO] Manual mask range", disp_x1, disp_x2)
+        logger.info(f"Manual mask range: {disp_x1} - {disp_x2}")
 
         self._require_spectrum("remove a range from the fit mask")
         if self.gpm_fit is None:
@@ -561,8 +565,8 @@ class FitModel(PickleMixin):
         theta_max = flat_chain[max_likelihood]
         model_max = self.eval(self.spec.dispersion, theta_max)
 
-        print("[INFO] Maximum likelihood model: ", theta_max)
-        print("[INFO] Variable parameter names: ", self.params_variable.keys())
+        logger.info(f"Maximum likelihood model: {theta_max}")
+        logger.info(f"Variable parameter names: {list(self.params_variable)}")
 
         return model_max
 
@@ -582,7 +586,7 @@ class FitModel(PickleMixin):
         param_list = [(self, dispersion, params, components) for params in flat_chain]
 
         if pool:
-            print("[INFO] Evaluating MCMC model with multiprocessing.")
+            logger.info("Evaluating MCMC model with multiprocessing.")
             start_time = time.time()
             model_fluxden = list(
                 tqdm(
@@ -591,8 +595,8 @@ class FitModel(PickleMixin):
                 )
             )
             end_time = time.time()
-            print(
-                "[INFO] MCMC model evaluation completed in "
+            logger.info(
+                "MCMC model evaluation completed in "
                 f"{end_time - start_time:.2f} seconds."
             )
 
@@ -686,7 +690,7 @@ class FitModel(PickleMixin):
         )
 
         # Plot the MCMC model results
-        print("[INFO] Evaluating the MCMC model results.")
+        logger.info("Evaluating the MCMC model results.")
         if (
             self.mcmc_model_posterior is None
             or getattr(self, "posterior_discard", None) != discard
@@ -724,7 +728,7 @@ class FitModel(PickleMixin):
         )
 
         if show_components:
-            print("[INFO] Evaluating the components in the MCMC chain.")
+            logger.info("Evaluating the components in the MCMC chain.")
             n_comp = len(self.components)
             for ldx, component in enumerate(self.components):
                 comp = component.name
@@ -928,7 +932,7 @@ class FitModel(PickleMixin):
         chain = cc.Chain(samples=df_chain, name="MCMC chain")
         c.add_chain(chain)
 
-        print(c.analysis.get_summary())
+        logger.info(f"Posterior summary:\n{c.analysis.get_summary()}")
 
         if save:
             filename = os.path.join(save_dir, save_name)

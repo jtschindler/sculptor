@@ -2,6 +2,36 @@
 
 ## 2026-10-19
 
+### Logging (`sculptor.logging_config`, new)
+- All progress/diagnostic `print("[INFO] ...")` / `"[WARNING]"` /
+  `"[ERROR]"` calls in `sculptor` and `sculptor_extensions` now go through
+  `logging.getLogger(__name__)`. `FitComponent.info()` and
+  `Qso_autofit.print_variable_parameters()` still print: they exist to
+  show output.
+- Based on the user's `configure_logging` helper (from the
+  `euclid_qso_selection` package): INFO and DEBUG to stdout, WARNING and
+  above to stderr, optional log file with timestamped backup,
+  `warn_once`, `all_logging_disabled`. Adapted for a library: it only
+  configures the `sculptor` / `sculptor_extensions` loggers (the root
+  logger and other libraries are untouched; the original cleared the
+  root handlers and silenced every other logger by default), repeated
+  calls replace its own handlers, handlers look up `sys.stdout`/`stderr`
+  at write time (so Jupyter/pytest redirection works), and
+  `reset_logging()` hands messages back to the application's root setup.
+- Importing sculptor calls `configure_logging()`, so INFO messages show by
+  default as before. `SCULPTOR_LOG_LEVEL` (e.g. `WARNING`) and
+  `SCULPTOR_LOG_TO_FILE=1` (writes `~/.sculptor/logs/sculptor.log`) are
+  read at import; `sculptor.configure_logging(...)` changes them later.
+- Messages now carry the logger name and level
+  (`sculptor.model - INFO: ...`) instead of `[INFO]`. Per-row failure
+  notices in `Qso_autofit` and `get_fwhm`'s "cannot determine FWHM" are
+  warnings; the no-prior notice in `initialize_positions` is one warning
+  instead of four lines.
+- Exception messages no longer start with `[ERROR]`.
+- `analysis.py`: imports tidied (one `astropy.units as u`; `c_km_s` after
+  the imports).
+- New `tests/test_logging.py`.
+
 ### `sculptor_extensions`: doublets and Balmer + high-order lines
 - `Qso_autofit.initialise_gaussian_line_model` takes `tied_doublet=True`.
   For [NII]/[SII] the default stays the tied model (one FWHM, flux ratio

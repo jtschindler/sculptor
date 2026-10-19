@@ -14,6 +14,7 @@ such as black hole mass, continuum luminosity, Eddington ratio etc. from a given
 """
 
 import importlib.resources
+import logging
 import os
 import string
 
@@ -30,6 +31,8 @@ from sculptor import measurements as meas
 from sculptor import prior as scpri
 from sculptor_extensions import qso
 from sculptor_extensions import qso_advanced_models as qam
+
+logger = logging.getLogger(__name__)
 
 cmap = tol_colors.rainbow_PuRd
 
@@ -160,10 +163,10 @@ def extract_median_params_from_summary(prefix, summary, median_cal=None):
             upper = median_cal.get(f"{key_clean}_upper")
             lower = median_cal.get(f"{key_clean}_lower")
             if median is None or sigma is None:
-                print(f"[WARNING] No calculated values found for {key_clean}")
+                logger.warning(f"No calculated values found for {key_clean}")
                 continue
         else:
-            print(f"[WARNING] Missing bounds for {key_clean}.")
+            logger.warning(f"Missing bounds for {key_clean}.")
             continue
 
         result[key_clean] = median
@@ -253,7 +256,7 @@ def plot_burnin(model, save_dir=".", plot_name="burnin_all_params.pdf"):
     save_path = os.path.join(save_dir, plot_name)
     plt.savefig(save_path)
     plt.close()
-    print(f"[INFO] Burn-in plot saved to: {save_path}")
+    logger.info(f"Burn-in plot saved to: {save_path}")
 
 
 def get_sampled_values(model, param_name, discard=0):
@@ -1456,8 +1459,8 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
                                 cont_wav=3000 * u.AA,
                             )
                         if "Tsuzuki" not in fit_name and fit_name != "Vest":
-                            print(
-                                f"[INFO] Unknown fit_name '{fit_name}' — skipping BH mass calc."
+                            logger.info(
+                                f"Unknown fit_name '{fit_name}' — skipping BH mass calc."
                             )
                             BH_mass_s11 = [np.nan * u.Msun]
                             BH_mass_vo09 = [np.nan * u.Msun]
@@ -1493,16 +1496,16 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
                             df.at[idx, "Edd_lum_MgII_3000_vo09" + key] = Edd_lum.value
 
                     else:
-                        print(
-                            f"[INFO] NaN in '{fwhm_key}' or '{lum_key}' at row {idx} — skipping BH mass & L_bol."
+                        logger.info(
+                            f"NaN in '{fwhm_key}' or '{lum_key}' at row {idx} — skipping BH mass & L_bol."
                         )
                 else:
-                    print(
-                        f"[INFO] Missing columns '{fwhm_key}' or '{lum_key}' — skipping BH mass & L_bol."
+                    logger.info(
+                        f"Missing columns '{fwhm_key}' or '{lum_key}' — skipping BH mass & L_bol."
                     )
             else:
-                print(
-                    "[INFO] 'fwhm' or 'luminosity' not in param_name_dict — skipping BH mass & L_bol."
+                logger.info(
+                    "'fwhm' or 'luminosity' not in param_name_dict — skipping BH mass & L_bol."
                 )
 
             # Velocity shift
@@ -1515,12 +1518,12 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
                         )
                         df.at[idx, "delta_v_MgII" + key] = delta_v.value
                     except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
-                        print(f"[INFO] Velocity shift calc failed at row {idx}: {e}")
+                        logger.warning(f"Velocity shift calc failed at row {idx}: {e}")
                 else:
-                    print(f"[INFO] Column '{z_key}' missing — skipping velocity shift.")
+                    logger.info(f"Column '{z_key}' missing — skipping velocity shift.")
             else:
-                print(
-                    "[INFO] 'redshift' not in param_name_dict — skipping velocity shift."
+                logger.info(
+                    "'redshift' not in param_name_dict — skipping velocity shift."
                 )
 
             # FeII/MgII flux ratio
@@ -1532,14 +1535,14 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
                         fe_flux_ratio = row[fe_key] * 1e-17 / row[flux_key]
                         df.at[idx, "FeII_over_MgII" + key] = fe_flux_ratio
                     except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
-                        print(f"[INFO] FeII/MgII flux ratio failed at row {idx}: {e}")
+                        logger.warning(f"FeII/MgII flux ratio failed at row {idx}: {e}")
                 else:
-                    print(
-                        f"[INFO] Missing columns '{fe_key}' or '{flux_key}' — skipping FeII/MgII."
+                    logger.info(
+                        f"Missing columns '{fe_key}' or '{flux_key}' — skipping FeII/MgII."
                     )
             else:
-                print(
-                    "[INFO] 'fe_amp' or 'peak_flux' not in param_name_dict — skipping FeII/MgII."
+                logger.info(
+                    "'fe_amp' or 'peak_flux' not in param_name_dict — skipping FeII/MgII."
                 )
 
     df_path = os.path.join(save_dir, f"{source}_results_MgII.csv")
@@ -1628,16 +1631,16 @@ def get_line_prop_Hbeta_OIII(
 
                         df.at[idx, "L_bol_5100" + key] = L_bol_5100[0].value
                     else:
-                        print(
-                            f"[INFO] NaN in '{fwhm_key}' or '{lum_key}' at row {idx} — skipping BH mass and Eddington calculations."
+                        logger.info(
+                            f"NaN in '{fwhm_key}' or '{lum_key}' at row {idx} — skipping BH mass and Eddington calculations."
                         )
                 else:
-                    print(
-                        f"[INFO] One or both columns '{fwhm_key}', '{lum_key}' missing in DataFrame — skipping BH mass and Eddington calculations."
+                    logger.info(
+                        f"One or both columns '{fwhm_key}', '{lum_key}' missing in DataFrame — skipping BH mass and Eddington calculations."
                     )
             else:
-                print(
-                    "[INFO] 'fwhm' or 'luminosity' prefix not provided — skipping BH mass and Eddington calculations."
+                logger.info(
+                    "'fwhm' or 'luminosity' prefix not provided — skipping BH mass and Eddington calculations."
                 )
 
             # Velocity shift calculation
@@ -1650,16 +1653,16 @@ def get_line_prop_Hbeta_OIII(
                         )
                         df.at[idx, "delta_v_Hbeta" + key] = delta_v_Hbeta.value
                     except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
-                        print(
-                            f"[INFO] Failed to calculate velocity shift for '{z_key}' at row {idx}: {e}"
+                        logger.info(
+                            f"Failed to calculate velocity shift for '{z_key}' at row {idx}: {e}"
                         )
                 else:
-                    print(
-                        f"[INFO] Column '{z_key}' missing in DataFrame — skipping velocity shift."
+                    logger.info(
+                        f"Column '{z_key}' missing in DataFrame — skipping velocity shift."
                     )
             else:
-                print(
-                    "[INFO] 'redshift' key not provided in param_name_dict — skipping velocity shift calculation."
+                logger.info(
+                    "'redshift' key not provided in param_name_dict — skipping velocity shift calculation."
                 )
 
             # # FeII Hbeta
