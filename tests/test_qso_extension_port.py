@@ -569,10 +569,63 @@ def test_qso_autofit_setup_hb_o3_lines_default_matches_original(
     assert orig_model.added_components == new_model.added_components
 
 
-def test_qso_autofit_get_civ_line_prop_was_dropped():
-    """Deliberately not ported: dead code guarded by an unconditional
-    `raise DeprecationWarning`."""
-    assert not hasattr(new_qso_autofit, "get_civ_line_prop")
+def _civ_table(fwhm=4000.0, lum=1e45, z_civ=2.98):
+    import pandas as pd
+
+    cols = {}
+    for key in ("_median", "_low", "_upp"):
+        cols[f"CIV_fwhm{key}"] = [fwhm, np.nan]
+        cols[f"L1350{key}"] = [lum, lum]
+        cols[f"CIV_redsh{key}"] = [z_civ, z_civ]
+    return pd.DataFrame(cols)
+
+
+CIV_COLUMNS = {"fwhm": "CIV_fwhm", "luminosity": "L1350", "redshift": "CIV_redsh"}
+
+
+def test_original_get_civ_line_prop_was_disabled(original_qso_autofit):
+    """The fgu copy starts with `raise DeprecationWarning`; the upstream
+    `qso_auto_fit` version without it failed on unitless inputs. The ported
+    function attaches the units (tests below)."""
+    with pytest.raises(DeprecationWarning):
+        original_qso_autofit.get_civ_line_prop(
+            _civ_table(), 3.0, CIV_COLUMNS, ".", "src", None, None
+        )
+
+
+def test_get_civ_line_prop_values():
+    df = new_qso_autofit.get_civ_line_prop(_civ_table(), 3.0, CIV_COLUMNS)
+
+    cont_lwav = 1e45 * u.erg / u.s / u.AA
+    mass = new_qso.se_bhmass_civ_vp06_fwhm(
+        4000 * u.km / u.s, cont_lwav=cont_lwav, cont_wav=1350 * u.AA
+    )[0]
+    lbol = new_qso.calc_bolometric_luminosity(cont_lwav, 1350 * u.AA)[0]
+    row = df.iloc[0]
+    assert row["CIV_BH_mass_1350_vp06_median"] == pytest.approx(mass.to(u.Msun).value)
+    assert row["L_bol_1350_median"] == pytest.approx(lbol.to(u.erg / u.s).value)
+    assert row["Edd_lum_CIV_1350_vp06_median"] == pytest.approx(
+        new_qso.calc_eddington_luminosity(mass).to(u.erg / u.s).value
+    )
+    assert row["Eddington_ratio_1350_vp06_median"] == pytest.approx(
+        (lbol / new_qso.calc_eddington_luminosity(mass)).decompose().value
+    )
+    assert row["delta_v_CIV_median"] == pytest.approx(
+        new_qso.calc_velocity_shifts(2.98, z_sys=3.0).to(u.km / u.s).value
+    )
+    # The NaN FWHM row is skipped for the BH mass, but gets a velocity shift.
+    assert np.isnan(df.iloc[1]["CIV_BH_mass_1350_vp06_median"])
+    assert np.isfinite(df.iloc[1]["delta_v_CIV_median"])
+
+
+def test_get_civ_line_prop_writes_csv_only_with_save_dir(tmp_path):
+    new_qso_autofit.get_civ_line_prop(_civ_table(), 3.0, CIV_COLUMNS)
+    assert list(tmp_path.iterdir()) == []
+
+    new_qso_autofit.get_civ_line_prop(
+        _civ_table(), 3.0, CIV_COLUMNS, save_dir=tmp_path, source="J0001"
+    )
+    assert (tmp_path / "J0001_results_CIV.csv").exists()
 
 
 def test_qso_autofit_new_config_and_functions_present():

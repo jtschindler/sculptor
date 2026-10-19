@@ -2,6 +2,23 @@
 
 ## 2026-10-19
 
+### `Qso_autofit.get_civ_line_prop` (restored, units fixed)
+- Restored from the upstream `qso_auto_fit` branch. The fgu copy was
+  disabled (`raise DeprecationWarning("DO NOT USE THIS")`) and the upstream
+  version failed: it passed unitless FWHM/luminosity values to
+  `se_bhmass_civ_vp06_fwhm`, giving a mass in meaningless units and a
+  `UnitConversionError` in `calc_eddington_luminosity`. Now FWHM (km/s)
+  and the 1350 Å luminosity (erg/s/Å) carry units, and the results are
+  stored in M_sun / erg/s / km/s.
+- Signature `get_civ_line_prop(df, redshift, param_name_dict,
+  save_dir=None, source=None)`; upstream's unused `model` / `flat_samples`
+  are gone, and a CSV (`<source>_results_CIV.csv`) is written only if
+  `save_dir` is given. Output columns are named like
+  `get_line_prop_MgII`'s (`CIV_BH_mass_1350_vp06`, `L_bol_1350`,
+  `Eddington_ratio_1350_vp06`, `Edd_lum_CIV_1350_vp06`, `delta_v_CIV`);
+  upstream's names are listed in the docstring. Messages are logged.
+- Tests compare the results with direct calls of the `qso` relations.
+
 ### `Qso_autofit`: Hgamma and OI line setups
 - New `setup_Hgamma_lines(spec, line_dict, narrow=False, Hgamma_broad=1,
   model=None)` and `setup_OI_lines(spec, line_dict, OI_broad=1,

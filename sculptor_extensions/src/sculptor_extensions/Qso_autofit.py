@@ -1680,6 +1680,122 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
     return df
 
 
+def get_civ_line_prop(df, redshift, param_name_dict, save_dir=None, source=None):
+    """
+    Calculate AGN properties from the CIV line measurements of a fit: the
+    single-epoch virial BH mass from the CIV FWHM and the monochromatic
+    continuum luminosity at 1350 Å (Vestergaard & Peterson 2006), the
+    bolometric luminosity (Shen et al. 2011 correction at 1350 Å), the
+    Eddington luminosity and ratio, and the CIV velocity shift with respect
+    to `redshift`.
+
+    For every row and each of the "_median", "_low", "_upp" columns, the
+    results are added as "CIV_BH_mass_1350_vp06", "L_bol_1350",
+    "Eddington_ratio_1350_vp06", "Edd_lum_CIV_1350_vp06" (M_sun, erg/s) and
+    "delta_v_CIV" (km/s), named like the columns of `get_line_prop_MgII`.
+
+    Ported from the upstream `qso_auto_fit` branch (`Qso_autofit_2.py`),
+    where it passed unitless numbers to the BH-mass relation and failed
+    (`UnitConversionError`); upstream's columns were "civ_BH_mass_1350",
+    "L_bol_1350", "Eddington_ratio_1350", "Edd_lum_civ_1350" and
+    "delta_v_civ". Its unused `model` / `flat_samples` arguments are gone.
+
+    :param df: input dataframe containing extracted emission line parameters
+    :type df: pd.DataFrame
+    :param redshift: reference (systemic) redshift of the source
+    :type redshift: float
+    :param param_name_dict: column name prefixes in `df`:
+        - "fwhm": CIV FWHM in km/s (e.g. "CIV_fwhm")
+        - "luminosity": continuum luminosity at 1350 Å in erg/s/Å
+          (e.g. "L1350")
+        - "redshift": CIV redshift (e.g. "CIV_redsh")
+    :type param_name_dict: dict
+    :param save_dir: if given, also write `<save_dir>/<source>_results_CIV.csv`
+    :type save_dir: str
+    :param source: name of the source, used in the file name
+    :type source: str
+    :return: `df` with the added columns
+    :rtype: pd.DataFrame
+    """
+
+    fwhm_col = param_name_dict.get("fwhm")
+    lum_col = param_name_dict.get("luminosity")
+    z_col = param_name_dict.get("redshift")
+
+    for idx, row in df.iterrows():
+        for key in ["_median", "_low", "_upp"]:
+            # CIV BH mass, bolometric luminosity and Eddington ratio
+            if fwhm_col and lum_col:
+                fwhm_key = fwhm_col + key
+                lum_key = lum_col + key
+
+                if fwhm_key in df.columns and lum_key in df.columns:
+                    fwhm = np.float64(row[fwhm_key])
+                    lum = np.float64(row[lum_key])
+
+                    if not (np.isnan(fwhm) or np.isnan(lum)):
+                        cont_lwav = lum * u.erg / u.s / u.AA
+                        bh_mass = qso.se_bhmass_civ_vp06_fwhm(
+                            civ_fwhm=fwhm * u.km / u.s,
+                            cont_lwav=cont_lwav,
+                            cont_wav=1350 * u.AA,
+                        )[0]
+                        l_bol = qso.calc_bolometric_luminosity(
+                            cont_lwav=cont_lwav, cont_wav=1350 * u.AA
+                        )[0]
+                        edd_lum = qso.calc_eddington_luminosity(bh_mass)
+                        edd_ratio = qso.calc_eddington_ratio(l_bol, bh_mass)
+
+                        df.at[idx, "CIV_BH_mass_1350_vp06" + key] = bh_mass.to(
+                            u.Msun
+                        ).value
+                        df.at[idx, "L_bol_1350" + key] = l_bol.to(u.erg / u.s).value
+                        df.at[idx, "Edd_lum_CIV_1350_vp06" + key] = edd_lum.to(
+                            u.erg / u.s
+                        ).value
+                        df.at[idx, "Eddington_ratio_1350_vp06" + key] = (
+                            edd_ratio.decompose().value
+                        )
+                    else:
+                        logger.info(
+                            f"NaN in '{fwhm_key}' or '{lum_key}' at row {idx} — "
+                            "skipping BH mass & L_bol."
+                        )
+                else:
+                    logger.info(
+                        f"Missing columns '{fwhm_key}' or '{lum_key}' — "
+                        "skipping BH mass & L_bol."
+                    )
+            else:
+                logger.info(
+                    "'fwhm' or 'luminosity' not in param_name_dict — "
+                    "skipping BH mass & L_bol."
+                )
+
+            # Velocity shift
+            if z_col:
+                z_key = z_col + key
+                if z_key in df.columns:
+                    try:
+                        delta_v = qso.calc_velocity_shifts(
+                            row[z_key], z_sys=redshift, relativistic=True
+                        )
+                        df.at[idx, "delta_v_CIV" + key] = delta_v.to(u.km / u.s).value
+                    except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
+                        logger.warning(f"Velocity shift calc failed at row {idx}: {e}")
+                else:
+                    logger.info(f"Column '{z_key}' missing — skipping velocity shift.")
+            else:
+                logger.info(
+                    "'redshift' not in param_name_dict — skipping velocity shift."
+                )
+
+    if save_dir is not None:
+        df_path = os.path.join(save_dir, f"{source}_results_CIV.csv")
+        df.to_csv(df_path, index=False, float_format="%.4e")
+    return df
+
+
 def get_line_prop_Hbeta_OIII(
     df, redshift, param_name_dict, save_dir, source, model, flat_samples
 ):
