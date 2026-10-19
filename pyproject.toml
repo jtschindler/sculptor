@@ -70,6 +70,7 @@ members = ["sculptor_extensions"]
 
 [dependency-groups]
 dev = [
+    "prek>=0.5.6",
     "pytest>=9.1.1",
     "ruff>=0.16.5",
 ]

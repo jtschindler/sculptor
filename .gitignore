@@ -30,3 +30,6 @@ ToDo.txt
 # VSCode specific files
 .vscode/
 *.code-workspace
+# Claude Code per-user settings
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
