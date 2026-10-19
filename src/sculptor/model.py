@@ -132,6 +132,12 @@ class FitModel(PickleMixin):
         self.nsteps = None
         self.nwalkers = None
         self.flat_chain = None
+        # Log-probabilities matching flat_chain, and the burn-in it was built
+        # with (None if unknown, e.g. a chain assigned by hand).
+        self.flat_log_prob = None
+        self.flat_chain_discard = None
+        # Burn-in the cached mcmc_model_posterior was built with.
+        self.posterior_discard = None
 
         self.seed = 1234
         self.rng = np.random.default_rng(self.seed)
@@ -146,17 +152,32 @@ class FitModel(PickleMixin):
         self.red_chisq = None
         self.bic = None
 
-        if isinstance(spectrum, sod.SpecOneD):
+        # The spectrum, the good pixel mask (gpm) for the fit and the model
+        # flux density from the fit
+        self.spec = None
+        self.gpm_fit = None
+        self.model_fluxden = None
+
+        if spectrum is not None:
+            if not isinstance(spectrum, sod.SpecOneD):
+                raise TypeError(
+                    "spectrum must be a speconed.SpecOneD, "
+                    f"not {type(spectrum).__name__}."
+                )
             self.spec = spectrum.copy()
             # Set mask describing the regions included in the fit for this model
             self.reset_fit_mask()
             self.model_fluxden = np.zeros_like(self.spec.fluxden)
 
-        else:
-            # The good pixel mask (gpm) for the fit
-            self.gpm_fit = None
-            # The model flux density from the fit
-            self.model_fluxden = None
+    def _require_spectrum(self, action):
+        """Raise a ValueError if no spectrum is set."""
+
+        # getattr: models pickled before `spec` was always set lack it.
+        if getattr(self, "spec", None) is None:
+            raise ValueError(
+                f"No spectrum set, cannot {action}. Pass `spectrum=` to "
+                "FitModel or assign `model.spec` first."
+            )
 
     def add_component(self, component: list):
         """Add a component to the model.
@@ -233,10 +254,15 @@ class FitModel(PickleMixin):
 
         self.get_params_to_sample()
 
-        if spec is None:
-            if self.spec is None:
-                raise ValueError("No spectrum provided for the model.")
+        # A new sampler invalidates everything derived from the old chain.
+        self.flat_chain = None
+        self.flat_log_prob = None
+        self.flat_chain_discard = None
+        self.mcmc_model_posterior = None
+        self.posterior_discard = None
 
+        if spec is None:
+            self._require_spectrum("initialize emcee")
             spec = self.spec
 
         # TODO: Test if there is really no way to reduce the number of pixels
@@ -325,13 +351,20 @@ class FitModel(PickleMixin):
         self.sampler.run_mcmc(pos, nsteps, progress=progress)
 
     def get_components_by_prefix(self, prefixes):
-        """
-        Retrive array of components with the name starting with the provided prefix.
+        """Return the components whose name starts with any of the prefixes.
 
-        :return: component array
+        :param prefixes: Prefix, or list of prefixes, to match component
+            names against
+        :type prefixes: str or list(str)
+        :return: List of matching FitComponent instances, in model order
+        :rtype: list
         """
 
-        return [comp for comp in self.components if comp.name in prefixes]
+        if isinstance(prefixes, str):
+            prefixes = [prefixes]
+        prefixes = tuple(prefixes)
+
+        return [comp for comp in self.components if comp.name.startswith(prefixes)]
 
     def get_all_prefix_components(self, prefix):
         """
@@ -340,7 +373,7 @@ class FitModel(PickleMixin):
         :param prefix: String prefix to match component names
         :return: List of matching FitComponent instances
         """
-        return [comp for comp in self.components if comp.name.startswith(prefix)]
+        return self.get_components_by_prefix([prefix])
 
     def calculate_chi_sq(self):
         """
@@ -350,6 +383,11 @@ class FitModel(PickleMixin):
         :return chi_sq, dof, reduced_chi_sq: Chi-square, degree of freedom, reduced chi-square
         :rtype: tuple
         """
+        self._require_spectrum("calculate the chi-square")
+        if self.mcmc_model_posterior is None:
+            raise ValueError(
+                "No posterior model available. Run get_mcmc_model_results() first."
+            )
         flux_exp = self.spec.fluxden[self.gpm_fit]
         median_model = self.mcmc_model_posterior[0]
         flux_model = median_model[self.gpm_fit]
@@ -362,23 +400,25 @@ class FitModel(PickleMixin):
         self.red_chisq = reduced_chi_sq
         return chi_sq, dof, reduced_chi_sq
 
-    def compute_bic(self):
+    def compute_bic(self, discard=2000):
         """
         Compute the Bayesian Information Criterion (BIC) for a given model.
         Only considers data within the good pixel mask (gpm_fit).
 
+        :param discard: Number of burn-in steps to discard
+        :type discard: int
         :return bic: BIC factor
         """
 
-        if self.flat_chain is None:
-            raise ValueError("No MCMC or dynesty samples available.")
+        self._require_spectrum("compute the BIC")
+        flat_chain = self.get_flat_chain(discard=discard)
 
         x = self.spec.dispersion
         y = self.spec.fluxden
         yerr = self.spec.fluxden_err
 
         logls = []
-        for theta in tqdm(self.flat_chain, desc="Computing BIC"):
+        for theta in tqdm(flat_chain, desc="Computing BIC"):
             logl = log_likelihood_chi_square(theta, self, x, y, yerr)
             logls.append(logl)
 
@@ -399,6 +439,7 @@ class FitModel(PickleMixin):
         :return: None
         """
 
+        self._require_spectrum("reset the fit mask")
         self.gpm_fit = np.zeros_like(self.spec.dispersion, dtype="bool")
 
     def add_wavelength_range_to_fit_mask(self, disp_x1, disp_x2):
@@ -414,12 +455,15 @@ class FitModel(PickleMixin):
 
         print("[INFO] Manual mask range", disp_x1, disp_x2)
 
-        if hasattr(self, "spec"):
-            mask_between = np.sort(np.array([disp_x1, disp_x2]))
-            lo_index = np.argmin(np.abs(self.spec.dispersion - mask_between[0]))
-            up_index = np.argmin(np.abs(self.spec.dispersion - mask_between[1]))
+        self._require_spectrum("add a range to the fit mask")
+        if self.gpm_fit is None:
+            self.reset_fit_mask()
 
-            self.gpm_fit[lo_index:up_index] = True
+        mask_between = np.sort(np.array([disp_x1, disp_x2]))
+        lo_index = np.argmin(np.abs(self.spec.dispersion - mask_between[0]))
+        up_index = np.argmin(np.abs(self.spec.dispersion - mask_between[1]))
+
+        self.gpm_fit[lo_index:up_index] = True
 
     def remove_wavelength_range_from_fit_mask(self, disp_x1, disp_x2):
         """Removing a wavelength region to the fit mask.
@@ -434,24 +478,89 @@ class FitModel(PickleMixin):
 
         print("[INFO] Manual mask range", disp_x1, disp_x2)
 
-        if hasattr(self, "spec"):
-            mask_between = np.sort(np.array([disp_x1, disp_x2]))
-            lo_index = np.argmin(np.abs(self.spec.dispersion - mask_between[0]))
-            up_index = np.argmin(np.abs(self.spec.dispersion - mask_between[1]))
+        self._require_spectrum("remove a range from the fit mask")
+        if self.gpm_fit is None:
+            self.reset_fit_mask()
 
-            self.gpm_fit[lo_index:up_index] = False
+        mask_between = np.sort(np.array([disp_x1, disp_x2]))
+        lo_index = np.argmin(np.abs(self.spec.dispersion - mask_between[0]))
+        up_index = np.argmin(np.abs(self.spec.dispersion - mask_between[1]))
+
+        self.gpm_fit[lo_index:up_index] = False
 
     # -----------------------------------------------------------------------
     # Functions related to the model evaluation
     # -----------------------------------------------------------------------
 
+    def get_flat_chain(self, discard=2000):
+        """Return the flattened MCMC chain after discarding the burn-in.
+
+        This is the one place the chain is read from. With a sampler, the
+        chain (and its log-probabilities) are read from it and cached in
+        `flat_chain` / `flat_log_prob`. Without one (e.g. a chain assigned
+        by hand), the cached `flat_chain` is returned; it cannot be
+        re-trimmed, so asking for a different `discard` than it was built
+        with raises a ValueError.
+
+        :param discard: Number of burn-in steps to discard
+        :type discard: int
+        :return: Flat chain, shape (n_samples, n_variable_params)
+        :rtype: np.ndarray
+        """
+
+        if self.sampler is not None:
+            if self.flat_chain is None or self.flat_chain_discard != discard:
+                self.flat_chain = self.sampler.get_chain(discard=discard, flat=True)
+                self.flat_log_prob = self.sampler.get_log_prob(
+                    discard=discard, flat=True
+                )
+                self.flat_chain_discard = discard
+            return self.flat_chain
+
+        if self.flat_chain is None:
+            raise ValueError("No MCMC chain available. Run the MCMC first.")
+
+        built_with = getattr(self, "flat_chain_discard", None)
+        if built_with is not None and built_with != discard:
+            raise ValueError(
+                f"flat_chain was built with discard={built_with} and there is "
+                f"no sampler to re-apply discard={discard}. Use "
+                f"discard={built_with}."
+            )
+        return self.flat_chain
+
+    def get_flat_log_prob(self, discard=2000):
+        """Return the log-probabilities matching `get_flat_chain(discard)`.
+
+        Computed from the chain if they are not cached (e.g. a chain
+        assigned by hand).
+        """
+
+        flat_chain = self.get_flat_chain(discard=discard)
+        if getattr(self, "flat_log_prob", None) is None:
+            self._require_spectrum("compute log-probabilities")
+            self.flat_log_prob = np.array(
+                [
+                    log_probability(
+                        theta,
+                        self.spec.dispersion,
+                        self,
+                        self.spec.fluxden,
+                        self.spec.fluxden_err,
+                    )
+                    for theta in flat_chain
+                ]
+            )
+        return self.flat_log_prob
+
     def get_mode_model(self, discard=2000):
 
+        self._require_spectrum("evaluate the mode model")
+
         # Get the maximum likelihood model
-        max_likelihood = np.argmax(
-            self.sampler.get_log_prob(discard=discard, flat=True)
-        )
-        theta_max = self.sampler.get_chain(discard=discard, flat=True)[max_likelihood]
+        flat_chain = self.get_flat_chain(discard=discard)
+        max_likelihood = np.argmax(self.get_flat_log_prob(discard=discard))
+        theta_max = flat_chain[max_likelihood]
         model_max = self.eval(self.spec.dispersion, theta_max)
 
         print("[INFO] Maximum likelihood model: ", theta_max)
@@ -459,24 +568,20 @@ class FitModel(PickleMixin):
 
         return model_max
 
-    def get_mcmc_model_results(self, discard=2000, components=None, pool=None):
+    def _posterior_model_bands(self, discard=2000, components=None, pool=None):
+        """Median and 1-sigma bands of the model over the posterior samples.
 
-        if self.sampler is not None:
-            self.flat_chain = self.sampler.get_chain(discard=discard, flat=True)
-        elif self.flat_chain is None:
-            raise ValueError("No MCMC chain available. Run the MCMC first.")
+        No side effects; `get_mcmc_model_results` stores the result.
 
+        :return: median, lower (15.87%) and upper (84.13%) model flux density
+        :rtype: tuple(np.ndarray, np.ndarray, np.ndarray)
+        """
+
+        self._require_spectrum("evaluate the posterior model")
+        flat_chain = self.get_flat_chain(discard=discard)
         dispersion = self.spec.dispersion
-        # model_fluxden = np.zeros((self.flat_chain.shape[0], len(dispersion)))
 
-        # for idx in tqdm(range(self.flat_chain.shape[0])):
-        #     model_fluxden[idx, :] = self.eval(
-        #         dispersion, self.flat_chain[idx, :], components=components
-        #     )
-
-        param_list = [
-            (self, dispersion, params, components) for params in self.flat_chain
-        ]
+        param_list = [(self, dispersion, params, components) for params in flat_chain]
 
         if pool:
             print("[INFO] Evaluating MCMC model with multiprocessing.")
@@ -489,7 +594,8 @@ class FitModel(PickleMixin):
             )
             end_time = time.time()
             print(
-                f"[INFO] MCMC model evaluation completed in {end_time - start_time:.2f} seconds."
+                "[INFO] MCMC model evaluation completed in "
+                f"{end_time - start_time:.2f} seconds."
             )
 
         else:
@@ -501,7 +607,16 @@ class FitModel(PickleMixin):
         low_model = np.percentile(model_fluxden, 15.87, axis=0)
         upp_model = np.percentile(model_fluxden, 84.13, axis=0)
 
-        self.mcmc_model_posterior = [med_model, low_model, upp_model]
+        return med_model, low_model, upp_model
+
+    def get_mcmc_model_results(self, discard=2000, components=None, pool=None):
+
+        self.mcmc_model_posterior = list(
+            self._posterior_model_bands(
+                discard=discard, components=components, pool=pool
+            )
+        )
+        self.posterior_discard = discard
 
     def plot_mcmc_result(
         self,
@@ -518,6 +633,8 @@ class FitModel(PickleMixin):
         save_data=False,
         pool=None,
     ):
+
+        self._require_spectrum("plot the MCMC result")
 
         scp.set_presentation_defaults()
 
@@ -572,8 +689,10 @@ class FitModel(PickleMixin):
 
         # Plot the MCMC model results
         print("[INFO] Evaluating the MCMC model results.")
-        n_flat_chain = (self.nsteps - discard) * self.nwalkers
-        if self.mcmc_model_posterior is None or self.flat_chain.shape[0] < n_flat_chain:
+        if (
+            self.mcmc_model_posterior is None
+            or getattr(self, "posterior_discard", None) != discard
+        ):
             self.get_mcmc_model_results(discard=discard, pool=pool)
 
         med_model, low_model, upp_model = self.mcmc_model_posterior
@@ -607,28 +726,14 @@ class FitModel(PickleMixin):
         )
 
         if show_components:
-            comp_names = [comp.name for comp in self.components]
-            comp_dict = dict(zip(comp_names, self.components, strict=True))
-            comp_array = np.zeros(
-                (
-                    self.flat_chain.shape[0],
-                    len(comp_names),
-                    self.spec.dispersion.shape[0],
-                )
-            )
-
             print("[INFO] Evaluating the components in the MCMC chain.")
-            for idx in tqdm(range(self.flat_chain.shape[0])):
-                for ldx, comp in enumerate(comp_names):
-                    comp_array[idx, ldx, :] = self.eval(
-                        self.spec.dispersion,
-                        self.flat_chain[idx, :],
-                        components=[comp_dict[comp]],
-                    )
-
-            for ldx, comp in enumerate(comp_names):
-                c = cmap(ldx / len(comp_names))
-                med_comp = np.median(comp_array[:, ldx, :], axis=0)
+            n_comp = len(self.components)
+            for ldx, component in enumerate(self.components):
+                comp = component.name
+                c = cmap(ldx / n_comp)
+                med_comp, _, _ = self._posterior_model_bands(
+                    discard=discard, components=[component], pool=pool
+                )
                 ax_main.step(
                     self.spec.dispersion,
                     med_comp,
@@ -648,7 +753,7 @@ class FitModel(PickleMixin):
                     )
 
         # Plot the maximum likelihood model
-        if show_ml_model and self.sampler is not None:
+        if show_ml_model:
             self.model_fluxden = self.get_mode_model(discard=discard)
             ax_main.step(
                 self.spec.dispersion,
@@ -692,18 +797,19 @@ class FitModel(PickleMixin):
             label="Median residuals",
             zorder=-100,
         )
-        residuals_ml = (
-            self.spec.fluxden[self.spec.mask] - self.model_fluxden[self.spec.mask]
-        )
-        ax_resid.step(
-            self.spec.dispersion[self.spec.mask],
-            residuals_ml,
-            color=scp.vermillion,
-            where="mid",
-            lw=1.5,
-            label="ML residuals",
-            zorder=-100,
-        )
+        if show_ml_model:
+            residuals_ml = (
+                self.spec.fluxden[self.spec.mask] - self.model_fluxden[self.spec.mask]
+            )
+            ax_resid.step(
+                self.spec.dispersion[self.spec.mask],
+                residuals_ml,
+                color=scp.vermillion,
+                where="mid",
+                lw=1.5,
+                label="ML residuals",
+                zorder=-100,
+            )
 
         ax_resid.plot(self.spec.dispersion, self.spec.dispersion * 0, "k:", lw=1.5)
 
@@ -803,7 +909,7 @@ class FitModel(PickleMixin):
         save_name="corner_plot.pdf",
     ):
 
-        chain = self.sampler.get_chain(discard=discard, flat=True)
+        chain = self.get_flat_chain(discard=discard)
 
         # Get the parameter names
         param_names = list(self.params_variable.keys())
@@ -834,10 +940,6 @@ class FitModel(PickleMixin):
 
         return c.analysis.get_summary()
 
-    def plot_posterior_histograms(self, discard=2000, parameters=None):
-
-        pass
-
     def plot_posterior_param_histograms(
         self, discard, save=False, save_dir=".", save_name_prefix="posterior_hist"
     ):
@@ -854,10 +956,7 @@ class FitModel(PickleMixin):
         :param type: str
         """
 
-        if self.sampler is None:
-            raise ValueError("No MCMC sampler found in model. Run MCMC first.")
-
-        flat_chain = self.sampler.get_chain(discard=discard, thin=1, flat=True)
+        flat_chain = self.get_flat_chain(discard=discard)
         param_names = list(self.params_variable.keys())
 
         if not param_names:

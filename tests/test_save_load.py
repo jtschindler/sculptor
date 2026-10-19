@@ -17,8 +17,6 @@ import pickle
 
 import numpy as np
 import pytest
-from astropy import units as u
-from speconed import speconed as sod
 
 from sculptor import analysis as ana
 from sculptor import component as sccomp
@@ -27,60 +25,6 @@ from sculptor import parameter as scpar
 from sculptor import prior as scpri
 
 REDSHIFT = 3.227
-
-
-def _line_component(name="SiIV_a"):
-    comp = sccomp.FitComponent(name, ana.line_model_gaussian)
-    pars = comp.create_params()
-    pars[f"{name}_redsh"].value = REDSHIFT
-    pars[f"{name}_redsh"].vary = False
-    pars[f"{name}_flux"].value = 6.0
-    pars[f"{name}_flux"].prior = scpri.UniformPrior(f"{name}_flux", 0, 100)
-    pars[f"{name}_cen"].value = 1399.8
-    pars[f"{name}_cen"].vary = False
-    pars[f"{name}_fwhm_km_s"].value = 1200
-    pars[f"{name}_fwhm_km_s"].prior = scpri.UniformPrior(f"{name}_fwhm_km_s", 300, 6000)
-    return comp, pars
-
-
-def _fit_model():
-    """Power law + Gaussian line on a synthetic spectrum, short emcee run."""
-
-    comp_pl = sccomp.FitComponent("pl", ana.power_law_at2500)
-    pars_pl = comp_pl.create_params()
-    pars_pl["pl_redsh"].value = REDSHIFT
-    pars_pl["pl_redsh"].vary = False
-    pars_pl["pl_amp"].value = 0.02
-    pars_pl["pl_amp"].prior = scpri.UniformPrior("pl_amp", 0, 1)
-    pars_pl["pl_slope"].value = -1.5
-    pars_pl["pl_slope"].prior = scpri.GaussianPrior("pl_slope", -1.5, 0.3)
-
-    comp_line, pars_line = _line_component()
-
-    dispersion = np.linspace(5500, 6300, 400)
-    rng = np.random.default_rng(42)
-    truth = ana.power_law_at2500(
-        dispersion, REDSHIFT, 0.02, -1.5
-    ) + ana.line_model_gaussian(dispersion, REDSHIFT, 6.0, 1399.8, 1200)
-    error = np.full_like(dispersion, 0.002)
-    spec = sod.SpecOneD(
-        dispersion=dispersion,
-        fluxden=truth + rng.normal(0, 0.002, dispersion.size),
-        fluxden_err=error,
-        dispersion_unit=u.AA,
-        fluxden_unit=u.erg / u.s / u.cm**2 / u.AA,
-    )
-
-    model = scmod.FitModel(
-        components=[comp_pl, comp_line],
-        parameters={**pars_pl, **pars_line},
-        spectrum=spec,
-        redshift=REDSHIFT,
-    )
-    model.add_wavelength_range_to_fit_mask(5600, 6200)
-    model.remove_wavelength_range_from_fit_mask(5800, 5820)
-    model.run_emcee(nsteps=20, nwalkers=10, progress=False)
-    return model
 
 
 def test_parameter_round_trip(tmp_path):
@@ -97,8 +41,8 @@ def test_parameter_round_trip(tmp_path):
     assert (loaded.prior.low, loaded.prior.upp) == (3.2, 3.3)
 
 
-def test_component_with_param_mapping_pickles():
-    comp, _ = _line_component()
+def test_component_with_param_mapping_pickles(line_component):
+    comp, _ = line_component()
 
     restored = pickle.loads(pickle.dumps(comp))
 
@@ -109,8 +53,8 @@ def test_component_with_param_mapping_pickles():
     assert restored.param_mapping._owner is restored
 
 
-def test_component_round_trip(tmp_path):
-    comp, _ = _line_component()
+def test_component_round_trip(tmp_path, line_component):
+    comp, _ = line_component()
     comp.param_mapping.update({"redsh": "redsh_nl"})
     comp.save("SiIV_a", tmp_path)
 
@@ -132,8 +76,8 @@ def test_component_round_trip(tmp_path):
     assert loaded.get_arg_keys()[0] == "SiIV_a_redsh"
 
 
-def test_model_round_trip(tmp_path):
-    model = _fit_model()
+def test_model_round_trip(tmp_path, fit_model):
+    model = fit_model
     model.save("fit", tmp_path)
 
     loaded = scmod.FitModel()
@@ -152,7 +96,7 @@ def test_model_round_trip(tmp_path):
     assert np.array_equal(loaded.eval(x, chain[-1]), model.eval(x, chain[-1]))
 
 
-def test_model_evaluates_in_spawned_worker():
+def test_model_evaluates_in_spawned_worker(fit_model):
     """The `pool=` options send the model to worker processes.
 
     With the unpicklable mapping, a worker could not unpickle its task, died,
@@ -161,7 +105,7 @@ def test_model_evaluates_in_spawned_worker():
     timeout, so a regression fails instead of hanging the test suite.
     """
 
-    model = _fit_model()
+    model = fit_model
     x = model.spec.dispersion
     theta = model.sampler.get_chain(flat=True)[-1]
     expected = model.eval(x, theta)
@@ -175,8 +119,8 @@ def test_model_evaluates_in_spawned_worker():
     assert result == pytest.approx(expected)
 
 
-def test_load_rejects_a_different_class(tmp_path):
-    comp, _ = _line_component()
+def test_load_rejects_a_different_class(tmp_path, line_component):
+    comp, _ = line_component()
     comp.save("SiIV_a", tmp_path)
 
     with pytest.raises(TypeError, match="holds a FitComponent, not a FitParameter"):

@@ -2,6 +2,45 @@
 
 ## 2026-10-19
 
+### `sculptor.model.FitModel`
+- **One chain accessor.** New `get_flat_chain(discard)` (and
+  `get_flat_log_prob(discard)`) is the only place the chain is read;
+  `get_mode_model`, `get_mcmc_model_results`, `compute_bic`,
+  `plot_posterior_corner` and `plot_posterior_param_histograms` use it
+  instead of reading `self.sampler` or `self.flat_chain` directly. With a
+  sampler it caches `flat_chain`, `flat_log_prob` and
+  `flat_chain_discard`; without one it returns the stored `flat_chain`
+  and raises `ValueError` if asked for a different `discard` than it was
+  built with. Log-probabilities missing from a hand-assigned chain are
+  recomputed, so the ML model works without a sampler. A new emcee run
+  clears all cached chain-derived results. (`evaluate_parameters` is
+  deliberately untouched for now.)
+- `compute_bic` takes `discard` (default 2000, like the other methods)
+  instead of using whatever `flat_chain` was last computed.
+- **Plotting a chain-only model.** `plot_mcmc_result` no longer needs
+  `nsteps`/`nwalkers` (it failed with `TypeError` on a model with only a
+  `flat_chain`); it recomputes the cached posterior when `discard`
+  differs from the one it was built with (`posterior_discard`).
+- **Per-component curves** (`show_components=True`) go through the new
+  side-effect-free `_posterior_model_bands`, i.e. the same code and
+  `pool` as the full model, and no longer keep every sample of every
+  component in memory.
+- `show_ml_model=False` no longer plots "ML residuals" against an
+  unset/stale model.
+- **No spectrum:** `self.spec` is always set (`None` without spectrum).
+  `initialize_emcee`, the fit-mask methods, `plot_mcmc_result`,
+  `calculate_chi_sq`, `compute_bic` and `get_mode_model` raise
+  `ValueError("No spectrum set, ...")` instead of `AttributeError` or
+  silently doing nothing. A `spectrum` that is not a `SpecOneD` raises
+  `TypeError` (was silently ignored). Adding a fit-mask range to a model
+  whose `spec` was assigned later creates the mask first.
+- `calculate_chi_sq` raises `ValueError` when there is no posterior model.
+- `get_components_by_prefix` matches name prefixes (it matched exact names,
+  or substrings when given a string); `get_all_prefix_components` calls it.
+- Removed the empty `plot_posterior_histograms` stub.
+- New `tests/test_fitmodel.py`; the synthetic fitted model used by the
+  tests is now a shared fixture in `tests/conftest.py`.
+
 ### Saving and loading (`sculptor.persistence`, new)
 - The three copies of the pickle `save`/`load` code in `FitParameter`,
   `FitComponent` and `FitModel` are replaced by one `PickleMixin`.
