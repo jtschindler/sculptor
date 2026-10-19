@@ -21,6 +21,7 @@ history from before the move.
 | `src/sculptor/data/passbands/` | Filter curves read only by the bundled `load_passband`; `speconed` ships its own, except three Euclid NISP bands (see `TODO_speconed.md`) |
 | `sculptor_extensions/src/sculptor_extensions/my_extension.py` | Example plugin for the v1 GUI (lmfit models, mask presets) |
 | `examples/dep_v1/` | Scripts and notebooks for the v1 API and GUI |
+| `examples/test_saving.py`, `examples/test_resolution.py` | Interactive scratch scripts (`IPython.embed` breakpoints, missing input files, a non-existent `SpecOneD.broaden_by_resolution`). Replaced by `tests/test_save_load.py`, `tests/test_broadening.py` and `benchmarks/bench_broaden_spectrum.py` |
 
 The GUI and `SpecFit`/`SpecModel` do not run as-is: they need `lmfit`
 (not a dependency). `specanalysis.py` uses `np.trapz`, removed in numpy 2.4.

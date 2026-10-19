@@ -24,7 +24,12 @@ class _ObservableParamMapping(dict):
         super().__init__(*args, **kwargs)
 
     def _invalidate(self):
-        self._owner._arg_keys = None
+        # Unpickling (and `copy`) a dict subclass restores its items before
+        # its attributes, so `__setitem__` runs while `_owner` is not set
+        # yet. There is no cache to invalidate at that point.
+        owner = getattr(self, "_owner", None)
+        if owner is not None:
+            owner._arg_keys = None
 
     def __setitem__(self, key, value):
         super().__setitem__(key, value)

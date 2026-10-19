@@ -2,6 +2,29 @@
 
 ## 2026-10-19
 
+### `sculptor.component`: pickling fix
+- Fixed: a `FitComponent` with a `param_mapping` (every component after
+  `create_params()`) could not be unpickled. The mapping is a dict
+  subclass that notifies its owner on mutation; unpickling restores the
+  items before the attributes, so the notification ran before `_owner`
+  existed (`AttributeError`). This broke `FitModel`/`FitComponent`
+  `save`/`load`, and the `pool=` options of `run_emcee` /
+  `get_mcmc_model_results` hung (workers died unpickling their task and
+  the pool waited forever). Introduced with the mapping cache on
+  2026-08-28.
+
+### Example scripts -> tests and benchmark
+- `examples/test_saving.py` -> `tests/test_save_load.py`: save/load round
+  trips for `FitParameter`, `FitComponent`, `FitModel` (incl. sampler
+  chain), plus regression tests for the pickling fix (one evaluates the
+  model in a spawned worker, with a timeout so a regression fails instead
+  of hanging).
+- `examples/test_resolution.py` -> `tests/test_broadening.py`
+  (`utils.broaden_spectrum` against a plain-numpy reference, FWHMs adding
+  in quadrature, flux conservation, scalar vs array resolution in
+  `FitModel.eval`) and `benchmarks/bench_broaden_spectrum.py` (timing).
+- Both original scripts moved to `deprecated/examples/`.
+
 ### Packaging (`pyproject.toml`)
 - Static `version = "2.0.0b0"` (the intended `2.b.0`, PEP 440-normalised).
   The previous dynamic version read `sculptor.__version__`, which itself
