@@ -2,6 +2,14 @@
 
 ## 2026-10-19
 
+### `Qso_autofit`: Hgamma and OI line setups
+- New `setup_Hgamma_lines(spec, line_dict, narrow=False, Hgamma_broad=1,
+  model=None)` and `setup_OI_lines(spec, line_dict, OI_broad=1,
+  model=None)`, ported from upstream `qso_auto_fit` (`Qso_autofit_2.py`).
+  Named like the other line setups (`setup_<line>_lines`,
+  `<line>_broad` counts, components `<line>_narrow` / `<line>_broad_<a,b,..>`,
+  `line_dict["Hgamma"]` / `line_dict["OI"]`). Test added.
+
 ### Fast iron template (`TemplateModel`, `initialise_Fe_fast`)
 - New `sculptor.analysis.TemplateModel(templ_disp, templ_fluxden)`: a
   precomputed, picklable version of `template_model` for one template,

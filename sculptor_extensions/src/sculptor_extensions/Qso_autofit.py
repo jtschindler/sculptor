@@ -1040,6 +1040,74 @@ def setup_hb_o3_lines(
         model.add_parameters(pars_OIII_wind)
 
 
+def setup_Hgamma_lines(spec, line_dict, narrow=False, Hgamma_broad=1, model=None):
+    """
+    Setup emission line model for the Hgamma emission line (4341.7 Å) using
+    broad and (optionally) narrow gaussian components, like
+    `setup_MgII_lines`. Components are named "Hgamma_narrow" and
+    "Hgamma_broad_a", "Hgamma_broad_b", ...
+
+    Ported from the upstream `qso_auto_fit` branch (`Qso_autofit_2.py`).
+
+    :param spec: input spectrum (unused, kept for a uniform signature)
+    :type spec: speconed.speconed.SpecOneD
+    :param line_dict: emission line dictionary; uses
+        line_dict["Hgamma"]["narrow"]["params"] and
+        line_dict["Hgamma"]["broad"]["params"] (see
+        `initialise_gaussian_line_model`)
+    :type line_dict: dict
+    :param narrow: add a narrow component
+    :type narrow: bool
+    :param Hgamma_broad: number of broad components
+    :type Hgamma_broad: int
+    :param model: model to add the components and parameters to
+    :type model: sculptor.model.FitModel
+    """
+
+    if narrow:
+        comp_Hgamma_narrow, pars_Hgamma_narrow = initialise_gaussian_line_model(
+            "Hgamma_narrow", line_dict["Hgamma"]["narrow"]["params"]
+        )
+        model.add_component(comp_Hgamma_narrow)
+        model.add_parameters(pars_Hgamma_narrow)
+
+    for i in range(Hgamma_broad):
+        comp_Hgamma_broad, pars_Hgamma_broad = initialise_gaussian_line_model(
+            f"Hgamma_broad_{string.ascii_lowercase[i]}",
+            line_dict["Hgamma"]["broad"]["params"],
+        )
+        model.add_component(comp_Hgamma_broad)
+        model.add_parameters(pars_Hgamma_broad)
+
+
+def setup_OI_lines(spec, line_dict, OI_broad=1, model=None):
+    """
+    Setup emission line model for the OI emission line (8446 Å) using broad
+    gaussian components, named "OI_broad_a", "OI_broad_b", ...
+
+    Ported from the upstream `qso_auto_fit` branch (`Qso_autofit_2.py`).
+
+    :param spec: input spectrum (unused, kept for a uniform signature)
+    :type spec: speconed.speconed.SpecOneD
+    :param line_dict: emission line dictionary; uses
+        line_dict["OI"]["broad"]["params"] (see
+        `initialise_gaussian_line_model`)
+    :type line_dict: dict
+    :param OI_broad: number of broad components
+    :type OI_broad: int
+    :param model: model to add the components and parameters to
+    :type model: sculptor.model.FitModel
+    """
+
+    for i in range(OI_broad):
+        comp_OI_broad, pars_OI_broad = initialise_gaussian_line_model(
+            f"OI_broad_{string.ascii_lowercase[i]}",
+            line_dict["OI"]["broad"]["params"],
+        )
+        model.add_component(comp_OI_broad)
+        model.add_parameters(pars_OI_broad)
+
+
 # ------------------------------------------------------------------------------
 # Iron templates
 # ------------------------------------------------------------------------------

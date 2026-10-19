@@ -806,3 +806,49 @@ def test_model_functions_name_the_redshift_redsh():
     for func in functions:
         args = FitComponent("c", func).function_args
         assert "redsh" in args and "z" not in args, (func, args)
+
+
+# --------------------------------------------------------------------------
+# setup_Hgamma_lines / setup_OI_lines (ported from upstream qso_auto_fit)
+# --------------------------------------------------------------------------
+
+
+def _gaussian_line_params(cen, redsh=0.5):
+    return {
+        "redsh": {"value": redsh, "vary": False},
+        "flux": {"value": 10.0, "vary": False},
+        "cen": {"value": cen, "vary": False},
+        "fwhm_km_s": {"value": 3000.0, "vary": False},
+    }
+
+
+def test_setup_hgamma_and_oi_lines_follow_the_line_setup_pattern():
+    from sculptor.model import FitModel
+
+    line_dict = {
+        "Hgamma": {
+            "narrow": {"params": _gaussian_line_params(4341.7)},
+            "broad": {"params": _gaussian_line_params(4341.7)},
+        },
+        "OI": {"broad": {"params": _gaussian_line_params(8446.4)}},
+    }
+    model = FitModel()
+
+    new_qso_autofit.setup_Hgamma_lines(
+        None, line_dict, narrow=True, Hgamma_broad=2, model=model
+    )
+    new_qso_autofit.setup_OI_lines(None, line_dict, OI_broad=1, model=model)
+
+    assert [c.name for c in model.components] == [
+        "Hgamma_narrow",
+        "Hgamma_broad_a",
+        "Hgamma_broad_b",
+        "OI_broad_a",
+    ]
+    assert "Hgamma_broad_b_fwhm_km_s" in model.parameters
+    assert "OI_broad_a_redsh" in model.parameters
+
+    x = np.linspace(6000, 13500, 4000)
+    y = model.eval(x, [])
+    # Each line integrates to its flux (4 components x 10).
+    assert np.trapezoid(y, x) == pytest.approx(40.0, rel=1e-3)
