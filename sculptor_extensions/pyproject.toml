@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Optional QSO-fitting extensions for sculptor"
 requires-python = ">=3.13"
 dependencies = [
+    "linetools>=0.3.2",
     "sculptor",
 ]
 

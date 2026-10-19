@@ -2,6 +2,19 @@
 
 ## 2026-10-19
 
+### Dependencies
+- Removed from `sculptor`'s runtime dependencies (only used by the v1 code
+  now in `deprecated/`, by the deleted Sphinx docs, or not at all):
+  `pyqt5`, `corner`, `importlib-resources`, `fastparquet`, `pyyaml`,
+  `jupyter`, `ipykernel`, `sphinx`, `nbsphinx`, `nbsphinx-link`.
+- `h5py`, `spectres`, `tables` dropped as direct dependencies; they are
+  still installed as requirements of the standalone `speconed` package.
+- `linetools` moved to `sculptor-extensions` (only `qso.py` uses it).
+- `ipython` moved to the dev group (only the upstream reference copy
+  `tests/ground_truth/v2_dev/src/sculptor/model.py` imports it).
+- `sculptor-extensions` added to the dev group (workspace source), so a
+  plain `uv sync` installs it for the tests; before, nothing declared it.
+
 ### Repository layout: `deprecated/`
 - New top-level `deprecated/` folder for old code, mirroring the original
   paths (not packaged, excluded from `ruff`, not collected by `pytest`; see
