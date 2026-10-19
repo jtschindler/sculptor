@@ -35,6 +35,12 @@ FGU_DIR = REPO_ROOT / "tests" / "ground_truth" / "fgu"
 SCULPTOR_DATA_DIR = REPO_ROOT / "src" / "sculptor" / "data"
 
 
+def _redsh(kwargs):
+    """The original reference copies call the redshift `z`; the maintained
+    model functions call it `redsh` (review §4)."""
+    return {("redsh" if k == "z" else k): v for k, v in kwargs.items()}
+
+
 def _load_module_from_path(module_name, path):
     """Import a standalone .py file as a module, without installing it."""
     spec = importlib.util.spec_from_file_location(module_name, path)
@@ -140,7 +146,7 @@ def test_fast_balmer_continuum_matches_original_qso_balmer(original_qso):
         "lambda_be": 3646.0,
     }
     orig = original_qso.balmer_continuum_model(x, **kwargs)
-    new = new_qam.fast_balmer_continuum_model(x, **kwargs)
+    new = new_qam.fast_balmer_continuum_model(x, **_redsh(kwargs))
     assert np.count_nonzero(orig) > 100  # the range spans the Balmer edge
     np.testing.assert_allclose(orig, new, rtol=1e-12)
 
@@ -211,7 +217,7 @@ def test_initialise_balmer_without_hol_uses_fast_model():
     balmer_dict = {
         par: {"value": value, "vary": False}
         for par, value in {
-            "z": 2.0,
+            "redsh": 2.0,
             "amp_be": 1.0,
             "Te": 15000.0,
             "tau_be": 1.0,
@@ -612,13 +618,14 @@ def test_original_balmer_with_hol_was_broken_and_is_replaced(original_qso_autofi
 
     assert not hasattr(new_qso_autofit, "Balmer_continuum_with_hol")
 
-    balmer_dict = {par: {"value": v, "vary": False} for par, v in kwargs.items()}
+    new_kwargs = _redsh(kwargs)
+    balmer_dict = {par: {"value": v, "vary": False} for par, v in new_kwargs.items()}
     comp, params = new_qso_autofit.initialise_balmer("BC", None, balmer_dict)
     assert isinstance(comp.function, new_qam.BalmerContinuumWithHOL)
-    assert sorted(params) == sorted(f"BC_{p}" for p in kwargs)
+    assert sorted(params) == sorted(f"BC_{p}" for p in new_kwargs)
 
-    result = comp.function(x, **kwargs)
-    expected = new_qam.BalmerContinuumWithHOL()(x, **kwargs)
+    result = comp.function(x, **new_kwargs)
+    expected = new_qam.BalmerContinuumWithHOL()(x, **new_kwargs)
     np.testing.assert_allclose(result, expected)
     assert np.all(np.isfinite(result)) and result.max() > 0
 
@@ -648,7 +655,7 @@ def test_qam_power_law_plus_fractional_bc_matches_original(original_out):
         "lambda_be": 3646.0,
     }
     orig = original_out.power_law_at_2500_plus_fractional_bc(x, **kwargs)
-    new = new_qam.power_law_at_2500_plus_fractional_bc(x, **kwargs)
+    new = new_qam.power_law_at_2500_plus_fractional_bc(x, **_redsh(kwargs))
     np.testing.assert_allclose(orig, new, rtol=1e-10)
 
 
@@ -704,11 +711,11 @@ def test_qam_balmer_continuum_with_hol_matches_original(original_out, hol_data_f
         "fwhm": 2000.0,
     }
     orig = original_out.BalmerContinuumWithHOL()(x, **kwargs)
-    new = fresh_new_qam.BalmerContinuumWithHOL()(x, **kwargs)
+    new = fresh_new_qam.BalmerContinuumWithHOL()(x, **_redsh(kwargs))
     np.testing.assert_allclose(orig, new, rtol=1e-8)
 
     # The cached variant must give the same numbers as the uncached one.
-    cached = fresh_new_qam.CachedBalmerContinuumWithHOL()(x, **kwargs)
+    cached = fresh_new_qam.CachedBalmerContinuumWithHOL()(x, **_redsh(kwargs))
     np.testing.assert_allclose(new, cached, rtol=1e-8)
 
 
@@ -724,7 +731,7 @@ def test_qam_hol_models_raise_clearly_without_data_file():
 
     x = np.linspace(2800, 4200, 50)
     kwargs = {
-        "z": 2.0,
+        "redsh": 2.0,
         "amp_be": 1.0,
         "Te": 15000.0,
         "tau_be": 1.0,
@@ -771,3 +778,31 @@ def test_qso_module_does_not_reference_lmfit():
     source = inspect.getsource(new_qso)
     assert "lmfit" not in source
     assert "Parameters()" not in source
+
+
+def test_model_functions_name_the_redshift_redsh():
+    """Convention (review §4): model functions call the redshift fit
+    parameter `redsh`; only the absorber redshift is `z_abs`."""
+
+    from sculptor import analysis as ana
+    from sculptor.component import FitComponent
+
+    functions = [
+        ana.power_law_at2500,
+        ana.line_model_gaussian,
+        ana.template_model,
+        new_qso.power_law_at_2500_plus_bc,
+        new_qso.line_model_gaussian_oiii_doublet,
+        new_qso.line_model_gaussian_nii_doublet,
+        new_qso.line_model_gaussian_sii_doublet,
+        new_qso.CIII_complex_model_func,
+        new_qso_autofit.line_model_gaussian_NII_doublet,
+        new_qso_autofit.line_model_gaussian_SII_doublet,
+        new_qam.fast_balmer_continuum_model,
+        new_qam.power_law_at_2500_plus_fractional_bc,
+        new_qam.BalmerContinuumWithHOL(),
+        new_qam.CachedBalmerContinuumWithHOL(),
+    ]
+    for func in functions:
+        args = FitComponent("c", func).function_args
+        assert "redsh" in args and "z" not in args, (func, args)

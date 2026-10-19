@@ -77,7 +77,7 @@ class BalmerContinuumWithHOL:
     Callable Balmer pseudo-continuum + high-order-line (HOL) model.
 
     Drop-in replacement for `fast_balmer_continuum_model` anywhere a plain
-    `f(x, z, amp_be, Te, tau_be, lambda_be, fwhm)` callable is expected
+    `f(x, redsh, amp_be, Te, tau_be, lambda_be, fwhm)` callable is expected
     (e.g. `sccomp.FitComponent`). Stateless -- every call recomputes
     everything from scratch.
 
@@ -87,13 +87,13 @@ class BalmerContinuumWithHOL:
     """
 
     def __init__(self):
-        # Mirrors the signature of __call__ below: x, z, amp_be, Te,
+        # Mirrors the signature of __call__ below: x, redsh, amp_be, Te,
         # tau_be, lambda_be, fwhm -> co_argcount=7. FitComponent slices
         # co_varnames[1:co_argcount] to get the param names, excluding
         # the first ("x"), exactly as it does for a plain function.
         self.__code__ = _FakeCode(
             co_argcount=7,
-            co_varnames=("x", "z", "amp_be", "Te", "tau_be", "lambda_be", "fwhm"),
+            co_varnames=("x", "redsh", "amp_be", "Te", "tau_be", "lambda_be", "fwhm"),
         )
         self.__name__ = "balmer_continuum_with_hol"
 
@@ -124,8 +124,8 @@ class BalmerContinuumWithHOL:
         flux_density *= 0.3 * edge_continuum / edge_hol
         return flux_density
 
-    def __call__(self, x, z, amp_be, Te, tau_be, lambda_be, fwhm):
-        x_rest = x / (1.0 + z)
+    def __call__(self, x, redsh, amp_be, Te, tau_be, lambda_be, fwhm):
+        x_rest = x / (1.0 + redsh)
         continuum_shape = self._continuum_shape(x_rest, Te, tau_be, lambda_be)
         hol_shape = self._hol_shape(x_rest, fwhm, lambda_be, continuum_shape)
         return amp_be * (continuum_shape + hol_shape) * 1e-8
@@ -136,17 +136,17 @@ class CachedBalmerContinuumWithHOL:
     Callable Balmer pseudo-continuum + high-order-line (HOL) model.
 
     Drop-in replacement for `fast_balmer_continuum_model` anywhere a plain
-    `f(x, z, amp_be, Te, tau_be, lambda_be, fwhm)` callable is expected
+    `f(x, redsh, amp_be, Te, tau_be, lambda_be, fwhm)` callable is expected
     (e.g. `sccomp.FitComponent`).
 
     Caches the (n_pixels, n_lines) wavelength-difference matrix used in the
     HOL Gaussian sum -- the single biggest cost in __call__ -- and
-    automatically invalidates that cache whenever `x` or `z` change between
-    calls, so it stays correct even if `z` is a free/varying fit parameter
+    automatically invalidates that cache whenever `x` or `redsh` change between
+    calls, so it stays correct even if `redsh` is a free/varying fit parameter
     (it just won't provide a caching benefit in that case).
 
     IMPORTANT: give each `FitComponent` its own instance. Don't share one
-    instance across components fit to different `x`/`z`, since the cache
+    instance across components fit to different `x`/`redsh`, since the cache
     is per-instance state.
 
     Exposes a fake `__code__`/`__name__` so `FitComponent.__init__`'s
@@ -157,7 +157,7 @@ class CachedBalmerContinuumWithHOL:
     def __init__(self):
         self.__code__ = _FakeCode(
             co_argcount=7,
-            co_varnames=("x", "z", "amp_be", "Te", "tau_be", "lambda_be", "fwhm"),
+            co_varnames=("x", "redsh", "amp_be", "Te", "tau_be", "lambda_be", "fwhm"),
         )
         self.__name__ = "balmer_continuum_with_hol"
 
@@ -165,7 +165,7 @@ class CachedBalmerContinuumWithHOL:
         self._x_rest = None
         self._diff2 = None
 
-    def _update_cache(self, x, z):
+    def _update_cache(self, x, redsh):
         # id(x) is a cheap identity check; relies on x not being mutated
         # in place between calls with the same identity but different
         # contents. If your fitting framework ever does that, swap this
@@ -176,9 +176,9 @@ class CachedBalmerContinuumWithHOL:
                 "emissivities) is missing from sculptor/data/ -- add it to "
                 "use the Balmer+HOL models."
             )
-        cache_key = (id(x), z)
+        cache_key = (id(x), redsh)
         if cache_key != self._cache_key:
-            self._x_rest = x / (1.0 + z)
+            self._x_rest = x / (1.0 + redsh)
             self._diff2 = (self._x_rest[:, None] - _HOL_TRANSITIONS[None, :]) ** 2
             self._cache_key = cache_key
 
@@ -202,8 +202,8 @@ class CachedBalmerContinuumWithHOL:
         flux_density *= 0.3 * edge_continuum / edge_hol
         return flux_density
 
-    def __call__(self, x, z, amp_be, Te, tau_be, lambda_be, fwhm):
-        self._update_cache(x, z)
+    def __call__(self, x, redsh, amp_be, Te, tau_be, lambda_be, fwhm):
+        self._update_cache(x, redsh)
         continuum_shape = self._continuum_shape(Te, tau_be, lambda_be)
         hol_shape = self._hol_shape(fwhm, lambda_be, continuum_shape)
         return amp_be * (continuum_shape + hol_shape) * 1e-8
@@ -277,7 +277,7 @@ def _planck_lambda_cgs(wavelength_aa, Te):
     return black_body_nu * c_AngstroemPerSecond / wavelength_aa**2
 
 
-def fast_balmer_continuum_model(x, z, amp_be, Te, tau_be, lambda_be):
+def fast_balmer_continuum_model(x, redsh, amp_be, Te, tau_be, lambda_be):
     """Model of the Balmer continuum (Dietrich 2003), without higher-order
     lines.
 
@@ -303,8 +303,8 @@ def fast_balmer_continuum_model(x, z, amp_be, Te, tau_be, lambda_be):
 
     :param x: Dispersion of the Balmer continuum
     :type x: np.ndarray
-    :param z: Redshift
-    :type z: float
+    :param redsh: Redshift
+    :type redsh: float
     :param amp_be: Amplitude of the Balmer continuum at the Balmer edge
     :type amp_be: float
     :param Te: Electron temperature
@@ -318,7 +318,7 @@ def fast_balmer_continuum_model(x, z, amp_be, Te, tau_be, lambda_be):
 
     """
 
-    x_rest = x / (1.0 + z)
+    x_rest = x / (1.0 + redsh)
 
     # Planck function B_nu(T), evaluated at nu = c / lambda, computed
     # directly in cgs rather than via astropy's BlackBody model (which
@@ -351,7 +351,9 @@ def fast_balmer_continuum_model(x, z, amp_be, Te, tau_be, lambda_be):
     return fluxden
 
 
-def power_law_at_2500_plus_fractional_bc(x, amp, slope, z, f, Te, tau_be, lambda_be):
+def power_law_at_2500_plus_fractional_bc(
+    x, amp, slope, redsh, f, Te, tau_be, lambda_be
+):
     """QSO continuum model consisting of a power law anchored at 2500 A and
     a balmer continuum contribution.
 
@@ -366,8 +368,8 @@ def power_law_at_2500_plus_fractional_bc(x, amp, slope, z, f, Te, tau_be, lambda
     :type amp: float
     :param slope: Slope of the power law
     :type slope: float
-    :param z: Redshift
-    :type z: float
+    :param redsh: Redshift
+    :type redsh: float
     :param f: Amplitude of the Balmer continuum as a fraction of the power \
         law component
     :type f: float
@@ -382,11 +384,11 @@ def power_law_at_2500_plus_fractional_bc(x, amp, slope, z, f, Te, tau_be, lambda
 
     """
 
-    pl_fluxden = amp * (x / (2500.0 * (z + 1.0))) ** slope
+    pl_fluxden = amp * (x / (2500.0 * (redsh + 1.0))) ** slope
 
     pl_fluxden_at_be = amp * (lambda_be / 2500.0) ** slope
 
-    x = x / (1.0 + z)
+    x = x / (1.0 + redsh)
 
     black_body_lambda = _planck_lambda_cgs(x, Te)
     black_body_lambda_be = _planck_lambda_cgs(lambda_be, Te)

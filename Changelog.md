@@ -2,6 +2,25 @@
 
 ## 2026-10-19
 
+### Convention: the redshift fit parameter is `redsh` (breaking)
+- Model functions now all call the redshift argument `redsh`, as
+  `sculptor.analysis` already did. Renamed from `z`:
+  `qso_advanced_models.fast_balmer_continuum_model`,
+  `power_law_at_2500_plus_fractional_bc`, `BalmerContinuumWithHOL`,
+  `CachedBalmerContinuumWithHOL`; `qso.power_law_at_2500_plus_bc`,
+  `line_model_gaussian_oiii_doublet`, `CIII_complex_model_func`.
+- Because `FitComponent` names parameters after the function arguments,
+  components built from these get `<prefix>_redsh` instead of
+  `<prefix>_z`, and setup dicts need the key `"redsh"` instead of `"z"`
+  (e.g. `balmer_dict` for `initialise_balmer` /
+  `initialise_balmer_without_hol`, `line_dict` for [OIII]).
+- Unchanged: `z_abs` (absorber redshift of the absorption models) and the
+  non-model functions (`calc_velocity_shifts(z, z_sys)`, analysis and
+  measurement functions' `redshift=`).
+- Removed the dead commented-out `line_model_gaussian_amp` in `qso.py`.
+- Tests: the reference-copy comparisons map `z` -> `redsh`; a new test
+  checks the convention for every model function.
+
 ### `sculptor.model.log_probability`: prior skipped on first call
 - Fixed: the prior was read from `model.params_variable` before `eval()`
   had filled it, so the first `log_probability` call on a model that had

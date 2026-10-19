@@ -31,7 +31,7 @@ c_AngstroemPerSecond = const.c.to(u.AA / u.s).value
 # ------------------------------------------------------------------------------
 
 
-def power_law_at_2500_plus_bc(x, amp, slope, z, amp_be, Te, tau_be, lambda_be):
+def power_law_at_2500_plus_bc(x, amp, slope, redsh, amp_be, Te, tau_be, lambda_be):
     """QSO continuum model consisting of a power law anchored at 2500 A and
     a balmer continuum contribution.
 
@@ -47,8 +47,8 @@ def power_law_at_2500_plus_bc(x, amp, slope, z, amp_be, Te, tau_be, lambda_be):
     :type amp: float
     :param slope: Slope of the power law
     :type slope: float
-    :param z: Redshift
-    :type z: float
+    :param redsh: Redshift
+    :type redsh: float
     :param amp_be: Amplitude of the Balmer continuum at the Balmer edge
     :type amp_be: float
     :param Te: Electron temperature
@@ -62,9 +62,9 @@ def power_law_at_2500_plus_bc(x, amp, slope, z, amp_be, Te, tau_be, lambda_be):
 
     """
 
-    pl_fluxden = amp * (x / (2500.0 * (z + 1.0))) ** slope
+    pl_fluxden = amp * (x / (2500.0 * (redsh + 1.0))) ** slope
 
-    x = x / (1.0 + z)
+    x = x / (1.0 + redsh)
 
     bb = BlackBody(temperature=Te * u.K)
     black_body_lambda = bb(x * u.AA).value * c_AngstroemPerSecond / x**2
@@ -85,47 +85,7 @@ def power_law_at_2500_plus_bc(x, amp, slope, z, amp_be, Te, tau_be, lambda_be):
     return pl_fluxden + bc_fluxden
 
 
-# def line_model_gaussian_amp(x, z, amp, cen, fwhm_km_s, shift_km_s):
-#     """ Gaussian line model
-#
-#     The central wavelength of the Gaussian line model is determined by the
-#     central wavelength cen, the redshift, z, and the velocity shift
-#     shift_km_s (in km/s). These parameters are degenerate in a line fit and
-#     it is adviseable to fix two of them (to predetermined values e.g., the
-#     redshift or the central wavelength).
-#
-#     The width of the line is set by the FWHM in km/s.
-#
-#     The Gaussian is not normalized.
-#
-#     :param x: Dispersion of the continuum model
-#     :type x: np.ndarray
-#     :param z: Redshift
-#     :type z: float
-#     :param amp: Amplitude of the Gaussian
-#     :type amp: float
-#     :param cen: Central wavelength
-#     :type cen: float
-#     :param fwhm_km_s: FWHM of the Gaussian in km/s
-#     :type fwhm_km_s: float
-#     :param shift_km_s: Doppler velocity shift of the central wavelength
-#     :type shift_km_s: float
-#     :return: Gaussian line model
-#     :rtype: np.ndarray
-#
-#     """
-#
-#     cen = cen * (1+z)
-#
-#     delta_cen = shift_km_s / c_km_s * cen
-#     central = cen + delta_cen
-#     fwhm = fwhm_km_s / c_km_s * central
-#     sigma = fwhm / np.sqrt(8*np.log(2))
-#
-#     return amp * np.exp(-(x-central)**2 / (2*sigma**2))
-
-
-def line_model_gaussian_oiii_doublet(x, z, flux, fwhm_km_s, fluxratio):
+def line_model_gaussian_oiii_doublet(x, redsh, flux, fwhm_km_s, fluxratio):
     """Doublet line model for the [OIII] lines at 4960.30 A and 5008.24 A.
 
     This model ties the redshift, the FWHM and the fluxes (ratio 1:3) of the
@@ -133,8 +93,8 @@ def line_model_gaussian_oiii_doublet(x, z, flux, fwhm_km_s, fluxratio):
 
     :param x: Dispersion of the continuum model
     :type x: np.ndarray
-    :param z: Redshift
-    :type z: float
+    :param redsh: Redshift
+    :type redsh: float
     :param flux: Amplitude of the Gaussian
     :type flux: float
     :param cen: Central wavelength
@@ -146,8 +106,8 @@ def line_model_gaussian_oiii_doublet(x, z, flux, fwhm_km_s, fluxratio):
     """
 
     # Redshift central wavelengths
-    cen_a = 4960.30 * (1 + z)
-    cen_b = 5008.24 * (1 + z)
+    cen_a = 4960.30 * (1 + redsh)
+    cen_b = 5008.24 * (1 + redsh)
 
     # Calculate sigma from fwhm
     fwhm_a = fwhm_km_s / c_km_s * cen_a
@@ -273,7 +233,7 @@ def line_model_gaussian_sii_doublet(x, redsh, flux_a, flux_b, fwhm_km_s_a, fwhm_
 
 def CIII_complex_model_func(
     x,
-    z,
+    redsh,
     cen,
     cen_alIII,
     cen_siIII,
@@ -296,8 +256,8 @@ def CIII_complex_model_func(
 
     :param x: Dispersion of the template model
     :type x: np.ndarray
-    :param z: Redshift for CIII], AlIII, SiIII]
-    :type z: float
+    :param redsh: Redshift for CIII], AlIII, SiIII]
+    :type redsh: float
     :param cen: CIII] central wavelength
     :type cen: float
     :param cen_alIII: AlIII central wavelength
@@ -324,9 +284,9 @@ def CIII_complex_model_func(
 
     """
 
-    cIII_cen = cen * (1 + z)
-    siIII_cen = cen_siIII * (1 + z)
-    alIII_cen = cen_alIII * (1 + z)
+    cIII_cen = cen * (1 + redsh)
+    siIII_cen = cen_siIII * (1 + redsh)
+    alIII_cen = cen_alIII * (1 + redsh)
 
     cIII_delta_cen = shift_km_s / c_km_s * cIII_cen
     siIII_delta_cen = shift_km_s_siIII / c_km_s * siIII_cen

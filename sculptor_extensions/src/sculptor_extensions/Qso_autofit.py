@@ -590,7 +590,7 @@ def initialise_balmer(prefix, model=None, balmer_dict=None):
     its output was normalised and scaled differently, so `amp_be` values
     and priors from older setups need rescaling.
 
-    `balmer_dict` must contain "z", "amp_be", "Te", "tau_be", "lambda_be"
+    `balmer_dict` must contain "redsh", "amp_be", "Te", "tau_be", "lambda_be"
     and "fwhm"; each entry has "value", "vary" and "prior", or "parameter"
     to map it onto an existing (global) parameter.
 
