@@ -10,33 +10,31 @@ class Prior:
     def __str__(self):
         return f"{self.name}: {self.distribution}"
 
-    # def save(self, save_dir, save_prefix=None):
-    #
-    #     # Check if the directory exists
-    #     if not os.path.exists(save_dir):
-    #         os.makedirs(save_dir)
-    #
-    #     # Save the prior object
-    #     if save_prefix is not None:
-    #         save_name = '{}_{}.pkl'.format(save_prefix, self.name)
-    #     else:
-    #         save_name = '{}.pkl'.format(self.name)
-    #
-    #     with open(os.path.join(save_dir, save_name), 'wb') as f:
-    #         pickle.dump(self, f)
-    #
-    # def load(self, load_dir, load_prefix=None):
-    #
-    #     # Load the prior object
-    #     if load_prefix is not None:
-    #         load_name = '{}_{}.pkl'.format(load_prefix, self.name)
-    #     else:
-    #         load_name = '{}.pkl'.format(self.name)
-    #
-    #     with open(os.path.join(load_dir, load_name), 'rb') as f:
-    #         self = pickle.load(f)
-    #
-    #     return self
+    def sample(self, n, rng=None, seed=None):
+        """Draw `n` samples from the prior.
+
+        :param n: Number of samples
+        :type n: int
+        :param rng: Random number generator to draw from. Takes precedence
+            over `seed`; passing both raises a `ValueError`.
+        :type rng: numpy.random.Generator
+        :param seed: Seed for a new `numpy.random.default_rng` generator,
+            used when no `rng` is given. With neither, the generator is
+            seeded from fresh OS entropy.
+        :type seed: int
+        :return: Samples
+        :rtype: np.ndarray
+        """
+
+        if rng is not None and seed is not None:
+            raise ValueError("Pass either `rng` or `seed`, not both.")
+        if rng is None:
+            rng = np.random.default_rng(seed)
+
+        return self._draw(rng, n)
+
+    def _draw(self, rng, n):
+        raise NotImplementedError(f"{type(self).__name__} does not implement sampling.")
 
 
 class UniformPrior(Prior):
@@ -51,21 +49,15 @@ class UniformPrior(Prior):
         if self.low <= x <= self.upp:
             return 1 / (self.upp - self.low)
         else:
-            return 0
+            return 0.0
 
     def logprior(self, x):
         if self.low <= x <= self.upp:
-            return 0
+            return 0.0
         else:
             return -np.inf
 
-    def sample(self, n, rng=None, seed=None):
-
-        if rng is None:
-            rng = np.random.default_rng()
-        if rng is None and seed is not None:
-            rng = np.random.default_rng(seed)
-
+    def _draw(self, rng, n):
         return rng.uniform(self.low, self.upp, n)
 
 
@@ -87,11 +79,5 @@ class GaussianPrior(Prior):
             self.sigma * np.sqrt(2 * np.pi)
         )
 
-    def sample(self, n, rng=None, seed=None):
-
-        if rng is None:
-            rng = np.random.default_rng()
-        if rng is None and seed is not None:
-            rng = np.random.default_rng(seed)
-
+    def _draw(self, rng, n):
         return rng.normal(self.mean, self.sigma, n)

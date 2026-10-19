@@ -2,6 +2,15 @@
 
 ## 2026-10-19
 
+### `sculptor.prior`
+- Fixed: `sample(seed=...)` ignored the seed (an unseeded generator was
+  always created first). `sample()` now lives once in the `Prior` base
+  class: it uses `rng` if given, else `np.random.default_rng(seed)`;
+  passing both raises `ValueError`. Subclasses only implement `_draw`.
+- Removed the dead commented-out `save`/`load` block.
+- `UniformPrior.logprior`/`evaluate` return floats (`0.0`) instead of `0`.
+- New `tests/test_prior.py`.
+
 ### `sculptor.component`: pickling fix
 - Fixed: a `FitComponent` with a `param_mapping` (every component after
   `create_params()`) could not be unpickled. The mapping is a dict
