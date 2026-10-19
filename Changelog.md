@@ -2,6 +2,15 @@
 
 ## 2026-10-19
 
+### `measurements.get_nonparametric_measurements`: `disp_range`
+- Fixed: `disp_range` (observed-frame dispersion in the spectrum's own
+  unit, e.g. Angstrom, like every other measurement's `disp_range`) was
+  applied after the spectrum had been converted to frequency, so it
+  trimmed away the whole spectrum and the function raised `ValueError`.
+  This broke `analyze_emission_feature(..., emfeat_meas=[..., "nonparam"],
+  disp_range=...)`. The spectrum is now trimmed first, then converted.
+  The bug was already present in v1 `specanalysis`.
+
 ### Plotting (`sculptor.plot`)
 - Colours now come from the `tol-colors` package (Paul Tol's own release)
   instead of the vendored 774-line `sculptor/colors.py` (moved to

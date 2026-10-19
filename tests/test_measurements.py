@@ -209,15 +209,79 @@ def test_get_nonparametric_measurements_copies_by_default(line_spec):
 
 def test_get_nonparametric_measurements_inplace(line_spec):
     n_before = line_spec.dispersion.size
-    default = measurements.get_nonparametric_measurements(
-        line_spec.copy(), REST_CEN, REDSHIFT
+    obs_cen = REST_CEN * (1 + REDSHIFT)
+
+    measurements.get_nonparametric_measurements(
+        line_spec,
+        REST_CEN,
+        REDSHIFT,
+        disp_range=[obs_cen - 100, obs_cen + 100],
+        inplace=True,
     )
 
-    inplace = measurements.get_nonparametric_measurements(
-        line_spec, REST_CEN, REDSHIFT, disp_range=[1e14, 1e15], inplace=True
-    )
-
-    # The v1 behaviour: converted to frequency and trimmed in place.
+    # The v1 behaviour: trimmed and converted to frequency in place.
     assert line_spec.dispersion_unit.physical_type == "frequency"
     assert line_spec.dispersion.size < n_before
-    assert default[0].unit == inplace[0].unit
+
+
+def test_get_nonparametric_measurements_disp_range_in_angstrom(line_spec):
+    """Regression: `disp_range` (observed-frame Angstrom, as for the other
+    measurements) was applied after the conversion to frequency, so it
+    trimmed away the whole spectrum and the function raised ValueError."""
+
+    obs_cen = REST_CEN * (1 + REDSHIFT)
+    full = measurements.get_nonparametric_measurements(line_spec, REST_CEN, REDSHIFT)
+    covering = measurements.get_nonparametric_measurements(
+        line_spec, REST_CEN, REDSHIFT, disp_range=[obs_cen - 100, obs_cen + 100]
+    )
+
+    # A range covering the whole line gives the same velocities.
+    for a, b in zip(full[:5], covering[:5], strict=True):
+        assert a.value == pytest.approx(b.value, abs=5)
+    assert covering[-1] == pytest.approx(REDSHIFT, abs=1e-4)
+
+    # Only the red half of the line: the median velocity is redshifted.
+    red_half = measurements.get_nonparametric_measurements(
+        line_spec, REST_CEN, REDSHIFT, disp_range=[obs_cen, obs_cen + 100]
+    )
+    assert red_half[0].value > 300
+    assert red_half[-1] > REDSHIFT
+
+
+def test_analyze_emission_feature_nonparam_with_disp_range(dispersion):
+    cont = FitComponent("cont", analysis.power_law_at2500)
+    line = FitComponent("CIV", analysis.line_model_gaussian)
+    params = {**cont.create_params(), **line.create_params()}
+    values = {
+        "cont_redsh": REDSHIFT,
+        "cont_amp": CONT_LEVEL,
+        "cont_slope": 0.0,
+        "CIV_redsh": REDSHIFT,
+        "CIV_flux": LINE_FLUX,
+        "CIV_cen": REST_CEN,
+        "CIV_fwhm_km_s": FWHM_KM_S,
+    }
+    for name, param in params.items():
+        param.value = values[name]
+        param.vary = False
+    model = FitModel(components=[cont, line], parameters=params)
+    obs_cen = REST_CEN * (1 + REDSHIFT)
+
+    result = analysis.analyze_emission_feature(
+        model,
+        "CIV",
+        [line],
+        [],
+        REST_CEN,
+        cont_components=[cont],
+        redshift=REDSHIFT,
+        dispersion=dispersion,
+        emfeat_meas=["flux", "nonparam"],
+        disp_range=[obs_cen - 100, obs_cen + 100],
+        cosmology=COSMO,
+        dispersion_unit=DISPERSION_UNIT,
+        fluxden_unit=FLUXDEN_UNIT,
+    )
+
+    assert result["CIV_redsh_v50"] == pytest.approx(REDSHIFT, abs=1e-4)
+    assert abs(result["CIV_v50"].value) < 10

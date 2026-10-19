@@ -225,9 +225,10 @@ def get_nonparametric_measurements(
     flux and then determines the closest dispersion values in velocity space
     to the 5%, 10%, 50%, 90% and 95% total flux ratios.
 
-    The spectrum is converted to flux density per unit frequency and, if
-    `disp_range` is given, trimmed. By default this happens on a copy; with
-    `inplace=True` the input spectrum itself is modified (the v1 behaviour).
+    The spectrum is trimmed to `disp_range` (if given) and then converted
+    to flux density per unit frequency. By default this happens on a copy;
+    with `inplace=True` the input spectrum itself is modified (the v1
+    behaviour).
 
     :param input_spec: Input spectrum
     :type input_spec: speconed.speconed.SpecOneD
@@ -236,7 +237,8 @@ def get_nonparametric_measurements(
     :param redshift: Redshift of the source
     :type redshift: float
     :param disp_range: Observed-frame dispersion range to which the
-        calculation is limited.
+        calculation is limited, in the input spectrum's dispersion unit
+        (e.g. Angstroem), like the `disp_range` of the other measurements.
     :type disp_range: [float, float]
     :param inplace: Modify `input_spec` instead of a copy
     :type inplace: bool
@@ -253,15 +255,16 @@ def get_nonparametric_measurements(
     if not inplace:
         input_spec = input_spec.copy()
 
+    # Trim to disp_range first: it is given in the input dispersion unit,
+    # which no longer applies after the conversion to frequency below.
+    if disp_range is not None:
+        input_spec.trim_dispersion(disp_range, inplace=True)
+
     # Convert input spectrum to frequency
     input_spec.to_fluxden_per_unit_frequency_cgs()
 
     # Total flux
-    flux_total = get_integrated_flux(input_spec, disp_range=disp_range)
-
-    # Trim spectrum to disp_range if not None
-    if disp_range is not None:
-        input_spec.trim_dispersion(disp_range, inplace=True)
+    flux_total = get_integrated_flux(input_spec)
 
     # Calculate velocity dispersion axis
     line_wavel = (1 + redshift) * line_rest_wavel
