@@ -33,3 +33,6 @@ ToDo.txt
 # Claude Code per-user settings
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+
+# Temporary upstream clone used for syncing (delete when done)
+/updated_pkg/
