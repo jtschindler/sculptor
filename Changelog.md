@@ -2,6 +2,14 @@
 
 ## 2026-10-19
 
+### `measurements.calc_integrated_luminosity`: observed-frame `disp_range`
+- Fixed: `disp_range` was applied to the rest-frame spectrum, so an
+  observed-frame range -- the convention of every other measurement and of
+  `analyze_emission_feature` (upstream `v2_dev` 56832f4) -- selected
+  nothing and the line luminosity came out as 0 without any error. The
+  range is now converted to the rest frame before trimming. The same bug is
+  in upstream `v2_dev`'s `specanalysis.calc_integrated_luminosity`.
+
 ### Sync with upstream `v2_dev` (up to a5a1749)
 - New `qso.se_bhmass_db20` (Hbeta single-epoch BH mass) and
   `qso.calc_bolometric_luminosity_db20` (Hbeta bolometric correction),

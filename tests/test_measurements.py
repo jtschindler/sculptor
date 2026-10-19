@@ -140,6 +140,33 @@ def test_calc_integrated_luminosity(line_spec):
     )
 
 
+def test_calc_integrated_luminosity_disp_range_is_observed_frame(line_spec):
+    """Regression: `disp_range` was applied to the rest-frame spectrum, so
+    an observed-frame range (the convention of every other measurement and
+    of `analysis.analyze_emission_feature`) selected nothing and the
+    luminosity came out as 0."""
+
+    obs_cen = REST_CEN * (1 + REDSHIFT)
+    full = measurements.calc_integrated_luminosity(line_spec, REDSHIFT, COSMO)
+    covering = measurements.calc_integrated_luminosity(
+        line_spec, REDSHIFT, COSMO, disp_range=[obs_cen - 100, obs_cen + 100]
+    )
+    red_half = measurements.calc_integrated_luminosity(
+        line_spec, REDSHIFT, COSMO, disp_range=[obs_cen, obs_cen + 100]
+    )
+
+    assert (covering / full).decompose().value == pytest.approx(1.0, rel=1e-3)
+    assert (red_half / full).decompose().value == pytest.approx(0.5, rel=1e-2)
+
+    # Same fraction as the flux over the same (observed-frame) range.
+    flux_frac = measurements.get_integrated_flux(
+        line_spec, disp_range=[obs_cen, obs_cen + 100]
+    ) / measurements.get_integrated_flux(line_spec)
+    assert (red_half / full).decompose().value == pytest.approx(
+        flux_frac.decompose().value, rel=1e-3
+    )
+
+
 def test_calc_apparent_mag_from_fluxden_ab_zero_point():
     wave = 5000 * u.AA
     # Flux density per unit wavelength equivalent to 3631 Jy -> m_AB = 0.

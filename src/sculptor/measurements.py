@@ -346,8 +346,8 @@ def calc_integrated_luminosity(input_spec, redshift, cosmology, disp_range=None)
     :type redshift: float
     :param cosmology: Cosmology as an astropy Cosmology object
     :type cosmology: astropy.cosmology.Cosmology
-    :param disp_range: 2 element list holding the lower and upper dispersion
-        boundaries for the integration
+    :param disp_range: Observed-frame dispersion range (2 element list) to
+        integrate over, like the `disp_range` of the other measurements
     :type disp_range: [float, float]
     :return: Return the integrated luminosity for (dispersion range in) the
         input spectrum.
@@ -366,9 +366,11 @@ def calc_integrated_luminosity(input_spec, redshift, cosmology, disp_range=None)
         fluxden_unit=rest_fluxden.unit,
     )
 
-    # Only integrate part of the model spectrum if disp_range is specified
+    # Only integrate part of the model spectrum if disp_range is specified.
+    # disp_range is observed-frame; the spectrum here is rest-frame.
     if disp_range is not None:
-        rest_frame_spec.trim_dispersion(disp_range, inplace=True)
+        rest_range = np.asarray(disp_range, dtype=float) / (1.0 + redshift)
+        rest_frame_spec.trim_dispersion(rest_range, inplace=True)
 
     # Integrate the model flux
     integrated_line_luminosity = np.trapezoid(
