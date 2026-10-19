@@ -27,6 +27,8 @@ import sculptor_extensions.qso_advanced_models as new_qam
 import sculptor_extensions.Qso_autofit as new_qso_autofit
 from astropy import units as u
 
+from sculptor import analysis as sculptor_analysis
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FGU_DIR = REPO_ROOT / "tests" / "ground_truth" / "fgu"
 SCULPTOR_DATA_DIR = REPO_ROOT / "src" / "sculptor" / "data"
@@ -124,18 +126,21 @@ class _RecordingModel:
 
 # --------------------------------------------------------------------------
 # qso.py -- wholesale-replaced from the fgu source; should match exactly.
+# The power law, Gaussian line and Balmer continuum duplicates were removed
+# from qso.py (review §3); the maintained replacements must reproduce the
+# original functions.
 # --------------------------------------------------------------------------
 
 
-def test_qso_power_law_at_2500_matches_original(original_qso):
+def test_power_law_at2500_matches_original_qso_power_law(original_qso):
     x = np.linspace(1000, 5000, 200)
     orig = original_qso.power_law_at_2500(x, amp=1.5, slope=-1.7, z=2.0)
-    new = new_qso.power_law_at_2500(x, amp=1.5, slope=-1.7, z=2.0)
+    new = sculptor_analysis.power_law_at2500(x, redsh=2.0, amp=1.5, slope=-1.7)
     np.testing.assert_allclose(orig, new, rtol=1e-12)
 
 
-def test_qso_balmer_continuum_model_matches_original(original_qso):
-    x = np.linspace(2000, 4000, 200)
+def test_fast_balmer_continuum_matches_original_qso_balmer(original_qso):
+    x = np.linspace(2000, 14000, 2000)
     kwargs = {
         "z": 2.0,
         "amp_be": 1.0,
@@ -144,16 +149,45 @@ def test_qso_balmer_continuum_model_matches_original(original_qso):
         "lambda_be": 3646.0,
     }
     orig = original_qso.balmer_continuum_model(x, **kwargs)
-    new = new_qso.balmer_continuum_model(x, **kwargs)
+    new = new_qam.fast_balmer_continuum_model(x, **kwargs)
+    assert np.count_nonzero(orig) > 100  # the range spans the Balmer edge
     np.testing.assert_allclose(orig, new, rtol=1e-12)
 
 
-def test_qso_line_model_gaussian_matches_original(original_qso):
+def test_line_model_gaussian_matches_original_qso_gaussian(original_qso):
     x = np.linspace(1500, 1600, 300)
-    kwargs = {"z": 2.0, "flux": 10.0, "cen": 1549.06, "fwhm_km_s": 2000.0}
-    orig = original_qso.line_model_gaussian(x, **kwargs)
-    new = new_qso.line_model_gaussian(x, **kwargs)
+    kwargs = {"flux": 10.0, "cen": 1549.06, "fwhm_km_s": 2000.0}
+    orig = original_qso.line_model_gaussian(x, z=2.0, **kwargs)
+    new = sculptor_analysis.line_model_gaussian(x, redsh=2.0, **kwargs)
     np.testing.assert_allclose(orig, new, rtol=1e-12)
+
+
+def test_qso_duplicates_were_removed():
+    for name in (
+        "power_law_at_2500",
+        "line_model_gaussian",
+        "template_model",
+        "balmer_continuum_model",
+        "power_law_at_2500_plus_fractional_bc",
+    ):
+        assert not hasattr(new_qso, name), name
+
+
+def test_initialise_balmer_without_hol_uses_fast_model():
+    balmer_dict = {
+        par: {"value": value, "vary": False}
+        for par, value in {
+            "z": 2.0,
+            "amp_be": 1.0,
+            "Te": 15000.0,
+            "tau_be": 1.0,
+            "lambda_be": 3646.0,
+        }.items()
+    }
+    comp, params = new_qso_autofit.initialise_balmer_without_hol("BC", balmer_dict)
+
+    assert comp.function is new_qam.fast_balmer_continuum_model
+    assert sorted(params) == sorted(f"BC_{p}" for p in balmer_dict)
 
 
 def test_qso_calc_velocity_shifts_matches_original(original_qso):

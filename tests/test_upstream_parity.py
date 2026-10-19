@@ -33,12 +33,12 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-import sculptor_extensions.qso as new_qso
 import sculptor_extensions.Qso_autofit as new_qso_autofit
 
 import sculptor.component as new_component
 import sculptor.model as new_model
 import sculptor.parameter as new_parameter
+from sculptor import analysis as sculptor_analysis
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 V2_DEV_DIR = REPO_ROOT / "tests" / "ground_truth" / "v2_dev"
@@ -166,20 +166,23 @@ def test_eval_array_resolution_matches_upstream(upstream_model):
 # --------------------------------------------------------------------------
 
 
-def test_qso_uses_standalone_speconed_matching_upstream(upstream_qso):
-    """Both local and upstream should now source `SpecOneD` from the
-    standalone `speconed` package (not the bundled `sculptor.dep_v1` copy).
+def test_template_model_uses_standalone_speconed_matching_upstream(upstream_qso):
+    """Both local and upstream source `SpecOneD` from the standalone
+    `speconed` package (not the bundled `sculptor.dep_v1` copy). Locally,
+    `template_model` now lives in `sculptor.analysis` (removed from
+    `qso.py` as a duplicate, review §3).
     """
     from speconed import speconed as standalone_sod
 
-    assert new_qso.sod is standalone_sod
+    assert sculptor_analysis.sod is standalone_sod
     assert upstream_qso.sod is standalone_sod
 
 
-def test_qso_template_model_matches_upstream_after_speconed_switch(upstream_qso):
-    """Exercise `template_model` (the one function in `qso.py` that uses
-    `sod.SpecOneD`) end-to-end and confirm local's output (now built on the
-    standalone `speconed` package) matches upstream's.
+def test_template_model_matches_upstream_qso_template_model(upstream_qso):
+    """Exercise `template_model` (which uses `sod.SpecOneD`) end-to-end and
+    confirm the maintained `sculptor.analysis.template_model` matches
+    upstream's `qso.template_model` (same model; local `qso.py` copy removed
+    as a duplicate, review §3).
     """
     rng = np.random.default_rng(0)
     templ_disp = np.linspace(4000, 5000, 200)
@@ -197,10 +200,10 @@ def test_qso_template_model_matches_upstream_after_speconed_switch(upstream_qso)
         templ_disp=templ_disp,
         templ_fluxden=templ_fluxden,
     )
-    new = new_qso.template_model(
+    new = sculptor_analysis.template_model(
         x,
         amp=2.0,
-        z=0.05,
+        redsh=0.05,
         fwhm=800.0,
         intr_fwhm=100.0,
         templ_disp=templ_disp,

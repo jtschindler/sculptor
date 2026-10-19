@@ -30,6 +30,7 @@ from sculptor import component as sccomp
 from sculptor import measurements as meas
 from sculptor import prior as scpri
 from sculptor_extensions import qso
+from sculptor_extensions import qso_advanced_models as qam
 
 cmap = tol_colors.rainbow_PuRd
 
@@ -617,7 +618,7 @@ def initialise_balmer_without_hol(prefix, balmer_dict=None):
     :return comp: Balmer continuuum without HOL component
     :return pars: Balmer continuuum without HOL parameters
     """
-    comp = sccomp.FitComponent(prefix, qso.balmer_continuum_model)
+    comp = sccomp.FitComponent(prefix, qam.fast_balmer_continuum_model)
     params = comp.create_params()
 
     if balmer_dict:

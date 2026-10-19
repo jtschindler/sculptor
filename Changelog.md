@@ -2,6 +2,30 @@
 
 ## 2026-10-19
 
+### `sculptor_extensions`: duplicate model functions (review §3)
+- Removed from `qso.py` (code kept in
+  `deprecated/sculptor_extensions/src/sculptor_extensions/qso_duplicates.py`):
+  - `power_law_at_2500`, `line_model_gaussian`, `template_model`: identical
+    to `sculptor.analysis.power_law_at2500` / `line_model_gaussian` /
+    `template_model`, which everything already used. Note the core
+    versions take `redsh` instead of `z` (and a different argument order).
+  - `balmer_continuum_model`, `power_law_at_2500_plus_fractional_bc`: same
+    formulas as `qso_advanced_models.fast_balmer_continuum_model` /
+    `power_law_at_2500_plus_fractional_bc`, which compute the blackbody
+    directly instead of through astropy's `BlackBody` (~7x / ~10x faster;
+    outputs agree to ~1e-15).
+- `Qso_autofit.initialise_balmer_without_hol` now builds its component from
+  `qso_advanced_models.fast_balmer_continuum_model`. Same parameters and
+  output, faster fits.
+- Regression tests now compare the original reference copies
+  (`tests/ground_truth/fgu`, `v2_dev`) against the maintained replacement.
+- Not touched (not duplicates): the `qso.py` [NII]/[SII] doublets have
+  independent fluxes and widths, the `Qso_autofit.py` ones tie the widths
+  and fix the flux ratio. The two Balmer + high-order-lines models
+  (`Qso_autofit.Balmer_continuum_with_hol`,
+  `qso_advanced_models.BalmerContinuumWithHOL`) give different results
+  and are left for a decision.
+
 ### `FitModel.evaluate_parameters` removed
 - It saved one corner plot per parameter pair, but used the pre-1.0
   chainconsumer API and failed on the installed 1.3

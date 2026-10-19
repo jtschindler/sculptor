@@ -298,9 +298,9 @@ def fast_balmer_continuum_model(x, z, amp_be, Te, tau_be, lambda_be):
     not been included in this model and thus it will produce a sharp break at
     the Balmer edge.
 
-    Not wired in as the default Balmer-continuum model anywhere -- available
-    for a maintainer to benchmark/validate against `qso.balmer_continuum_model`
-    before switching a `setup_*`/`initialise_*` function to use it.
+    Used by `Qso_autofit.initialise_balmer_without_hol`. Replaces the former
+    `qso.balmer_continuum_model` (same formula, ~7x faster; matches it to
+    ~1e-15, see `tests/test_qso_extension_port.py`).
 
     :param x: Dispersion of the Balmer continuum
     :type x: np.ndarray
