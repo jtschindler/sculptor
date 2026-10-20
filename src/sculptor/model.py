@@ -122,6 +122,19 @@ def log_probability(theta, x, model, y, yerr):
     return lp + log_likelihood_chi_square(theta, model, x, y, yerr)
 
 
+def _short_runs(mask, max_width):
+    """Keep only the runs of True in `mask` that are at most `max_width`
+    elements long."""
+
+    padded = np.concatenate([[False], mask, [False]])
+    edges = np.flatnonzero(np.diff(padded.astype(int)))
+    out = np.zeros_like(mask)
+    for start, stop in zip(edges[::2], edges[1::2], strict=True):
+        if stop - start <= max_width:
+            out[start:stop] = True
+    return out
+
+
 def _evaluate_single_sample(args):
     """
     Evaluate the model flux for a single parameter sample.
@@ -759,6 +772,7 @@ class FitModel(PickleMixin):
         max_fraction=0.2,
         scale="local",
         window=101,
+        high_max_width=None,
     ):
         """Clip outlying pixels from the fit, given a model fit.
 
@@ -797,6 +811,11 @@ class FitModel(PickleMixin):
         :type scale: str
         :param window: Window of the "local" scale, in fitted pixels
         :type window: int
+        :param high_max_width: Only clip positive outliers in runs of at
+            most this many pixels (hot pixels, cosmic rays), so that the
+            core of an emission line the model does not explain yet is not
+            clipped; None clips all of them
+        :type high_max_width: int
         :return: Whether the clip mask changed
         :rtype: bool
         :raises ValueError: if no spectrum is set, there are no values or
@@ -834,7 +853,10 @@ class FitModel(PickleMixin):
         if low is not None:
             bad |= norm < -low
         if high is not None:
-            bad |= norm > high
+            high_bad = (norm > high) & region
+            if high_max_width is not None:
+                high_bad = _short_runs(high_bad, high_max_width)
+            bad |= high_bad
         bad &= region
         if grow > 0:
             bad = np.convolve(bad, np.ones(2 * grow + 1), mode="same") > 0

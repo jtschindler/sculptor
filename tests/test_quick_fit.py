@@ -438,3 +438,22 @@ def test_sigma_clip_scale_follows_underestimated_errors(fit_model):
 
     with pytest.raises(ValueError, match="scale"):
         fit_model.sigma_clip(scale="mad", values=values)
+
+
+def test_sigma_clip_high_max_width_spares_unmodeled_lines(fit_model):
+    """A one-pixel spike is clipped; a resolved line the model lacks is not."""
+
+    x = fit_model.spec.dispersion
+    fit_model.spec.fluxden[150] += 0.1
+    line = ana.line_model_gaussian(x, 3.227, 3.0, 1430.0, 1500)
+    fit_model.spec.fluxden = fit_model.spec.fluxden + line
+    values = fit_model.run_quick_fit().values
+    core = line > 0.5 * line.max()
+
+    fit_model.sigma_clip(low=None, high=5, values=values, max_fraction=1)
+    assert not fit_model.get_fit_mask()[core].any()
+
+    fit_model.sigma_clip(low=None, high=5, high_max_width=3, values=values)
+    mask = fit_model.get_fit_mask()
+    assert not mask[150]
+    assert mask[core].all()
