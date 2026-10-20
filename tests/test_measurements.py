@@ -312,3 +312,19 @@ def test_analyze_emission_feature_nonparam_with_disp_range(dispersion):
 
     assert result["CIV_redsh_v50"] == pytest.approx(REDSHIFT, abs=1e-4)
     assert abs(result["CIV_v50"].value) < 10
+
+
+def test_get_fwhm_is_unbiased_on_noisy_lines():
+    """The half maximum comes from the smoothed spectrum: the raw maximum of
+    noisy data sits on a noise spike and biased the FWHM low (-8% at S/N 20
+    per pixel)."""
+    disp = np.linspace(5400, 5800, 4001)
+    truth = analysis.line_model_gaussian(disp, 1.0, 50.0, 2798.75, 3000.0)
+    noise = truth.max() / 20
+    fwhms = []
+    for seed in range(10):
+        rng = np.random.default_rng(seed)
+        spec = _spec(disp, truth + rng.normal(0, noise, disp.size))
+        s = disp.size * noise**2  # smoothing from the noise, as in get_fwhm_int_flux
+        fwhms.append(measurements.get_fwhm(spec, s=s).to_value(u.km / u.s))
+    assert np.median(fwhms) == pytest.approx(3000.0, rel=0.02)
