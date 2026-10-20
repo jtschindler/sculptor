@@ -43,7 +43,7 @@ the same model. Both points change fitted values, so decide before fixing:
   1 / (8 ln 2 ln(lambda_max / lambda_min)). The docstring's "same
   amplitude as the input" only holds for one specific range. A fit absorbs
   this in the template amplitude `amp`, but anything derived from `amp`
-  (e.g. the FeII/MgII ratio in `Qso_autofit.get_line_prop_MgII`) depends on
+  (e.g. the FeII/MgII ratio in `qso_autofit.get_line_prop_MgII`) depends on
   which template and wavelength range were used. The upstream
   `Qso_autofit_2.py` fast template skipped the 1/(N dlnlambda) factor and
   was 5.6% higher for the UV template.

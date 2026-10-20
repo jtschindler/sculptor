@@ -1154,7 +1154,7 @@ def __getattr__(name):
         import warnings
 
         warnings.warn(
-            f"`Qso_autofit.{name}` was renamed to `{RENAMED[name]}`",
+            f"`qso_autofit.{name}` was renamed to `{RENAMED[name]}`",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -1166,7 +1166,7 @@ def __getattr__(name):
 
         new_name = qso_presets.RENAMED.get(name, name)
         warnings.warn(
-            f"`Qso_autofit.{name}` moved to "
+            f"`qso_autofit.{name}` moved to "
             f"`sculptor_extensions.qso_presets.{new_name}`",
             DeprecationWarning,
             stacklevel=2,

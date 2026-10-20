@@ -6,7 +6,7 @@ analysis of type-I QSOs (quasars, type-I AGN).
 Complex models can be constructed by combining multiple of the basic model
 functions defined here (e.g. the Hbeta and [OIII] lines consisting of six
 Gaussian emission lines) using `sculptor.component.FitComponent` /
-`sculptor.model.FitModel`; see `sculptor_extensions.Qso_autofit` for the
+`sculptor.model.FitModel`; see `sculptor_extensions.qso_autofit` for the
 `initialize_*` functions that wire these model functions into fit
 components.
 

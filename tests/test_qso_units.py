@@ -1,5 +1,5 @@
 """Tests that the `sculptor_extensions.qso` scaling relations and the
-`Qso_autofit` line-property functions require astropy Quantities, convert
+`qso_autofit` line-property functions require astropy Quantities, convert
 compatible units, and store results in fixed units.
 """
 
@@ -9,8 +9,8 @@ from astropy import units as u
 from speconed import speconed as sod
 
 from sculptor import measurements
-from sculptor_extensions import Qso_autofit as qa
 from sculptor_extensions import qso
+from sculptor_extensions import qso_autofit as qa
 
 KM_S = u.km / u.s
 LWAV = u.erg / u.s / u.AA

@@ -1,4 +1,4 @@
-"""Tests for the base functions in `Qso_autofit` / `qso` / `qso_advanced_models`
+"""Tests for the base functions in `qso_autofit` / `qso` / `qso_advanced_models`
 and their named variants in `sculptor_extensions.qso_presets`."""
 
 import inspect
@@ -11,9 +11,9 @@ from sculptor_extensions.component_setup import initialize_component
 from sculptor import analysis as ana
 from sculptor.model import FitModel
 from sculptor.prior import UniformPrior
-from sculptor_extensions import Qso_autofit as qa
 from sculptor_extensions import qso, qso_presets
 from sculptor_extensions import qso_advanced_models as qam
+from sculptor_extensions import qso_autofit as qa
 
 KM_S = u.km / u.s
 
@@ -267,3 +267,22 @@ def test_broadshifted_components_and_old_spellings():
     messages = " ".join(str(w.message) for w in record)
     assert "MgII_broadshifted" in messages and '"broadshifted"' in messages
     assert [c.name for c in model.components][-1] == "MgII_broadshifted_a"
+
+
+def test_old_module_name_still_imports():
+    import importlib
+    import pickle
+    import sys
+
+    sys.modules.pop("sculptor_extensions.Qso_autofit", None)
+    with pytest.warns(DeprecationWarning, match="qso_autofit"):
+        old = importlib.import_module("sculptor_extensions.Qso_autofit")
+    assert old is qa
+
+    # A fit saved before the rename refers to the old module path.
+    data = pickle.dumps(qa.line_model_gaussian_NII_doublet)
+    old_data = data.replace(
+        b"sculptor_extensions.qso_autofit", b"sculptor_extensions.Qso_autofit"
+    )
+    assert old_data != data
+    assert pickle.loads(old_data) is qa.line_model_gaussian_NII_doublet

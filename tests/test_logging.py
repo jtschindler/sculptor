@@ -55,8 +55,8 @@ def test_info_to_stdout_warning_to_stderr(capsys):
 
 
 def test_extensions_logger_is_configured_too(capsys):
-    logging.getLogger("sculptor_extensions.Qso_autofit").info("hello")
-    assert "sculptor_extensions.Qso_autofit - INFO: hello" in capsys.readouterr().out
+    logging.getLogger("sculptor_extensions.qso_autofit").info("hello")
+    assert "sculptor_extensions.qso_autofit - INFO: hello" in capsys.readouterr().out
 
 
 def test_repeated_calls_do_not_duplicate_handlers(capsys):

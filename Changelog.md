@@ -2,6 +2,14 @@
 
 ## 2026-10-20 (conventions)
 
+- **Renamed module** `sculptor_extensions.Qso_autofit` ->
+  `sculptor_extensions.qso_autofit` (lowercase like the other modules; it
+  was kept for parity with upstream's file name). `import
+  sculptor_extensions.Qso_autofit` still works with a DeprecationWarning,
+  and fits saved with the old module path still load (import hook in
+  `sculptor_extensions/__init__.py`; a second file differing only in case
+  is not possible on case-insensitive file systems). Older Changelog
+  entries keep the old name.
 - **American spelling** throughout the code and docstrings. Renamed (the old
   names still work, with a DeprecationWarning; `Qso_autofit.RENAMED`):
   `initialise_power_law`, `initialise_Fe`, `initialise_Fe_fast`,

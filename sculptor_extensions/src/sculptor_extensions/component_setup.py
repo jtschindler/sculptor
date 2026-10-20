@@ -1,6 +1,6 @@
 """Build a fit component and its parameters from a parameter dictionary.
 
-Every `initialize_*` function in `Qso_autofit` and `qso_advanced_models`
+Every `initialize_*` function in `qso_autofit` and `qso_advanced_models`
 is `initialize_component` with a different model function.
 """
 

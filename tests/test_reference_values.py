@@ -1,5 +1,5 @@
 """The maintained models and relations reproduce the original code they were
-ported from: the `fgu` reference copies (`qso.py`, `Qso_autofit.py`,
+ported from: the `fgu` reference copies (`qso.py`, `qso_autofit.py`,
 `out.py`) and upstream `v2_dev` (a5a1749).
 
 The original outputs are stored in `tests/data/reference_values.npz`; see
@@ -18,9 +18,9 @@ import sculptor.component as sccomp
 import sculptor.parameter as scpar
 from sculptor import analysis as ana
 from sculptor.model import FitModel
-from sculptor_extensions import Qso_autofit as qa
 from sculptor_extensions import qso, qso_presets
 from sculptor_extensions import qso_advanced_models as qam
+from sculptor_extensions import qso_autofit as qa
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 KM_S = u.km / u.s

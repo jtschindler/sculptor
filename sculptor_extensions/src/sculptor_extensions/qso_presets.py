@@ -1,15 +1,15 @@
 """Ready-made QSO fit setups and line-property calculations.
 
 Each function here is a named variant of a base function in
-`sculptor_extensions.Qso_autofit`, with the template file, wavelength
+`sculptor_extensions.qso_autofit`, with the template file, wavelength
 range, emission line or scaling relations filled in:
 
-- `setup_iron_template_<name>`: `Qso_autofit.setup_iron_template` for one
+- `setup_iron_template_<name>`: `qso_autofit.setup_iron_template` for one
   iron template and wavelength range.
-- `setup_<line>_lines`: `Qso_autofit.add_line_components` for the narrow,
+- `setup_<line>_lines`: `qso_autofit.add_line_components` for the narrow,
   broad, ... components of one emission line (or line complex).
 - `get_line_prop_<line>`:
-  `Qso_autofit.get_line_properties` for one line and its BH-mass relations.
+  `qso_autofit.get_line_properties` for one line and its BH-mass relations.
 
 To add a variant, call the base function with your own settings.
 """
@@ -21,17 +21,17 @@ import warnings
 import numpy as np
 from astropy import units as u
 
-from sculptor_extensions import Qso_autofit as qa
 from sculptor_extensions import qso
+from sculptor_extensions import qso_autofit as qa
 
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
-# Iron templates (`Qso_autofit.setup_iron_template`)
+# Iron templates (`qso_autofit.setup_iron_template`)
 # ------------------------------------------------------------------------------
 
 # Iron is fit in the same windows as the continuum/power law. All arguments
-# are passed on to `Qso_autofit.setup_iron_template` (see there for
+# are passed on to `qso_autofit.setup_iron_template` (see there for
 # `fe_dict` and `fast`). Flux values of the templates are in units of
 # 1e-17 erg/s/cm2 after the default scaling.
 
@@ -47,7 +47,7 @@ def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None, fast=True
         the template to. Defaults to the full template range.
     :type disp_range: list
     :param fe_dict: iron template parameters, see
-        `Qso_autofit.setup_iron_template`
+        `qso_autofit.setup_iron_template`
     :type fe_dict: dict
     :param fast: use `TemplateModel` (default) instead of `template_model`
     :type fast: bool
@@ -67,7 +67,7 @@ def setup_iron_template_VW01_FUV(prefix, fe_dict=None, fast=True):
     :param prefix: component prefix
     :type prefix: str
     :param fe_dict: iron template parameters, see
-        `Qso_autofit.setup_iron_template`
+        `qso_autofit.setup_iron_template`
     :type fe_dict: dict
     :param fast: use `TemplateModel` (default) instead of `template_model`
     :type fast: bool
@@ -83,14 +83,14 @@ def setup_iron_template_VW01_CIV(prefix, fe_dict=None, fast=True):
     """
     Setup the part of the Vestergaard & Wilkes 2001 iron template around
     the CIV emission line, 1300 - 1800 Å. This covers all windows of
-    `Qso_autofit.qso_contfe_CIV_Shen11` (1340 - 1705 Å, including the
+    `qso_autofit.qso_contfe_CIV_Shen11` (1340 - 1705 Å, including the
     1340 - 1375 Å window for L1350); an older docstring said 1440 - 1710 Å
     (the span of the Shen et al. 2011 CIV windows alone). To be confirmed.
 
     :param prefix: component prefix
     :type prefix: str
     :param fe_dict: iron template parameters, see
-        `Qso_autofit.setup_iron_template`
+        `qso_autofit.setup_iron_template`
     :type fe_dict: dict
     :param fast: use `TemplateModel` (default) instead of `template_model`
     :type fast: bool
@@ -110,7 +110,7 @@ def setup_iron_template_VW01_UV_MgII(prefix, fe_dict=None, fast=True):
     :param prefix: component prefix
     :type prefix: str
     :param fe_dict: iron template parameters, see
-        `Qso_autofit.setup_iron_template`
+        `qso_autofit.setup_iron_template`
     :type fe_dict: dict
     :param fast: use `TemplateModel` (default) instead of `template_model`
     :type fast: bool
@@ -130,7 +130,7 @@ def setup_iron_template_VW01_Fe3(prefix, fe_dict=None, fast=True):
     :param prefix: component prefix
     :type prefix: str
     :param fe_dict: iron template parameters, see
-        `Qso_autofit.setup_iron_template`
+        `qso_autofit.setup_iron_template`
     :type fe_dict: dict
     :param fast: use `TemplateModel` (default) instead of `template_model`
     :type fast: bool
@@ -151,7 +151,7 @@ def setup_iron_template_BG92_OPT(prefix, disp_range=None, fe_dict=None, fast=Tru
         the template to. Defaults to the full template range.
     :type disp_range: list
     :param fe_dict: iron template parameters, see
-        `Qso_autofit.setup_iron_template`
+        `qso_autofit.setup_iron_template`
     :type fe_dict: dict
     :param fast: use `TemplateModel` (default) instead of `template_model`
     :type fast: bool
@@ -171,7 +171,7 @@ def setup_iron_template_BG92_OPT_Hbeta(prefix, fe_dict=None, fast=True):
     :param prefix: component prefix
     :type prefix: str
     :param fe_dict: iron template parameters, see
-        `Qso_autofit.setup_iron_template`
+        `qso_autofit.setup_iron_template`
     :type fe_dict: dict
     :param fast: use `TemplateModel` (default) instead of `template_model`
     :type fast: bool
@@ -194,7 +194,7 @@ def setup_iron_template_Tsuz_UV(prefix, disp_range=None, fe_dict=None, fast=True
         the template to. Defaults to [2200, 3500].
     :type disp_range: list
     :param fe_dict: iron template parameters, see
-        `Qso_autofit.setup_iron_template`
+        `qso_autofit.setup_iron_template`
     :type fe_dict: dict
     :param fast: use `TemplateModel` (default) instead of `template_model`
     :type fast: bool
@@ -218,7 +218,7 @@ def setup_iron_template_Tsuz_OPT(prefix, disp_range=None, fe_dict=None, fast=Tru
         the template to. Defaults to [3500, max].
     :type disp_range: list
     :param fe_dict: iron template parameters, see
-        `Qso_autofit.setup_iron_template`
+        `qso_autofit.setup_iron_template`
     :type fe_dict: dict
     :param fast: use `TemplateModel` (default) instead of `template_model`
     :type fast: bool
@@ -239,7 +239,7 @@ def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None, fast=True):
     :param prefix: component prefix
     :type prefix: str
     :param fe_dict: iron template parameters, see
-        `Qso_autofit.setup_iron_template`
+        `qso_autofit.setup_iron_template`
     :type fe_dict: dict
     :param fast: use `TemplateModel` (default) instead of `template_model`
     :type fast: bool
@@ -252,7 +252,7 @@ def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None, fast=True):
 
 
 # ------------------------------------------------------------------------------
-# Emission lines (`Qso_autofit.add_line_components`)
+# Emission lines (`qso_autofit.add_line_components`)
 # ------------------------------------------------------------------------------
 
 
@@ -264,8 +264,8 @@ def _renamed_kwarg(old, new, value):
 
 # All `setup_<line>_lines` functions take the spectrum (unused, kept for a
 # uniform signature), the emission line dictionary (see
-# `Qso_autofit.initialize_gaussian_line_model` and
-# `Qso_autofit.create_emission_line_dict`), the number of components of
+# `qso_autofit.initialize_gaussian_line_model` and
+# `qso_autofit.create_emission_line_dict`), the number of components of
 # each kind, and the model to add the components to.
 
 
@@ -473,14 +473,14 @@ def setup_OI_lines(spec, line_dict, OI_broad=1, model=None):
 
 
 # ------------------------------------------------------------------------------
-# Line properties (`Qso_autofit.get_line_properties`)
+# Line properties (`qso_autofit.get_line_properties`)
 # ------------------------------------------------------------------------------
 
 
 def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name):
     """
     Calculate AGN properties from the MgII line measurements of a fit (see
-    `Qso_autofit.get_line_properties` for the columns), with the
+    `qso_autofit.get_line_properties` for the columns), with the
     continuum luminosity at 3000 Å. The BH-mass relation depends on the
     iron template used: Shen et al. 2011 ("_s11") for the Tsuzuki 2006 or
     Vestergaard & Wilkes 2001 template, and Vestergaard & Osmer 2009
@@ -493,7 +493,7 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
     :param redshift: redshift of the source
     :type redshift: float
     :param param_name_dict: column name prefixes in `df`, as for
-        `Qso_autofit.get_line_properties` ("fwhm": "MgII_fwhm",
+        `qso_autofit.get_line_properties` ("fwhm": "MgII_fwhm",
         "luminosity": "L3000", "redshift": "MgII_redsh"), plus
         "fe_amp" ("FeII_amp") and "peak_flux" ("MgII_broad_flux") for the
         FeII/MgII ratio
@@ -546,7 +546,7 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
 def get_line_prop_CIV(df, redshift, param_name_dict, save_dir=None, source=None):
     """
     Calculate AGN properties from the CIV line measurements of a fit (see
-    `Qso_autofit.get_line_properties` for the columns), with the
+    `qso_autofit.get_line_properties` for the columns), with the
     continuum luminosity at 1350 Å and the Vestergaard & Peterson 2006
     BH-mass relation ("_vp06").
 
@@ -561,7 +561,7 @@ def get_line_prop_CIV(df, redshift, param_name_dict, save_dir=None, source=None)
     :param redshift: reference (systemic) redshift of the source
     :type redshift: float
     :param param_name_dict: column name prefixes in `df`, as for
-        `Qso_autofit.get_line_properties` (e.g. "CIV_fwhm", "L1350",
+        `qso_autofit.get_line_properties` (e.g. "CIV_fwhm", "L1350",
         "CIV_redsh")
     :type param_name_dict: dict
     :param save_dir: if given, also write `<save_dir>/<source>_results_CIV.csv`
@@ -597,7 +597,7 @@ def get_line_prop_Hbeta_OIII(
 ):
     """
     Calculate AGN properties from the Hbeta line measurements of a fit (see
-    `Qso_autofit.get_line_properties` for the columns), with the
+    `qso_autofit.get_line_properties` for the columns), with the
     continuum luminosity at 5100 Å and the Vestergaard & Peterson 2006
     BH-mass relation (no column tag, e.g. "Hbeta_BH_mass_5100").
 
@@ -606,7 +606,7 @@ def get_line_prop_Hbeta_OIII(
     :param redshift: redshift of the source
     :type redshift: float
     :param param_name_dict: column name prefixes in `df`, as for
-        `Qso_autofit.get_line_properties` (e.g. "Hbeta_fwhm", "L5100",
+        `qso_autofit.get_line_properties` (e.g. "Hbeta_fwhm", "L5100",
         "Hbeta_redsh")
     :type param_name_dict: dict
     :param save_dir: unused; kept so existing calls keep working

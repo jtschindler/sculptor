@@ -107,7 +107,7 @@ class UniformPrior(Prior):
         """
 
         # Computed per call: the bounds may be changed after creation (e.g. by
-        # `Qso_autofit.create_emission_line_dict`).
+        # `qso_autofit.create_emission_line_dict`).
         if isinstance(x, (float, int, np.number)):  # fast path, per likelihood call
             if self.low <= x <= self.upp:
                 return -math.log(self.upp - self.low)

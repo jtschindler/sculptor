@@ -13,9 +13,9 @@ from astropy import units as u
 from sculptor import analysis as ana
 from sculptor.component import FitComponent
 from sculptor.model import FitModel
-from sculptor_extensions import Qso_autofit as qa
 from sculptor_extensions import qso, qso_presets
 from sculptor_extensions import qso_advanced_models as qam
+from sculptor_extensions import qso_autofit as qa
 
 KM_S = u.km / u.s
 QAM_PATH = Path(qam.__file__)

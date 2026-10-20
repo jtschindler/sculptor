@@ -1,5 +1,5 @@
 """Fit helpers and plots that had no tests: the extincted / scattered power
-laws, the `Qso_autofit` chain helpers and line priors, and the posterior
+laws, the `qso_autofit` chain helpers and line priors, and the posterior
 plots of `FitModel`."""
 
 import matplotlib
@@ -11,7 +11,7 @@ from speconed import speconed as sod
 
 from sculptor import analysis as ana
 from sculptor.prior import UniformPrior
-from sculptor_extensions import Qso_autofit as qa
+from sculptor_extensions import qso_autofit as qa
 
 matplotlib.use("Agg")
 

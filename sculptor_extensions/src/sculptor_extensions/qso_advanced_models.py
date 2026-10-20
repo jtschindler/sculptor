@@ -2,7 +2,7 @@
 
 A Balmer-continuum model that includes the higher-order Balmer lines (HOL)
 blending into a pseudo-continuum (used by
-``Qso_autofit.initialize_balmer``), faster versions of the plain Balmer
+``qso_autofit.initialize_balmer``), faster versions of the plain Balmer
 continuum and of the power law + fractional Balmer continuum, and a
 Voigt-profile damping-wing absorption model (e.g. intervening/associated
 Lya absorption). The HOL model reads
@@ -280,7 +280,7 @@ def fast_balmer_continuum_model(x, redsh, amp_be, Te, tau_be, lambda_be):
     not been included in this model and thus it will produce a sharp break at
     the Balmer edge.
 
-    Used by `Qso_autofit.initialize_balmer_without_hol`. Replaces the former
+    Used by `qso_autofit.initialize_balmer_without_hol`. Replaces the former
     `qso.balmer_continuum_model` (same formula, ~7x faster; matches it to
     ~1e-15, see `tests/test_qso_extension_port.py`).
 
