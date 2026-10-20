@@ -183,7 +183,7 @@ class TemplateModel:
     `redsh`, `amp`, `fwhm` and `intr_fwhm` (as for `template_model`).
     Instances can be pickled (for `FitModel.save` and `pool=`).
 
-    The output reproduces `template_model`, including its normalisation,
+    The output reproduces `template_model`, including its normalization,
     which comes from `speconed`'s `SpecOneD.broaden_by_gaussian`: the
     convolution is divided by the number of template pixels and by
     (2 sqrt(2 ln 2))^2, so the amplitude scale depends on the template's
@@ -200,7 +200,7 @@ class TemplateModel:
     `template_model` to ~1e-12 (odd) / ~2e-3 (even pixel count) of the peak.
 
     Ported from the upstream `qso_auto_fit` branch (`Qso_autofit_2.py`,
-    3b85394), with the normalisation matched to `template_model` (the
+    3b85394), with the normalization matched to `template_model` (the
     original was ~5.6% higher for the UV iron template) and without
     `SpecOneD`'s private `_to_log_wavelength`.
 
@@ -264,8 +264,8 @@ class TemplateModel:
             cval=0.0,
             truncate=8.0,
         )
-        # SpecOneD.broaden_by_gaussian's normalisation: its kernel is the
-        # normalised Gaussian sampled on the grid (sum ~ 1/dlnlambda), and
+        # SpecOneD.broaden_by_gaussian's normalization: its kernel is the
+        # normalized Gaussian sampled on the grid (sum ~ 1/dlnlambda), and
         # the convolution is divided by the number of pixels and (8 ln 2).
         kernel_sum = np.sum(np.exp(-0.5 * (self._kernel_offsets / sigma_log) ** 2)) / (
             np.sqrt(2 * np.pi) * sigma_log
@@ -329,7 +329,7 @@ def line_model_gaussian(x, redsh, flux, cen, fwhm_km_s, **kwargs):
 def _default_axis(model, dispersion, dispersion_unit, fluxden_unit):
     """Default the analysis axis and units to the model's spectrum."""
     if dispersion is None:
-        model._require_spectrum("analyse the model without `dispersion`")
+        model._require_spectrum("analyze the model without `dispersion`")
         dispersion = model.spec.dispersion
         dispersion_unit = dispersion_unit or model.spec.dispersion_unit
         fluxden_unit = fluxden_unit or model.spec.fluxden_unit
@@ -380,7 +380,7 @@ def analyze_mcmc_results(
     a_v=None,
     ext_law="calzetti00",
 ):
-    """Analyse the continuum and emission features for every posterior sample.
+    """Analyze the continuum and emission features for every posterior sample.
 
     :param model: Fitted model
     :type model: sculptor.model.FitModel
@@ -791,7 +791,7 @@ def get_line_snr(model, flat_chain, cont_component, redshift, line_dict, sigma=2
     For each sample the continuum model is subtracted from the observed
     spectrum and, for each line, the flux and the peak are compared with
     the uncertainties within a window of +-`sigma` Gaussian sigmas (from
-    that sample's FWHM) around the line centre, unless a fixed window is
+    that sample's FWHM) around the line center, unless a fixed window is
     given.
 
     :param model: Fitted model (its `spec` is used)
@@ -802,7 +802,7 @@ def get_line_snr(model, flat_chain, cont_component, redshift, line_dict, sigma=2
     :type cont_component: sculptor.component.FitComponent
     :param redshift: Redshift, to place the rest-frame window
     :type redshift: float
-    :param line_dict: Line name -> {"cen": rest-frame centre,
+    :param line_dict: Line name -> {"cen": rest-frame center,
         "fwhm": FWHM in km/s per sample, "l_min"/"l_max": fixed rest-frame
         window bounds or None}
     :type line_dict: dict

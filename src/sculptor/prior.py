@@ -97,7 +97,7 @@ class UniformPrior(Prior):
     def logprior(self, x):
         """Log prior at `x`, up to a constant: 0 inside the interval, -inf outside.
 
-        Unnormalised (the -ln(upp - low) is left out), unlike
+        Unnormalized (the -ln(upp - low) is left out), unlike
         `GaussianPrior.logprior`; this does not matter for MCMC, but does for
         an evidence (nested sampling).
 
@@ -143,7 +143,7 @@ class GaussianPrior(Prior):
         super().__init__(name, "gaussian", mean=mean, sigma=sigma)
 
     def evaluate(self, x):
-        """Normalised probability density at `x`.
+        """Normalized probability density at `x`.
 
         :param x: Parameter value
         :type x: float or np.ndarray
@@ -154,7 +154,7 @@ class GaussianPrior(Prior):
         )
 
     def logprior(self, x):
-        """Normalised log probability density at `x`.
+        """Normalized log probability density at `x`.
 
         :param x: Parameter value
         :type x: float or np.ndarray

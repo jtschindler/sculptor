@@ -1,9 +1,9 @@
-"""Plot colours and matplotlib style defaults.
+"""Plot colors and matplotlib style defaults.
 
-Colours come from Paul Tol's colour-blind-safe schemes (`tol-colors`
+Colors come from Paul Tol's color-blind-safe schemes (`tol-colors`
 package) by default. Set the environment variable `SCULPTOR_PALETTE` to
 `okabe-ito` before importing sculptor to use the Okabe & Ito palette the
-plots used before. The colour names (`dblue`, `vermillion`, ...) are the
+plots used before. The color names (`dblue`, `vermillion`, ...) are the
 same in both palettes.
 """
 
@@ -63,7 +63,7 @@ dblue = _colors["dblue"]
 vermillion = _colors["vermillion"]
 purple = _colors["purple"]
 
-# Colour map for model components (Tol rainbow, in both palettes)
+# Color map for model components (Tol rainbow, in both palettes)
 component_cmap = tol_colors.rainbow_PuRd
 
 

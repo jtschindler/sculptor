@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-10-20 (conventions)
+
+- **American spelling** throughout the code and docstrings. Renamed (the old
+  names still work, with a DeprecationWarning; `Qso_autofit.RENAMED`):
+  `initialise_power_law`, `initialise_Fe`, `initialise_Fe_fast`,
+  `initialise_balmer_without_hol`, `initialise_balmer`,
+  `initialise_gaussian_line_model` -> `initialize_*`;
+  `qso_advanced_models.initialise_balmer_with_hol` ->
+  `initialize_balmer_with_hol`; `component_setup.initialise_component` ->
+  `initialize_component` (new this session, no alias).
+- **`broadshifted`** for all velocity-shifted broad components:
+  `setup_MgII_lines(MgII_broadshifted=)`,
+  `setup_Hbeta_OIII_lines(Hbeta_broadshifted=)`, line_dict key
+  `"broadshifted"`, components `<line>_broadshifted_a`, ... The old keywords
+  (`MgII_broad_shifted`, `Hbeta_broad_shifted`) and a line_dict with
+  `"broad_shifted"` still work, with a DeprecationWarning; components are
+  named `..._broadshifted_...` either way.
+- **Behavior change**: 1-sigma intervals use the 15.87 / 84.13 percentiles
+  everywhere (`sculptor.utils.SIGMA_PERCENTILES`); `get_1sigma_range`,
+  `get_median_params` and `plot_posterior_param_histograms` used
+  15.9 / 84.1.
+- **Behavior change**: `get_median_params` and `get_sampled_values` default
+  to `discard=2000` like `FitModel` (it was 0), with a one-time warning when
+  `discard` is not given.
+- `setup_iron_template_VW01_CIV`: kept 1300 - 1800 Å (covers the
+  `qso_contfe_CIV_Shen11` windows), to be confirmed.
+
 ## 2026-10-20 (review fixes)
 
 ### Tests no longer need the reference copies

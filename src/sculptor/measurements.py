@@ -240,7 +240,7 @@ def get_nonparametric_measurements(
     The spectrum is trimmed to `disp_range` (if given) and then converted
     to flux density per unit frequency. By default this happens on a copy;
     with `inplace=True` the input spectrum itself is modified (the v1
-    behaviour).
+    behavior).
 
     :param input_spec: Input spectrum
     :type input_spec: speconed.speconed.SpecOneD

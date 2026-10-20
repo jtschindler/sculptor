@@ -7,7 +7,7 @@ Complex models can be constructed by combining multiple of the basic model
 functions defined here (e.g. the Hbeta and [OIII] lines consisting of six
 Gaussian emission lines) using `sculptor.component.FitComponent` /
 `sculptor.model.FitModel`; see `sculptor_extensions.Qso_autofit` for the
-`initialise_*` functions that wire these model functions into fit
+`initialize_*` functions that wire these model functions into fit
 components.
 
 """
@@ -268,7 +268,7 @@ def CIII_complex_model_func(
     The width of the line is set by the FWHM in km/s.
 
     The Gaussians are normalized (`analysis.line_model_gaussian`); each
-    line's centre is shifted by its velocity shift.
+    line's center is shifted by its velocity shift.
 
     :param x: Dispersion of the template model
     :type x: np.ndarray

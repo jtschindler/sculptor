@@ -2,7 +2,7 @@
 
 - One chain accessor (`get_flat_chain`) used by every method.
 - A model with only a `flat_chain` (no sampler, `nsteps`/`nwalkers` None)
-  can be analysed and plotted.
+  can be analyzed and plotted.
 - Clear errors when no spectrum is set (used to be `AttributeError` or a
   silent no-op).
 - Per-component posterior curves go through the same helper (and pool) as

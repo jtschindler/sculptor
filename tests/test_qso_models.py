@@ -1,4 +1,4 @@
-"""Behaviour of the QSO model setups, relations and line-property functions
+"""Behavior of the QSO model setups, relations and line-property functions
 in `sculptor_extensions` (comparisons with the original code are in
 `test_reference_values.py`)."""
 
@@ -47,14 +47,14 @@ def _fixed(**values):
 )
 def test_doublet_switch_tied_by_default(prefix, tied_func, untied_func, ratio):
     tied_dict = _fixed(redsh=0.1, flux=5.0, fwhm_km_s=300.0, fluxratio=ratio)
-    comp, params = qa.initialise_gaussian_line_model(prefix, tied_dict)
+    comp, params = qa.initialize_gaussian_line_model(prefix, tied_dict)
     assert comp.function is tied_func
     assert sorted(params) == sorted(f"{prefix}_{p}" for p in tied_dict)
 
     untied_dict = _fixed(
         redsh=0.1, flux_a=5.0, flux_b=5.0 * ratio, fwhm_km_s_a=300.0, fwhm_km_s_b=300.0
     )
-    comp_u, params_u = qa.initialise_gaussian_line_model(
+    comp_u, params_u = qa.initialize_gaussian_line_model(
         prefix, untied_dict, tied_doublet=False
     )
     assert comp_u.function is untied_func
@@ -76,15 +76,15 @@ BALMER = {
 }
 
 
-def test_initialise_balmer_without_hol_uses_fast_model():
-    comp, params = qa.initialise_balmer_without_hol("BC", _fixed(**BALMER))
+def test_initialize_balmer_without_hol_uses_fast_model():
+    comp, params = qa.initialize_balmer_without_hol("BC", _fixed(**BALMER))
     assert comp.function is qam.fast_balmer_continuum_model
     assert sorted(params) == sorted(f"BC_{p}" for p in BALMER)
 
 
-def test_initialise_balmer_builds_the_hol_model():
+def test_initialize_balmer_builds_the_hol_model():
     values = dict(BALMER, redsh=0.0, fwhm=2000.0)
-    comp, params = qa.initialise_balmer("BC", None, _fixed(**values))
+    comp, params = qa.initialize_balmer("BC", None, _fixed(**values))
     assert isinstance(comp.function, qam.BalmerContinuumWithHOL)
     assert sorted(params) == sorted(f"BC_{p}" for p in values)
 

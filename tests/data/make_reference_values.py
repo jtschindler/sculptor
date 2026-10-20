@@ -10,7 +10,8 @@ The QSO models were ported from two reference copies, which were kept in
   `v2_dev` at a5a1749.
 
 `tests/test_reference_values.py` compares the maintained code with the values
-written here, so the tests no longer need those copies. To regenerate, check
+written here (the 1-sigma helpers are not compared: they use the 15.87 / 84.13
+percentiles since 2026-10-20, the originals 15.9 / 84.1), so the tests no longer need those copies. To regenerate, check
 out the copies from commit 70a5f7e (`git checkout 70a5f7e -- tests/ground_truth`),
 provide the v1 modules in `deprecated/src/sculptor/`, and run
 
@@ -115,8 +116,6 @@ INPUTS = {
         "intr_fwhm": 100.0,
     },
     "db20": {"fwhm": 4500.0, "lwav": 3e42, "virial_factors": [1.0, 4.3]},
-    "sigma_range_seed": 0,
-    "median_params_seed": 1,
     "iron_setups": [
         "setup_iron_template_VW01_UV",
         "setup_iron_template_BG92_OPT",
@@ -134,12 +133,6 @@ def template_inputs():
         size=templ_disp.size
     )
     return templ_disp, templ_fluxden
-
-
-def median_params_chain():
-    """Chain for the `get_median_params` comparison."""
-    rng = np.random.default_rng(INPUTS["median_params_seed"])
-    return rng.normal(loc=[1.0, 2.0], scale=[0.1, 0.5], size=(2000, 2))
 
 
 def _z(kwargs):
@@ -219,22 +212,6 @@ def main():
     ).to_value(KM_S)
 
     # fgu Qso_autofit.py
-    data = np.random.default_rng(i["sigma_range_seed"]).normal(size=5000)
-    ref["sigma_range__median_low_upp"] = np.array(qa.get_1sigma_range(data))
-    chain = median_params_chain()
-
-    class _Sampler:
-        def get_chain(self, discard=0, thin=1, flat=True):
-            return chain[discard:]
-
-    class _Model:
-        def __init__(self):
-            self.sampler = _Sampler()
-            self.params_variable = {"amp": None, "slope": None}
-
-    medians = qa.get_median_params(_Model(), discard=0)
-    ref["median_params__keys"] = np.array(list(medians))
-    ref["median_params__values"] = np.array(list(medians.values()))
     d = i["doublet"]
     ref["nii_doublet__y"] = qa.line_model_gaussian_NII_doublet(
         d["x"], d["redsh"], d["flux"], d["fwhm_km_s"], 2.96
@@ -249,7 +226,7 @@ def main():
         captured["disp"], captured["flux"] = disp, flux
         return None, None
 
-    qa.initialise_Fe = _capture
+    qa.initialize_Fe = _capture
     for name in i["iron_setups"]:
         getattr(qa, name)("Fe")
         ref[f"iron_{name}__disp"] = captured["disp"]
@@ -273,7 +250,7 @@ def main():
             self[key] = _AnyDict()
             return self[key]
 
-    qa.initialise_gaussian_line_model = _stub
+    qa.initialize_gaussian_line_model = _stub
     rec = _Recorder()
     qa.setup_MgII_lines(None, _AnyDict(), narrow=True, MgII_broad=2, model=rec)
     ref["setup_mgii__components"] = np.array(rec.names)

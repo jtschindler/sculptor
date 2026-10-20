@@ -1,5 +1,5 @@
-"""Tests for `sculptor.analysis.TemplateModel` and `initialise_Fe_fast`
-(ported from upstream `qso_auto_fit`, normalisation matched to
+"""Tests for `sculptor.analysis.TemplateModel` and `initialize_Fe_fast`
+(ported from upstream `qso_auto_fit`, normalization matched to
 `template_model`)."""
 
 import pickle

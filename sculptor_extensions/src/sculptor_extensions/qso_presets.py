@@ -82,7 +82,10 @@ def setup_iron_template_VW01_FUV(prefix, fe_dict=None, fast=True):
 def setup_iron_template_VW01_CIV(prefix, fe_dict=None, fast=True):
     """
     Setup the part of the Vestergaard & Wilkes 2001 iron template around
-    the CIV emission line, 1300 - 1800 Å.
+    the CIV emission line, 1300 - 1800 Å. This covers all windows of
+    `Qso_autofit.qso_contfe_CIV_Shen11` (1340 - 1705 Å, including the
+    1340 - 1375 Å window for L1350); an older docstring said 1440 - 1710 Å
+    (the span of the Shen et al. 2011 CIV windows alone). To be confirmed.
 
     :param prefix: component prefix
     :type prefix: str
@@ -252,9 +255,16 @@ def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None, fast=True):
 # Emission lines (`Qso_autofit.add_line_components`)
 # ------------------------------------------------------------------------------
 
+
+def _renamed_kwarg(old, new, value):
+    """Warn about a renamed keyword argument and return its value."""
+    warnings.warn(f"`{old}` was renamed to `{new}`", DeprecationWarning, stacklevel=3)
+    return value
+
+
 # All `setup_<line>_lines` functions take the spectrum (unused, kept for a
 # uniform signature), the emission line dictionary (see
-# `Qso_autofit.initialise_gaussian_line_model` and
+# `Qso_autofit.initialize_gaussian_line_model` and
 # `Qso_autofit.create_emission_line_dict`), the number of components of
 # each kind, and the model to add the components to.
 
@@ -287,36 +297,47 @@ def setup_Halpha_NII_lines(spec, line_dict, narrow=True, Halpha_broad=2, model=N
 
 
 def setup_MgII_lines(
-    spec, line_dict, narrow=False, MgII_broad=1, MgII_broad_shifted=0, model=None
+    spec,
+    line_dict,
+    narrow=False,
+    MgII_broad=1,
+    MgII_broadshifted=0,
+    model=None,
+    *,
+    MgII_broad_shifted=None,
 ):
     """
     Setup emission line model for MgII emission line (2798.75 Å) using
     broad, velocity-shifted broad and (optionally) narrow gaussian
     components ("MgII_narrow", "MgII_broad_a", ...,
-    "MgII_broad_shifted_a", ...). MgII is generally not resolved into
+    "MgII_broadshifted_a", ...). MgII is generally not resolved into
     separate lines; it is recommended to fit the narrow component only for
     a high signal-to-noise spectrum.
 
     :param spec: input spectrum (unused)
     :type spec: speconed.speconed.SpecOneD
     :param line_dict: emission line dictionary; uses
-        line_dict["MgII"]["narrow" / "broad" / "broad_shifted"]
+        line_dict["MgII"]["narrow" / "broad" / "broadshifted"]
     :type line_dict: dict
     :param narrow: fit narrow component for MgII line
     :type narrow: bool
     :param MgII_broad: number of broad components to fit
     :type MgII_broad: int
-    :param MgII_broad_shifted: number of velocity shifted broad components to fit
-    :type MgII_broad_shifted: int
+    :param MgII_broadshifted: number of velocity shifted broad components to fit
+    :type MgII_broadshifted: int
     :param model: model to add the components and parameters to
     :type model: sculptor.model.FitModel
+    :param MgII_broad_shifted: deprecated name of `MgII_broadshifted`
+    :type MgII_broad_shifted: int
     """
+    if MgII_broad_shifted is not None:
+        MgII_broadshifted = _renamed_kwarg(
+            "MgII_broad_shifted", "MgII_broadshifted", MgII_broad_shifted
+        )
     if narrow:
         qa.add_line_components(model, line_dict, "MgII", "narrow")
     qa.add_line_components(model, line_dict, "MgII", "broad", MgII_broad)
-    qa.add_line_components(
-        model, line_dict, "MgII", "broad_shifted", MgII_broad_shifted
-    )
+    qa.add_line_components(model, line_dict, "MgII", "broadshifted", MgII_broadshifted)
 
 
 def setup_CIV_lines(
@@ -355,10 +376,12 @@ def setup_Hbeta_OIII_lines(
     line_dict,
     narrow=True,
     Hbeta_broad=1,
-    Hbeta_broad_shifted=0,
+    Hbeta_broadshifted=0,
     OIII_broad=0,
     OIII_wind=0,
     model=None,
+    *,
+    Hbeta_broad_shifted=None,
 ):
     """
     Setup Hbeta+[OIII] lines simultaneously at 4862.30 A, 4960.30 A and
@@ -372,28 +395,34 @@ def setup_Hbeta_OIII_lines(
     :param spec: input spectrum (unused)
     :type spec: speconed.speconed.SpecOneD
     :param line_dict: emission line dictionary; uses
-        line_dict["Hbeta"]["narrow" / "broad" / "broad_shifted"] and
+        line_dict["Hbeta"]["narrow" / "broad" / "broadshifted"] and
         line_dict["OIII"]["narrow" / "broad" / "wind"]
     :type line_dict: dict
     :param narrow: fit narrow component for Hbeta and [OIII] lines
     :type narrow: bool
     :param Hbeta_broad: number of Hbeta broad components to fit
     :type Hbeta_broad: int
-    :param Hbeta_broad_shifted: number of velocity shifted Hbeta broad components to fit
-    :type Hbeta_broad_shifted: int
+    :param Hbeta_broadshifted: number of velocity shifted Hbeta broad components to fit
+    :type Hbeta_broadshifted: int
     :param OIII_broad: number of [OIII] broad components to fit
     :type OIII_broad: int
     :param OIII_wind: number of [OIII] blue-shifted wind components to fit
     :type OIII_wind: int
     :param model: model to add the components and parameters to
     :type model: sculptor.model.FitModel
+    :param Hbeta_broad_shifted: deprecated name of `Hbeta_broadshifted`
+    :type Hbeta_broad_shifted: int
     """
+    if Hbeta_broad_shifted is not None:
+        Hbeta_broadshifted = _renamed_kwarg(
+            "Hbeta_broad_shifted", "Hbeta_broadshifted", Hbeta_broad_shifted
+        )
     if narrow:
         qa.add_line_components(model, line_dict, "Hbeta", "narrow")
         qa.add_line_components(model, line_dict, "OIII", "narrow")
     qa.add_line_components(model, line_dict, "Hbeta", "broad", Hbeta_broad)
     qa.add_line_components(
-        model, line_dict, "Hbeta", "broad_shifted", Hbeta_broad_shifted
+        model, line_dict, "Hbeta", "broadshifted", Hbeta_broadshifted
     )
     qa.add_line_components(model, line_dict, "OIII", "broad", OIII_broad)
     qa.add_line_components(model, line_dict, "OIII", "wind", OIII_wind)

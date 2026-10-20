@@ -2,12 +2,14 @@
 
 A Balmer-continuum model that includes the higher-order Balmer lines (HOL)
 blending into a pseudo-continuum (used by
-``Qso_autofit.initialise_balmer``), faster versions of the plain Balmer
+``Qso_autofit.initialize_balmer``), faster versions of the plain Balmer
 continuum and of the power law + fractional Balmer continuum, and a
 Voigt-profile damping-wing absorption model (e.g. intervening/associated
 Lya absorption). The HOL model reads
 ``sculptor/data/balmer_hol_storey_hummer1995.txt`` (see its header).
 """
+
+import warnings
 
 import numpy as np
 from astropy.constants import c, h, k_B
@@ -16,7 +18,7 @@ from scipy.special import voigt_profile
 from sculptor import analysis as ana
 from sculptor import component as sccomp
 from sculptor.utils import c_AngstroemPerSecond, c_km_s, datadir
-from sculptor_extensions.component_setup import initialise_component
+from sculptor_extensions.component_setup import initialize_component
 
 # Physical constants in cgs, computed once at import time (not per call)
 _H_CGS = h.cgs.value  # erg s
@@ -171,12 +173,12 @@ class CachedBalmerContinuumWithHOL(BalmerContinuumWithHOL):
         return self._x_rest, self._diff2
 
 
-def initialise_balmer_with_hol(prefix, balmer_dict=None):
+def initialize_balmer_with_hol(prefix, balmer_dict=None):
     """
-    Initialise a Balmer continuum + higher-order-lines component.
+    Initialize a Balmer continuum + higher-order-lines component.
     Function requires a dictionary that contains necessary parameters to set up
     a Balmer template such as "amp_be", "redsh", "Te", "tau_be", "lambda_be"
-    and "fwhm" (see `component_setup.initialise_component`).
+    and "fwhm" (see `component_setup.initialize_component`).
 
     :param prefix: Model prefix
     :type prefix: string
@@ -185,7 +187,7 @@ def initialise_balmer_with_hol(prefix, balmer_dict=None):
 
     :return: Balmer continuuum model component and parameters
     """
-    return initialise_component(
+    return initialize_component(
         prefix, BalmerContinuumWithHOL(), balmer_dict, dict_name="balmer_dict"
     )
 
@@ -244,7 +246,7 @@ def balmer_continuum_shape(x_rest, Te, tau_be, lambda_be):
 
 def balmer_continuum_at_edge(Te, tau_be, lambda_be):
     """`balmer_continuum_shape` just below the Balmer edge (its value for
-    x -> lambda_be), used to normalise the continuum at the edge.
+    x -> lambda_be), used to normalize the continuum at the edge.
 
     :param Te: Electron temperature in K
     :type Te: float
@@ -278,7 +280,7 @@ def fast_balmer_continuum_model(x, redsh, amp_be, Te, tau_be, lambda_be):
     not been included in this model and thus it will produce a sharp break at
     the Balmer edge.
 
-    Used by `Qso_autofit.initialise_balmer_without_hol`. Replaces the former
+    Used by `Qso_autofit.initialize_balmer_without_hol`. Replaces the former
     `qso.balmer_continuum_model` (same formula, ~7x faster; matches it to
     ~1e-15, see `tests/test_qso_extension_port.py`).
 
@@ -424,3 +426,23 @@ def lya_absorption_model(x, z_abs, log_N, b_kms, **kwargs):
     return absorption_transmission_model(
         x, z_abs, log_N, b_kms, LYA_REST_WAVE, LYA_OSC_STRENGTH, LYA_DAMPING_GAMMA
     )
+
+
+def __getattr__(name):
+    """Forward `initialise_balmer_with_hol` (British spelling, renamed
+    2026-10-20) with a `DeprecationWarning`.
+
+    :param name: attribute name
+    :type name: str
+    :return: the function
+    :rtype: callable
+    :raises AttributeError: for any other name
+    """
+    if name == "initialise_balmer_with_hol":
+        warnings.warn(
+            "`initialise_balmer_with_hol` was renamed to `initialize_balmer_with_hol`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return initialize_balmer_with_hol
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

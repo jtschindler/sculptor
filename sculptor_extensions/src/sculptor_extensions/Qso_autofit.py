@@ -28,10 +28,11 @@ from astropy import units as u
 from sculptor import analysis as ana
 from sculptor import measurements as meas
 from sculptor import prior as scpri
-from sculptor.utils import datadir
+from sculptor.logging_config import warn_once
+from sculptor.utils import SIGMA_PERCENTILES, datadir
 from sculptor_extensions import qso
 from sculptor_extensions import qso_advanced_models as qam
-from sculptor_extensions.component_setup import initialise_component
+from sculptor_extensions.component_setup import initialize_component
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,22 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 # Required functions during fitting
 # ------------------------------------------------------------------------------
+
+
+DEFAULT_DISCARD = 2000
+
+
+def _default_discard(discard):
+    """`discard`, or the default 2000 (with a one-time warning, as these
+    helpers used to default to 0)."""
+    if discard is None:
+        warn_once(
+            logger,
+            f"No `discard` given: discarding the first {DEFAULT_DISCARD} steps "
+            "as burn-in (the default of these helpers used to be 0).",
+        )
+        return DEFAULT_DISCARD
+    return discard
 
 
 def get_1sigma_range(data):
@@ -54,7 +71,7 @@ def get_1sigma_range(data):
     data = np.asarray(data)
     data = data[~np.isnan(data)]
     median = np.median(data)
-    lower, upper = np.percentile(data, [15.9, 84.1])
+    lower, upper = np.percentile(data, SIGMA_PERCENTILES)
     return median, lower, upper
 
 
@@ -80,24 +97,26 @@ def extract_median_params(prefix, median_param_dict):
     return param_subset
 
 
-def get_median_params(model, discard=0):
+def get_median_params(model, discard=None):
     """
     Calculate median value, 1-sigma uncertainties and upper,lower bounds for all parameters from the MCMC chain.
 
     :param model: model (with a sampler or a stored chain)
     :type model: sculptor.model.FitModel
-    :param discard: number of steps to discard
+    :param discard: number of steps to discard (default 2000, like
+        `FitModel`; it used to be 0, so a warning is logged when it is not
+        given)
     :type discard: int
 
     :return param_dict: Dictionary with keys as parameter names and values as:
         - param_name: median value
         - param_name_sigma: 1-sigma uncertainty (half the 68% interval)
-        - param_name_upper: 84.1 percentile
-        - param_name_lower: 15.9 percentile
+        - param_name_upper: 84.13 percentile
+        - param_name_lower: 15.87 percentile
     :type param_dict: dict
     """
 
-    flat_chain = model.get_flat_chain(discard=discard)
+    flat_chain = model.get_flat_chain(discard=_default_discard(discard))
     param_names = list(model.params_variable.keys())
 
     param_dict = {}
@@ -105,8 +124,7 @@ def get_median_params(model, discard=0):
     for i, pname in enumerate(param_names):
         samples = flat_chain[:, i]
         median = np.median(samples)
-        lower = np.percentile(samples, 15.9)
-        upper = np.percentile(samples, 84.1)
+        lower, upper = np.percentile(samples, SIGMA_PERCENTILES)
 
         sigma = 0.5 * (upper - lower)
         param_dict[pname] = median
@@ -263,7 +281,7 @@ def plot_burnin(model, save_dir=".", plot_name="burnin_all_params.pdf", max_walk
     logger.info(f"Burn-in plot saved to: {save_path}")
 
 
-def get_sampled_values(model, param_name, discard=0):
+def get_sampled_values(model, param_name, discard=None):
     """
     Extract the MCMC samples of a specific parameter from a given model.
 
@@ -271,14 +289,16 @@ def get_sampled_values(model, param_name, discard=0):
     :type model: sculptor.model.FitModel
     :param param_name: parameter
     :type param_name: str
-    :param discard: number of steps as burn-in
+    :param discard: number of steps as burn-in (default 2000, like
+        `FitModel`; it used to be 0, so a warning is logged when it is not
+        given)
     :type discard: int
 
     :return: 1D array of parameter values from the MCMC chain.
     :rtype: np.ndarray
     """
 
-    chain = model.get_flat_chain(discard=discard)
+    chain = model.get_flat_chain(discard=_default_discard(discard))
     param_names = list(model.params_variable.keys())
 
     if param_name not in param_names:
@@ -442,11 +462,11 @@ Telluric_ranges = {
 }
 
 # ------------------------------------------------------------------------------
-# Initialise model components (continuum, iron and emission lines)
+# Initialize model components (continuum, iron and emission lines)
 # ------------------------------------------------------------------------------
 
 
-def initialise_power_law(prefix, redsh, powerlaw_dict=None):
+def initialize_power_law(prefix, redsh, powerlaw_dict=None):
     """
     Setup power law component with pre-defined parameters defined in the given dictionary.
     The function takes a power law defined with slope and amplitude which is normalized at 2500 Å.
@@ -458,21 +478,21 @@ def initialise_power_law(prefix, redsh, powerlaw_dict=None):
         existing calls keep working.
     :type redsh: float
     :param powerlaw_dict: Dictionary containing power law components "amp", "slope" and "redsh",
-        see `component_setup.initialise_component`.
+        see `component_setup.initialize_component`.
     :type powerlaw_dict: Dictionary
 
     :return comp: power law components
     :return pars: power law parameters
     """
-    return initialise_component(
+    return initialize_component(
         prefix, ana.power_law_at2500, powerlaw_dict, dict_name="powerlaw_dict"
     )
 
 
-def initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
+def initialize_Fe(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
     """
     Setup an iron template using parameters defined in a dictionary. These parameters include "amp",
-    "fwhm", "redsh" and "intr_fwhm" (see `component_setup.initialise_component`);
+    "fwhm", "redsh" and "intr_fwhm" (see `component_setup.initialize_component`);
     "templ_disp" and "templ_fluxden" are set from the template arrays.
 
     :param prefix: Model prefix
@@ -487,14 +507,14 @@ def initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
     :return: iron template component and parameters
     """
     fixed = {"templ_disp": Fe_dispersion, "templ_fluxden": Fe_fluxden}
-    return initialise_component(
+    return initialize_component(
         prefix, ana.template_model, Fe_dict, fixed=fixed, dict_name="Fe_dict"
     )
 
 
-def initialise_Fe_fast(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
+def initialize_Fe_fast(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
     """
-    Like `initialise_Fe`, but builds the component from
+    Like `initialize_Fe`, but builds the component from
     `sculptor.analysis.TemplateModel`, a precomputed version of
     `template_model` that is ~10-20x faster per evaluation and gives the
     same model (see its docstring). The template arrays are stored in the
@@ -514,7 +534,7 @@ def initialise_Fe_fast(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
     :type Fe_dict: dictionary
     :return: iron template component and parameters
     """
-    return initialise_component(
+    return initialize_component(
         prefix,
         ana.TemplateModel(Fe_dispersion, Fe_fluxden),
         Fe_dict,
@@ -522,13 +542,13 @@ def initialise_Fe_fast(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
     )
 
 
-def initialise_balmer_without_hol(prefix, balmer_dict=None):
+def initialize_balmer_without_hol(prefix, balmer_dict=None):
     """
-    Initialise Balmer continuum component without higher order lines.
+    Initialize Balmer continuum component without higher order lines.
     It constrain Balmer flux contribution till the Balmer edge (3646 Å) and drops to 0 showing sharp edge at the Balmer edge.
     This function requires a dictionary that contains necessary parameters to set up
     a Balmer template such as "amp_be", "redsh", "Te", "tau_be", "lambda_be"
-    (see `component_setup.initialise_component`).
+    (see `component_setup.initialize_component`).
 
     :param prefix: Model prefix
     :type prefix: string
@@ -538,22 +558,22 @@ def initialise_balmer_without_hol(prefix, balmer_dict=None):
     :return comp: Balmer continuuum without HOL component
     :return pars: Balmer continuuum without HOL parameters
     """
-    return initialise_component(
+    return initialize_component(
         prefix, qam.fast_balmer_continuum_model, balmer_dict, dict_name="balmer_dict"
     )
 
 
-def initialise_balmer(prefix, model=None, balmer_dict=None):
+def initialize_balmer(prefix, model=None, balmer_dict=None):
     """
-    Initialise Balmer continuum including the higher order balmer lines that
+    Initialize Balmer continuum including the higher order balmer lines that
     blend as a pseudo-continuum (Storey & Hummer 1995, case B, 7 <= n <= 50).
 
     Builds the component from
     `qso_advanced_models.BalmerContinuumWithHOL` (via
-    `qso_advanced_models.initialise_balmer_with_hol`). The previous model,
+    `qso_advanced_models.initialize_balmer_with_hol`). The previous model,
     `Balmer_continuum_with_hol`, was removed (see
     `deprecated/sculptor_extensions/src/sculptor_extensions/qso_autofit_balmer_hol.py`);
-    its output was normalised and scaled differently, so `amp_be` values
+    its output was normalized and scaled differently, so `amp_be` values
     and priors from older setups need rescaling.
 
     `balmer_dict` must contain "redsh", "amp_be", "Te", "tau_be", "lambda_be"
@@ -569,15 +589,15 @@ def initialise_balmer(prefix, model=None, balmer_dict=None):
     :return comp: Balmer continuum with HOL component
     :return pars: Balmer continuum with HOL parameters
     """
-    return qam.initialise_balmer_with_hol(prefix, balmer_dict)
+    return qam.initialize_balmer_with_hol(prefix, balmer_dict)
 
 
 # ------------------------------------------------------------------------------
-# Initialise emission line components
+# Initialize emission line components
 # ------------------------------------------------------------------------------
 
 
-def initialise_gaussian_line_model(prefix, line_dict, tied_doublet=True):
+def initialize_gaussian_line_model(prefix, line_dict, tied_doublet=True):
     """
     Setup a gaussian model for a given emission line feature in the spectrum.
     The central wavelength of the Gaussian line model is determined by the
@@ -592,7 +612,7 @@ def initialise_gaussian_line_model(prefix, line_dict, tied_doublet=True):
     :param prefix: Model prefix
     :type prefix: string
     :param line_dict: Dictionary containing all the emission line parameters "flux", "fwhm_km_s","cen", "redsh", and "vel_shift".
-        Each entry is set up as in `component_setup.initialise_component`.
+        Each entry is set up as in `component_setup.initialize_component`.
         Depending upon the lines in consideration, separate components such as narrow, broad and blue-shifted can be provided.
     :type line_dict: dict
     :param tied_doublet: For [NII] and [SII] (prefix containing "NII" /
@@ -624,7 +644,7 @@ def initialise_gaussian_line_model(prefix, line_dict, tied_doublet=True):
         )
     else:
         function = ana.line_model_gaussian
-    return initialise_component(prefix, function, line_dict, dict_name="line_dict")
+    return initialize_component(prefix, function, line_dict, dict_name="line_dict")
 
 
 def line_model_gaussian_NII_doublet(x, redsh, flux, fwhm_km_s, fluxratio=2.96):
@@ -689,7 +709,7 @@ def add_line_components(model, line_dict, line, kind, n=None):
     functions in `sculptor_extensions.qso_presets`.
 
     The components use the settings in ``line_dict[line][kind]["params"]``
-    (see `initialise_gaussian_line_model`) and are named "<line>_<kind>"
+    (see `initialize_gaussian_line_model`) and are named "<line>_<kind>"
     if `n` is None (one component), or "<line>_<kind>_a",
     "<line>_<kind>_b", ... for `n` components.
 
@@ -699,7 +719,9 @@ def add_line_components(model, line_dict, line, kind, n=None):
     :type line_dict: dict
     :param line: line name, e.g. "MgII"
     :type line: str
-    :param kind: component kind, e.g. "narrow", "broad", "broad_shifted"
+    :param kind: component kind, e.g. "narrow", "broad", "broadshifted"
+        (a line dictionary with the old key "broad_shifted" is still read,
+        with a `DeprecationWarning`)
     :type kind: str
     :param n: number of lettered components, or None for a single
         unlettered one
@@ -710,10 +732,25 @@ def add_line_components(model, line_dict, line, kind, n=None):
     else:
         names = [f"{line}_{kind}_{string.ascii_lowercase[i]}" for i in range(n)]
 
-    for name in names:
-        comp, params = initialise_gaussian_line_model(
-            name, line_dict[line][kind]["params"]
+    settings = line_dict[line]
+    if (
+        names
+        and kind == "broadshifted"
+        and kind not in settings
+        and "broad_shifted" in settings
+    ):
+        import warnings
+
+        warnings.warn(
+            f'line_dict["{line}"]["broad_shifted"] is deprecated; '
+            'use the key "broadshifted"',
+            DeprecationWarning,
+            stacklevel=3,
         )
+        kind = "broad_shifted"
+
+    for name in names:
+        comp, params = initialize_gaussian_line_model(name, settings[kind]["params"])
         model.add_component(comp)
         model.add_parameters(params)
 
@@ -749,8 +786,8 @@ def setup_iron_template(
                     redshift and intrinsic FWHM. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
     :type fe_dict: dict
-    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model.
+    :param fast: Use the faster `initialize_Fe_fast` (`TemplateModel`)
+        instead of `initialize_Fe` (`template_model`); same model.
         Default True
     :type fast: bool
     :param fluxden_scale: factor applied to the template flux density
@@ -768,7 +805,7 @@ def setup_iron_template(
         Fe_dispersion = Fe_dispersion[disp_mask]
         Fe_fluxden = Fe_fluxden[disp_mask]
 
-    init = initialise_Fe_fast if fast else initialise_Fe
+    init = initialize_Fe_fast if fast else initialize_Fe
     return init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
 
 
@@ -1089,16 +1126,39 @@ _MOVED_TO_PRESETS = (
 )
 
 
+# British spellings used before 2026-10-20
+RENAMED = {
+    f"initialise_{n}": f"initialize_{n}"
+    for n in (
+        "power_law",
+        "Fe",
+        "Fe_fast",
+        "balmer_without_hol",
+        "balmer",
+        "gaussian_line_model",
+    )
+}
+
+
 def __getattr__(name):
-    """Forward the names moved to `sculptor_extensions.qso_presets`, with a
-    `DeprecationWarning`.
+    """Forward the names moved to `sculptor_extensions.qso_presets` and the
+    renamed functions (`RENAMED`), with a `DeprecationWarning`.
 
     :param name: attribute name
     :type name: str
-    :return: the function from `qso_presets`
+    :return: the function
     :rtype: callable
     :raises AttributeError: for any other name
     """
+    if name in RENAMED:
+        import warnings
+
+        warnings.warn(
+            f"`Qso_autofit.{name}` was renamed to `{RENAMED[name]}`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return globals()[RENAMED[name]]
     if name in _MOVED_TO_PRESETS:
         import warnings
 

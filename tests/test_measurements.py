@@ -111,7 +111,7 @@ def test_get_nonparametric_measurements_symmetric_line(line_spec):
         measurements.get_nonparametric_measurements(line_spec, REST_CEN, REDSHIFT)
     )
 
-    # Symmetric line: median velocity at the line centre, and the
+    # Symmetric line: median velocity at the line center, and the
     # percentile velocities mirror each other around it.
     assert abs(v50.to(u.km / u.s).value) < 10
     assert v05.value == pytest.approx(-v95.value, rel=0.01)
@@ -246,7 +246,7 @@ def test_get_nonparametric_measurements_inplace(line_spec):
         inplace=True,
     )
 
-    # The v1 behaviour: trimmed and converted to frequency in place.
+    # The v1 behavior: trimmed and converted to frequency in place.
     assert line_spec.dispersion_unit.physical_type == "frequency"
     assert line_spec.dispersion.size < n_before
 

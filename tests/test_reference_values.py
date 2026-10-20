@@ -203,21 +203,6 @@ def test_dalla_bonta_2020():
 # --- fit helpers and setups ------------------------------------------------------
 
 
-def test_get_1sigma_range():
-    data = np.random.default_rng(INPUTS["sigma_range_seed"]).normal(size=5000)
-    _close(qa.get_1sigma_range(data), "sigma_range__median_low_upp")
-
-
-def test_get_median_params():
-    chain = GEN.median_params_chain()
-    model = FitModel()
-    model.flat_chain = chain
-    model.params_variable = {"amp": None, "slope": None}
-    medians = qa.get_median_params(model, discard=0)
-    assert list(medians) == list(REF["median_params__keys"])
-    _close(list(medians.values()), "median_params__values")
-
-
 @pytest.mark.parametrize("name", INPUTS["iron_setups"])
 def test_iron_setups_select_the_original_template_range(name, monkeypatch):
     captured = {}
@@ -226,7 +211,7 @@ def test_iron_setups_select_the_original_template_range(name, monkeypatch):
         captured["disp"], captured["flux"] = disp, flux
         return None, None
 
-    monkeypatch.setattr(qa, "initialise_Fe_fast", _capture)
+    monkeypatch.setattr(qa, "initialize_Fe_fast", _capture)
     getattr(qso_presets, name)("Fe")
     _close(captured["disp"], f"iron_{name}__disp")
     _close(captured["flux"], f"iron_{name}__flux")
@@ -251,7 +236,7 @@ class _Recorder:
 
 def test_line_setups_add_the_original_components(monkeypatch):
     monkeypatch.setattr(
-        qa, "initialise_gaussian_line_model", lambda prefix, params: (prefix, prefix)
+        qa, "initialize_gaussian_line_model", lambda prefix, params: (prefix, prefix)
     )
     rec = _Recorder()
     qso_presets.setup_MgII_lines(None, _AnyDict(), narrow=True, MgII_broad=2, model=rec)
@@ -263,8 +248,13 @@ def test_line_setups_add_the_original_components(monkeypatch):
         _AnyDict(),
         narrow=True,
         Hbeta_broad=1,
-        Hbeta_broad_shifted=1,
+        Hbeta_broadshifted=1,
         OIII_wind=1,
         model=rec,
     )
-    assert rec.names == list(REF["setup_hb_o3__components"])
+    # The original's "broad_shifted" components are called "broadshifted".
+    expected = [
+        n.replace("broad_shifted", "broadshifted")
+        for n in REF["setup_hb_o3__components"]
+    ]
+    assert rec.names == expected

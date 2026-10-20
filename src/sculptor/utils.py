@@ -12,19 +12,22 @@ from numba import njit, prange
 c_km_s = const.c.to("km/s").value
 c_AngstroemPerSecond = const.c.to(u.AA / u.s).value
 
+# Percentiles of the 1-sigma interval of a normal distribution
+SIGMA_PERCENTILES = (15.87, 84.13)
+
 # Package data directory (iron templates, HOL data), ending in "/"
 datadir = str(importlib.resources.files("sculptor") / "data") + "/"
 
 
 @njit(cache=True)
 def gaussian(x, amp, cen, sigma, shift):
-    """Normalised Gaussian (numba-compiled).
+    """Normalized Gaussian (numba-compiled).
 
     :param x: Evaluation points
     :param amp: Integral of the Gaussian
-    :param cen: Centre
+    :param cen: Center
     :param sigma: Standard deviation
-    :param shift: Offset added to the centre
+    :param shift: Offset added to the center
     :return: amp / (sqrt(2 pi) sigma) * exp(-(x - cen - shift)^2 / (2 sigma^2))
     """
 

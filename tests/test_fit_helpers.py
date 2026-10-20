@@ -132,3 +132,42 @@ def test_posterior_plots(fit_model, tmp_path):
     )
     for name in fit_model.params_variable:
         assert (tmp_path / f"posterior_hist_{name}.pdf").exists()
+
+
+def test_one_sigma_helpers_use_the_shared_percentiles(fit_model):
+    from sculptor.utils import SIGMA_PERCENTILES
+
+    assert SIGMA_PERCENTILES == (15.87, 84.13)
+    data = np.random.default_rng(0).normal(size=5000)
+    np.testing.assert_allclose(
+        qa.get_1sigma_range(data),
+        [np.median(data), *np.percentile(data, SIGMA_PERCENTILES)],
+    )
+
+    chain = fit_model.get_flat_chain(discard=DISCARD)
+    medians = qa.get_median_params(fit_model, discard=DISCARD)
+    name = next(iter(fit_model.params_variable))
+    lower, upper = np.percentile(chain[:, 0], SIGMA_PERCENTILES)
+    assert medians[name] == pytest.approx(np.median(chain[:, 0]))
+    assert medians[f"{name}_lower"] == pytest.approx(lower)
+    assert medians[f"{name}_upper"] == pytest.approx(upper)
+    assert medians[f"{name}_sigma"] == pytest.approx(0.5 * (upper - lower))
+
+
+def test_discard_defaults_to_2000_with_a_warning(fit_model, caplog, monkeypatch):
+    from sculptor import logging_config
+
+    logging_config.warn_once.cache_clear()
+    seen = []
+    monkeypatch.setattr(
+        fit_model,
+        "get_flat_chain",
+        lambda discard: (
+            seen.append(discard) or np.zeros((5, len(fit_model.params_variable)))
+        ),
+    )
+    with caplog.at_level("WARNING", logger="sculptor_extensions"):
+        qa.get_median_params(fit_model)
+        qa.get_sampled_values(fit_model, next(iter(fit_model.params_variable)))
+    assert seen == [2000, 2000]
+    assert caplog.text.count("No `discard` given") == 1

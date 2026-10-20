@@ -20,7 +20,7 @@ FWHM_TO_SIGMA = 1 / (2 * np.sqrt(2 * np.log(2)))
 
 def _reference_broaden(dispersion, fluxden, resolution, fwhm_lim=5.0):
     """Plain-numpy version of the numba kernel: for each pixel, a Gaussian
-    of FWHM = dispersion / R, truncated at +-fwhm_lim FWHM and normalised
+    of FWHM = dispersion / R, truncated at +-fwhm_lim FWHM and normalized
     over the pixels it covers."""
 
     out = np.empty_like(fluxden, dtype=float)

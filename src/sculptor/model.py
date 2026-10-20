@@ -362,7 +362,7 @@ class FitModel(PickleMixin):
             )
 
         # The full spectrum is passed (the resolution broadening needs the
-        # neighbouring pixels); the fit mask is applied in the likelihood.
+        # neighboring pixels); the fit mask is applied in the likelihood.
         wave = spec.dispersion
         flux = spec.fluxden
         flux_err = spec.fluxden_err
@@ -696,7 +696,7 @@ class FitModel(PickleMixin):
     def get_mode_model(self, discard=2000):
         """Model at the posterior sample with the highest log-probability.
 
-        Labelled "MAP sample" in the plots: the maximum of the posterior among
+        Labeled "MAP sample" in the plots: the maximum of the posterior among
         the samples (the log-probability includes the priors), not a maximum
         likelihood fit.
 
@@ -755,8 +755,9 @@ class FitModel(PickleMixin):
         model_fluxden = np.array(model_fluxden)
 
         med_model = np.median(model_fluxden, axis=0)
-        low_model = np.percentile(model_fluxden, 15.87, axis=0)
-        upp_model = np.percentile(model_fluxden, 84.13, axis=0)
+        low_model, upp_model = np.percentile(
+            model_fluxden, scut.SIGMA_PERCENTILES, axis=0
+        )
 
         return med_model, low_model, upp_model
 
@@ -1181,8 +1182,7 @@ class FitModel(PickleMixin):
             samples = flat_chain[:, i]
 
             median = np.percentile(samples, 50)
-            lower = np.percentile(samples, 15.9)
-            upper = np.percentile(samples, 84.1)
+            lower, upper = np.percentile(samples, scut.SIGMA_PERCENTILES)
 
             plt.figure(figsize=(6, 4))
             plt.hist(samples, bins=100, color="skyblue", edgecolor="black", alpha=0.7)

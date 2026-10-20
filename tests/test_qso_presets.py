@@ -6,7 +6,7 @@ import inspect
 import numpy as np
 import pytest
 from astropy import units as u
-from sculptor_extensions.component_setup import initialise_component
+from sculptor_extensions.component_setup import initialize_component
 
 from sculptor import analysis as ana
 from sculptor.model import FitModel
@@ -34,10 +34,10 @@ def _fe_dict():
     }
 
 
-# --- initialise_component -------------------------------------------------
+# --- initialize_component -------------------------------------------------
 
 
-def test_initialise_component_maps_parameters_onto_others():
+def test_initialize_component_maps_parameters_onto_others():
     """A "parameter" entry drops the component's own parameter and maps it.
     The old per-function loops popped from the dict they iterated over and
     raised `RuntimeError` here (all but the Gaussian line setup)."""
@@ -46,7 +46,7 @@ def test_initialise_component_maps_parameters_onto_others():
         "amp": _fixed(1.0),
         "slope": {"value": -1.5, "vary": True, "prior": UniformPrior("slope", -3, 0)},
     }
-    comp, params = qa.initialise_power_law("PL", 2.0, settings)
+    comp, params = qa.initialize_power_law("PL", 2.0, settings)
 
     assert sorted(params) == ["PL_amp", "PL_slope"]
     assert comp.param_mapping["redsh"] == "global_redsh"
@@ -54,16 +54,16 @@ def test_initialise_component_maps_parameters_onto_others():
     assert not params["PL_amp"].vary
 
 
-def test_initialise_component_sets_fixed_values_and_requires_a_dict():
+def test_initialize_component_sets_fixed_values_and_requires_a_dict():
     disp, flux = np.linspace(2000, 3000, 11), np.ones(11)
-    _, params = qa.initialise_Fe("Fe", disp, flux, _fe_dict())
+    _, params = qa.initialize_Fe("Fe", disp, flux, _fe_dict())
     np.testing.assert_array_equal(params["Fe_templ_disp"].value, disp)
     assert not params["Fe_templ_fluxden"].vary
 
     with pytest.raises(ValueError, match="Provide `balmer_dict`"):
-        qa.initialise_balmer_without_hol("BC", None)
+        qa.initialize_balmer_without_hol("BC", None)
     with pytest.raises(ValueError, match="Provide `param_dict`"):
-        initialise_component("G", ana.line_model_gaussian, {})
+        initialize_component("G", ana.line_model_gaussian, {})
 
 
 # --- iron templates ---------------------------------------------------------
@@ -236,3 +236,34 @@ def test_renamed_presets_forward_with_a_deprecation_warning(old, new):
         assert getattr(qso_presets, old) is getattr(qso_presets, new)
     with pytest.warns(DeprecationWarning, match=f"qso_presets.{new}"):
         assert getattr(qa, old) is getattr(qso_presets, new)
+
+
+@pytest.mark.parametrize("old,new", list(qa.RENAMED.items()))
+def test_british_spellings_forward_with_a_deprecation_warning(old, new):
+    with pytest.warns(DeprecationWarning, match=new):
+        assert getattr(qa, old) is getattr(qa, new)
+
+
+def test_qam_british_spelling_forwards():
+    with pytest.warns(DeprecationWarning, match="initialize_balmer_with_hol"):
+        assert qam.initialise_balmer_with_hol is qam.initialize_balmer_with_hol
+
+
+def test_broadshifted_components_and_old_spellings():
+    model = FitModel()
+    line_dict = _line_dict(("MgII", "broad"), ("MgII", "broadshifted"))
+    qso_presets.setup_MgII_lines(None, line_dict, MgII_broadshifted=2, model=model)
+    assert [c.name for c in model.components] == [
+        "MgII_broad_a",
+        "MgII_broadshifted_a",
+        "MgII_broadshifted_b",
+    ]
+
+    # Old keyword and old line_dict key still work, with a warning.
+    model = FitModel()
+    old_dict = _line_dict(("MgII", "broad"), ("MgII", "broad_shifted"))
+    with pytest.warns(DeprecationWarning) as record:
+        qso_presets.setup_MgII_lines(None, old_dict, MgII_broad_shifted=1, model=model)
+    messages = " ".join(str(w.message) for w in record)
+    assert "MgII_broadshifted" in messages and '"broadshifted"' in messages
+    assert [c.name for c in model.components][-1] == "MgII_broadshifted_a"

@@ -1,13 +1,13 @@
 """Build a fit component and its parameters from a parameter dictionary.
 
-Every `initialise_*` function in `Qso_autofit` and `qso_advanced_models`
-is `initialise_component` with a different model function.
+Every `initialize_*` function in `Qso_autofit` and `qso_advanced_models`
+is `initialize_component` with a different model function.
 """
 
 from sculptor import component as sccomp
 
 
-def initialise_component(
+def initialize_component(
     prefix, function, param_dict, fixed=None, dict_name="param_dict"
 ):
     """Create a `FitComponent` for `function` and set its parameters from
