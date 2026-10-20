@@ -140,7 +140,7 @@ def test_setup_hb_o3_lines_preset():
         ("Hbeta", "broad"),
         ("OIII", "wind"),
     )
-    qso_presets.setup_hb_o3_lines(
+    qso_presets.setup_Hbeta_OIII_lines(
         None, line_dict, Hbeta_broad=2, OIII_wind=1, model=model
     )
     names = [c.name for c in model.components]
@@ -246,3 +246,11 @@ def test_moved_names_still_work_with_a_deprecation_warning():
     assert func is qso_presets.setup_MgII_lines
     with pytest.raises(AttributeError):
         qa.no_such_function  # noqa: B018
+
+
+@pytest.mark.parametrize("old,new", list(qso_presets.RENAMED.items()))
+def test_renamed_presets_forward_with_a_deprecation_warning(old, new):
+    with pytest.warns(DeprecationWarning, match=new):
+        assert getattr(qso_presets, old) is getattr(qso_presets, new)
+    with pytest.warns(DeprecationWarning, match=f"qso_presets.{new}"):
+        assert getattr(qa, old) is getattr(qso_presets, new)

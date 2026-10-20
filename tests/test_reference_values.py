@@ -258,7 +258,7 @@ def test_line_setups_add_the_original_components(monkeypatch):
     assert rec.names == list(REF["setup_mgii__components"])
 
     rec = _Recorder()
-    qso_presets.setup_hb_o3_lines(
+    qso_presets.setup_Hbeta_OIII_lines(
         None,
         _AnyDict(),
         narrow=True,

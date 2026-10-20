@@ -696,9 +696,9 @@ class FitModel(PickleMixin):
     def get_mode_model(self, discard=2000):
         """Model at the posterior sample with the highest log-probability.
 
-        Called the "maximum likelihood" (ML) model in the plots; strictly it is
-        the maximum of the posterior among the samples, as the log-probability
-        includes the priors.
+        Labelled "MAP sample" in the plots: the maximum of the posterior among
+        the samples (the log-probability includes the priors), not a maximum
+        likelihood fit.
 
         :param discard: Number of burn-in steps to discard
         :type discard: int
@@ -797,14 +797,14 @@ class FitModel(PickleMixin):
         """Plot the spectrum with the posterior model and the residuals.
 
         Shows the median model with its 1-sigma band, optionally the
-        maximum-likelihood model, the per-component medians and the fit mask,
+        maximum-posterior (MAP) sample, the per-component medians and the fit mask,
         and the reduced chi-square in the legend.
 
         :param discard: Number of burn-in steps to discard
         :type discard: int
         :param show_fit_mask: Shade the fitted regions
         :type show_fit_mask: bool
-        :param show_ml_model: Also plot the maximum-likelihood model and its
+        :param show_ml_model: Also plot the maximum-posterior sample and its
             residuals (see `get_mode_model`)
         :type show_ml_model: bool
         :param ylim: y-axis limits of the spectrum panel
@@ -953,7 +953,7 @@ class FitModel(PickleMixin):
                 self.model_fluxden,
                 color=scp.vermillion,
                 where="mid",
-                label="ML model",
+                label="MAP sample",
                 ls="--",
                 lw=2,
             )
@@ -1000,7 +1000,7 @@ class FitModel(PickleMixin):
                 color=scp.vermillion,
                 where="mid",
                 lw=1.5,
-                label="ML residuals",
+                label="MAP residuals",
                 zorder=-100,
             )
 

@@ -8,7 +8,7 @@ range, emission line or scaling relations filled in:
   iron template and wavelength range.
 - `setup_<line>_lines`: `Qso_autofit.add_line_components` for the narrow,
   broad, ... components of one emission line (or line complex).
-- `get_line_prop_<line>` / `get_civ_line_prop`:
+- `get_line_prop_<line>`:
   `Qso_autofit.get_line_properties` for one line and its BH-mass relations.
 
 To add a variant, call the base function with your own settings.
@@ -16,6 +16,7 @@ To add a variant, call the base function with your own settings.
 
 import logging
 import os
+import warnings
 
 import numpy as np
 from astropy import units as u
@@ -58,7 +59,7 @@ def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None, fast=True
     )
 
 
-def setup_iron_template_V01_FUV(prefix, fe_dict=None, fast=True):
+def setup_iron_template_VW01_FUV(prefix, fe_dict=None, fast=True):
     """
     Setup the far-UV part (1074 - 2200 Å) of the Vestergaard & Wilkes 2001
     iron template.
@@ -78,7 +79,7 @@ def setup_iron_template_V01_FUV(prefix, fe_dict=None, fast=True):
     )
 
 
-def setup_iron_template_V01_CIV(prefix, fe_dict=None, fast=True):
+def setup_iron_template_VW01_CIV(prefix, fe_dict=None, fast=True):
     """
     Setup the part of the Vestergaard & Wilkes 2001 iron template around
     the CIV emission line, 1300 - 1800 Å.
@@ -349,7 +350,7 @@ def setup_CIV_lines(
     qa.add_line_components(model, line_dict, "CIV", "broadshifted", CIV_broadshifted)
 
 
-def setup_hb_o3_lines(
+def setup_Hbeta_OIII_lines(
     spec,
     line_dict,
     narrow=True,
@@ -513,7 +514,7 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
     return df
 
 
-def get_civ_line_prop(df, redshift, param_name_dict, save_dir=None, source=None):
+def get_line_prop_CIV(df, redshift, param_name_dict, save_dir=None, source=None):
     """
     Calculate AGN properties from the CIV line measurements of a fit (see
     `Qso_autofit.get_line_properties` for the columns), with the
@@ -598,3 +599,34 @@ def get_line_prop_Hbeta_OIII(
         5100 * u.AA,
         {"": qso.se_bhmass_hbeta_vp06},
     )
+
+
+# ------------------------------------------------------------------------------
+# Old names
+# ------------------------------------------------------------------------------
+
+RENAMED = {
+    "setup_iron_template_V01_FUV": "setup_iron_template_VW01_FUV",
+    "setup_iron_template_V01_CIV": "setup_iron_template_VW01_CIV",
+    "setup_hb_o3_lines": "setup_Hbeta_OIII_lines",
+    "get_civ_line_prop": "get_line_prop_CIV",
+}
+
+
+def __getattr__(name):
+    """Forward renamed functions (`RENAMED`), with a `DeprecationWarning`.
+
+    :param name: attribute name
+    :type name: str
+    :return: the renamed function
+    :rtype: callable
+    :raises AttributeError: for any other name
+    """
+    if name in RENAMED:
+        warnings.warn(
+            f"`qso_presets.{name}` was renamed to `{RENAMED[name]}`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return globals()[RENAMED[name]]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

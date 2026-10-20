@@ -217,7 +217,7 @@ CIV_COLUMNS = {"fwhm": "CIV_fwhm", "luminosity": "L1350", "redshift": "CIV_redsh
 
 
 def test_get_civ_line_prop_values():
-    df = qso_presets.get_civ_line_prop(_civ_table(), 3.0, CIV_COLUMNS)
+    df = qso_presets.get_line_prop_CIV(_civ_table(), 3.0, CIV_COLUMNS)
 
     cont_lwav = 1e45 * u.erg / u.s / u.AA
     mass = qso.se_bhmass_civ_vp06_fwhm(4000 * KM_S, cont_lwav, 1350 * u.AA)[0]
@@ -241,10 +241,10 @@ def test_get_civ_line_prop_values():
 
 
 def test_get_civ_line_prop_writes_csv_only_with_save_dir(tmp_path):
-    qso_presets.get_civ_line_prop(_civ_table(), 3.0, CIV_COLUMNS)
+    qso_presets.get_line_prop_CIV(_civ_table(), 3.0, CIV_COLUMNS)
     assert list(tmp_path.iterdir()) == []
 
-    qso_presets.get_civ_line_prop(
+    qso_presets.get_line_prop_CIV(
         _civ_table(), 3.0, CIV_COLUMNS, save_dir=tmp_path, source="J0001"
     )
     assert (tmp_path / "J0001_results_CIV.csv").exists()

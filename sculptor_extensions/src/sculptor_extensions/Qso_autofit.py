@@ -1105,10 +1105,12 @@ def __getattr__(name):
 
         from sculptor_extensions import qso_presets
 
+        new_name = qso_presets.RENAMED.get(name, name)
         warnings.warn(
-            f"`Qso_autofit.{name}` moved to `sculptor_extensions.qso_presets.{name}`",
+            f"`Qso_autofit.{name}` moved to "
+            f"`sculptor_extensions.qso_presets.{new_name}`",
             DeprecationWarning,
             stacklevel=2,
         )
-        return getattr(qso_presets, name)
+        return getattr(qso_presets, new_name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
