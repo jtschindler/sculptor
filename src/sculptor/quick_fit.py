@@ -19,6 +19,7 @@ import numpy as np
 from astropy.table import Table
 from scipy import optimize
 
+from sculptor import utils as scut
 from sculptor.prior import GaussianPrior, UniformPrior
 
 logger = logging.getLogger(__name__)
@@ -339,13 +340,174 @@ def _start_values(params_variable, bounds):
         )
     theta0 = np.array([p.value for p in params_variable.values()], dtype=float)
     clipped = np.clip(theta0, bounds[:, 0], bounds[:, 1])
-    for name, old, new in zip(params_variable, theta0, clipped, strict=True):
-        if old != new:
+    # Strictly inside: least-squares trust-region methods do not move a
+    # parameter that starts on its bound
+    width = bounds[:, 1] - bounds[:, 0]
+    inset = np.where(np.isfinite(width), 1e-3 * width, 0.0)
+    clipped = np.clip(clipped, bounds[:, 0] + inset, bounds[:, 1] - inset)
+    outside = (theta0 < bounds[:, 0]) | (theta0 > bounds[:, 1])
+    for name, old, new, out in zip(
+        params_variable, theta0, clipped, outside, strict=True
+    ):
+        if out:
             logger.warning(
                 f"Starting value of {name} ({old}) is outside its prior; "
                 f"starting at {new} instead."
             )
     return clipped
+
+
+class _ComponentEvaluator:
+    """Evaluates a model component by component, so that the derivative
+    with respect to a parameter only re-evaluates the components that use
+    it. The model is linear in its components (the resolution broadening
+    too), so the sum of the (broadened) components is `FitModel.eval`.
+    """
+
+    def __init__(self, model, x):
+        self.model = model
+        self.x = x
+        self.names = list(model.params_variable)
+        self.index = {name: idx for idx, name in enumerate(self.names)}
+        self.constants = dict(
+            zip(model.params_constant, model.params_constant_val, strict=True)
+        )
+        self.keys = [comp.get_arg_keys() for comp in model.components]
+        # Components that use each variable parameter
+        self.users = [[] for _ in self.names]
+        for c_idx, keys in enumerate(self.keys):
+            for key in set(keys):
+                if key in self.index:
+                    self.users[self.index[key]].append(c_idx)
+
+        resolution = model.resolution
+        if isinstance(resolution, (int, float)):
+            resolution = np.full_like(x, resolution, dtype=np.float64)
+        self.resolution = resolution
+
+    def component(self, c_idx, theta):
+        """Flux of component `c_idx` at `theta` (broadened if the model
+        has a resolution)."""
+        values = [
+            theta[self.index[k]] if k in self.index else self.constants[k]
+            for k in self.keys[c_idx]
+        ]
+        flux = np.asarray(
+            self.model.components[c_idx].eval(self.x, values), dtype=float
+        )
+        if self.resolution is not None:
+            flux = scut.broaden_spectrum(self.x, flux, self.resolution, fwhm_lim=5.0)
+        return flux
+
+    def all(self, theta):
+        """Fluxes of all components, shape (n_components, n_pixels)."""
+        return np.array([self.component(c, theta) for c in range(len(self.keys))])
+
+    def derivatives(self, theta, comps, steps, mask, central=False):
+        """d model / d theta over `mask` by finite differences of the
+        components that use each parameter, shape (n_masked, n_params)."""
+        jac = np.zeros((int(mask.sum()), theta.size))
+        for j, users in enumerate(self.users):
+            if not users:
+                continue
+            up = theta.copy()
+            up[j] += steps[j]
+            diff = sum(self.component(c, up)[mask] for c in users)
+            if central:
+                down = theta.copy()
+                down[j] -= steps[j]
+                diff = diff - sum(self.component(c, down)[mask] for c in users)
+                jac[:, j] = diff / (2 * steps[j])
+            else:
+                diff = diff - sum(comps[c][mask] for c in users)
+                jac[:, j] = diff / steps[j]
+        return jac
+
+
+def _log_prior_and_gradient(params_variable, theta):
+    """Sum of the log priors and its gradient (uniform: 0 inside; Gaussian:
+    analytic; other priors: finite differences)."""
+    total, grad = 0.0, np.zeros(theta.size)
+    for j, param in enumerate(params_variable.values()):
+        prior = param.prior
+        if prior is None:
+            continue
+        value = prior.logprior(theta[j])
+        total += float(value)
+        if not np.isfinite(total):
+            return -np.inf, grad
+        if isinstance(prior, UniformPrior):
+            continue
+        if isinstance(prior, GaussianPrior):
+            grad[j] = -(theta[j] - prior.mean) / prior.sigma**2
+        else:
+            step = 1e-6 * max(abs(theta[j]), 1.0)
+            grad[j] = (prior.logprior(theta[j] + step) - value) / step
+    return total, grad
+
+
+def _least_squares(
+    evaluator,
+    params_variable,
+    to_theta,
+    scales,
+    y_fit,
+    err_fit,
+    mask,
+    steps,
+    u_bounds,
+    method,
+    options,
+):
+    """MAP by `scipy.optimize.least_squares`: residuals (y - m) / err over
+    the fit mask plus (theta - mean) / sigma per Gaussian prior; uniform
+    priors are the bounds. -1/2 sum(residuals^2) is the log-probability up
+    to a constant."""
+
+    gauss = [
+        (j, p.prior)
+        for j, p in enumerate(params_variable.values())
+        if isinstance(p.prior, GaussianPrior)
+    ]
+    cache = {}
+
+    def _state(u):
+        key = u.tobytes()
+        if key not in cache:
+            cache.clear()
+            theta = to_theta(u)
+            comps = evaluator.all(theta)
+            cache[key] = (theta, comps)
+        return cache[key]
+
+    def _fun(u):
+        theta, comps = _state(u)
+        resid = (y_fit - comps.sum(axis=0)[mask]) / err_fit
+        prior = [(theta[j] - pr.mean) / pr.sigma for j, pr in gauss]
+        return np.concatenate([resid, prior])
+
+    def _jac(u):
+        theta, comps = _state(u)
+        jac = -evaluator.derivatives(theta, comps, steps, mask) / err_fit[:, None]
+        rows = np.zeros((len(gauss), theta.size))
+        for row, (j, pr) in enumerate(gauss):
+            rows[row, j] = 1 / pr.sigma
+        return np.vstack([jac, rows]) * scales
+
+    lo = np.array([-np.inf if b[0] is None else b[0] for b in u_bounds])
+    hi = np.array([np.inf if b[1] is None else b[1] for b in u_bounds])
+    res = optimize.least_squares(
+        _fun,
+        np.zeros(scales.size),
+        jac=_jac,
+        bounds=(lo, hi),
+        method=method,
+        x_scale="jac",
+        **(options or {}),
+    )
+    res.nfev = int(res.nfev) + int(res.njev or 0)
+    res.success = bool(res.status > 0)
+    return res
 
 
 def _covariance(model, theta, scales, x, yerr):
@@ -355,14 +517,11 @@ def _covariance(model, theta, scales, x, yerr):
     fit_mask = model.get_fit_mask()
     sigma = yerr[fit_mask]
 
-    jac = np.empty((int(fit_mask.sum()), theta.size))
-    for idx in range(theta.size):
-        step = _JACOBIAN_STEP * scales[idx]
-        up, down = theta.copy(), theta.copy()
-        up[idx] += step
-        down[idx] -= step
-        diff = model.eval(x, up)[fit_mask] - model.eval(x, down)[fit_mask]
-        jac[:, idx] = diff / (2 * step) / sigma
+    evaluator = _ComponentEvaluator(model, x)
+    jac = evaluator.derivatives(
+        theta, None, _JACOBIAN_STEP * scales, fit_mask, central=True
+    )
+    jac /= sigma[:, None]
 
     curvature = jac.T @ jac
     for idx, param in enumerate(model.params_variable.values()):
@@ -380,7 +539,16 @@ def _covariance(model, theta, scales, x, yerr):
     return covariance
 
 
-def quick_fit(model, log_probability, x, y, yerr, method="L-BFGS-B", options=None):
+def quick_fit(
+    model,
+    log_probability,
+    x,
+    y,
+    yerr,
+    method="auto",
+    options=None,
+    gradient=False,
+):
     """Maximize `log_probability` over the model's variable parameters.
 
     Called by `FitModel.run_quick_fit`; see there. The parameters are
@@ -398,11 +566,22 @@ def quick_fit(model, log_probability, x, y, yerr, method="L-BFGS-B", options=Non
     :type y: np.ndarray
     :param yerr: Flux density uncertainty
     :type yerr: np.ndarray
-    :param method: `scipy.optimize.minimize` method; one that supports
-        bounds ("L-BFGS-B", "Powell", "Nelder-Mead", "TNC", "SLSQP", ...)
+    :param method: "trf" or "dogbox" (`scipy.optimize.least_squares` on the
+        residuals plus one residual per Gaussian prior: the same maximum for
+        uniform and Gaussian priors, and much faster; needs `gradient`), a
+        `scipy.optimize.minimize` method that supports bounds ("L-BFGS-B",
+        "Powell", "Nelder-Mead", "TNC", "SLSQP", ...), or "auto": "trf" if
+        possible (`gradient` and only uniform / Gaussian priors), else
+        "L-BFGS-B"
     :type method: str
-    :param options: Passed on to `scipy.optimize.minimize`
+    :param options: Passed on to `scipy.optimize.minimize` (`options`) or
+        `scipy.optimize.least_squares` (keyword arguments, e.g. `max_nfev`)
     :type options: dict
+    :param gradient: `log_probability` is `sculptor.model.log_probability`:
+        compute the log-probability and its gradient here, component by
+        component (much faster for models with many components, and more
+        accurate than the optimizer's own finite differences)
+    :type gradient: bool
     :return: The fit result
     :rtype: QuickFitResult
     """
@@ -416,12 +595,35 @@ def quick_fit(model, log_probability, x, y, yerr, method="L-BFGS-B", options=Non
     theta0 = _start_values(params_variable, bounds)
 
     def _to_theta(u):
-        return theta0 + u * scales
+        # Clipped: at a bound, u * scales can miss it by round-off and put
+        # the value just outside a uniform prior (log prior -inf)
+        return np.clip(theta0 + u * scales, bounds[:, 0], bounds[:, 1])
 
     def _negative_log_prob(u):
         lp = log_probability(_to_theta(u), x, model, y, yerr)
         # A large finite value instead of inf keeps the line searches working.
         return -lp if np.isfinite(lp) else 1e300
+
+    fit_mask = model.get_fit_mask()
+    evaluator = _ComponentEvaluator(model, x)
+    y_fit, inv_var = y[fit_mask], 1 / yerr[fit_mask] ** 2
+    log_norm = np.sum(np.log(yerr[fit_mask] ** 2))
+    steps = _JACOBIAN_STEP * scales
+
+    def _value_and_gradient(u):
+        theta = _to_theta(u)
+        lp, lp_grad = _log_prior_and_gradient(params_variable, theta)
+        if not np.isfinite(lp):
+            return 1e300, np.zeros_like(u)
+        comps = evaluator.all(theta)
+        resid = y_fit - comps.sum(axis=0)[fit_mask]
+        log_like = -0.5 * (np.sum(resid**2 * inv_var) + log_norm)
+        jac = evaluator.derivatives(theta, comps, steps, fit_mask)
+        grad = jac.T @ (resid * inv_var) + lp_grad
+        value = lp + log_like
+        if not np.isfinite(value):
+            return 1e300, np.zeros_like(u)
+        return -value, -grad * scales
 
     u_bounds = [
         ((low - t0) / s, (upp - t0) / s)
@@ -432,18 +634,53 @@ def quick_fit(model, log_probability, x, y, yerr, method="L-BFGS-B", options=Non
         for lo, hi in u_bounds
     ]
 
-    res = optimize.minimize(
-        _negative_log_prob,
-        np.zeros(theta0.size),
-        method=method,
-        bounds=u_bounds,
-        options=options,
+    simple_priors = all(
+        p.prior is None or isinstance(p.prior, (UniformPrior, GaussianPrior))
+        for p in params_variable.values()
     )
+    if method == "auto":
+        method = "trf" if gradient and simple_priors else "L-BFGS-B"
+    if method in ("trf", "dogbox"):
+        if not (gradient and simple_priors):
+            raise ValueError(
+                f"method={method!r} needs the default log-probability and only "
+                "uniform or Gaussian priors; use a scipy.optimize.minimize method."
+            )
+        res = _least_squares(
+            evaluator,
+            params_variable,
+            _to_theta,
+            scales,
+            y_fit,
+            yerr[fit_mask],
+            fit_mask,
+            steps,
+            u_bounds,
+            method,
+            options,
+        )
+    elif gradient:
+        res = optimize.minimize(
+            _value_and_gradient,
+            np.zeros(theta0.size),
+            jac=True,
+            method=method,
+            bounds=u_bounds,
+            options=options,
+        )
+    else:
+        res = optimize.minimize(
+            _negative_log_prob,
+            np.zeros(theta0.size),
+            method=method,
+            bounds=u_bounds,
+            options=options,
+        )
     theta = _to_theta(res.x)
+    log_prob = float(log_probability(theta, x, model, y, yerr))
     if not res.success:
         logger.warning(f"Quick fit did not converge: {res.message}")
 
-    fit_mask = model.get_fit_mask()
     n_data = int(fit_mask.sum())
     residuals = (y[fit_mask] - model.eval(x, theta)[fit_mask]) / yerr[fit_mask]
     # Same as `sculptor.model.log_likelihood_chi_square`
@@ -471,7 +708,7 @@ def quick_fit(model, log_probability, x, y, yerr, method="L-BFGS-B", options=Non
         values=theta,
         errors=errors,
         covariance=covariance,
-        log_prob=float(-res.fun),
+        log_prob=log_prob,
         log_likelihood=float(log_like),
         chi_sq=float(np.sum(residuals**2)),
         dof=n_data - theta.size,

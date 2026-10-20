@@ -457,3 +457,48 @@ def test_sigma_clip_high_max_width_spares_unmodeled_lines(fit_model):
     mask = fit_model.get_fit_mask()
     assert not mask[150]
     assert mask[core].all()
+
+
+def test_least_squares_and_minimize_agree(fit_model):
+    """The default least-squares path ("trf") finds the same MAP as
+    L-BFGS-B on the log-probability, with the same log-probability."""
+
+    _perturb(fit_model)
+    fast = fit_model.run_quick_fit()
+    slow = fit_model.run_quick_fit(method="L-BFGS-B")
+    assert fast.method == "trf"
+    np.testing.assert_allclose(fast.values, slow.values, rtol=1e-3)
+    assert fast.log_prob == pytest.approx(slow.log_prob, abs=1e-3)
+    assert fast.log_prob >= slow.log_prob - 1e-6
+
+
+def test_trf_needs_the_default_log_probability(fit_model):
+    def custom(theta, x, model, y, yerr):
+        return scmod.log_probability(theta, x, model, y, yerr)
+
+    result = fit_model.run_quick_fit(log_probability=custom)
+    assert result.method == "L-BFGS-B"
+    with pytest.raises(ValueError, match="default log-probability"):
+        fit_model.run_quick_fit(log_probability=custom, method="trf")
+
+
+def test_start_on_a_bound_is_not_reported_outside(caplog):
+    model, *_ = _linear_model(prior_a=scpri.UniformPrior("lin_a", 2.0, 3))
+    model.parameters["lin_a"].value = 2.0
+    with caplog.at_level(logging.WARNING):
+        result = model.run_quick_fit()
+    assert "outside its prior" not in caplog.text
+    assert result.success
+
+
+def test_component_evaluator_matches_eval(fit_model):
+    from sculptor import quick_fit as qf
+
+    fit_model.resolution = 2000.0
+    fit_model.get_params_to_sample()
+    x = fit_model.spec.dispersion
+    theta = np.array([p.value for p in fit_model.params_variable.values()])
+    evaluator = qf._ComponentEvaluator(fit_model, x)
+    np.testing.assert_allclose(
+        evaluator.all(theta).sum(axis=0), fit_model.eval(x, theta), rtol=1e-10
+    )

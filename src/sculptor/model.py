@@ -135,6 +135,20 @@ def _short_runs(mask, max_width):
     return out
 
 
+_default_log_probability = log_probability
+
+# scipy.optimize.minimize methods with bounds that use the gradient
+_GRADIENT_METHODS = (
+    "auto",
+    "trf",
+    "dogbox",
+    "L-BFGS-B",
+    "TNC",
+    "SLSQP",
+    "trust-constr",
+)
+
+
 def _evaluate_single_sample(args):
     """
     Evaluate the model flux for a single parameter sample.
@@ -489,7 +503,7 @@ class FitModel(PickleMixin):
         self,
         log_probability=log_probability,
         spec=None,
-        method="L-BFGS-B",
+        method="auto",
         options=None,
         update_values=False,
         clip=None,
@@ -507,9 +521,13 @@ class FitModel(PickleMixin):
         :type log_probability: callable
         :param spec: Spectrum to fit instead of `self.spec` (same pixels)
         :type spec: speconed.speconed.SpecOneD
-        :param method: `scipy.optimize.minimize` method that supports bounds
+        :param method: "auto" (default: `scipy.optimize.least_squares`
+            "trf" for uniform and Gaussian priors, else "L-BFGS-B"), "trf",
+            "dogbox", or a `scipy.optimize.minimize` method that supports
+            bounds; see `sculptor.quick_fit.quick_fit`
         :type method: str
-        :param options: Passed on to `scipy.optimize.minimize`
+        :param options: Passed on to the optimizer (see
+            `sculptor.quick_fit.quick_fit`)
         :type options: dict
         :param update_values: Also set the variable parameters' `value` to
             the best fit (e.g. to start the next fit from there)
@@ -536,6 +554,12 @@ class FitModel(PickleMixin):
                 f"(from `self.spec`) has {len(self.gpm_fit)}."
             )
 
+        # Analytic gradient for the default log-probability; methods that do
+        # not use gradients evaluate the function only.
+        gradient = log_probability is _default_log_probability and method in (
+            _GRADIENT_METHODS
+        )
+
         def _fit():
             return scqf.quick_fit(
                 self,
@@ -545,6 +569,7 @@ class FitModel(PickleMixin):
                 spec.fluxden_err,
                 method=method,
                 options=options,
+                gradient=gradient,
             )
 
         result = _fit()
