@@ -4,14 +4,13 @@ compatible units, and store results in fixed units.
 """
 
 import numpy as np
-import pandas as pd
 import pytest
 from astropy import units as u
 from speconed import speconed as sod
 
 from sculptor import measurements
 from sculptor_extensions import Qso_autofit as qa
-from sculptor_extensions import qso, qso_presets
+from sculptor_extensions import qso
 
 KM_S = u.km / u.s
 LWAV = u.erg / u.s / u.AA
@@ -125,40 +124,6 @@ def test_eddington_and_blueshift_require_quantities():
         qso.correct_CIV_fwhm_for_blueshift(5000 * KM_S, 500)
 
 
-def _mgii_table(fwhm=3000.0, lum=1e44, z=2.99):
-    cols = {}
-    for key in ("_median", "_low", "_upp"):
-        cols[f"MgII_fwhm{key}"] = [fwhm]
-        cols[f"L3000{key}"] = [lum]
-        cols[f"MgII_redsh{key}"] = [z]
-    return pd.DataFrame(cols)
-
-
-MGII_COLUMNS = {"fwhm": "MgII_fwhm", "luminosity": "L3000", "redshift": "MgII_redsh"}
-
-
-def test_get_line_prop_mgii_values(tmp_path):
-    df = qso_presets.get_line_prop_MgII(
-        _mgii_table(), 3.0, MGII_COLUMNS, str(tmp_path), "J0001", "Vest"
-    )
-    row = df.iloc[0]
-
-    cont_lwav, cont_wav = 1e44 * LWAV, 3000 * u.AA
-    s11 = qso.se_bhmass_mgii_s11_fwhm(3000 * KM_S, cont_lwav, cont_wav)[0]
-    vo09 = qso.se_bhmass_mgii_vo09_fwhm(3000 * KM_S, cont_lwav, cont_wav)[0]
-    lbol = qso.calc_bolometric_luminosity(cont_lwav, cont_wav)[0]
-
-    assert row["MgII_BH_mass_3000_s11_median"] == pytest.approx(s11.to_value(u.Msun))
-    assert row["MgII_BH_mass_3000_vo09_median"] == pytest.approx(vo09.to_value(u.Msun))
-    assert row["L_bol_3000_median"] == pytest.approx(lbol.to_value(u.erg / u.s))
-    assert row["Eddington_ratio_3000_s11_median"] == pytest.approx(
-        (lbol / qso.calc_eddington_luminosity(s11)).decompose().value
-    )
-    assert row["delta_v_MgII_median"] == pytest.approx(
-        qso.calc_velocity_shifts(2.99, 3.0).to_value(KM_S)
-    )
-
-
 def _line_spec(fluxden_unit, scale):
     disp = np.linspace(5800, 6200, 4001)
     flux = scale * np.exp(-0.5 * ((disp - 6000) / 10) ** 2)
@@ -171,21 +136,23 @@ def _line_spec(fluxden_unit, scale):
 
 
 def test_get_fwhm_int_flux_does_not_depend_on_the_flux_unit():
-    """The integrated flux is returned in 1e-17 erg/s/cm^2 whatever the
-    spectrum's flux density unit. It used to be `.value * 1e17`, which is
-    only right for a spectrum in erg/s/cm^2/A."""
+    """FWHM (km/s) and integrated flux (1e-17 erg/s/cm^2) do not depend on the
+    spectrum's flux density unit. The flux used to be `.value * 1e17` (only
+    right for erg/s/cm^2/A), and the fixed spline smoothing s=100 broadened
+    or smoothed away the line depending on the flux scale."""
     cgs = u.erg / u.s / u.cm**2 / u.AA
-    _, flux_cgs = qa.get_fwhm_int_flux(_line_spec(cgs, 1e-16), 5800, 6200, 0.0)
-    spec_17 = _line_spec(1e-17 * cgs, 10.0)
-    fwhm_17, flux_17 = qa.get_fwhm_int_flux(spec_17, 5800, 6200, 0.0)
+    fwhm_cgs, flux_cgs = qa.get_fwhm_int_flux(_line_spec(cgs, 1e-16), 5800, 6200, 0.0)
+    fwhm_17, flux_17 = qa.get_fwhm_int_flux(
+        _line_spec(1e-17 * cgs, 10.0), 5800, 6200, 0.0
+    )
 
     expected_flux = 10.0 * 10 * np.sqrt(2 * np.pi)  # in 1e-17 erg/s/cm^2
     assert flux_cgs == pytest.approx(expected_flux, rel=1e-6)
     assert flux_17 == pytest.approx(expected_flux, rel=1e-6)
-    # FWHM as a float in km/s (only for the 1e-17 spectrum: the spline
-    # smoothing s=100 is too strong for fluxes ~1e-16)
-    expected_fwhm = measurements.get_fwhm(spec_17, [5800, 6200], s=100)
-    assert fwhm_17 == pytest.approx(expected_fwhm.to_value(KM_S))
+    # Gaussian sigma = 10 A at 6000 A
+    expected_fwhm = 2 * np.sqrt(2 * np.log(2)) * 10 / 6000 * 299792.458
+    assert fwhm_cgs == pytest.approx(expected_fwhm, rel=1e-3)
+    assert fwhm_17 == pytest.approx(fwhm_cgs, rel=1e-9)
     assert isinstance(fwhm_17, float)
 
 

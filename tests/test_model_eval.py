@@ -1,18 +1,7 @@
-"""Regression tests for bug fixes and a performance optimization applied to
-`sculptor.model.FitModel` and `sculptor.component.FitComponent`.
-
-1. `FitModel.get_params_to_sample()` used to append to `params_constant_val`
-   without ever clearing it, so calling it more than once (which happens in
-   normal usage: `eval()` calls it once, then `initialize_emcee()` /
-   `initialize_positions()` call it again unconditionally) silently
-   duplicated constant-parameter values.
-2. `FitModel.calculate_chi_sq()` computed degrees of freedom using
-   `len(self.parameters)` (fixed + variable) instead of only the variable
-   (actually fitted) parameters.
-3. `FitModel.eval()` used to recompute, on every single call, the mapping
-   from each component's function arguments to their parameter-dict keys --
-   static data that never changes after `FitComponent.create_params()` is
-   called. This is now cached on the component via `get_arg_keys()`.
+"""`FitModel.eval` and what it relies on: the split into variable and fixed
+parameters (`get_params_to_sample`), the cached argument keys of
+`FitComponent` (`get_arg_keys`, kept up to date when `param_mapping`
+changes), the chi-square degrees of freedom and big-endian input.
 """
 
 from types import SimpleNamespace

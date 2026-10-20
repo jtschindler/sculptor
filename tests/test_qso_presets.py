@@ -4,7 +4,6 @@ and their named variants in `sculptor_extensions.qso_presets`."""
 import inspect
 
 import numpy as np
-import pandas as pd
 import pytest
 from astropy import units as u
 from sculptor_extensions.component_setup import initialise_component
@@ -218,23 +217,6 @@ def test_cached_hol_model_is_the_uncached_one():
 
 
 # --- line properties -----------------------------------------------------------
-
-
-def test_get_line_prop_hbeta_preset():
-    cols = {}
-    for key in ("_median", "_low", "_upp"):
-        cols[f"Hbeta_fwhm{key}"] = [3000.0]
-        cols[f"L5100{key}"] = [1e44]
-        cols[f"Hbeta_redsh{key}"] = [0.5]
-    names = {"fwhm": "Hbeta_fwhm", "luminosity": "L5100", "redshift": "Hbeta_redsh"}
-    df = qso_presets.get_line_prop_Hbeta_OIII(pd.DataFrame(cols), 0.5, names)
-
-    mass = qso.se_bhmass_hbeta_vp06(3000 * KM_S, 1e44 * qso.LWAV_UNIT)[0]
-    row = df.iloc[0]
-    assert row["Hbeta_BH_mass_5100_median"] == pytest.approx(mass.to_value(u.Msun))
-    assert "L_bol_5100_upp" in df.columns
-    assert "Edd_lum_Hbeta_5100_low" in df.columns
-    assert row["delta_v_Hbeta_median"] == pytest.approx(0.0, abs=1e-9)
 
 
 # --- old names ------------------------------------------------------------------

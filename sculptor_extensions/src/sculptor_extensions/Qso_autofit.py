@@ -781,10 +781,9 @@ def get_fwhm_int_flux(input_spec, low, upp, redsh, **kwargs):
     """
     Calculate the FWHM (in km/s) and integrated flux (1e-17 erg/s/cm^2) for
     a given emission line from the spectrum over a specified dispersion range.
-    By default, the function uses "spline" method to interpolate
-    the original spectrum and find the zero points using a root finding
-    algorithm on the spline. The second method 'sign' finds sign changes in
-    the half peak flux subtracted spectrum.
+    The FWHM is measured on a smoothing spline of the spectrum (smoothing
+    from the flux density errors) with a root finding algorithm
+    (`sculptor.measurements.get_fwhm`, method "spline").
 
     To calculate integrated flux over a dispersion range, the standard
     numpy.trapz function is used for the integration.
@@ -800,7 +799,14 @@ def get_fwhm_int_flux(input_spec, low, upp, redsh, **kwargs):
     :rtype: float, float
     """
     disp_range = [low * (1 + redsh), upp * (1 + redsh)]
-    fwhm = meas.get_fwhm(input_spec, disp_range, s=100, method="spline")
+    # Spline smoothing from the noise (scipy: s ~ number of points x error
+    # variance), so the FWHM does not depend on the flux scale; s=0 (an
+    # interpolating spline) for a spectrum without errors. A fixed s=100 used
+    # to broaden lines with fluxes of order unity (+25% FWHM) and smooth away
+    # lines in plain cgs units.
+    err = input_spec.trim_dispersion(disp_range, inplace=False).fluxden_err
+    s = float(np.nansum(err**2)) if err is not None else 0.0
+    fwhm = meas.get_fwhm(input_spec, disp_range, s=s, method="spline")
     fwhm = fwhm.to_value(qso.KM_S)
 
     int_flux = meas.get_integrated_flux(input_spec, disp_range).to_value(
@@ -852,13 +858,13 @@ def create_emission_line_dict(input_spec, redsh, line_dict):
                 params["flux"]["value"] = int_flux
                 if "prior_upp_factor" in params["flux"]:
                     factor = params["flux"]["prior_upp_factor"]
-                    params["flux"]["prior"].upper = int_flux * factor
+                    params["flux"]["prior"].upp = int_flux * factor
 
             if "fwhm_km_s" in params and not np.isnan(fwhm):
                 params["fwhm_km_s"]["value"] = fwhm
                 if "prior_upp_factor" in params["fwhm_km_s"]:
                     factor = params["fwhm_km_s"]["prior_upp_factor"]
-                    params["fwhm_km_s"]["prior"].upper = fwhm * factor
+                    params["fwhm_km_s"]["prior"].upp = fwhm * factor
 
     return line_dict
 
@@ -1010,55 +1016,48 @@ def add_line_snr_stats(
     :param model: fit model
     :type model: sculptor.model.FitModel
     :param flat_chain: flat chain from MCMC
-    :type flat_chain:
+    :type flat_chain: np.ndarray
     :param redshift: redshift of the source
     :type redshift: float
-    :param fwhm: FWHM of the line in consideration
-    :type FWHM: float
-    :param comp_pl: continuum components to be subtracted before SNR calculation
-    :type comp_pl:
-    :param save_dir: path to save the output
+    :param fwhm: FWHM of the line in km/s, one value per sample of `flat_chain`
+    :type fwhm: np.ndarray
+    :param comp_pl: continuum component to be subtracted before SNR calculation
+    :type comp_pl: sculptor.component.FitComponent
+    :param source: name of the source, used in the file names
+    :type source: str
+    :param save_dir: path to save the per-sample SNRs
+        (`<source>_<line_name>_line_snr.csv`, `..._peak_snr.csv`)
     :type save_dir: str
     :param line_name: emission line in consideration for SNR calculation
     :type line_name: str
     :param line_center: central wavelength of the emission line
     :type line_center: float
 
-    :return df: dataframe containing peak and total line SNR
-    :type df: pd.DataFrame
+    :return df: `df` with the median and 1-sigma range of the line and peak
+        SNR (the same values in every row)
+    :rtype: pd.DataFrame
     """
 
-    for idx, _row in df.iterrows():
-        line_dict = {
-            line_name: {"cen": line_center, "fwhm": fwhm, "l_min": None, "l_max": None}
-        }
+    line_dict = {
+        line_name: {"cen": line_center, "fwhm": fwhm, "l_min": None, "l_max": None}
+    }
+    line_snr, peak_snr = ana.get_line_snr(
+        model=model,
+        flat_chain=flat_chain,
+        cont_component=comp_pl,
+        redshift=redshift,
+        line_dict=line_dict,
+    )
 
-        line_snr, peak_snr = ana.get_line_snr(
-            model=model,
-            flat_chain=flat_chain,
-            cont_component=comp_pl,
-            redshift=redshift,
-            line_dict=line_dict,
+    for snr, kind in ((line_snr, "line"), (peak_snr, "peak")):
+        pd.DataFrame(snr.T, columns=list(line_dict)).to_csv(
+            os.path.join(save_dir, f"{source}_{line_name}_{kind}_snr.csv"),
+            index=False,
         )
-
-        df_snr = pd.DataFrame(line_snr.T, columns=list(line_dict.keys()))
-        df_snr.to_csv(
-            os.path.join(save_dir, f"{source}_{line_name}_line_snr.csv"), index=False
-        )
-        df_snr = pd.DataFrame(peak_snr.T, columns=list(line_dict.keys()))
-        df_snr.to_csv(
-            os.path.join(save_dir, f"{source}_{line_name}_peak_snr.csv"), index=False
-        )
-
-        med, low, upp = get_1sigma_range(line_snr[0])
-        df.at[idx, f"{line_name}_line_snr_median"] = med
-        df.at[idx, f"{line_name}_line_snr_low"] = low
-        df.at[idx, f"{line_name}_line_snr_upp"] = upp
-
-        med, low, upp = get_1sigma_range(peak_snr[0])
-        df.at[idx, f"{line_name}_peak_snr_median"] = med
-        df.at[idx, f"{line_name}_peak_snr_low"] = low
-        df.at[idx, f"{line_name}_peak_snr_upp"] = upp
+        med, low, upp = get_1sigma_range(snr[0])
+        df[f"{line_name}_{kind}_snr_median"] = med
+        df[f"{line_name}_{kind}_snr_low"] = low
+        df[f"{line_name}_{kind}_snr_upp"] = upp
 
     return df
 

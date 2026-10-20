@@ -189,10 +189,16 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, s=0, method="spline")
     dispersion = spec.dispersion
 
     if method == "spline":
-        spline = UnivariateSpline(dispersion, fluxden - np.max(fluxden) / 2.0, s=s)
-        roots = spline.roots()
+        # Peak from the smoothed spectrum: on noisy data the raw maximum sits
+        # on a noise spike, which puts the half maximum too high (and the
+        # FWHM too low). With s=0 the spline goes through the data.
+        smooth = UnivariateSpline(dispersion, fluxden, s=s)(dispersion)
+        peak_idx = np.argmax(smooth)
+        half_max = smooth[peak_idx] / 2.0
+        roots = UnivariateSpline(dispersion, fluxden - half_max, s=s).roots()
     elif method == "sign":
-        roots_idx = np.where(np.diff(np.sign(fluxden - np.max(fluxden) / 2.0)))[0]
+        peak_idx = np.argmax(fluxden)
+        roots_idx = np.where(np.diff(np.sign(fluxden - fluxden[peak_idx] / 2.0)))[0]
         roots = dispersion[roots_idx]
     else:
         raise ValueError(
@@ -206,17 +212,16 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, s=0, method="spline")
         )
         return np.nan * u.km / u.s
 
-    max_idx = np.where(fluxden == np.max(fluxden))
-    max_wav = dispersion[max_idx]
+    max_wav = dispersion[peak_idx]
 
     fwhm = (abs(roots[0] - max_wav) + abs(roots[1] - max_wav)) / max_wav * c_km_s
 
     if resolution is None:
-        return fwhm[0] * u.km / u.s
+        return fwhm * u.km / u.s
 
     logger.info(f"FWHM is corrected for the provided resolution of R={resolution}")
     resolution_km_s = c_km_s / resolution
-    return np.sqrt(fwhm**2 - resolution_km_s**2)[0] * u.km / u.s
+    return np.sqrt(fwhm**2 - resolution_km_s**2) * u.km / u.s
 
 
 def get_nonparametric_measurements(

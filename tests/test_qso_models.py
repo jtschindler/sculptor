@@ -274,3 +274,54 @@ def test_feii_over_mgii_ratio(tmp_path):
         pd.DataFrame({"a": [1.0]}), 2.0, {}, str(tmp_path), "src", "Vest"
     )
     assert "FeII_over_MgII_median" not in result.columns
+
+
+def test_get_line_prop_hbeta_preset():
+    cols = {}
+    for key in ("_median", "_low", "_upp"):
+        cols[f"Hbeta_fwhm{key}"] = [3000.0]
+        cols[f"L5100{key}"] = [1e44]
+        cols[f"Hbeta_redsh{key}"] = [0.5]
+    names = {"fwhm": "Hbeta_fwhm", "luminosity": "L5100", "redshift": "Hbeta_redsh"}
+    df = qso_presets.get_line_prop_Hbeta_OIII(pd.DataFrame(cols), 0.5, names)
+
+    mass = qso.se_bhmass_hbeta_vp06(3000 * KM_S, 1e44 * qso.LWAV_UNIT)[0]
+    row = df.iloc[0]
+    assert row["Hbeta_BH_mass_5100_median"] == pytest.approx(mass.to_value(u.Msun))
+    assert "L_bol_5100_upp" in df.columns
+    assert "Edd_lum_Hbeta_5100_low" in df.columns
+    assert row["delta_v_Hbeta_median"] == pytest.approx(0.0, abs=1e-9)
+
+
+def _mgii_table(fwhm=3000.0, lum=1e44, z=2.99):
+    cols = {}
+    for key in ("_median", "_low", "_upp"):
+        cols[f"MgII_fwhm{key}"] = [fwhm]
+        cols[f"L3000{key}"] = [lum]
+        cols[f"MgII_redsh{key}"] = [z]
+    return pd.DataFrame(cols)
+
+
+def test_get_line_prop_mgii_values(tmp_path):
+    df = qso_presets.get_line_prop_MgII(
+        _mgii_table(), 3.0, MGII_COLUMNS, str(tmp_path), "J0001", "Vest"
+    )
+    row = df.iloc[0]
+
+    cont_lwav, cont_wav = 1e44 * qso.LWAV_UNIT, 3000 * u.AA
+    s11 = qso.se_bhmass_mgii_s11_fwhm(3000 * KM_S, cont_lwav, cont_wav)[0]
+    vo09 = qso.se_bhmass_mgii_vo09_fwhm(3000 * KM_S, cont_lwav, cont_wav)[0]
+    lbol = qso.calc_bolometric_luminosity(cont_lwav, cont_wav)[0]
+
+    assert row["MgII_BH_mass_3000_s11_median"] == pytest.approx(s11.to_value(u.Msun))
+    assert row["MgII_BH_mass_3000_vo09_median"] == pytest.approx(vo09.to_value(u.Msun))
+    assert row["L_bol_3000_median"] == pytest.approx(lbol.to_value(u.erg / u.s))
+    assert row["Eddington_ratio_3000_s11_median"] == pytest.approx(
+        (lbol / qso.calc_eddington_luminosity(s11)).decompose().value
+    )
+    assert row["delta_v_MgII_median"] == pytest.approx(
+        qso.calc_velocity_shifts(2.99, 3.0).to_value(KM_S)
+    )
+
+
+MGII_COLUMNS = {"fwhm": "MgII_fwhm", "luminosity": "L3000", "redshift": "MgII_redsh"}
