@@ -120,7 +120,8 @@ def get_equivalent_width(cont_spec, line_spec, disp_range=None, redshift=0):
     :param line_spec: Spectrum with the feature (e.g. emission line)
     :type line_spec: speconed.speconed.SpecOneD
     :param disp_range: Observed-frame dispersion range (2 element list of
-        floats) over which the equivalent width will be calculated.
+        floats) over which the equivalent width will be calculated; the
+        pixels nearest to both ends are included.
     :type disp_range: [float, float]
     :param redshift: Redshift of the astronomical source
     :type redshift: float
@@ -138,9 +139,9 @@ def get_equivalent_width(cont_spec, line_spec, disp_range=None, redshift=0):
         l_idx = np.argmin(np.abs(rest_dispersion - disp_range[0] / (1 + redshift)))
         u_idx = np.argmin(np.abs(rest_dispersion - disp_range[1] / (1 + redshift)))
 
+        sel = slice(l_idx, u_idx + 1)
         ew = np.trapezoid(
-            rest_line_flux[l_idx:u_idx] / rest_cont_flux[l_idx:u_idx],
-            rest_dispersion[l_idx:u_idx],
+            rest_line_flux[sel] / rest_cont_flux[sel], rest_dispersion[sel]
         )
     else:
         ew = np.trapezoid(rest_line_flux / rest_cont_flux, rest_dispersion)

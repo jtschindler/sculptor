@@ -207,15 +207,9 @@ def test_get_components_by_prefix(fit_model):
     assert names == ["pl", "SiIV_a"]
 
     assert [c.name for c in fit_model.get_components_by_prefix("pl")] == ["pl"]
-    assert fit_model.get_all_prefix_components("SiIV")[0].name == "SiIV_a"
+    with pytest.warns(DeprecationWarning):
+        assert fit_model.get_all_prefix_components("SiIV")[0].name == "SiIV_a"
     assert fit_model.get_components_by_prefix(["CIV"]) == []
-
-
-def test_removed_methods():
-    # Empty stub (§2.2) and the broken pairwise corner plots (§2.3, moved to
-    # deprecated/src/sculptor/model_evaluate_parameters.py).
-    assert not hasattr(scmod.FitModel, "plot_posterior_histograms")
-    assert not hasattr(scmod.FitModel, "evaluate_parameters")
 
 
 # -- spectrum mask (adopted from upstream `kat` 4ee90b4) -----------------------
@@ -273,3 +267,52 @@ def test_chi_sq_and_bic_count_only_fitted_pixels(fit_model):
 def test_fit_mask_without_spectrum_mask(fit_model):
     fit_model.spec.mask = None
     assert np.array_equal(fit_model.get_fit_mask(), fit_model.gpm_fit)
+
+
+# -- parameter changes, fit-mask ranges, sampler ---------------------------------
+
+
+def test_eval_picks_up_parameter_changes(fit_model):
+    """`eval` used to cache the variable/fixed split and the fixed values on
+    its first call, ignoring later edits until `get_params_to_sample()`."""
+    x = fit_model.spec.dispersion
+    theta = fit_model.get_flat_chain(discard=DISCARD)[-1]
+    before = fit_model.eval(x, theta)
+
+    fixed = next(p for p in fit_model.parameters.values() if not p.vary)
+    fixed.value = fixed.value * 1.01 + 0.01
+    assert not np.allclose(fit_model.eval(x, theta), before)
+
+    values = dict(zip(fit_model.params_variable, theta, strict=True))
+    fixed.vary = True
+    values[fixed.name] = fixed.value
+    theta_more = [values[n] for n, p in fit_model.parameters.items() if p.vary]
+    assert len(theta_more) == len(theta) + 1
+    fit_model.eval(x, theta_more)  # no length mismatch
+    assert fixed.name in fit_model.params_variable
+
+
+def test_fit_mask_ranges_include_both_ends(fit_model):
+    disp = fit_model.spec.dispersion
+    fit_model.reset_fit_mask()
+    fit_model.add_wavelength_range_to_fit_mask(disp[20], disp[25])
+    assert np.flatnonzero(fit_model.gpm_fit).tolist() == list(range(20, 26))
+
+    fit_model.remove_wavelength_range_from_fit_mask(disp[25], disp[22])
+    assert np.flatnonzero(fit_model.gpm_fit).tolist() == [20, 21]
+
+
+def test_initialize_emcee_rejects_a_spectrum_on_another_grid(fit_model):
+    other = fit_model.spec.copy()
+    other.trim_dispersion([other.dispersion[0], other.dispersion[-10]], inplace=True)
+    with pytest.raises(ValueError, match="pixels"):
+        fit_model.initialize_emcee(10, spec=other)
+
+
+def test_emcee_runs_are_reproducible(fit_model):
+    chains = []
+    for _ in range(2):
+        fit_model.rng = np.random.default_rng(fit_model.seed)
+        fit_model.run_emcee(nsteps=5, nwalkers=10, progress=False)
+        chains.append(fit_model.sampler.get_chain())
+    np.testing.assert_array_equal(*chains)

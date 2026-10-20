@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+import warnings
 
 import chainconsumer as cc
 import emcee
@@ -45,7 +46,6 @@ def log_likelihood_chi_square(theta, model, x, y, yerr):
     :return: Log-likelihood
     :rtype: float
     """
-    # print(f"PID: {os.getpid()} computing log-likelihood")
     fit_mask = model.get_fit_mask()
 
     # Calculate the full evaluated model at the given x values
@@ -77,19 +77,17 @@ def log_prior(theta, parameters):
     :rtype: float
     """
 
-    sum = 0
+    total = 0
 
-    # Possibly banish this into the model!
     for idx, param in enumerate(parameters):
         prior = parameters[param].prior
-        # Make sure that a prior was populated
         if prior is not None:
-            sum += prior.logprior(theta[idx])
+            total += prior.logprior(theta[idx])
 
-        if not np.isfinite(sum):
-            return sum
+        if not np.isfinite(total):
+            return total
 
-    return sum
+    return total
 
 
 def log_probability(theta, x, model, y, yerr):
@@ -110,11 +108,10 @@ def log_probability(theta, x, model, y, yerr):
     :return: Log probability; -inf outside the prior support
     :rtype: float
     """
-    # The priors are looked up in model.params_variable, which eval() only
-    # fills on first use; fill it here, or the first call (on a model that
-    # has not been evaluated yet) silently skips the prior.
-    if len(model.params_variable) == 0:
-        model.get_params_to_sample()
+    # The priors are looked up in model.params_variable; refresh it, or a
+    # model that was not evaluated yet (or whose parameters changed since)
+    # would use a stale or empty set of priors.
+    model.get_params_to_sample()
 
     lp = log_prior(theta, model.params_variable)
     if not np.isfinite(lp):
@@ -254,15 +251,32 @@ class FitModel(PickleMixin):
         self.parameters.update(parameters)
 
     def eval(self, x, params_values, components=None, broaden_by_resolution=True):
-        """Evaluate the model at the given x values."""
+        """Evaluate the model (the sum of its components) at `x`.
 
-        # If no components are specified, use all components
+        The variable parameters take the values in `params_values`; the fixed
+        ones their current `value`. The split into variable and fixed
+        parameters is rebuilt on every call (`get_params_to_sample`), so
+        changes to a parameter's `value` or `vary` take effect immediately.
+
+        :param x: Dispersion axis
+        :type x: np.ndarray
+        :param params_values: Values of the variable parameters, in the order
+            of `params_variable` (the order of `parameters` with `vary=True`)
+        :type params_values: sequence of float
+        :param components: Only evaluate these components (default: all)
+        :type components: list(sculptor.component.FitComponent)
+        :param broaden_by_resolution: Broaden by `resolution`, if it is set
+        :type broaden_by_resolution: bool
+        :return: Model flux density
+        :rtype: np.ndarray
+        :raises ValueError: if `params_values` does not have one value per
+            variable parameter
+        """
+
         if components is None:
             components = self.components
 
-        # If the parameter dictionaries have not been populated, do so now
-        if len(self.params_variable) == 0:
-            self.get_params_to_sample()
+        self.get_params_to_sample()
 
         params = {}
         params.update(zip(self.params_variable.keys(), params_values, strict=True))
@@ -340,14 +354,15 @@ class FitModel(PickleMixin):
         if spec is None:
             self._require_spectrum("initialize emcee")
             spec = self.spec
+        elif self.gpm_fit is not None and len(spec.dispersion) != len(self.gpm_fit):
+            raise ValueError(
+                f"`spec` has {len(spec.dispersion)} pixels but the fit mask "
+                f"(from `self.spec`) has {len(self.gpm_fit)}; the likelihood "
+                "applies the model's fit mask to `spec`."
+            )
 
-        # TODO: Test if there is really no way to reduce the number of pixels
-        #  here, if we want to take the resolution into account
-        #  Moved application of the fit mask to the log_chi_quasared function
-        # wave = spec.dispersion[self.gpm_fit]
-        # flux = spec.fluxden[self.gpm_fit]
-        # flux_err = spec.fluxden_err[self.gpm_fit]
-
+        # The full spectrum is passed (the resolution broadening needs the
+        # neighbouring pixels); the fit mask is applied in the likelihood.
         wave = spec.dispersion
         flux = spec.fluxden
         flux_err = spec.fluxden_err
@@ -360,6 +375,8 @@ class FitModel(PickleMixin):
             pool=pool,
             **kwargs,
         )
+        # Seed emcee's stretch moves too, so that runs are reproducible.
+        sampler.random_state = np.random.RandomState(self.seed).get_state()
 
         self.sampler = sampler
 
@@ -462,12 +479,18 @@ class FitModel(PickleMixin):
         return [comp for comp in self.components if comp.name.startswith(prefixes)]
 
     def get_all_prefix_components(self, prefix):
-        """
-        Return a list of components whose names start with the given prefix.
+        """Deprecated alias of `get_components_by_prefix`.
 
-        :param prefix: String prefix to match component names
+        :param prefix: Prefix to match component names against
+        :type prefix: str
         :return: List of matching FitComponent instances
+        :rtype: list
         """
+        warnings.warn(
+            "get_all_prefix_components is deprecated; use get_components_by_prefix",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.get_components_by_prefix([prefix])
 
     def calculate_chi_sq(self):
@@ -555,15 +578,26 @@ class FitModel(PickleMixin):
         self._require_spectrum("reset the fit mask")
         self.gpm_fit = np.zeros_like(self.spec.dispersion, dtype="bool")
 
+    def _range_slice(self, disp_x1, disp_x2):
+        """Pixels from the one nearest the lower to the one nearest the upper
+        dispersion value, both included."""
+
+        mask_between = np.sort(np.array([disp_x1, disp_x2]))
+        lo_index = np.argmin(np.abs(self.spec.dispersion - mask_between[0]))
+        up_index = np.argmin(np.abs(self.spec.dispersion - mask_between[1]))
+        return slice(lo_index, up_index + 1)
+
     def add_wavelength_range_to_fit_mask(self, disp_x1, disp_x2):
-        """Adding a wavelength region to the fit mask.
+        """Add a dispersion range to the fit mask.
 
-        The dispersion region between the two dispersion values will be added
-        to the fit mask.
+        The pixels from the one nearest `disp_x1` to the one nearest `disp_x2`
+        (both included; the order of the two values does not matter) are
+        added to the fit regions.
 
-        :param (float) disp_x1: Dispersion value 1
-        :param (float) disp_x2: Dispersion value 2
-        :return:
+        :param disp_x1: One end of the range, in the spectrum's dispersion unit
+        :type disp_x1: float
+        :param disp_x2: The other end of the range
+        :type disp_x2: float
         """
 
         logger.info(f"Manual mask range: {disp_x1} - {disp_x2}")
@@ -572,21 +606,18 @@ class FitModel(PickleMixin):
         if self.gpm_fit is None:
             self.reset_fit_mask()
 
-        mask_between = np.sort(np.array([disp_x1, disp_x2]))
-        lo_index = np.argmin(np.abs(self.spec.dispersion - mask_between[0]))
-        up_index = np.argmin(np.abs(self.spec.dispersion - mask_between[1]))
-
-        self.gpm_fit[lo_index:up_index] = True
+        self.gpm_fit[self._range_slice(disp_x1, disp_x2)] = True
 
     def remove_wavelength_range_from_fit_mask(self, disp_x1, disp_x2):
-        """Removing a wavelength region to the fit mask.
+        """Remove a dispersion range from the fit mask.
 
-        The dispersion region between the two dispersion values will be removed
-        from the fit mask.
+        The pixels from the one nearest `disp_x1` to the one nearest `disp_x2`
+        (both included) are removed from the fit regions.
 
-        :param (float) disp_x1: Dispersion value 1
-        :param (float) disp_x2: Dispersion value 2
-        :return:
+        :param disp_x1: One end of the range, in the spectrum's dispersion unit
+        :type disp_x1: float
+        :param disp_x2: The other end of the range
+        :type disp_x2: float
         """
 
         logger.info(f"Manual mask range: {disp_x1} - {disp_x2}")
@@ -595,11 +626,7 @@ class FitModel(PickleMixin):
         if self.gpm_fit is None:
             self.reset_fit_mask()
 
-        mask_between = np.sort(np.array([disp_x1, disp_x2]))
-        lo_index = np.argmin(np.abs(self.spec.dispersion - mask_between[0]))
-        up_index = np.argmin(np.abs(self.spec.dispersion - mask_between[1]))
-
-        self.gpm_fit[lo_index:up_index] = False
+        self.gpm_fit[self._range_slice(disp_x1, disp_x2)] = False
 
     # -----------------------------------------------------------------------
     # Functions related to the model evaluation
@@ -806,8 +833,6 @@ class FitModel(PickleMixin):
 
         scp.set_presentation_defaults()
 
-        # Define the figure
-        # plt.clf()
         fig = plt.figure(figsize=(14, 8))
 
         # Define the gridspec
@@ -1024,7 +1049,6 @@ class FitModel(PickleMixin):
 
         # Add reduced-chi2 value on the plot for the fit
         _chi_sq, _dof, reduced_chi_sq = self.calculate_chi_sq()
-        # bic = self.compute_bic()
 
         stats_handle = Line2D(
             [0], [0], color="none", label=f"reduced chi-sq = {reduced_chi_sq:.2f}"
@@ -1129,7 +1153,7 @@ class FitModel(PickleMixin):
         return c.analysis.get_summary()
 
     def plot_posterior_param_histograms(
-        self, discard, save=False, save_dir=".", save_name_prefix="posterior_hist"
+        self, discard=2000, save=False, save_dir=".", save_name_prefix="posterior_hist"
     ):
         """
         Plot posterior histograms for MCMC samples from a given model, generating separate plots for each parameter.
