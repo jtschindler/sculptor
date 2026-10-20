@@ -7,11 +7,11 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-import sculptor_extensions.Qso_autofit as qa
 
 from sculptor import analysis as ana
 from sculptor.component import FitComponent
 from sculptor.model import FitModel
+from sculptor_extensions import qso_presets
 
 IRON_DIR = (
     Path(__file__).resolve().parents[1] / "src" / "sculptor" / "data" / "iron_templates"
@@ -82,10 +82,10 @@ def _fe_dict(slow):
 
 
 def test_fast_iron_setup_gives_the_same_model():
-    slow_comp, slow_params = qa.setup_iron_template_VW01_UV(
+    slow_comp, slow_params = qso_presets.setup_iron_template_VW01_UV(
         "Fe", fe_dict=_fe_dict(True), fast=False
     )
-    fast_comp, fast_params = qa.setup_iron_template_VW01_UV(
+    fast_comp, fast_params = qso_presets.setup_iron_template_VW01_UV(
         "Fe", fe_dict=_fe_dict(False), fast=True
     )
 
@@ -102,7 +102,10 @@ def test_fast_iron_setup_gives_the_same_model():
 def test_all_iron_setups_accept_fast():
     import inspect
 
-    setups = [n for n in dir(qa) if n.startswith("setup_iron_template_")]
+    setups = [n for n in dir(qso_presets) if n.startswith("setup_iron_template_")]
     assert len(setups) == 10
     for name in setups:
-        assert inspect.signature(getattr(qa, name)).parameters["fast"].default is True
+        assert (
+            inspect.signature(getattr(qso_presets, name)).parameters["fast"].default
+            is True
+        )

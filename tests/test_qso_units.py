@@ -11,7 +11,7 @@ from speconed import speconed as sod
 
 from sculptor import measurements
 from sculptor_extensions import Qso_autofit as qa
-from sculptor_extensions import qso
+from sculptor_extensions import qso, qso_presets
 
 KM_S = u.km / u.s
 LWAV = u.erg / u.s / u.AA
@@ -138,7 +138,7 @@ MGII_COLUMNS = {"fwhm": "MgII_fwhm", "luminosity": "L3000", "redshift": "MgII_re
 
 
 def test_get_line_prop_mgii_values(tmp_path):
-    df = qa.get_line_prop_MgII(
+    df = qso_presets.get_line_prop_MgII(
         _mgii_table(), 3.0, MGII_COLUMNS, str(tmp_path), "J0001", "Vest"
     )
     row = df.iloc[0]

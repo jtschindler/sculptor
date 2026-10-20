@@ -15,7 +15,9 @@ import numpy as np
 from astropy.constants import c, h, k_B
 from scipy.special import voigt_profile
 
+from sculptor import analysis as ana
 from sculptor import component as sccomp
+from sculptor_extensions.component_setup import initialise_component
 
 resource_path = importlib.resources.files("sculptor")
 datadir = str(resource_path / "data") + "/"
@@ -64,6 +66,29 @@ C_KM_S = c.to("km/s").value
 # ------------------------------------------------------------------------------
 
 
+def _require_hol_data():
+    """Raise a clear error if the HOL data file is missing."""
+    if _HOL_TRANSITIONS is None:
+        raise FileNotFoundError(
+            f"{HOL_DATA_FILE} (high-order Balmer line transitions/"
+            "emissivities) is missing from sculptor/data/ -- add it to "
+            "use the Balmer+HOL models."
+        )
+
+
+def _hol_shape(x_rest, diff2, fwhm, lambda_be, continuum_shape):
+    """High-order Balmer lines: Gaussians at `_HOL_TRANSITIONS` weighted by
+    `_HOL_EMISS`, scaled to 0.3 times the continuum at the Balmer edge.
+    `diff2` is ``(x_rest[:, None] - _HOL_TRANSITIONS[None, :]) ** 2``."""
+    sigma = (fwhm / c_kms) * _HOL_TRANSITIONS / _SIGMA_TO_FWHM
+    profile = np.exp(-0.5 * diff2 / sigma[None, :] ** 2)
+    flux_density = np.sum(_HOL_EMISS[None, :] * profile / sigma[None, :], axis=1)
+    edge_hol = np.interp(lambda_be, x_rest, flux_density)
+    edge_continuum = np.interp(lambda_be, x_rest, continuum_shape)
+    flux_density *= 0.3 * edge_continuum / edge_hol
+    return flux_density
+
+
 class BalmerContinuumWithHOL:
     """
     Callable Balmer pseudo-continuum + high-order-line (HOL) model.
@@ -71,7 +96,8 @@ class BalmerContinuumWithHOL:
     Drop-in replacement for `fast_balmer_continuum_model` anywhere a plain
     `f(x, redsh, amp_be, Te, tau_be, lambda_be, fwhm)` callable is expected
     (e.g. `sccomp.FitComponent`). Stateless -- every call recomputes
-    everything from scratch.
+    everything from scratch; `CachedBalmerContinuumWithHOL` caches the
+    wavelength grid.
 
     Exposes a fake `__code__`/`__name__` so `FitComponent.__init__`'s
     `self.function.__code__.co_argcount` / `co_varnames` introspection
@@ -89,154 +115,88 @@ class BalmerContinuumWithHOL:
         )
         self.__name__ = "balmer_continuum_with_hol"
 
-    def _continuum_shape(self, x_rest, Te, tau_be, lambda_be):
-        lambda_cm = x_rest * 1e-8
-        nu = _C_CGS / lambda_cm
-        exponent = (_H_CGS * nu) / (_KB_CGS * Te)
-        with np.errstate(over="ignore"):
-            black_body_nu = (2.0 * _H_CGS * nu**3 / _C_CGS**2) / np.expm1(exponent)
-        black_body_lambda = black_body_nu * c_AngstroemPerSecond / x_rest**2
-        optical_depth_term = -tau_be * (x_rest / lambda_be) ** 3
-        shape = black_body_lambda * (-np.expm1(optical_depth_term))
-        return np.where(x_rest < lambda_be, shape, 0.0)
-
-    def _hol_shape(self, x_rest, fwhm, lambda_be, continuum_shape):
-        if _HOL_TRANSITIONS is None:
-            raise FileNotFoundError(
-                f"{HOL_DATA_FILE} (high-order Balmer line transitions/"
-                "emissivities) is missing from sculptor/data/ -- add it to "
-                "use the Balmer+HOL models."
-            )
-        sigma = (fwhm / c_kms) * _HOL_TRANSITIONS / _SIGMA_TO_FWHM
-        diff2 = (x_rest[:, None] - _HOL_TRANSITIONS[None, :]) ** 2
-        profile = np.exp(-0.5 * diff2 / sigma[None, :] ** 2)
-        flux_density = np.sum(_HOL_EMISS[None, :] * profile / sigma[None, :], axis=1)
-        edge_hol = np.interp(lambda_be, x_rest, flux_density)
-        edge_continuum = np.interp(lambda_be, x_rest, continuum_shape)
-        flux_density *= 0.3 * edge_continuum / edge_hol
-        return flux_density
+    def _rest_frame(self, x, redsh):
+        """Rest-frame wavelengths and their squared distances to the HOL
+        transitions."""
+        _require_hol_data()
+        x_rest = x / (1.0 + redsh)
+        return x_rest, (x_rest[:, None] - _HOL_TRANSITIONS[None, :]) ** 2
 
     def __call__(self, x, redsh, amp_be, Te, tau_be, lambda_be, fwhm):
-        x_rest = x / (1.0 + redsh)
-        continuum_shape = self._continuum_shape(x_rest, Te, tau_be, lambda_be)
-        hol_shape = self._hol_shape(x_rest, fwhm, lambda_be, continuum_shape)
+        """Evaluate the model.
+
+        :param x: Observed-frame dispersion in Angstroem
+        :type x: np.ndarray
+        :param redsh: Redshift
+        :type redsh: float
+        :param amp_be: Amplitude of the Balmer continuum
+        :type amp_be: float
+        :param Te: Electron temperature in K
+        :type Te: float
+        :param tau_be: Optical depth at the Balmer edge
+        :type tau_be: float
+        :param lambda_be: Wavelength of the Balmer edge in Angstroem
+        :type lambda_be: float
+        :param fwhm: FWHM of the high-order lines in km/s
+        :type fwhm: float
+        :return: Balmer continuum + high-order lines
+        :rtype: np.ndarray
+        """
+        x_rest, diff2 = self._rest_frame(x, redsh)
+        continuum_shape = balmer_continuum_shape(x_rest, Te, tau_be, lambda_be)
+        hol_shape = _hol_shape(x_rest, diff2, fwhm, lambda_be, continuum_shape)
         return amp_be * (continuum_shape + hol_shape) * 1e-8
 
 
-class CachedBalmerContinuumWithHOL:
+class CachedBalmerContinuumWithHOL(BalmerContinuumWithHOL):
     """
-    Callable Balmer pseudo-continuum + high-order-line (HOL) model.
-
-    Drop-in replacement for `fast_balmer_continuum_model` anywhere a plain
-    `f(x, redsh, amp_be, Te, tau_be, lambda_be, fwhm)` callable is expected
-    (e.g. `sccomp.FitComponent`).
-
-    Caches the (n_pixels, n_lines) wavelength-difference matrix used in the
-    HOL Gaussian sum -- the single biggest cost in __call__ -- and
-    automatically invalidates that cache whenever `x` or `redsh` change between
-    calls, so it stays correct even if `redsh` is a free/varying fit parameter
-    (it just won't provide a caching benefit in that case).
+    `BalmerContinuumWithHOL` that caches the (n_pixels, n_lines)
+    wavelength-difference matrix used in the HOL Gaussian sum -- the single
+    biggest cost in __call__ -- and automatically invalidates that cache
+    whenever `x` or `redsh` change between calls, so it stays correct even
+    if `redsh` is a free/varying fit parameter (it just won't provide a
+    caching benefit in that case).
 
     IMPORTANT: give each `FitComponent` its own instance. Don't share one
     instance across components fit to different `x`/`redsh`, since the cache
     is per-instance state.
-
-    Exposes a fake `__code__`/`__name__` so `FitComponent.__init__`'s
-    `self.function.__code__.co_argcount` / `co_varnames` introspection
-    works the same way it did for a plain function.
     """
 
     def __init__(self):
-        self.__code__ = sccomp.FakeCode(
-            co_argcount=7,
-            co_varnames=("x", "redsh", "amp_be", "Te", "tau_be", "lambda_be", "fwhm"),
-        )
-        self.__name__ = "balmer_continuum_with_hol"
-
+        super().__init__()
         self._cache_key = None
         self._x_rest = None
         self._diff2 = None
 
-    def _update_cache(self, x, redsh):
+    def _rest_frame(self, x, redsh):
         # id(x) is a cheap identity check; relies on x not being mutated
         # in place between calls with the same identity but different
         # contents. If your fitting framework ever does that, swap this
         # for a content-based check (e.g. hashing x.tobytes()).
-        if _HOL_TRANSITIONS is None:
-            raise FileNotFoundError(
-                f"{HOL_DATA_FILE} (high-order Balmer line transitions/"
-                "emissivities) is missing from sculptor/data/ -- add it to "
-                "use the Balmer+HOL models."
-            )
         cache_key = (id(x), redsh)
         if cache_key != self._cache_key:
-            self._x_rest = x / (1.0 + redsh)
-            self._diff2 = (self._x_rest[:, None] - _HOL_TRANSITIONS[None, :]) ** 2
+            self._x_rest, self._diff2 = super()._rest_frame(x, redsh)
             self._cache_key = cache_key
-
-    def _continuum_shape(self, Te, tau_be, lambda_be):
-        lambda_cm = self._x_rest * 1e-8
-        nu = _C_CGS / lambda_cm
-        exponent = (_H_CGS * nu) / (_KB_CGS * Te)
-        with np.errstate(over="ignore"):
-            black_body_nu = (2.0 * _H_CGS * nu**3 / _C_CGS**2) / np.expm1(exponent)
-        black_body_lambda = black_body_nu * c_AngstroemPerSecond / self._x_rest**2
-        optical_depth_term = -tau_be * (self._x_rest / lambda_be) ** 3
-        shape = black_body_lambda * (-np.expm1(optical_depth_term))
-        return np.where(self._x_rest < lambda_be, shape, 0.0)
-
-    def _hol_shape(self, fwhm, lambda_be, continuum_shape):
-        sigma = (fwhm / c_kms) * _HOL_TRANSITIONS / _SIGMA_TO_FWHM
-        profile = np.exp(-0.5 * self._diff2 / sigma[None, :] ** 2)
-        flux_density = np.sum(_HOL_EMISS[None, :] * profile / sigma[None, :], axis=1)
-        edge_hol = np.interp(lambda_be, self._x_rest, flux_density)
-        edge_continuum = np.interp(lambda_be, self._x_rest, continuum_shape)
-        flux_density *= 0.3 * edge_continuum / edge_hol
-        return flux_density
-
-    def __call__(self, x, redsh, amp_be, Te, tau_be, lambda_be, fwhm):
-        self._update_cache(x, redsh)
-        continuum_shape = self._continuum_shape(Te, tau_be, lambda_be)
-        hol_shape = self._hol_shape(fwhm, lambda_be, continuum_shape)
-        return amp_be * (continuum_shape + hol_shape) * 1e-8
+        return self._x_rest, self._diff2
 
 
 def initialise_balmer_with_hol(prefix, balmer_dict=None):
     """
     Initialise a Balmer continuum + higher-order-lines component.
     Function requires a dictionary that contains necessary parameters to set up
-    a Balmer template such as "amp_be", "redshift", "Te", "tau_be", "lambda_be".
-    In this dictionary, each component should have "initial_value", "vary" and "prior"
-    which provides information on initial value of the parameter, whether the parameter should be varied, and
-    prior to be used to contrain the parameter, respectively.
+    a Balmer template such as "amp_be", "redsh", "Te", "tau_be", "lambda_be"
+    and "fwhm" (see `component_setup.initialise_component`).
+
     :param prefix: Model prefix
     :type prefix: string
     :param balmer_dict: dictionary containing parameters to setup the Balmer continuum model
-    :type Balmer_dict: dictionary
+    :type balmer_dict: dictionary
 
     :return: Balmer continuuum model component and parameters
     """
-    comp = sccomp.FitComponent(prefix, BalmerContinuumWithHOL())
-    params = comp.create_params()
-
-    if balmer_dict:
-        for key in params:
-            par = key.split(f"{prefix}_")[1]
-            input = balmer_dict[par]
-
-            if "parameter" in input:
-                params.pop(key)
-                comp.param_mapping.update({par: input["parameter"]})
-            else:
-                params[key].value = input["value"]
-                params[key].vary = input["vary"]
-                if input["vary"]:
-                    params[key].prior = input["prior"]
-
-    else:
-        raise ValueError("Provide `balmer_dict`")
-
-    return comp, params
+    return initialise_component(
+        prefix, BalmerContinuumWithHOL(), balmer_dict, dict_name="balmer_dict"
+    )
 
 
 def _planck_lambda_cgs(wavelength_aa, Te):
@@ -269,6 +229,44 @@ def _planck_lambda_cgs(wavelength_aa, Te):
     return black_body_nu * c_AngstroemPerSecond / wavelength_aa**2
 
 
+def balmer_continuum_shape(x_rest, Te, tau_be, lambda_be):
+    """Shape of the Balmer continuum (Dietrich 2003): a blackbody times
+    ``1 - exp(-tau_be (x / lambda_be)^3)`` below the Balmer edge, zero at
+    and above it. The Balmer continuum models in this module and
+    `qso.power_law_at_2500_plus_bc` scale this shape.
+
+    :param x_rest: Rest-frame dispersion in Angstroem
+    :type x_rest: np.ndarray
+    :param Te: Electron temperature in K
+    :type Te: float
+    :param tau_be: Optical depth at the Balmer edge
+    :type tau_be: float
+    :param lambda_be: Wavelength of the Balmer edge in Angstroem
+    :type lambda_be: float
+    :return: B_lambda(Te) (cgs) times the optical-depth term
+    :rtype: np.ndarray
+    """
+    optical_depth_term = -tau_be * (x_rest / lambda_be) ** 3
+    shape = _planck_lambda_cgs(x_rest, Te) * (-np.expm1(optical_depth_term))
+    return np.where(x_rest < lambda_be, shape, 0.0)
+
+
+def balmer_continuum_at_edge(Te, tau_be, lambda_be):
+    """`balmer_continuum_shape` just below the Balmer edge (its value for
+    x -> lambda_be), used to normalise the continuum at the edge.
+
+    :param Te: Electron temperature in K
+    :type Te: float
+    :param tau_be: Optical depth at the Balmer edge
+    :type tau_be: float
+    :param lambda_be: Wavelength of the Balmer edge in Angstroem
+    :type lambda_be: float
+    :return: B_lambda(Te) at lambda_be times ``1 - exp(-tau_be)``
+    :rtype: float
+    """
+    return _planck_lambda_cgs(lambda_be, Te) * (-np.expm1(-tau_be))
+
+
 def fast_balmer_continuum_model(x, redsh, amp_be, Te, tau_be, lambda_be):
     """Model of the Balmer continuum (Dietrich 2003), without higher-order
     lines.
@@ -277,7 +275,7 @@ def fast_balmer_continuum_model(x, redsh, amp_be, Te, tau_be, lambda_be):
 
     This functions implements the Balmer continuum model presented in
     Dietrich 2003. The model follows a blackbody below the Balmer edge (
-    3646A) and is zero above.
+    3646A) and is zero above (`balmer_continuum_shape`).
 
     The amplitude parameter amp_be defines the amplitude at the balmer edge.
     The strength of the Balmer continuum can be estimated from the fluxden
@@ -315,38 +313,8 @@ def fast_balmer_continuum_model(x, redsh, amp_be, Te, tau_be, lambda_be):
     :rtype: np.ndarray
 
     """
-
     x_rest = x / (1.0 + redsh)
-
-    # Planck function B_nu(T), evaluated at nu = c / lambda, computed
-    # directly in cgs rather than via astropy's BlackBody model (which
-    # rebuilds a Model object and does unit-aware Quantity arithmetic
-    # on every call -- expensive when called thousands of times in an
-    # MCMC loop). This reproduces the same underlying formula.
-    lambda_cm = x_rest * 1e-8  # Angstrom -> cm
-    nu = _C_CGS / lambda_cm
-
-    exponent = (_H_CGS * nu) / (_KB_CGS * Te)
-    # np.expm1 is more numerically stable than exp(x)-1 for small x,
-    # and errstate suppresses benign overflow warnings for the
-    # (masked-out) short-wavelength tail before we zero it below.
-    with np.errstate(over="ignore"):
-        black_body_nu = (2.0 * _H_CGS * nu**3 / _C_CGS**2) / np.expm1(exponent)
-
-    # Convert B_nu -> B_lambda via the standard Jacobian, using the
-    # same c_AngstroemPerSecond / x**2 factor as the original.
-    black_body_lambda = black_body_nu * c_AngstroemPerSecond / x_rest**2
-
-    optical_depth_term = -tau_be * (x_rest / lambda_be) ** 3
-    fluxden = amp_be * black_body_lambda * (-np.expm1(optical_depth_term))
-
-    # Zero out everything at/above the Balmer edge in one vectorized
-    # pass instead of a separate fancy-indexed assignment.
-    fluxden = np.where(x_rest < lambda_be, fluxden, 0.0)
-
-    fluxden *= 1e-20
-
-    return fluxden
+    return amp_be * balmer_continuum_shape(x_rest, Te, tau_be, lambda_be) * 1e-20
 
 
 def power_law_at_2500_plus_fractional_bc(
@@ -381,27 +349,15 @@ def power_law_at_2500_plus_fractional_bc(
     :rtype: np.ndarray
 
     """
-
-    pl_fluxden = amp * (x / (2500.0 * (redsh + 1.0))) ** slope
-
+    pl_fluxden = ana.power_law_at2500(x, redsh, amp, slope)
     pl_fluxden_at_be = amp * (lambda_be / 2500.0) ** slope
-
-    x = x / (1.0 + redsh)
-
-    black_body_lambda = _planck_lambda_cgs(x, Te)
-    black_body_lambda_be = _planck_lambda_cgs(lambda_be, Te)
-
-    bc_fluxden_at_lambda_be = black_body_lambda_be * (1.0 - np.exp(-tau_be))
 
     bc_fluxden = (
         f
         * pl_fluxden_at_be
-        / bc_fluxden_at_lambda_be
-        * black_body_lambda
-        * (1.0 - np.exp(-tau_be * (x / lambda_be) ** 3))
+        / balmer_continuum_at_edge(Te, tau_be, lambda_be)
+        * balmer_continuum_shape(x / (1.0 + redsh), Te, tau_be, lambda_be)
     )
-
-    bc_fluxden[x >= lambda_be] = bc_fluxden[x >= lambda_be] * 0
 
     return pl_fluxden + bc_fluxden
 

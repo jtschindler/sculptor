@@ -11,6 +11,9 @@ the Hbeta and [OIII] lines consisting multiple Gaussian emission lines for broad
 Furthermore, thr routine allows to extract the fit parameters and extract the AGN properties
 such as black hole mass, continuum luminosity, Eddington ratio etc. from a given emission line parameters.
 
+Ready-made variants of the base functions here (one per iron template,
+emission line, ...) are in `sculptor_extensions.qso_presets`.
+
 """
 
 import importlib.resources
@@ -26,11 +29,11 @@ from astropy import units as u
 from astropy.constants import c
 
 from sculptor import analysis as ana
-from sculptor import component as sccomp
 from sculptor import measurements as meas
 from sculptor import prior as scpri
 from sculptor_extensions import qso
 from sculptor_extensions import qso_advanced_models as qam
+from sculptor_extensions.component_setup import initialise_component
 
 logger = logging.getLogger(__name__)
 
@@ -453,47 +456,27 @@ def initialise_power_law(prefix, redsh, powerlaw_dict=None):
 
     :param prefix: model prefix
     :type prefix: string
-    :param redsh: redshift of the source
+    :param redsh: Unused (the redshift is set in `powerlaw_dict`); kept so
+        existing calls keep working.
     :type redsh: float
-    :param powerlaw_dict: Dictionary containing power law components "amp", "slope" and "redshift".
-    In this dictionary, each component should have "initial_value", "vary" and "prior"
-    which provides information on initial value of the parameter, whether the parameter should be varied, and
-    information on priors to be used to contrain the parameter, respectively.
+    :param powerlaw_dict: Dictionary containing power law components "amp", "slope" and "redsh",
+        see `component_setup.initialise_component`.
     :type powerlaw_dict: Dictionary
 
     :return comp: power law components
     :return pars: power law parameters
     """
-    comp = sccomp.FitComponent(prefix, ana.power_law_at2500)
-    params = comp.create_params()
-
-    if powerlaw_dict:
-        for key in params:
-            par = key.split(f"{prefix}_")[1]
-            input = powerlaw_dict[par]
-
-            if "parameter" in input:
-                params.pop(key)
-                comp.param_mapping.update({par: input["parameter"]})
-            else:
-                params[key].value = input["value"]
-                params[key].vary = input["vary"]
-                if input["vary"]:
-                    params[key].prior = input["prior"]
-
-    else:
-        raise ValueError("Provide `powerlaw_dict`")
-
-    return comp, params
+    return initialise_component(
+        prefix, ana.power_law_at2500, powerlaw_dict, dict_name="powerlaw_dict"
+    )
 
 
 def initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
     """
     Setup an iron template using parameters defined in a dictionary. These parameters include "amp",
-    "fwhm", "redshift", "intr_fwhm", "templ_disp" and "templ_fluxden".
-    In this dictionary, each component should have "initial_value", "vary" and "prior"
-    which provides information on initial value of the parameter, whether the parameter should be varied, and
-    prior to be used to contrain the parameter, respectively.
+    "fwhm", "redsh" and "intr_fwhm" (see `component_setup.initialise_component`);
+    "templ_disp" and "templ_fluxden" are set from the template arrays.
+
     :param prefix: Model prefix
     :type prefix: string
     :param Fe_dispersion: dispersion range for a given iron template
@@ -505,8 +488,10 @@ def initialise_Fe(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
 
     :return: iron template component and parameters
     """
-    comp = sccomp.FitComponent(prefix, ana.template_model)
-    return _setup_Fe_params(prefix, comp, Fe_dispersion, Fe_fluxden, Fe_dict)
+    fixed = {"templ_disp": Fe_dispersion, "templ_fluxden": Fe_fluxden}
+    return initialise_component(
+        prefix, ana.template_model, Fe_dict, fixed=fixed, dict_name="Fe_dict"
+    )
 
 
 def initialise_Fe_fast(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
@@ -531,41 +516,12 @@ def initialise_Fe_fast(prefix, Fe_dispersion, Fe_fluxden, Fe_dict=None):
     :type Fe_dict: dictionary
     :return: iron template component and parameters
     """
-    comp = sccomp.FitComponent(prefix, ana.TemplateModel(Fe_dispersion, Fe_fluxden))
-    return _setup_Fe_params(prefix, comp, Fe_dispersion, Fe_fluxden, Fe_dict)
-
-
-def _setup_Fe_params(prefix, comp, Fe_dispersion, Fe_fluxden, Fe_dict):
-    """Create the iron component's parameters and set them from `Fe_dict`
-    (shared by `initialise_Fe` and `initialise_Fe_fast`)."""
-    params = comp.create_params()
-
-    if Fe_dict:
-        for key in params:
-            par = key.split(f"{prefix}_")[1]
-            if par == "templ_disp":
-                params[key].value = Fe_dispersion
-                params[key].vary = False
-                continue
-            if par == "templ_fluxden":
-                params[key].value = Fe_fluxden
-                params[key].vary = False
-                continue
-            input = Fe_dict[par]
-
-            if "parameter" in input:
-                params.pop(key)
-                comp.param_mapping.update({par: input["parameter"]})
-            else:
-                params[key].value = input["value"]
-                params[key].vary = input["vary"]
-                if input["vary"]:
-                    params[key].prior = input["prior"]
-
-    else:
-        raise ValueError("Provide `Fe_dict`")
-
-    return comp, params
+    return initialise_component(
+        prefix,
+        ana.TemplateModel(Fe_dispersion, Fe_fluxden),
+        Fe_dict,
+        dict_name="Fe_dict",
+    )
 
 
 def initialise_balmer_without_hol(prefix, balmer_dict=None):
@@ -573,40 +529,20 @@ def initialise_balmer_without_hol(prefix, balmer_dict=None):
     Initialise Balmer continuum component without higher order lines.
     It constrain Balmer flux contribution till the Balmer edge (3646 Å) and drops to 0 showing sharp edge at the Balmer edge.
     This function requires a dictionary that contains necessary parameters to set up
-    a Balmer template such as "amp_be", "redshift", "Te", "tau_be", "lambda_be".
-    In this dictionary, each component should have "initial_value", "vary" and "prior"
-    which provides information on initial value of the parameter, whether the parameter should be varied, and
-    prior to be used to contrain the parameter, respectively.
+    a Balmer template such as "amp_be", "redsh", "Te", "tau_be", "lambda_be"
+    (see `component_setup.initialise_component`).
 
     :param prefix: Model prefix
     :type prefix: string
     :param balmer_dict: dictionary containing parameters to setup the Balmer continuum model
-    :type Balmer_dict: dictionary
+    :type balmer_dict: dictionary
 
     :return comp: Balmer continuuum without HOL component
     :return pars: Balmer continuuum without HOL parameters
     """
-    comp = sccomp.FitComponent(prefix, qam.fast_balmer_continuum_model)
-    params = comp.create_params()
-
-    if balmer_dict:
-        for key in params:
-            par = key.split(f"{prefix}_")[1]
-            input = balmer_dict[par]
-
-            if "parameter" in input:
-                params.pop(key)
-                comp.param_mapping.update({par: input["parameter"]})
-            else:
-                params[key].value = input["value"]
-                params[key].vary = input["vary"]
-                if input["vary"]:
-                    params[key].prior = input["prior"]
-
-    else:
-        raise ValueError("Provide `balmer_dict`")
-
-    return comp, params
+    return initialise_component(
+        prefix, qam.fast_balmer_continuum_model, balmer_dict, dict_name="balmer_dict"
+    )
 
 
 def initialise_balmer(prefix, model=None, balmer_dict=None):
@@ -651,18 +587,16 @@ def initialise_gaussian_line_model(prefix, line_dict, tied_doublet=True):
     in a line fit and it is adviseable to fix one of them (to predetermined
     values e.g., the redshift or the central wavelength).
 
-    The width of the line is set by the FWHM in km/s.
+    The width of the line is set by the FWHM in km/s. The model function is
+    chosen from the prefix: [OIII], [NII] and [SII] doublets for prefixes
+    containing "OIII", "NII", "SII", a single Gaussian otherwise.
 
     :param prefix: Model prefix
     :type prefix: string
     :param line_dict: Dictionary containing all the emission line parameters "flux", "fwhm_km_s","cen", "redsh", and "vel_shift".
-    Each component from this dictionary has "initial_value", "vary" and "prior"
-    which provides information on initial value of the parameter, whether the parameter should be varied, and
-    prior to be used to contrain the parameter, respectively.
-    Depending upon the lines in consideration, separate components such as narrow, broad and blue-shifted can be provided.
-
-    :return comps: Gaussian line components
-    :return params: Gaussian line parameters
+        Each entry is set up as in `component_setup.initialise_component`.
+        Depending upon the lines in consideration, separate components such as narrow, broad and blue-shifted can be provided.
+    :type line_dict: dict
     :param tied_doublet: For [NII] and [SII] (prefix containing "NII" /
         "SII"): if True (default), both lines share one FWHM and the flux
         ratio is a parameter (`line_model_gaussian_NII_doublet` /
@@ -672,42 +606,27 @@ def initialise_gaussian_line_model(prefix, line_dict, tied_doublet=True):
         `qso.line_model_gaussian_sii_doublet`; keys "redsh", "flux_a",
         "flux_b", "fwhm_km_s_a", "fwhm_km_s_b"). Ignored for other lines.
     :type tied_doublet: bool
+    :return comps: Gaussian line components
+    :return params: Gaussian line parameters
     """
 
     if "OIII" in prefix:
-        comp = sccomp.FitComponent(prefix, qso.line_model_gaussian_oiii_doublet)
+        function = qso.line_model_gaussian_oiii_doublet
     elif "NII" in prefix:
-        model = (
+        function = (
             line_model_gaussian_NII_doublet
             if tied_doublet
             else qso.line_model_gaussian_nii_doublet
         )
-        comp = sccomp.FitComponent(prefix, model)
     elif "SII" in prefix:
-        model = (
+        function = (
             line_model_gaussian_SII_doublet
             if tied_doublet
             else qso.line_model_gaussian_sii_doublet
         )
-        comp = sccomp.FitComponent(prefix, model)
     else:
-        comp = sccomp.FitComponent(prefix, ana.line_model_gaussian)
-    params = comp.create_params()
-
-    for key in list(params.keys()):
-        par = key.split(f"{prefix}_")[1]
-        input = line_dict[par]
-
-        if "parameter" in input:
-            params.pop(key)
-            comp.param_mapping.update({par: input["parameter"]})
-        else:
-            params[key].value = input["value"]
-            params[key].vary = input["vary"]
-            if input["vary"]:
-                params[key].prior = input["prior"]
-
-    return comp, params
+        function = ana.line_model_gaussian
+    return initialise_component(prefix, function, line_dict, dict_name="line_dict")
 
 
 def line_model_gaussian_NII_doublet(x, redsh, flux, fwhm_km_s, fluxratio=2.96):
@@ -716,6 +635,8 @@ def line_model_gaussian_NII_doublet(x, redsh, flux, fwhm_km_s, fluxratio=2.96):
     This model ties the redshift of the forbidden transitions of [NII] at
     6549.85 A and 6585.28 A together. Line widths are tied torgether for both the components and
     the relative flux ratio of the two components is fixed to 2.96.
+    Same as `qso.line_model_gaussian_nii_doublet` with one FWHM and
+    `flux_b = fluxratio * flux`.
 
     :param x: Dispersion of the continuum model
     :type x: np.ndarray
@@ -725,422 +646,124 @@ def line_model_gaussian_NII_doublet(x, redsh, flux, fwhm_km_s, fluxratio=2.96):
     :type flux: float
     :param fwhm_km_s: FWHM of both the components in km/s
     :type fwhm_km_s: float
+    :param fluxratio: Flux ratio of the 6585.28 A to the 6549.85 A line
+    :type fluxratio: float
     :return: Gaussian doublet line model
     :rtype: np.ndarray
     """
-
-    # Redshift central wavelengths
-    cen_a = 6549.85 * (1 + redsh)
-    cen_b = 6585.28 * (1 + redsh)
-
-    # Calculate sigma from fwhm
-    fwhm_a = fwhm_km_s / c_kms * cen_a
-    fwhm_b = fwhm_km_s / c_kms * cen_b
-    sigma_a = fwhm_a / np.sqrt(8 * np.log(2))
-    sigma_b = fwhm_b / np.sqrt(8 * np.log(2))
-
-    flux_a = flux
-    flux_b = fluxratio * flux_a
-
-    comp_a = (
-        flux_a
-        / (sigma_a * np.sqrt(2 * np.pi))
-        * np.exp(-((x - cen_a) ** 2) / (2 * sigma_a**2))
+    return qso.line_model_gaussian_nii_doublet(
+        x, redsh, flux, fluxratio * flux, fwhm_km_s, fwhm_km_s
     )
-
-    comp_b = (
-        flux_b
-        / (sigma_b * np.sqrt(2 * np.pi))
-        * np.exp(-((x - cen_b) ** 2) / (2 * sigma_b**2))
-    )
-
-    return comp_a + comp_b
 
 
 def line_model_gaussian_SII_doublet(x, redsh, flux, fwhm_km_s, fluxratio=1.0):
     """Doublet line model for the [SII] lines at 6718.29 A and 6732.67 A.
 
-    This model ties the redshift of the forbidden transitions of [NII] at
+    This model ties the redshift of the forbidden transitions of [SII] at
     6718.29 A and 6732.67 A together. Line widths are tied torgether for both the components and
     the relative flux ratio of the two components is fixed to 1.0. Literature studies show that
     the flux intensity ratio varies as it is sensitive to NLR density.
+    Same as `qso.line_model_gaussian_sii_doublet` with one FWHM and
+    `flux_b = fluxratio * flux`.
 
     :param x: Dispersion of the continuum model
     :type x: np.ndarray
     :param redsh: Redshift
     :type redsh: float
-    :param flux: Amplitude of the [SII] Gaussian component at 6549.85
+    :param flux: Amplitude of the [SII] Gaussian component at 6718.29
     :type flux: float
     :param fwhm_km_s: FWHM of both the components in km/s
     :type fwhm_km_s: float
+    :param fluxratio: Flux ratio of the 6732.67 A to the 6718.29 A line
+    :type fluxratio: float
     :return: Gaussian doublet line model
     :rtype: np.ndarray
     """
-
-    # Redshift central wavelengths
-    cen_a = 6718.29 * (1 + redsh)
-    cen_b = 6732.67 * (1 + redsh)
-
-    # Calculate sigma from fwhm
-    fwhm_a = fwhm_km_s / c_kms * cen_a
-    fwhm_b = fwhm_km_s / c_kms * cen_b
-    sigma_a = fwhm_a / np.sqrt(8 * np.log(2))
-    sigma_b = fwhm_b / np.sqrt(8 * np.log(2))
-
-    flux_a = flux
-    flux_b = fluxratio * flux_a
-
-    comp_a = (
-        flux_a
-        / (sigma_a * np.sqrt(2 * np.pi))
-        * np.exp(-((x - cen_a) ** 2) / (2 * sigma_a**2))
+    return qso.line_model_gaussian_sii_doublet(
+        x, redsh, flux, fluxratio * flux, fwhm_km_s, fwhm_km_s
     )
 
-    comp_b = (
-        flux_b
-        / (sigma_b * np.sqrt(2 * np.pi))
-        * np.exp(-((x - cen_b) ** 2) / (2 * sigma_b**2))
-    )
 
-    return comp_a + comp_b
-
-
-def setup_Halpha_NII_lines(spec, line_dict, narrow=True, Halpha_broad=2, model=None):
+def add_line_components(model, line_dict, line, kind, n=None):
     """
-    Setup Halpha+[NII] lines simultaneously at 6564.61 A, 6549.85 A and 6585.28 A.
-    The function requires an emission line dictionary with prior information on narrow (Halpha, [NII]) and broad (Halpha) components for each line.
+    Add Gaussian components of one kind (e.g. "narrow", "broad") of an
+    emission line to `model`. This is the base of the `setup_<line>_lines`
+    functions in `sculptor_extensions.qso_presets`.
 
-    The narrow component FWHM limits are set between 300-1000 km/s.
-    Otherwise, the function calculates FWHM and integrated flux of Halpha and [NII] line regions separately which are further incorporated in determining the priors.
-    By default, the model fits 1 narrow component for Halpha and each of the [NII] lines and 2 broad component for Halpha.
-    The narrow components of Halpha and each [NII] are tied together as they are known to be originated from the same gas in the NLR.
-    Therefore, all narrow components have the same redshift and FWHM.
-    Users can specify the number of gaussians to fit depending upon the nature of their source.
+    The components use the settings in ``line_dict[line][kind]["params"]``
+    (see `initialise_gaussian_line_model`) and are named "<line>_<kind>"
+    if `n` is None (one component), or "<line>_<kind>_a",
+    "<line>_<kind>_b", ... for `n` components.
 
-    :param spec: input spectrum
-    :type spec: speconed.speconed.SpecOneD
-    :param line_dict: dictionary containing emission line parameters that contains necessary parameters to fit the Halpha and [NII] emission lines.
-    such as "flux", "redshift", "fwhm_km_s", "cen", "vel_shift".
-    In this dictionary, each component should have "initial_value", "vary" and "prior" which provides information on initial value of the parameter, whether the parameter should be varied, and
-    prior to be used to contrain the parameter, respectively.
-    :type line_dict: dictionary
-    :param narrow: fit narrow component for Halpha and [NII] lines
-    :type narrow: Boolean
-    :param Halpha_broad: number of Halpha broad components to fit (default 2)
-    :type Halpha_broad: int
-
-    :param model: Model to fit
-
-    """
-    if narrow:
-        comp_Halpha_narrow, pars_Halpha_narrow = initialise_gaussian_line_model(
-            "Halpha_narrow", line_dict["Halpha"]["narrow"]["params"]
-        )
-        model.add_component(comp_Halpha_narrow)
-        model.add_parameters(pars_Halpha_narrow)
-
-        comp_NII_narrow, pars_NII_narrow = initialise_gaussian_line_model(
-            "NII_narrow", line_dict["NII"]["narrow"]["params"]
-        )
-        model.add_component(comp_NII_narrow)
-        model.add_parameters(pars_NII_narrow)
-
-    for i in range(Halpha_broad):
-        comp_Halpha_broad, pars_Halpha_broad = initialise_gaussian_line_model(
-            f"Halpha_broad_{string.ascii_lowercase[i]}",
-            line_dict["Halpha"]["broad"]["params"],
-        )
-        model.add_component(comp_Halpha_broad)
-        model.add_parameters(pars_Halpha_broad)
-
-
-def setup_MgII_lines(
-    spec, line_dict, narrow=False, MgII_broad=1, MgII_broad_shifted=0, model=None
-):
-    """
-    Setup emission line model for MgII emission line (2798.75 Å) using multiple broad and narrow gaussian components.
-    MgII line paramters are constarined using the priors set in the emission line dictionary provided.
-    Generally, MgII lines are not well resolved and thus, not fit using two separate gaussians. Instead, a single or multi-gaussian
-    components are used to capture the broader feature originating from BLR.
-
-    :param spec: input spectrum
-    :type spec: speconed.speconed.SpecOneD
-    :param line_dict: dictionary containing emission line parameters that contains necessary parameters to fit the MgII emission line
-    such as "flux", "redshift", "fwhm_km_s", "cen", "vel_shift". In this dictionary, each component should have "initial_value", "vary" and "prior"
-    which provides information on initial value of the parameter, whether the parameter should be varied, and
-    prior to be used to contrain the parameter, respectively.
-    It is recommended to fit the narrow component only when the signal-to-noise for the provided is considerably high.
-
-    :type line_dict: dictionary
-    :param narrow: fit narrow component for MgII line
-    :type narrow: Boolean
-    :param MgII_broad: number of broad components to fit
-    :type MgII_broad: int
-    :param MgII_broad_shifted: number of velocity shifted broad components to fit
-    :type MgII_broad_shifted: int
-    :param model: Model to fit
-    """
-    if narrow:
-        comp_MgII_narrow, pars_MgII_narrow = initialise_gaussian_line_model(
-            "MgII_narrow", line_dict["MgII"]["narrow"]["params"]
-        )
-        model.add_component(comp_MgII_narrow)
-        model.add_parameters(pars_MgII_narrow)
-
-    for i in range(MgII_broad):
-        comp_MgII_broad, pars_MgII_broad = initialise_gaussian_line_model(
-            f"MgII_broad_{string.ascii_lowercase[i]}",
-            line_dict["MgII"]["broad"]["params"],
-        )
-        model.add_component(comp_MgII_broad)
-        model.add_parameters(pars_MgII_broad)
-
-    for j in range(MgII_broad_shifted):
-        comp_MgII_broad_shifted, pars_MgII_broad_shifted = (
-            initialise_gaussian_line_model(
-                f"MgII_broad_shifted_{string.ascii_lowercase[j]}",
-                line_dict["MgII"]["broad_shifted"]["params"],
-            )
-        )
-        model.add_component(comp_MgII_broad_shifted)
-        model.add_parameters(pars_MgII_broad_shifted)
-
-
-def setup_CIV_lines(
-    spec, line_dict, narrow=False, CIV_broad=1, CIV_broadshifted=1, model=None
-):
-    """
-    Setup emission line model for CIV emission line (1549.06 Å) using multiple broad and narrow gaussian components.
-    CIV line paramters are constarined using the priors set in the emission line dictionary provided.
-    Generally, CIV line, a high ionization line, is usually well described using upto three broad gaussians(Shen et al. 2011)
-    which account for AGN driven outflows and winds resulting in asymmetric line profiles.
-
-    :param spec: input spectrum
-    :type spec: speconed.speconed.SpecOneD
-    :param line_dict: dictionary containing emission line parameters that contains necessary parameters to fit the CIV emission line
-    such as "flux", "redshift", "fwhm_km_s", "cen", "vel_shift". In this dictionary, each component should have "initial_value", "vary" and "prior"
-    which provides information on initial value of the parameter, whether the parameter should be varied, and
-    prior to be used to contrain the parameter, respectively.
-
-    :type line_dict: dictionary
-    :param narrow: fit narrow component for CIV line
-    :type narrow: Boolean
-    :param CIV_broad: number of broad components to fit
-    :type CIV_broad: int
-    :param model: Model to fit
-    """
-    if narrow:
-        comp_CIV_narrow, pars_CIV_narrow = initialise_gaussian_line_model(
-            "CIV_narrow", line_dict["CIV"]["narrow"]["params"]
-        )
-        model.add_component(comp_CIV_narrow)
-        model.add_parameters(pars_CIV_narrow)
-
-    for i in range(CIV_broad):
-        comp_CIV_broad, pars_CIV_broad = initialise_gaussian_line_model(
-            f"CIV_broad_{string.ascii_lowercase[i]}",
-            line_dict["CIV"]["broad"]["params"],
-        )
-        model.add_component(comp_CIV_broad)
-        model.add_parameters(pars_CIV_broad)
-
-    for i in range(CIV_broadshifted):
-        comp_CIV_broadshifted, pars_CIV_broadshifted = initialise_gaussian_line_model(
-            f"CIV_broadshifted_{string.ascii_lowercase[i]}",
-            line_dict["CIV"]["broadshifted"]["params"],
-        )
-        model.add_component(comp_CIV_broadshifted)
-        model.add_parameters(pars_CIV_broadshifted)
-
-
-def setup_hb_o3_lines(
-    spec,
-    line_dict,
-    narrow=True,
-    Hbeta_broad=1,
-    Hbeta_broad_shifted=0,
-    OIII_broad=0,
-    OIII_wind=0,
-    model=None,
-):
-    """
-    Setup Hbeta+[OIII] lines simultaneously at 4862.30 A, 4960.30 A and 5008.24 A.
-    The function requires an emission line dictionary with prior information on narrow (Hbeta, [OIII]), broad (Hbeta) and blue-shifted (Hbeta, [OIII]) components for each line.
-
-    The narrow component FWHM limits are set between 300-1000 km/s. Otherwise, the function calculates FWHM and integrated flux of Hbeta and [OIII] line regions separately which are further incorporated in determining the priors.
-    By default, the model fits 1 narrow component for Hbeta and each of the [OIII] lines and 1 broad component for Hbeta.
-    The narrow components of Hbeta and each [OIII] are tied together as they are known to be originated from the same gas in the NLR. Therefore, all narrow components have the same redshift and FWHM.
-    Users can specify the number of gaussians to fit depending upon the nature of their source.
-
-    :param spec: Input spectrum
-    :type spec: speconed.speconed.SpecOneD
-    :param line_dict: dictionary containing emission line parameters that contains necessary parameters to fit the Hbeta and [OIII] emission lines.
-    such as "flux", "redshift", "fwhm_km_s", "cen", "vel_shift".
-    In this dictionary, each component should have "initial_value", "vary" and "prior" which provides information on initial value of the parameter, whether the parameter should be varied, and
-    prior to be used to contrain the parameter, respectively.
-    :type line_dict: dictionary
-    :param narrow: fit narrow component for Hbeta and [OIII] lines
-    :type narrow: Boolean
-    :param Hbeta_broad: number of Hbeta broad components to fit
-    :type Hbeta_broad: int
-    :param Hbeta_broad_shifted: number of velocity shifted Hbeta broad components to fit
-    :type Hbeta_broad: int
-    :param OIII_broad: number of [OIII] broad components to fit
-    :type OIII_broad: int
-    :param OIII_wind: number of [OIII] blue-shifted wind components to fit
-    :type OIII_wind: int
-    :param model: Model to fit
-    """
-
-    if narrow:
-        comp_Hbeta_narrow, pars_Hbeta_narrow = initialise_gaussian_line_model(
-            "Hbeta_narrow", line_dict["Hbeta"]["narrow"]["params"]
-        )
-        model.add_component(comp_Hbeta_narrow)
-        model.add_parameters(pars_Hbeta_narrow)
-
-        comp_OIII_narrow, pars_OIII_narrow = initialise_gaussian_line_model(
-            "OIII_narrow", line_dict["OIII"]["narrow"]["params"]
-        )
-        model.add_component(comp_OIII_narrow)
-        model.add_parameters(pars_OIII_narrow)
-
-    for i in range(Hbeta_broad):
-        comp_Hbeta_broad, pars_Hbeta_broad = initialise_gaussian_line_model(
-            f"Hbeta_broad_{string.ascii_lowercase[i]}",
-            line_dict["Hbeta"]["broad"]["params"],
-        )
-        model.add_component(comp_Hbeta_broad)
-        model.add_parameters(pars_Hbeta_broad)
-
-    for i in range(Hbeta_broad_shifted):
-        comp_Hbeta_broad_shifted, pars_Hbeta_broad_shifted = (
-            initialise_gaussian_line_model(
-                f"Hbeta_broad_shifted_{string.ascii_lowercase[i]}",
-                line_dict["Hbeta"]["broad_shifted"]["params"],
-            )
-        )
-        model.add_component(comp_Hbeta_broad_shifted)
-        model.add_parameters(pars_Hbeta_broad_shifted)
-
-    for j in range(OIII_broad):
-        comp_OIII_broad, pars_OIII_broad = initialise_gaussian_line_model(
-            f"OIII_broad_{string.ascii_lowercase[j]}",
-            line_dict["OIII"]["broad"]["params"],
-        )
-        model.add_component(comp_OIII_broad)
-        model.add_parameters(pars_OIII_broad)
-
-    for k in range(OIII_wind):
-        comp_OIII_wind, pars_OIII_wind = initialise_gaussian_line_model(
-            f"OIII_wind_{string.ascii_lowercase[k]}",
-            line_dict["OIII"]["wind"]["params"],
-        )
-        model.add_component(comp_OIII_wind)
-        model.add_parameters(pars_OIII_wind)
-
-
-def setup_Hgamma_lines(spec, line_dict, narrow=False, Hgamma_broad=1, model=None):
-    """
-    Setup emission line model for the Hgamma emission line (4341.7 Å) using
-    broad and (optionally) narrow gaussian components, like
-    `setup_MgII_lines`. Components are named "Hgamma_narrow" and
-    "Hgamma_broad_a", "Hgamma_broad_b", ...
-
-    Ported from the upstream `qso_auto_fit` branch (`Qso_autofit_2.py`).
-
-    :param spec: input spectrum (unused, kept for a uniform signature)
-    :type spec: speconed.speconed.SpecOneD
-    :param line_dict: emission line dictionary; uses
-        line_dict["Hgamma"]["narrow"]["params"] and
-        line_dict["Hgamma"]["broad"]["params"] (see
-        `initialise_gaussian_line_model`)
-    :type line_dict: dict
-    :param narrow: add a narrow component
-    :type narrow: bool
-    :param Hgamma_broad: number of broad components
-    :type Hgamma_broad: int
     :param model: model to add the components and parameters to
     :type model: sculptor.model.FitModel
-    """
-
-    if narrow:
-        comp_Hgamma_narrow, pars_Hgamma_narrow = initialise_gaussian_line_model(
-            "Hgamma_narrow", line_dict["Hgamma"]["narrow"]["params"]
-        )
-        model.add_component(comp_Hgamma_narrow)
-        model.add_parameters(pars_Hgamma_narrow)
-
-    for i in range(Hgamma_broad):
-        comp_Hgamma_broad, pars_Hgamma_broad = initialise_gaussian_line_model(
-            f"Hgamma_broad_{string.ascii_lowercase[i]}",
-            line_dict["Hgamma"]["broad"]["params"],
-        )
-        model.add_component(comp_Hgamma_broad)
-        model.add_parameters(pars_Hgamma_broad)
-
-
-def setup_OI_lines(spec, line_dict, OI_broad=1, model=None):
-    """
-    Setup emission line model for the OI emission line (8446 Å) using broad
-    gaussian components, named "OI_broad_a", "OI_broad_b", ...
-
-    Ported from the upstream `qso_auto_fit` branch (`Qso_autofit_2.py`).
-
-    :param spec: input spectrum (unused, kept for a uniform signature)
-    :type spec: speconed.speconed.SpecOneD
-    :param line_dict: emission line dictionary; uses
-        line_dict["OI"]["broad"]["params"] (see
-        `initialise_gaussian_line_model`)
+    :param line_dict: emission line dictionary
     :type line_dict: dict
-    :param OI_broad: number of broad components
-    :type OI_broad: int
-    :param model: model to add the components and parameters to
-    :type model: sculptor.model.FitModel
+    :param line: line name, e.g. "MgII"
+    :type line: str
+    :param kind: component kind, e.g. "narrow", "broad", "broad_shifted"
+    :type kind: str
+    :param n: number of lettered components, or None for a single
+        unlettered one
+    :type n: int or None
     """
+    if n is None:
+        names = [f"{line}_{kind}"]
+    else:
+        names = [f"{line}_{kind}_{string.ascii_lowercase[i]}" for i in range(n)]
 
-    for i in range(OI_broad):
-        comp_OI_broad, pars_OI_broad = initialise_gaussian_line_model(
-            f"OI_broad_{string.ascii_lowercase[i]}",
-            line_dict["OI"]["broad"]["params"],
+    for name in names:
+        comp, params = initialise_gaussian_line_model(
+            name, line_dict[line][kind]["params"]
         )
-        model.add_component(comp_OI_broad)
-        model.add_parameters(pars_OI_broad)
+        model.add_component(comp)
+        model.add_parameters(params)
 
 
 # ------------------------------------------------------------------------------
 # Iron templates
 # ------------------------------------------------------------------------------
 
-"""
-Iron is fit in the same windows as the continuum/powerlaw. We setup different iron templates here
-that cover different wavelengths in rest-frame.
-"""
+# Iron is fit in the same windows as the continuum/power law. The
+# `setup_iron_template_<name>` variants for the packaged templates are in
+# `sculptor_extensions.qso_presets`.
 
 
-def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None, fast=True):
+def setup_iron_template(
+    prefix, template_file, disp_range=None, fe_dict=None, fast=True, fluxden_scale=1e17
+):
     """
-    Setup the Vestergaard et al. 2001 iron template covering UV range between 1075 - 3089 Å.
+    Setup an iron template component from a file in sculptor's
+    `data/iron_templates/`. This is the base of the
+    `setup_iron_template_<name>` functions in
+    `sculptor_extensions.qso_presets`, which fix the file and the default
+    wavelength range for each template.
 
     :param prefix: component prefix
     :type prefix: str
-    :param disp_range: optional [min, max] dispersion range (Å) to restrict the template to. Defaults to the full template range.
+    :param template_file: file name in `data/iron_templates/`, two columns:
+        rest-frame wavelength (Å) and flux density
+    :type template_file: str
+    :param disp_range: [min, max] rest-frame range (Å, inclusive) to
+        restrict the template to; None uses the full template
+    :type disp_range: list
     :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
-                    redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
+                    redshift and intrinsic FWHM. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
+    :type fe_dict: dict
     :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
         instead of `initialise_Fe` (`template_model`); same model.
         Default True
     :type fast: bool
-    :return comp: model components for the iron template
-    :return pars: model parameters for the iron template
-
-    Note: Flux values from the iron template are in units of 1e-17 erg/s/cm2
+    :param fluxden_scale: factor applied to the template flux density
+        (default 1e17, for the templates stored in erg/s/cm2/Å)
+    :type fluxden_scale: float
+    :return: model component and parameters for the iron template
+    :rtype: sculptor.component.FitComponent, dict
     """
-
-    template = np.loadtxt(datadir + "iron_templates/" + "Fe_UVtemplt_A.asc")
+    template = np.loadtxt(datadir + "iron_templates/" + template_file)
     Fe_dispersion = template[:, 0]
-    Fe_fluxden = template[:, 1] * 1.0e17
+    Fe_fluxden = template[:, 1] * fluxden_scale
 
     if disp_range is not None:
         disp_mask = (Fe_dispersion >= disp_range[0]) & (Fe_dispersion <= disp_range[1])
@@ -1148,293 +771,7 @@ def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None, fast=True
         Fe_fluxden = Fe_fluxden[disp_mask]
 
     init = initialise_Fe_fast if fast else initialise_Fe
-    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
-    return comp, params
-
-
-def setup_iron_template_V01_FUV(prefix, fe_dict=None, fast=True):
-    """
-    Setup UV part of the Vestergaard et al. 2001 template that coveres the far UV region between 1074-2200 Å.
-
-    :param prefix: component prefix
-    :type prefix: str
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
-                    redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
-                    contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model.
-        Default True
-    :type fast: bool
-    :return comp: model components for the iron template
-    :return pars: model parameters for the iron template
-
-    Note: Flux values from the iron template are in units of 1e-17 erg/s/cm2
-    """
-    disp_range = [1074, 2200]
-
-    template = np.loadtxt(datadir + "iron_templates/" + "Fe_UVtemplt_A.asc")
-    Fe_dispersion = template[:, 0]
-    MgII_disp_mask = (Fe_dispersion >= disp_range[0]) & (Fe_dispersion <= disp_range[1])
-    Fe_dispersion = Fe_dispersion[MgII_disp_mask]
-    Fe_fluxden = template[:, 1][MgII_disp_mask] * 1.0e17
-
-    init = initialise_Fe_fast if fast else initialise_Fe
-    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
-    return comp, params
-
-
-def setup_iron_template_V01_CIV(prefix, fe_dict=None, fast=True):
-    """
-    Setup UV part of the Vestergaard et al. 2001 template that coveres the UV region around CIV emission line between 1440-1710 Å.
-
-    :param prefix: component prefix
-    :type prefix: str
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
-                    redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
-                    contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model.
-        Default True
-    :type fast: bool
-    :return comp: model components for the iron template
-    :return pars: model parameters for the iron template
-
-    Note: Flux values from the iron template are in units of 1e-17 erg/s/cm2
-    """
-    disp_range = [1300, 1800]
-
-    template = np.loadtxt(datadir + "iron_templates/" + "Fe_UVtemplt_A.asc")
-    Fe_dispersion = template[:, 0]
-    MgII_disp_mask = (Fe_dispersion >= disp_range[0]) & (Fe_dispersion <= disp_range[1])
-    Fe_dispersion = Fe_dispersion[MgII_disp_mask]
-    Fe_fluxden = template[:, 1][MgII_disp_mask] * 1.0e17
-
-    init = initialise_Fe_fast if fast else initialise_Fe
-    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
-    return comp, params
-
-
-def setup_iron_template_VW01_UV_MgII(prefix, fe_dict=None, fast=True):
-    """
-    Setup the Vestergaard et al. 2001 iron template covering region around MgII emission line within the range of 2200 - 3090 Å.
-
-    :param prefix: component prefix
-    :type prefix: str
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
-                    redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
-                    contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model.
-        Default True
-    :type fast: bool
-    :return comp: model components for the iron template
-    :return pars: model parameters for the iron template
-
-    Note: Flux values from the iron template are in units of 1e-17 erg/s/cm2
-    """
-    MgII_disp = [2200, 3090]
-
-    template = np.loadtxt(datadir + "iron_templates/" + "Fe_UVtemplt_A.asc")
-    Fe_dispersion = template[:, 0]
-    MgII_disp_mask = (Fe_dispersion >= MgII_disp[0]) & (Fe_dispersion <= MgII_disp[1])
-    Fe_dispersion = Fe_dispersion[MgII_disp_mask]
-    Fe_fluxden = template[:, 1][MgII_disp_mask] * 1.0e17
-
-    init = initialise_Fe_fast if fast else initialise_Fe
-    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
-    return comp, params
-
-
-def setup_iron_template_BG92_OPT(prefix, disp_range=None, fe_dict=None, fast=True):
-    """
-    Setup the Boroson and Green et al. 1992 iron template covering the optical region between 3685 - 7844 Å.
-
-    :param prefix: component prefix
-    :type prefix: str
-    :param disp_range: optional [min, max] dispersion range (Å) to restrict the template to. Defaults to the full template range.
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
-                    redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
-                    contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model.
-        Default True
-    :type fast: bool
-    :return comp: model components for the iron template
-    :return pars: model parameters for the iron template
-
-    Note: Flux values from the iron template are in units of 1e-17 erg/s/cm2
-    """
-
-    template = np.loadtxt(datadir + "iron_templates/" + "Fe_OPT_BR92_linear.txt")
-    Fe_dispersion = template[:, 0]
-    Fe_fluxden = template[:, 1] * 1.0e17
-
-    if disp_range is not None:
-        disp_mask = (Fe_dispersion >= disp_range[0]) & (Fe_dispersion <= disp_range[1])
-        Fe_dispersion = Fe_dispersion[disp_mask]
-        Fe_fluxden = Fe_fluxden[disp_mask]
-
-    init = initialise_Fe_fast if fast else initialise_Fe
-    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
-    return comp, params
-
-
-def setup_iron_template_Tsuz_UV(prefix, disp_range=None, fe_dict=None, fast=True):
-    """
-    Setup UV part of the Tsuzuki et al. 2006 template that coveres the region between 2200-3500 Å.
-
-    :param prefix: component prefix
-    :type prefix: str
-    :param disp_range: optional [min, max] dispersion range (Å) to restrict the template to. Defaults to [2200, 3500].
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
-                    redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
-                    contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model.
-        Default True
-    :type fast: bool
-    :return comp: model components for the iron template
-    :return pars: model parameters for the iron template
-
-    Note: Flux values from the iron template are in units of 1e-17 erg/s/cm2
-    """
-    if disp_range is None:
-        disp_range = [2200, 3500]
-
-    template = np.loadtxt(datadir + "iron_templates/" + "Tsuzuki06.txt")
-    Fe_dispersion = template[:, 0]
-    disp_mask = (Fe_dispersion >= disp_range[0]) & (Fe_dispersion <= disp_range[1])
-    Fe_dispersion = Fe_dispersion[disp_mask]
-    Fe_fluxden = template[:, 1][disp_mask] * 1.0e17
-
-    init = initialise_Fe_fast if fast else initialise_Fe
-    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
-    return comp, params
-
-
-def setup_iron_template_Tsuz_OPT(prefix, disp_range=None, fe_dict=None, fast=True):
-    """
-    Setup the optical region of the Tsuzuki et al. 2006 template. This template is essentially based on BG 1992 iron template.
-
-    :param prefix: component prefix
-    :type prefix: str
-    :param disp_range: optional [min, max] dispersion range (Å) to restrict the template to. Defaults to [3500, max].
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
-                    redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
-                    contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model.
-        Default True
-    :type fast: bool
-    :return comp: model components for the iron template
-    :return pars: model parameters for the iron template
-
-    Note: Flux values from the iron template are in units of 1e-17 erg/s/cm2
-    """
-    template = np.loadtxt(datadir + "iron_templates/" + "Tsuzuki06.txt")
-    Fe_dispersion = template[:, 0]
-
-    if disp_range is None:
-        disp_mask = Fe_dispersion > 3500
-    else:
-        disp_mask = (Fe_dispersion >= disp_range[0]) & (Fe_dispersion <= disp_range[1])
-
-    Fe_dispersion = Fe_dispersion[disp_mask]
-    Fe_fluxden = template[:, 1][disp_mask] * 1.0e17
-
-    init = initialise_Fe_fast if fast else initialise_Fe
-    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
-    return comp, params
-
-
-def setup_iron_template_BG92_OPT_Hbeta(prefix, fe_dict=None, fast=True):
-    """
-    Setup the Boroson and Green et al. 1992 iron template covering the region around Hbeta between 4435 - 5535 Å.
-    The region is chosen from Shen et al. 2011 continnum windows.
-
-    :param prefix: component prefix
-    :type prefix: str
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
-                    redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
-                    contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model.
-        Default True
-    :type fast: bool
-    :return comp: model components for the iron template
-    :return pars: model parameters for the iron template
-
-    Note: Flux values from the iron template are in units of 1e-17 erg/s/cm2
-    """
-    Hbeta_disp = [4435, 5535]
-
-    template = np.loadtxt(datadir + "iron_templates/" + "Fe_OPT_BR92_linear.txt")
-    Fe_dispersion = template[:, 0]
-    Hbeta_disp_mask = (Fe_dispersion >= Hbeta_disp[0]) & (
-        Fe_dispersion <= Hbeta_disp[1]
-    )
-    Fe_dispersion = Fe_dispersion[Hbeta_disp_mask]
-    Fe_fluxden = template[:, 1][Hbeta_disp_mask] * 1.0e17
-
-    init = initialise_Fe_fast if fast else initialise_Fe
-    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
-    return comp, params
-
-
-def setup_iron_template_VW01_Fe3(prefix, fe_dict=None, fast=True):
-    """
-    Setup the Vestergaard et al. 2001 FeIII template within the range 2379 - 2456 Å.
-
-    :param prefix: component prefix
-    :type prefix: str
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
-                    redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
-                    contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model.
-        Default True
-    :type fast: bool
-    :return comp: model components for the iron template
-    :return pars: model parameters for the iron template
-
-    Note: Flux values from the iron template are in units of 1e-17 erg/s/cm2
-    """
-
-    template = np.loadtxt(datadir + "iron_templates/" + "Fe3_UV47.asc")
-    Fe_dispersion = template[:, 0]
-    Fe_fluxden = template[:, 1] * 1.0e17
-
-    init = initialise_Fe_fast if fast else initialise_Fe
-    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
-    return comp, params
-
-
-def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None, fast=True):
-    """
-    Setup the PArk et al. 2022 iron template covering the region around Hbeta between 4000 - 5600 Å.
-    The region is chosen from Shen et al. 2011 continnum windows.
-
-    :param prefix: component prefix
-    :type prefix: str
-    :param fe_dict: Dictionary containing the parameters for iron template which are amplitude, FWHM,
-                    redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
-                    contain each parameter value, the priors and boolean stating whether to vary the parameter.
-    :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model.
-        Default True
-    :type fast: bool
-    :return comp: model components for the iron template
-    :return pars: model parameters for the iron template
-
-    Note: Flux values from the iron template are in units of 1e-17 erg/s/cm2
-    """
-    template = np.loadtxt(datadir + "iron_templates/" + "Fe_OPT_Hbeta_Park22.txt")
-    Fe_dispersion = template[:, 0]
-    Fe_fluxden = template[:, 1] * 1.0e17
-
-    init = initialise_Fe_fast if fast else initialise_Fe
-    comp, params = init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
-    return comp, params
+    return init(prefix, Fe_dispersion, Fe_fluxden, fe_dict)
 
 
 # ------------------------------------------------------------------------------
@@ -1533,218 +870,59 @@ def create_emission_line_dict(input_spec, redsh, line_dict):
 # ------------------------------------------------------------------------------
 
 
-def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name):
+def get_line_properties(
+    df, redshift, param_name_dict, line, cont_wav, bh_mass_relations
+):
     """
-    Calculate AGN properties from the extracted emission line features (MgII) from the fit.
-    The function provides measurements for the BH masses, Bolometric luminosity calculated using continuum luminosity at 3000 Å,
-    Eddington luminosity, Eddington ratio, and line velocity shifts wrt to the reference redshift provided.
-    Additionally, it calculates the iron contribution between 2200-3090 Å excluding any contribution from continuum or emission line feature and FeII/MgII ratio.
-    From MgII line properties, we calculate the single-epoch virial BH mass based on the MgII FWHM and
-    monochromatic continuum luminosity at 3000 Å. Depending on the iron template used, black hole masses are calculated using relation from
-    Vestergaard & Osmer 2009, ApJ 641, 689 in case of Vestergaard template or Shen et al. 2011 in case of Tsuzuki 2006 template.
+    Calculate AGN properties from the measurements of one broad emission
+    line: single-epoch virial BH masses, the bolometric luminosity, the
+    Eddington luminosity and ratio, and the line velocity shift with respect
+    to `redshift`. This is the base of the `get_line_prop_<line>` functions
+    in `sculptor_extensions.qso_presets`.
 
-    :param df: input dataframe containing extracted emission line parameters
-    :type df: pd.DataFrame
-    :param redshift: redshift of the source
-    :type redshift: float
     The columns of `df` are plain numbers in fixed units (below); they are
-    turned into astropy Quantities for the calculations, and the results are
-    stored in M_sun (BH masses), erg/s (luminosities) and km/s (velocity
-    shifts).
+    turned into astropy Quantities for the calculations. For every row and
+    each of the "_median", "_low", "_upp" columns, these columns are added
+    (`<wav>` is `cont_wav` in Å, `<tag>` a key of `bh_mass_relations`):
 
-    :param param_name_dict: dictionary specifying the columns names of the parameters in the provided dataframe containing -
-        - "fwhm": str ("MgII_fwhm"), MgII FWHM in km/s
-        - "luminosity": str ("L3000"), continuum luminosity at 3000 Å in
-          erg/s/Å
-        - "redshift": str ("MgII_redsh")
-        - "fe_amp": str ("FeII_amp")
-        - "peak_flux": str ("MgII_broad_flux")
-    :type param_name_dict: dict
-    :param save_dir: path to save the output
-    :type save_dir: str
-    :param source: name of the source
-    :type source: str
-    :param fit_name: iron template used in the fit: "Vest" (Vestergaard &
-        Wilkes 2001; S11 and VO09 masses) or containing "Tsuzuki" (S11 mass)
-    :type fit_name: str
+    - "<line>_BH_mass_<wav><tag>" (M_sun)
+    - "L_bol_<wav>" (erg/s, Shen et al. 2011 bolometric correction)
+    - "Eddington_ratio_<wav><tag>", "Edd_lum_<line>_<wav><tag>" (erg/s)
+    - "delta_v_<line>" (km/s)
 
-    :return df: output dataframe
-    :rtype: pd.DataFrame
-    """
-
-    fwhm_col = param_name_dict.get("fwhm")
-    lum_col = param_name_dict.get("luminosity")
-    z_col = param_name_dict.get("redshift")
-    fe_amp_col = param_name_dict.get("fe_amp")
-    peak_flux_col = param_name_dict.get("peak_flux")
-
-    for idx, row in df.iterrows():
-        for key in ["_median", "_low", "_upp"]:
-            # MgII BH mass (depends on fit_name)
-            if fwhm_col and lum_col:
-                fwhm_key = fwhm_col + key
-                lum_key = lum_col + key
-                if fwhm_key in df.columns and lum_key in df.columns:
-                    fwhm = np.float64(row[fwhm_key])
-                    lum = np.float64(row[lum_key])
-                    if not (np.isnan(fwhm) or np.isnan(lum)):
-                        fwhm = fwhm * qso.KM_S
-                        cont_lwav = lum * qso.LWAV_UNIT
-                        cont_wav = 3000 * u.AA
-                        if "Tsuzuki" in fit_name or fit_name == "Vest":
-                            BH_mass_s11 = qso.se_bhmass_mgii_s11_fwhm(
-                                fwhm, cont_lwav=cont_lwav, cont_wav=cont_wav
-                            )
-
-                        if fit_name == "Vest":
-                            BH_mass_vo09 = qso.se_bhmass_mgii_vo09_fwhm(
-                                fwhm, cont_lwav=cont_lwav, cont_wav=cont_wav
-                            )
-                        if "Tsuzuki" not in fit_name and fit_name != "Vest":
-                            logger.info(
-                                f"Unknown fit_name '{fit_name}' — skipping BH mass calc."
-                            )
-                            BH_mass_s11 = [np.nan * u.Msun]
-                            BH_mass_vo09 = [np.nan * u.Msun]
-
-                        df.at[idx, "MgII_BH_mass_3000_s11" + key] = BH_mass_s11[
-                            0
-                        ].to_value(u.Msun)
-
-                        # Bolometric luminosity and Eddington ratio
-                        L_bol = qso.calc_bolometric_luminosity(
-                            cont_lwav=cont_lwav, cont_wav=cont_wav
-                        )
-                        df.at[idx, "L_bol_3000" + key] = L_bol[0].to_value(qso.LUM_UNIT)
-
-                        Edd_ratio = qso.calc_eddington_ratio(L_bol[0], BH_mass_s11[0])
-                        df.at[idx, "Eddington_ratio_3000_s11" + key] = (
-                            Edd_ratio.to_value(u.dimensionless_unscaled)
-                        )
-
-                        # Eddington luminosity
-                        Edd_lum = qso.calc_eddington_luminosity(BH_mass_s11[0])
-                        df.at[idx, "Edd_lum_MgII_3000_s11" + key] = Edd_lum.to_value(
-                            qso.LUM_UNIT
-                        )
-
-                        if fit_name == "Vest":
-                            df.at[idx, "MgII_BH_mass_3000_vo09" + key] = BH_mass_vo09[
-                                0
-                            ].to_value(u.Msun)
-                            Edd_ratio = qso.calc_eddington_ratio(
-                                L_bol[0], BH_mass_vo09[0]
-                            )
-                            df.at[idx, "Eddington_ratio_3000_vo09" + key] = (
-                                Edd_ratio.to_value(u.dimensionless_unscaled)
-                            )
-
-                            # Eddington luminosity
-                            Edd_lum = qso.calc_eddington_luminosity(BH_mass_vo09[0])
-                            df.at[idx, "Edd_lum_MgII_3000_vo09" + key] = (
-                                Edd_lum.to_value(qso.LUM_UNIT)
-                            )
-
-                    else:
-                        logger.info(
-                            f"NaN in '{fwhm_key}' or '{lum_key}' at row {idx} — skipping BH mass & L_bol."
-                        )
-                else:
-                    logger.info(
-                        f"Missing columns '{fwhm_key}' or '{lum_key}' — skipping BH mass & L_bol."
-                    )
-            else:
-                logger.info(
-                    "'fwhm' or 'luminosity' not in param_name_dict — skipping BH mass & L_bol."
-                )
-
-            # Velocity shift
-            if z_col:
-                z_key = z_col + key
-                if z_key in df.columns:
-                    try:
-                        delta_v = qso.calc_velocity_shifts(
-                            row[z_key], z_sys=redshift, relativistic=True
-                        )
-                        df.at[idx, "delta_v_MgII" + key] = delta_v.to_value(qso.KM_S)
-                    except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
-                        logger.warning(f"Velocity shift calc failed at row {idx}: {e}")
-                else:
-                    logger.info(f"Column '{z_key}' missing — skipping velocity shift.")
-            else:
-                logger.info(
-                    "'redshift' not in param_name_dict — skipping velocity shift."
-                )
-
-            # FeII/MgII flux ratio
-            if fe_amp_col and peak_flux_col:
-                fe_key = fe_amp_col + key
-                flux_key = peak_flux_col + key
-                if fe_key in df.columns and flux_key in df.columns:
-                    try:
-                        fe_flux_ratio = row[fe_key] * 1e-17 / row[flux_key]
-                        df.at[idx, "FeII_over_MgII" + key] = fe_flux_ratio
-                    except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
-                        logger.warning(f"FeII/MgII flux ratio failed at row {idx}: {e}")
-                else:
-                    logger.info(
-                        f"Missing columns '{fe_key}' or '{flux_key}' — skipping FeII/MgII."
-                    )
-            else:
-                logger.info(
-                    "'fe_amp' or 'peak_flux' not in param_name_dict — skipping FeII/MgII."
-                )
-
-    df_path = os.path.join(save_dir, f"{source}_results_MgII.csv")
-    df.to_csv(df_path, index=False, float_format="%.4e")
-    return df
-
-
-def get_civ_line_prop(df, redshift, param_name_dict, save_dir=None, source=None):
-    """
-    Calculate AGN properties from the CIV line measurements of a fit: the
-    single-epoch virial BH mass from the CIV FWHM and the monochromatic
-    continuum luminosity at 1350 Å (Vestergaard & Peterson 2006), the
-    bolometric luminosity (Shen et al. 2011 correction at 1350 Å), the
-    Eddington luminosity and ratio, and the CIV velocity shift with respect
-    to `redshift`.
-
-    For every row and each of the "_median", "_low", "_upp" columns, the
-    results are added as "CIV_BH_mass_1350_vp06", "L_bol_1350",
-    "Eddington_ratio_1350_vp06", "Edd_lum_CIV_1350_vp06" (M_sun, erg/s) and
-    "delta_v_CIV" (km/s), named like the columns of `get_line_prop_MgII`.
-
-    Ported from the upstream `qso_auto_fit` branch (`Qso_autofit_2.py`),
-    where it passed unitless numbers to the BH-mass relation and failed
-    (`UnitConversionError`); upstream's columns were "civ_BH_mass_1350",
-    "L_bol_1350", "Eddington_ratio_1350", "Edd_lum_civ_1350" and
-    "delta_v_civ". Its unused `model` / `flat_samples` arguments are gone.
+    Rows with a missing or NaN FWHM or luminosity are skipped for the BH
+    mass and luminosities; a missing redshift skips the velocity shift.
 
     :param df: input dataframe containing extracted emission line parameters
     :type df: pd.DataFrame
     :param redshift: reference (systemic) redshift of the source
     :type redshift: float
     :param param_name_dict: column name prefixes in `df`:
-        - "fwhm": CIV FWHM in km/s (e.g. "CIV_fwhm")
-        - "luminosity": continuum luminosity at 1350 Å in erg/s/Å
-          (e.g. "L1350")
-        - "redshift": CIV redshift (e.g. "CIV_redsh")
+        - "fwhm": line FWHM in km/s (e.g. "MgII_fwhm")
+        - "luminosity": continuum luminosity at `cont_wav` in erg/s/Å
+          (e.g. "L3000")
+        - "redshift": line redshift (e.g. "MgII_redsh")
     :type param_name_dict: dict
-    :param save_dir: if given, also write `<save_dir>/<source>_results_CIV.csv`
-    :type save_dir: str
-    :param source: name of the source, used in the file name
-    :type source: str
+    :param line: line name used in the output columns, e.g. "MgII"
+    :type line: str
+    :param cont_wav: wavelength of the continuum luminosity
+    :type cont_wav: astropy.units.Quantity
+    :param bh_mass_relations: column tag -> BH-mass relation from
+        `sculptor_extensions.qso`, called as
+        ``relation(fwhm, cont_lwav=..., cont_wav=...)``; e.g.
+        ``{"_s11": qso.se_bhmass_mgii_s11_fwhm}``. May be empty.
+    :type bh_mass_relations: dict
     :return: `df` with the added columns
     :rtype: pd.DataFrame
     """
-
     fwhm_col = param_name_dict.get("fwhm")
     lum_col = param_name_dict.get("luminosity")
     z_col = param_name_dict.get("redshift")
+    wav = f"{cont_wav.to_value(u.AA):.0f}"
 
     for idx, row in df.iterrows():
         for key in ["_median", "_low", "_upp"]:
-            # CIV BH mass, bolometric luminosity and Eddington ratio
+            # BH masses, bolometric luminosity and Eddington ratios
             if fwhm_col and lum_col:
                 fwhm_key = fwhm_col + key
                 lum_key = lum_col + key
@@ -1754,28 +932,28 @@ def get_civ_line_prop(df, redshift, param_name_dict, save_dir=None, source=None)
                     lum = np.float64(row[lum_key])
 
                     if not (np.isnan(fwhm) or np.isnan(lum)):
+                        fwhm = fwhm * qso.KM_S
                         cont_lwav = lum * qso.LWAV_UNIT
-                        bh_mass = qso.se_bhmass_civ_vp06_fwhm(
-                            civ_fwhm=fwhm * qso.KM_S,
-                            cont_lwav=cont_lwav,
-                            cont_wav=1350 * u.AA,
-                        )[0]
                         l_bol = qso.calc_bolometric_luminosity(
-                            cont_lwav=cont_lwav, cont_wav=1350 * u.AA
+                            cont_lwav=cont_lwav, cont_wav=cont_wav
                         )[0]
-                        edd_lum = qso.calc_eddington_luminosity(bh_mass)
-                        edd_ratio = qso.calc_eddington_ratio(l_bol, bh_mass)
+                        df.at[idx, f"L_bol_{wav}{key}"] = l_bol.to_value(qso.LUM_UNIT)
 
-                        df.at[idx, "CIV_BH_mass_1350_vp06" + key] = bh_mass.to_value(
-                            u.Msun
-                        )
-                        df.at[idx, "L_bol_1350" + key] = l_bol.to_value(qso.LUM_UNIT)
-                        df.at[idx, "Edd_lum_CIV_1350_vp06" + key] = edd_lum.to_value(
-                            qso.LUM_UNIT
-                        )
-                        df.at[idx, "Eddington_ratio_1350_vp06" + key] = (
-                            edd_ratio.to_value(u.dimensionless_unscaled)
-                        )
+                        for tag, relation in bh_mass_relations.items():
+                            bh_mass = relation(
+                                fwhm, cont_lwav=cont_lwav, cont_wav=cont_wav
+                            )[0]
+                            edd_lum = qso.calc_eddington_luminosity(bh_mass)
+                            edd_ratio = qso.calc_eddington_ratio(l_bol, bh_mass)
+                            df.at[idx, f"{line}_BH_mass_{wav}{tag}{key}"] = (
+                                bh_mass.to_value(u.Msun)
+                            )
+                            df.at[idx, f"Eddington_ratio_{wav}{tag}{key}"] = (
+                                edd_ratio.to_value(u.dimensionless_unscaled)
+                            )
+                            df.at[idx, f"Edd_lum_{line}_{wav}{tag}{key}"] = (
+                                edd_lum.to_value(qso.LUM_UNIT)
+                            )
                     else:
                         logger.info(
                             f"NaN in '{fwhm_key}' or '{lum_key}' at row {idx} — "
@@ -1800,7 +978,7 @@ def get_civ_line_prop(df, redshift, param_name_dict, save_dir=None, source=None)
                         delta_v = qso.calc_velocity_shifts(
                             row[z_key], z_sys=redshift, relativistic=True
                         )
-                        df.at[idx, "delta_v_CIV" + key] = delta_v.to_value(qso.KM_S)
+                        df.at[idx, f"delta_v_{line}{key}"] = delta_v.to_value(qso.KM_S)
                     except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
                         logger.warning(f"Velocity shift calc failed at row {idx}: {e}")
                 else:
@@ -1809,157 +987,6 @@ def get_civ_line_prop(df, redshift, param_name_dict, save_dir=None, source=None)
                 logger.info(
                     "'redshift' not in param_name_dict — skipping velocity shift."
                 )
-
-    if save_dir is not None:
-        df_path = os.path.join(save_dir, f"{source}_results_CIV.csv")
-        df.to_csv(df_path, index=False, float_format="%.4e")
-    return df
-
-
-def get_line_prop_Hbeta_OIII(
-    df, redshift, param_name_dict, save_dir, source, model, flat_samples
-):
-    """
-    Calculate AGN properties from the extracted emission line features (Hbeta) from the fit.
-    The function provides measurements for the BH masses, Bolometric luminosity calculated using continuum luminosity at 5100 Å,
-    Eddington luminosity, Eddington ratio, and line velocity shifts wrt to the reference redshift provided.
-    From Hbeta line properties, we calculate the single-epoch virial BH mass based on the Hbeta FWHM and
-    monochromatic continuum luminosity at 5100 Å. This relation is taken from Vestergaard & Peterson 2006, ApJ 641, 689 and
-    based on line width measurements of quasars published in Boroson & Green 1992 and Marziani 2003.
-
-    :param df: input dataframe containing extracted emission line parameters
-    :type df: pd.DataFrame
-    :param redshift: redshift of the source
-    :type redshift: float
-    :param param_name_dict: dictionary specifying the columns names of the parameters in the provided dataframe containing -
-        - "fwhm" : str ("Hbeta_fwhm")
-        - "luminosity" : str ("L5100")
-        - "redshift" : str ("Hbeta_redsh")
-    :type param_name_dict: dictionary
-    :param save_dir: path to save the output
-    :type save_dir: str
-    :param source: name of the source
-    :type source: str
-    :param model: fit model used
-    :typpe model:
-    :param flat_samples: flat chain from the MCMC fit
-    """
-
-    fwhm_col = param_name_dict.get("fwhm")
-    lum_col = param_name_dict.get("luminosity")
-    z_col = param_name_dict.get("redshift")
-
-    # fe_amp_col = param_name_dict.get("fe_amp")
-    # int_flux_col = param_name_dict.get("int_flux")
-
-    for idx, row in df.iterrows():
-        for key in ["_median", "_low", "_upp"]:
-            # FWHM and Luminosity-based calculations
-            if fwhm_col and lum_col:
-                fwhm_key = fwhm_col + key
-                lum_key = lum_col + key
-
-                if fwhm_key in df.columns and lum_key in df.columns:
-                    fwhm_Hbeta = np.float64(row[fwhm_key])
-                    cont_lwave_5100 = np.float64(row[lum_key])
-
-                    if not (np.isnan(fwhm_Hbeta) or np.isnan(cont_lwave_5100)):
-                        hbeta_BH_mass_5100 = qso.se_bhmass_hbeta_vp06(
-                            fwhm_Hbeta * qso.KM_S,
-                            cont_lwav=cont_lwave_5100 * qso.LWAV_UNIT,
-                            cont_wav=5100 * u.AA,
-                        )
-
-                        L_bol_5100 = qso.calc_bolometric_luminosity(
-                            cont_lwav=cont_lwave_5100 * qso.LWAV_UNIT,
-                            cont_wav=5100 * u.AA,
-                        )
-
-                        Edd_lum_Hbeta_5100 = qso.calc_eddington_luminosity(
-                            hbeta_BH_mass_5100[0]
-                        )
-
-                        Eddington_ratio_5100 = qso.calc_eddington_ratio(
-                            L_bol_5100[0], hbeta_BH_mass_5100[0]
-                        )
-
-                        df.at[idx, "Hbeta_BH_mass_5100" + key] = hbeta_BH_mass_5100[
-                            0
-                        ].to_value(u.Msun)
-
-                        df.at[idx, "Edd_lum_Hbeta_5100" + key] = (
-                            Edd_lum_Hbeta_5100.to_value(qso.LUM_UNIT)
-                        )
-
-                        df.at[idx, "Eddington_ratio_5100" + key] = (
-                            Eddington_ratio_5100.to_value(u.dimensionless_unscaled)
-                        )
-
-                        df.at[idx, "L_bol_5100" + key] = L_bol_5100[0].to_value(
-                            qso.LUM_UNIT
-                        )
-                    else:
-                        logger.info(
-                            f"NaN in '{fwhm_key}' or '{lum_key}' at row {idx} — skipping BH mass and Eddington calculations."
-                        )
-                else:
-                    logger.info(
-                        f"One or both columns '{fwhm_key}', '{lum_key}' missing in DataFrame — skipping BH mass and Eddington calculations."
-                    )
-            else:
-                logger.info(
-                    "'fwhm' or 'luminosity' prefix not provided — skipping BH mass and Eddington calculations."
-                )
-
-            # Velocity shift calculation
-            if z_col:
-                z_key = z_col + key
-                if z_key in df.columns:
-                    try:
-                        delta_v_Hbeta = qso.calc_velocity_shifts(
-                            row[z_key], z_sys=redshift, relativistic=True
-                        )
-                        df.at[idx, "delta_v_Hbeta" + key] = delta_v_Hbeta.to_value(
-                            qso.KM_S
-                        )
-                    except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
-                        logger.info(
-                            f"Failed to calculate velocity shift for '{z_key}' at row {idx}: {e}"
-                        )
-                else:
-                    logger.info(
-                        f"Column '{z_key}' missing in DataFrame — skipping velocity shift."
-                    )
-            else:
-                logger.info(
-                    "'redshift' key not provided in param_name_dict — skipping velocity shift calculation."
-                )
-
-            # # FeII Hbeta
-            # if fe_amp_col and int_flux_col:
-            #     fe_key = fe_amp_col + key
-            #     flux_key = int_flux_col + key
-
-            #     if fe_key in df.columns and flux_key in df.columns:
-            #         try:
-            #             Hbeta_disp = [4434, 4684]
-            #             template = np.loadtxt(datadir + "iron_templates/" + "Fe_OPT_BR92_linear.txt")
-            #             Fe_dispersion = template[:, 0]
-            #             Hbeta_disp_mask = (Fe_dispersion >= Hbeta_disp[0]) & (Fe_dispersion <= Hbeta_disp[1])
-            #             Fe_dispersion = Fe_dispersion[Hbeta_disp_mask]
-            #             Fe_fluxden = template[:, 1][Hbeta_disp_mask] * 1.0e17
-
-            #             Fe_spec = sod.SpecOneD(dispersion=Fe_dispersion,
-            #                                    fluxden=Fe_fluxden * row[fe_key],
-            #                                    dispersion_unit = dispersion_unit, fluxden_unit=fluxden_unit)
-            #             fe_int_flux = meas.get_integrated_flux(Fe_spec, disp_range = [4434, 4684])
-            #             fe_flux_ratio = fe_int_flux.value / row[flux_key]
-
-            #             df.at[idx, "fe_int_flux" + key] = fe_int_flux.value
-            #             df.at[idx, "r_FeII_Hbeta" + key] = fe_flux_ratio
-
-            #         except Exception as e:
-            #             print(f"[INFO] FeII_Hbeta failed at row {idx}: {e}")
 
     return df
 
@@ -2036,3 +1063,54 @@ def add_line_snr_stats(
         df.at[idx, f"{line_name}_peak_snr_upp"] = upp
 
     return df
+
+
+# ------------------------------------------------------------------------------
+# Names moved to `sculptor_extensions.qso_presets`
+# ------------------------------------------------------------------------------
+
+_MOVED_TO_PRESETS = (
+    "setup_iron_template_VW01_UV",
+    "setup_iron_template_V01_FUV",
+    "setup_iron_template_V01_CIV",
+    "setup_iron_template_VW01_UV_MgII",
+    "setup_iron_template_VW01_Fe3",
+    "setup_iron_template_BG92_OPT",
+    "setup_iron_template_BG92_OPT_Hbeta",
+    "setup_iron_template_Tsuz_UV",
+    "setup_iron_template_Tsuz_OPT",
+    "setup_iron_template_Park22_OPT_Hbeta",
+    "setup_Halpha_NII_lines",
+    "setup_MgII_lines",
+    "setup_CIV_lines",
+    "setup_hb_o3_lines",
+    "setup_Hgamma_lines",
+    "setup_OI_lines",
+    "get_line_prop_MgII",
+    "get_civ_line_prop",
+    "get_line_prop_Hbeta_OIII",
+)
+
+
+def __getattr__(name):
+    """Forward the names moved to `sculptor_extensions.qso_presets`, with a
+    `DeprecationWarning`.
+
+    :param name: attribute name
+    :type name: str
+    :return: the function from `qso_presets`
+    :rtype: callable
+    :raises AttributeError: for any other name
+    """
+    if name in _MOVED_TO_PRESETS:
+        import warnings
+
+        from sculptor_extensions import qso_presets
+
+        warnings.warn(
+            f"`Qso_autofit.{name}` moved to `sculptor_extensions.qso_presets.{name}`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(qso_presets, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

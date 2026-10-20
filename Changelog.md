@@ -2,6 +2,56 @@
 
 ## 2026-10-20
 
+### Variants built on base functions; new `sculptor_extensions.qso_presets`
+- **Structure**: families of copy-pasted variants now call one base
+  function. Named setups and line-property calculations moved to the new
+  convenience module `sculptor_extensions.qso_presets`, with unchanged
+  signatures:
+  - 10 `setup_iron_template_<name>` -> `Qso_autofit.setup_iron_template(prefix,
+    template_file, disp_range, fe_dict, fast, fluxden_scale)`.
+  - `setup_Halpha_NII_lines`, `setup_MgII_lines`, `setup_CIV_lines`,
+    `setup_hb_o3_lines`, `setup_Hgamma_lines`, `setup_OI_lines` ->
+    `Qso_autofit.add_line_components(model, line_dict, line, kind, n)`.
+  - `get_line_prop_MgII`, `get_civ_line_prop`, `get_line_prop_Hbeta_OIII`
+    -> `Qso_autofit.get_line_properties(df, redshift, param_name_dict,
+    line, cont_wav, bh_mass_relations)`.
+  The old `Qso_autofit.<name>` still work, with a `DeprecationWarning`.
+- Base functions for code that stays where it is (model functions keep
+  their module and name, so saved fits still unpickle):
+  - `component_setup.initialise_component`: the "parameter dict ->
+    component" loop of every `initialise_*` (power law, iron, Balmer, HOL,
+    Gaussian lines).
+  - `qso.virial_bh_mass`: the power law behind all ten `se_bhmass_*`
+    relations (VP06 Hbeta / CIV, Park12, GH05, DB20, VO09, S11, C17).
+  - `qso_advanced_models.balmer_continuum_shape` /
+    `balmer_continuum_at_edge`: shared by `fast_balmer_continuum_model`,
+    both HOL models, `power_law_at_2500_plus_fractional_bc` and
+    `qso.power_law_at_2500_plus_bc` (which no longer uses astropy's
+    `BlackBody`; same values to ~1e-15).
+  - [OIII], [NII], [SII] doublets (tied and untied) are two
+    `analysis.line_model_gaussian` lines; the power-law variants call
+    `analysis.power_law_at2500`.
+  - `CachedBalmerContinuumWithHOL` is a subclass of
+    `BalmerContinuumWithHOL` that only overrides the cached grid.
+- **Bug fixed**: `initialise_power_law`, `initialise_Fe[_fast]`,
+  `initialise_balmer_without_hol` and `initialise_balmer_with_hol` raised
+  `RuntimeError: dictionary changed size during iteration` when an entry
+  mapped a parameter onto another (`{"parameter": ...}`, e.g. a shared
+  redshift).
+- **Bug fixed**: `setup_iron_template_Park22_OPT_Hbeta` loaded
+  `Fe_OPT_Hbeta_Park22.txt`, which does not exist; it now uses the
+  packaged `Park_2022.asc` (flux density in 1e-15 erg/s/cm2/Å, used
+  unscaled, as upstream's `out.py`).
+- Small behaviour changes: `get_line_prop_MgII` with an unknown
+  `fit_name` no longer writes NaN BH-mass/Eddington columns (it skips
+  them); `get_line_prop_Hbeta_OIII` logs a failed velocity shift as a
+  warning, like the others; its commented-out FeII block was dropped.
+  Output column names are unchanged.
+- Docstrings: BG92 range is 3685 - 7484 Å (not 7844), the FeIII template
+  is non-zero over 2379 - 2456 Å, `V01_CIV` states the range it uses
+  (1300 - 1800 Å).
+- New `tests/test_qso_presets.py`.
+
 ### Units: astropy Quantities required in `qso` and the line-property functions
 - **Behaviour change**: every scaling relation in `sculptor_extensions.qso`
   (`se_bhmass_*`, `calc_bolometric_luminosity[_db20]`,

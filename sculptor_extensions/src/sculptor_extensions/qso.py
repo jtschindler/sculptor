@@ -18,8 +18,10 @@ import logging
 import numpy as np
 from astropy import constants as const
 from astropy import units as u
-from astropy.modeling.models import BlackBody
 from linetools import utils as lu
+
+from sculptor import analysis as ana
+from sculptor_extensions import qso_advanced_models as qam
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +63,52 @@ def _quantity(value, unit, name):
             f"got {type(value).__name__} {value!r}"
         )
     return value.to(unit)
+
+
+def virial_bh_mass(
+    line_width,
+    luminosity,
+    zero_point,
+    width_exp,
+    lum_exp,
+    width_pivot=1000.0 * KM_S,
+    lum_pivot=1e44 * LUM_UNIT,
+):
+    """Single-epoch virial BH mass from a power-law scaling relation:
+
+    M_BH / M_sun = zero_point * (line_width / width_pivot) ** width_exp
+                   * (luminosity / lum_pivot) ** lum_exp
+
+    This is the base of the `se_bhmass_*` relations below, which fix the
+    coefficients from the literature and check which luminosity they are
+    valid for.
+
+    :param line_width: line FWHM or dispersion
+    :type line_width: astropy.units.Quantity
+    :param luminosity: luminosity, e.g. lambda L_lambda of the continuum or
+        a line luminosity
+    :type luminosity: astropy.units.Quantity
+    :param zero_point: mass at the pivot width and luminosity, in M_sun
+    :type zero_point: float
+    :param width_exp: exponent of the line width
+    :type width_exp: float
+    :param lum_exp: exponent of the luminosity
+    :type lum_exp: float
+    :param width_pivot: pivot line width (default 1000 km/s)
+    :type width_pivot: astropy.units.Quantity
+    :param lum_pivot: pivot luminosity (default 1e44 erg/s)
+    :type lum_pivot: astropy.units.Quantity
+    :return: BH mass
+    :rtype: astropy.units.Quantity
+    """
+    line_width = _quantity(line_width, KM_S, "line_width")
+    luminosity = _quantity(luminosity, LUM_UNIT, "luminosity")
+    return (
+        zero_point
+        * (line_width / width_pivot).to_value(u.dimensionless_unscaled) ** width_exp
+        * (luminosity / lum_pivot).to_value(u.dimensionless_unscaled) ** lum_exp
+        * u.Msun
+    )
 
 
 def _is_wav(cont_wav, *wavs):
@@ -112,25 +160,13 @@ def power_law_at_2500_plus_bc(x, amp, slope, redsh, amp_be, Te, tau_be, lambda_b
 
     """
 
-    pl_fluxden = amp * (x / (2500.0 * (redsh + 1.0))) ** slope
-
-    x = x / (1.0 + redsh)
-
-    bb = BlackBody(temperature=Te * u.K)
-    black_body_lambda = bb(x * u.AA).value * c_AngstroemPerSecond / x**2
-    black_body_lambda_be = (
-        bb(lambda_be * u.AA).value * c_AngstroemPerSecond / lambda_be**2
-    )
-
-    bc_fluxden_0 = amp_be / (black_body_lambda_be * (1.0 - np.exp(-tau_be)))
+    pl_fluxden = ana.power_law_at2500(x, redsh, amp, slope)
 
     bc_fluxden = (
-        bc_fluxden_0
-        * black_body_lambda
-        * (1.0 - np.exp(-tau_be * (x / lambda_be) ** 3))
+        amp_be
+        / qam.balmer_continuum_at_edge(Te, tau_be, lambda_be)
+        * qam.balmer_continuum_shape(x / (1.0 + redsh), Te, tau_be, lambda_be)
     )
-
-    bc_fluxden[x >= lambda_be] = bc_fluxden[x >= lambda_be] * 0
 
     return pl_fluxden + bc_fluxden
 
@@ -155,33 +191,9 @@ def line_model_gaussian_oiii_doublet(x, redsh, flux, fwhm_km_s, fluxratio):
     :rtype: np.ndarray
     """
 
-    # Redshift central wavelengths
-    cen_a = 4960.30 * (1 + redsh)
-    cen_b = 5008.24 * (1 + redsh)
-
-    # Calculate sigma from fwhm
-    fwhm_a = fwhm_km_s / c_km_s * cen_a
-    fwhm_b = fwhm_km_s / c_km_s * cen_b
-    sigma_a = fwhm_a / np.sqrt(8 * np.log(2))
-    sigma_b = fwhm_b / np.sqrt(8 * np.log(2))
-
-    flux_a = flux
-    flux_b = fluxratio * flux_a
-    # for flux
-
-    comp_a = (
-        flux_a
-        / (sigma_a * np.sqrt(2 * np.pi))
-        * np.exp(-((x - cen_a) ** 2) / (2 * sigma_a**2))
-    )
-
-    comp_b = (
-        flux_b
-        / (sigma_b * np.sqrt(2 * np.pi))
-        * np.exp(-((x - cen_b) ** 2) / (2 * sigma_b**2))
-    )
-
-    return comp_a + comp_b
+    return ana.line_model_gaussian(
+        x, redsh, flux, 4960.30, fwhm_km_s
+    ) + ana.line_model_gaussian(x, redsh, fluxratio * flux, 5008.24, fwhm_km_s)
 
 
 def line_model_gaussian_nii_doublet(x, redsh, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s_b):
@@ -207,29 +219,9 @@ def line_model_gaussian_nii_doublet(x, redsh, flux_a, flux_b, fwhm_km_s_a, fwhm_
     :rtype: np.ndarray
     """
 
-    # Redshift central wavelengths
-    cen_a = 6549.85 * (1 + redsh)
-    cen_b = 6585.28 * (1 + redsh)
-
-    # Calculate sigma from fwhm
-    fwhm_a = fwhm_km_s_a / c_km_s * cen_a
-    fwhm_b = fwhm_km_s_b / c_km_s * cen_b
-    sigma_a = fwhm_a / np.sqrt(8 * np.log(2))
-    sigma_b = fwhm_b / np.sqrt(8 * np.log(2))
-
-    comp_a = (
-        flux_a
-        / (sigma_a * np.sqrt(2 * np.pi))
-        * np.exp(-((x - cen_a) ** 2) / (2 * sigma_a**2))
-    )
-
-    comp_b = (
-        flux_b
-        / (sigma_b * np.sqrt(2 * np.pi))
-        * np.exp(-((x - cen_b) ** 2) / (2 * sigma_b**2))
-    )
-
-    return comp_a + comp_b
+    return ana.line_model_gaussian(
+        x, redsh, flux_a, 6549.85, fwhm_km_s_a
+    ) + ana.line_model_gaussian(x, redsh, flux_b, 6585.28, fwhm_km_s_b)
 
 
 def line_model_gaussian_sii_doublet(x, redsh, flux_a, flux_b, fwhm_km_s_a, fwhm_km_s_b):
@@ -256,29 +248,9 @@ def line_model_gaussian_sii_doublet(x, redsh, flux_a, flux_b, fwhm_km_s_a, fwhm_
 
     """
 
-    # Redshift central wavelengths
-    cen_a = 6718.29 * (1 + redsh)
-    cen_b = 6732.67 * (1 + redsh)
-
-    # Calculate sigma from fwhm
-    fwhm_a = fwhm_km_s_a / c_km_s * cen_a
-    fwhm_b = fwhm_km_s_b / c_km_s * cen_b
-    sigma_a = fwhm_a / np.sqrt(8 * np.log(2))
-    sigma_b = fwhm_b / np.sqrt(8 * np.log(2))
-
-    comp_a = (
-        flux_a
-        / (sigma_a * np.sqrt(2 * np.pi))
-        * np.exp(-((x - cen_a) ** 2) / (2 * sigma_a**2))
-    )
-
-    comp_b = (
-        flux_b
-        / (sigma_b * np.sqrt(2 * np.pi))
-        * np.exp(-((x - cen_b) ** 2) / (2 * sigma_b**2))
-    )
-
-    return comp_a + comp_b
+    return ana.line_model_gaussian(
+        x, redsh, flux_a, 6718.29, fwhm_km_s_a
+    ) + ana.line_model_gaussian(x, redsh, flux_b, 6732.67, fwhm_km_s_b)
 
 
 def CIII_complex_model_func(
@@ -477,11 +449,12 @@ def se_bhmass_hbeta_vp06(hbeta_fwhm, cont_lwav, cont_wav=5100 * u.AA):
     if _is_wav(cont_wav, 5100):
         reference = "Hbeta_VP06_fwhm"
 
-        bhmass = (
-            10**6.91
-            * (hbeta_fwhm / (1000.0 * u.km / u.s)) ** 2
-            * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.5
-            * u.Msun
+        bhmass = virial_bh_mass(
+            hbeta_fwhm,
+            cont_wav * cont_lwav,
+            zero_point=10**6.91,
+            width_exp=2,
+            lum_exp=0.5,
         )
 
         return bhmass, reference
@@ -546,11 +519,12 @@ def se_bhmass_hbeta_park12(hbeta_fwhm, cont_lwav, cont_wav=5100 * u.AA):
         if np.median(hbeta_fwhm.value) > 3000:
             reference = "Hbeta_Park12_fwhm_eq15"
 
-            bhmass = (
-                10**6.966
-                * (hbeta_fwhm / (1000.0 * u.km / u.s)) ** 1.734
-                * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.518
-                * u.Msun
+            bhmass = virial_bh_mass(
+                hbeta_fwhm,
+                cont_wav * cont_lwav,
+                zero_point=10**6.966,
+                width_exp=1.734,
+                lum_exp=0.518,
             )
 
             return bhmass, reference
@@ -558,11 +532,12 @@ def se_bhmass_hbeta_park12(hbeta_fwhm, cont_lwav, cont_wav=5100 * u.AA):
         else:
             reference = "Hbeta_Park12_fwhm_eq16"
 
-            bhmass = (
-                10**6.985
-                * (hbeta_fwhm / (1000.0 * u.km / u.s)) ** 1.666
-                * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.518
-                * u.Msun
+            bhmass = virial_bh_mass(
+                hbeta_fwhm,
+                cont_wav * cont_lwav,
+                zero_point=10**6.985,
+                width_exp=1.666,
+                lum_exp=0.518,
             )
 
             return bhmass, reference
@@ -627,11 +602,13 @@ def se_bhmass_gh05(line_fwhm, lwav, single_epoch_rel="Ha_LHa"):
     if single_epoch_rel == "Ha_LHa":
         reference = "Halpha_GH05_HaLHa"
 
-        bhmass = (
-            2.0e6
-            * (line_fwhm / (1000.0 * u.km / u.s)) ** 2.06
-            * (lwav / (10**42 * u.erg / u.s)) ** 0.55
-            * u.Msun
+        bhmass = virial_bh_mass(
+            line_fwhm,
+            lwav,
+            zero_point=2.0e6,
+            width_exp=2.06,
+            lum_exp=0.55,
+            lum_pivot=1e42 * LUM_UNIT,
         )
 
         return bhmass, reference
@@ -641,11 +618,12 @@ def se_bhmass_gh05(line_fwhm, lwav, single_epoch_rel="Ha_LHa"):
 
         cont_wav = 5100 * u.AA
 
-        bhmass = (
-            4.4e6
-            * (line_fwhm / (1000.0 * u.km / u.s)) ** 2
-            * (cont_wav * lwav / (10**44 * u.erg / u.s)) ** 0.64
-            * u.Msun
+        bhmass = virial_bh_mass(
+            line_fwhm,
+            cont_wav * lwav,
+            zero_point=4.4e6,
+            width_exp=2,
+            lum_exp=0.64,
         )
 
         return bhmass, reference
@@ -653,11 +631,13 @@ def se_bhmass_gh05(line_fwhm, lwav, single_epoch_rel="Ha_LHa"):
     elif single_epoch_rel == "Hb_LHb":
         reference = "Halpha_GH05_HbLHb"
 
-        bhmass = (
-            3.6e6
-            * (line_fwhm / (1000.0 * u.km / u.s)) ** 2.0
-            * (lwav / (10**42 * u.erg / u.s)) ** 0.56
-            * u.Msun
+        bhmass = virial_bh_mass(
+            line_fwhm,
+            lwav,
+            zero_point=3.6e6,
+            width_exp=2.0,
+            lum_exp=0.56,
+            lum_pivot=1e42 * LUM_UNIT,
         )
 
         return bhmass, reference
@@ -701,14 +681,15 @@ def se_bhmass_db20(line_fwhm, lwav, single_epoch_rel="Hb_LHb", virial_factor=1.0
     if single_epoch_rel == "Hb_LHb":
         reference = "DB20_Hb_LHb"
 
-        log_bhmass = (
-            np.log10(virial_factor)
-            + 7.015
-            + 0.784 * (np.log10(lwav.to(u.erg / u.s).value) - 42)
-            + 1.387 * (np.log10(line_fwhm.to(u.km / u.s).value) - 3.5)
+        bhmass = virial_bh_mass(
+            line_fwhm,
+            lwav,
+            zero_point=virial_factor * 10**7.015,
+            width_exp=1.387,
+            lum_exp=0.784,
+            width_pivot=10**3.5 * KM_S,
+            lum_pivot=1e42 * LUM_UNIT,
         )
-
-        bhmass = 10**log_bhmass * u.Msun
 
         return bhmass, reference
 
@@ -758,11 +739,12 @@ def se_bhmass_civ_vp06_fwhm(civ_fwhm, cont_lwav, cont_wav):
     if _is_wav(cont_wav, 1350, 1450):
         reference = "CIV_VP06_fwhm"
 
-        bhmass = (
-            10**6.66
-            * (civ_fwhm / (1000.0 * u.km / u.s)) ** 2
-            * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.53
-            * u.Msun
+        bhmass = virial_bh_mass(
+            civ_fwhm,
+            cont_wav * cont_lwav,
+            zero_point=10**6.66,
+            width_exp=2,
+            lum_exp=0.53,
         )
 
         return bhmass, reference
@@ -816,11 +798,12 @@ def se_bhmass_civ_vp06_sigma(civ_sigma, cont_lwav, cont_wav):
     if _is_wav(cont_wav, 1350, 1450):
         reference = "CIV_VP06_sigma"
 
-        bhmass = (
-            10**6.73
-            * (civ_sigma / (1000.0 * u.km / u.s)) ** 2
-            * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.53
-            * u.Msun
+        bhmass = virial_bh_mass(
+            civ_sigma,
+            cont_wav * cont_lwav,
+            zero_point=10**6.73,
+            width_exp=2,
+            lum_exp=0.53,
         )
 
         return bhmass, reference
@@ -884,11 +867,12 @@ def se_bhmass_mgii_vo09_fwhm(mgii_fwhm, cont_lwav, cont_wav):
 
         zp = zero_points[matches[0]]
 
-        bhmass = (
-            10**zp
-            * (mgii_fwhm / (1000.0 * u.km / u.s)) ** 2
-            * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.5
-            * u.Msun
+        bhmass = virial_bh_mass(
+            mgii_fwhm,
+            cont_wav * cont_lwav,
+            zero_point=10**zp,
+            width_exp=2,
+            lum_exp=0.5,
         )
 
         return bhmass, reference
@@ -944,11 +928,12 @@ def se_bhmass_mgii_s11_fwhm(mgii_fwhm, cont_lwav, cont_wav):
 
         zp = 6.74
 
-        bhmass = (
-            10**zp
-            * (mgii_fwhm / (1000.0 * u.km / u.s)) ** 2
-            * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.62
-            * u.Msun
+        bhmass = virial_bh_mass(
+            mgii_fwhm,
+            cont_wav * cont_lwav,
+            zero_point=10**zp,
+            width_exp=2,
+            lum_exp=0.62,
         )
 
         return bhmass, reference
@@ -1092,11 +1077,12 @@ def se_bhmass_civ_c17_fwhm(civ_fwhm, cont_lwav, cont_wav):
     if _is_wav(cont_wav, 1350):
         reference = "CIV_C17_fwhm"
 
-        bhmass = (
-            10**6.71
-            * (civ_fwhm / (1000.0 * u.km / u.s)) ** 2
-            * (cont_wav * cont_lwav / (10**44 * u.erg / u.s)) ** 0.53
-            * u.Msun
+        bhmass = virial_bh_mass(
+            civ_fwhm,
+            cont_wav * cont_lwav,
+            zero_point=10**6.71,
+            width_exp=2,
+            lum_exp=0.53,
         )
 
         return bhmass, reference

@@ -29,6 +29,7 @@ import sculptor_extensions.Qso_autofit as new_qso_autofit
 from astropy import units as u
 
 from sculptor import analysis as sculptor_analysis
+from sculptor_extensions import qso_presets
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FGU_DIR = REPO_ROOT / "tests" / "ground_truth" / "fgu"
@@ -406,7 +407,8 @@ def test_qso_autofit_get_median_params_matches_original(original_qso_autofit):
     ],
 )
 def test_qso_autofit_median_params_no_longer_a_parameter(func_name):
-    sig = inspect.signature(getattr(new_qso_autofit, func_name))
+    module = qso_presets if func_name.startswith("setup_") else new_qso_autofit
+    sig = inspect.signature(getattr(module, func_name))
     assert "median_params" not in sig.parameters
 
 
@@ -492,7 +494,7 @@ def test_qso_autofit_iron_template_default_disp_range_matches_original(
 
     monkeypatch.setattr(new_qso_autofit, "initialise_Fe", _capture_initialise_fe)
     monkeypatch.setattr(new_qso_autofit, "initialise_Fe_fast", _capture_initialise_fe)
-    getattr(new_qso_autofit, func_name)("test_prefix")
+    getattr(qso_presets, func_name)("test_prefix")
     new_disp, new_flux = captured["disp"], captured["flux"]
 
     np.testing.assert_allclose(orig_disp, new_disp)
@@ -522,7 +524,7 @@ def test_qso_autofit_setup_MgII_lines_default_matches_original(
         new_qso_autofit, "initialise_gaussian_line_model", _stub_line_model
     )
     new_model = _RecordingModel()
-    new_qso_autofit.setup_MgII_lines(
+    qso_presets.setup_MgII_lines(
         spec=None, line_dict=_AnyDict(), narrow=True, MgII_broad=2, model=new_model
     )
 
@@ -557,7 +559,7 @@ def test_qso_autofit_setup_hb_o3_lines_default_matches_original(
         new_qso_autofit, "initialise_gaussian_line_model", _stub_line_model
     )
     new_model = _RecordingModel()
-    new_qso_autofit.setup_hb_o3_lines(
+    qso_presets.setup_hb_o3_lines(
         spec=None,
         line_dict=_AnyDict(),
         narrow=True,
@@ -595,7 +597,7 @@ def test_original_get_civ_line_prop_was_disabled(original_qso_autofit):
 
 
 def test_get_civ_line_prop_values():
-    df = new_qso_autofit.get_civ_line_prop(_civ_table(), 3.0, CIV_COLUMNS)
+    df = qso_presets.get_civ_line_prop(_civ_table(), 3.0, CIV_COLUMNS)
 
     cont_lwav = 1e45 * u.erg / u.s / u.AA
     mass = new_qso.se_bhmass_civ_vp06_fwhm(
@@ -620,10 +622,10 @@ def test_get_civ_line_prop_values():
 
 
 def test_get_civ_line_prop_writes_csv_only_with_save_dir(tmp_path):
-    new_qso_autofit.get_civ_line_prop(_civ_table(), 3.0, CIV_COLUMNS)
+    qso_presets.get_civ_line_prop(_civ_table(), 3.0, CIV_COLUMNS)
     assert list(tmp_path.iterdir()) == []
 
-    new_qso_autofit.get_civ_line_prop(
+    qso_presets.get_civ_line_prop(
         _civ_table(), 3.0, CIV_COLUMNS, save_dir=tmp_path, source="J0001"
     )
     assert (tmp_path / "J0001_results_CIV.csv").exists()
@@ -635,9 +637,9 @@ def test_qso_autofit_new_config_and_functions_present():
         "setup_iron_template_V01_FUV",
         "setup_iron_template_V01_CIV",
         "setup_iron_template_Park22_OPT_Hbeta",
-        "qso_contfe_MgII_Xshooter",
-        "qso_cont_feII_opt",
     ]:
+        assert hasattr(qso_presets, name)
+    for name in ["qso_contfe_MgII_Xshooter", "qso_cont_feII_opt"]:
         assert hasattr(new_qso_autofit, name)
 
 
@@ -888,10 +890,10 @@ def test_setup_hgamma_and_oi_lines_follow_the_line_setup_pattern():
     }
     model = FitModel()
 
-    new_qso_autofit.setup_Hgamma_lines(
+    qso_presets.setup_Hgamma_lines(
         None, line_dict, narrow=True, Hgamma_broad=2, model=model
     )
-    new_qso_autofit.setup_OI_lines(None, line_dict, OI_broad=1, model=model)
+    qso_presets.setup_OI_lines(None, line_dict, OI_broad=1, model=model)
 
     assert [c.name for c in model.components] == [
         "Hgamma_narrow",

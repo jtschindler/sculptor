@@ -34,13 +34,13 @@ from pathlib import Path
 import numpy as np
 import pytest
 import sculptor_extensions.qso as new_qso
-import sculptor_extensions.Qso_autofit as new_qso_autofit
 from astropy import units as u
 
 import sculptor.component as new_component
 import sculptor.model as new_model
 import sculptor.parameter as new_parameter
 from sculptor import analysis as sculptor_analysis
+from sculptor_extensions import qso_presets
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 V2_DEV_DIR = REPO_ROOT / "tests" / "ground_truth" / "v2_dev"
@@ -250,7 +250,7 @@ def test_feii_over_mgii_ratio_matches_upstream(tmp_path, upstream_qso_autofit):
         source="test_source",
         fit_name="Vest",
     )
-    result_new = new_qso_autofit.get_line_prop_MgII(
+    result_new = qso_presets.get_line_prop_MgII(
         df_new,
         redshift=2.0,
         param_name_dict=param_name_dict,
@@ -283,7 +283,7 @@ def test_feii_over_mgii_missing_columns_skips_gracefully():
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        result = new_qso_autofit.get_line_prop_MgII(
+        result = qso_presets.get_line_prop_MgII(
             df,
             redshift=2.0,
             param_name_dict=param_name_dict,

@@ -59,7 +59,7 @@ def ext_power_law_at2500(x, redsh, amp, slope, a_v, **kwargs):
     :rtype: np.ndarray
     """
 
-    flux = amp * ((x / (2500 * (redsh + 1))) ** slope)
+    flux = power_law_at2500(x, redsh, amp, slope)
 
     ext = extinction.calzetti00(x / (redsh + 1), a_v, 4.05)
 
@@ -84,9 +84,7 @@ def scattered_power_law_at2500(x, redsh, amp, slope, f_sc, **kwargs):
     :rtype: np.ndarray
     """
 
-    flux = amp * ((x / (2500 * (redsh + 1))) ** slope)
-
-    return 10**f_sc * flux
+    return 10**f_sc * power_law_at2500(x, redsh, amp, slope)
 
 
 def template_model(
