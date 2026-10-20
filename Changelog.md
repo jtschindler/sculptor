@@ -1,5 +1,66 @@
 # Changelog
 
+## 2026-10-20 (review fixes)
+
+### Tests no longer need the reference copies
+- A fresh clone failed 31 tests: the parity tests imported
+  `tests/ground_truth/`, which imports the v1 modules in the untracked
+  `deprecated/`. The original outputs are now stored in
+  `tests/data/reference_values.npz` (`make_reference_values.py` documents
+  their origin and how to regenerate them from commit 70a5f7e) and compared
+  in `test_reference_values.py`. `tests/ground_truth/` (incl. the unused
+  14 MB `radha` copy), `tests/update_tests/` and the `deprecated_sculptor`
+  fixture are gone; migration guards dropped; bug-fix test files renamed
+  or merged by module; new tests for the untested helpers
+  (`test_fit_helpers.py`).
+
+### `FitModel`
+- **Behaviour change**: `eval` (and `log_probability`) rebuild the split
+  into variable and fixed parameters on every call. It was cached on the
+  first call, so later edits of a fixed value or a `vary` flag were ignored.
+- **Behaviour change**: `add/remove_wavelength_range_*_fit_mask` include the
+  pixel nearest the upper bound (it was left out); the same for
+  `get_equivalent_width(disp_range=...)`.
+- emcee is seeded from `FitModel.seed` (runs are reproducible);
+  `initialize_emcee(spec=...)` rejects a spectrum on another grid;
+  `plot_posterior_param_histograms` defaults to `discard=2000`;
+  `get_all_prefix_components` is a deprecated alias; plots label the
+  highest-posterior sample "MAP sample" (it was "ML model").
+
+### Analysis and measurements
+- `analyze_emission_feature` / `analyze_continuum` default the axis and
+  units to the model's spectrum (`dispersion=None` crashed);
+  `analyze_continuum`'s `cosmology` is optional; `appmag` uses the
+  spectrum's dispersion unit; `_mcmc_analyze` warns (deprecated).
+- **Behaviour change**: `get_fwhm` (spline method) takes the peak from the
+  smoothed spectrum; the raw maximum of noisy data biased the FWHM low.
+- `UniformPrior` accepts arrays; `ppf` for `UniformPrior` and
+  `GaussianPrior`.
+
+### `sculptor_extensions`
+- **Bug fixed**: `create_emission_line_dict` wrote the prior upper bounds
+  to `.upper`, which `UniformPrior` ignores (`.upp`).
+- **Behaviour change**: `get_fwhm_int_flux` sets the spline smoothing from
+  the flux errors instead of a fixed `s=100` (which gave +25% FWHM for
+  fluxes of order unity, and NaN in plain cgs units).
+- `get_median_params`, `get_sampled_values` read the chain via
+  `get_flat_chain`; `plot_burnin` has `max_walkers` (it overwrote the walker
+  count with 10); `add_line_snr_stats` computes once.
+- Renamed (old names forward with a DeprecationWarning,
+  `qso_presets.RENAMED`): `setup_iron_template_V01_FUV` / `V01_CIV` ->
+  `VW01_FUV` / `VW01_CIV`, `setup_hb_o3_lines` -> `setup_Hbeta_OIII_lines`,
+  `get_civ_line_prop` -> `get_line_prop_CIV`.
+- `calc_velocity_shifts` no longer uses `linetools` (dropped);
+  `CIII_complex_model_func` uses `line_model_gaussian`; no `print` left
+  (`FitComponent.info`, `print_variable_parameters` log).
+- One definition of the speed of light and the data directory
+  (`sculptor.utils`); unused palettes and module globals removed;
+  `sculptor-extensions` declares its direct dependencies.
+
+### Docs and examples
+- README rewritten for v2; `examples/example_fit_setup_script.py` fixed
+  (data path; three redshift parameters that varied without effect).
+
 ## 2026-10-20
 
 ### Variants built on base functions; new `sculptor_extensions.qso_presets`
