@@ -34,10 +34,13 @@ ToDo.txt
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 
-# Temporary upstream clone used for syncing (delete when done)
-/updated_pkg/
-
 # Local-only folders (kept on disk, not tracked)
 /.claude/
 /deprecated/
 /_ground_truth/
+
+# Local-only files (kept on disk, not tracked)
+/.pre-commit-config.yaml
+/CLAUDE.md
+/Changelog.md
+/TODO_speconed.md
