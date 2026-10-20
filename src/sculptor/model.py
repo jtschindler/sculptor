@@ -811,10 +811,11 @@ class FitModel(PickleMixin):
         :type scale: str
         :param window: Window of the "local" scale, in fitted pixels
         :type window: int
-        :param high_max_width: Only clip positive outliers in runs of at
-            most this many pixels (hot pixels, cosmic rays), so that the
-            core of an emission line the model does not explain yet is not
-            clipped; None clips all of them
+        :param high_max_width: Only clip positive outliers whose feature
+            (the run of pixels above `high` / 2 around them) is at most this
+            many pixels wide (hot pixels, cosmic rays), so that the core of
+            an emission line the model does not explain yet is not clipped;
+            None clips all of them
         :type high_max_width: int
         :return: Whether the clip mask changed
         :rtype: bool
@@ -855,7 +856,10 @@ class FitModel(PickleMixin):
         if high is not None:
             high_bad = (norm > high) & region
             if high_max_width is not None:
-                high_bad = _short_runs(high_bad, high_max_width)
+                # The width of a feature is the run of pixels above high / 2
+                # around it: a spike is narrow, a line core is not.
+                feature = (norm > 0.5 * high) & region
+                high_bad &= _short_runs(feature, high_max_width)
             bad |= high_bad
         bad &= region
         if grow > 0:
