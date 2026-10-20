@@ -8,9 +8,12 @@ version = "0.1.0"
 description = "Optional QSO-fitting extensions for sculptor"
 requires-python = ">=3.13"
 dependencies = [
-    "linetools>=0.3.2",
+    "astropy>=8.0.1",
+    "matplotlib>=3.11.1",
+    "numpy>=2.5.2",
+    "pandas>=2.3.3",
+    "scipy>=1.18.1",
     "sculptor",
-    "tol-colors>=2.2.0",
 ]
 
 [tool.uv.sources]
@@ -19,5 +22,3 @@ sculptor = { workspace = true }
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]

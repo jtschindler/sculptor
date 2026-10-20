@@ -75,8 +75,66 @@ def test_analyze_mcmc_results_returns_a_row_per_sample(setup):
     assert table["CIV_flux"].value == pytest.approx(50.0, rel=1e-6)
 
 
-def test_old_private_name_is_an_alias():
-    assert analysis._mcmc_analyze is analysis.analyze_mcmc_results
+def test_old_private_name_is_a_deprecated_alias(setup):
+    model, cont, _line, dispersion = setup
+    with pytest.warns(DeprecationWarning):
+        table = analysis._mcmc_analyze(
+            model,
+            np.zeros((1, 0)),
+            {"components": [cont], "rest_frame_wavelengths": [1450.0]},
+            [],
+            REDSHIFT,
+            COSMO,
+            dispersion=dispersion,
+            **UNITS,
+        )
+    assert len(table) == 1
+
+
+def test_analysis_defaults_to_the_spectrum_axis(setup):
+    from speconed import speconed as sod
+
+    model, cont, line, dispersion = setup
+    model.spec = sod.SpecOneD(
+        dispersion=dispersion,
+        fluxden=np.ones_like(dispersion),
+        fluxden_err=np.ones_like(dispersion),
+        **UNITS,
+    )
+    explicit = analysis.analyze_emission_feature(
+        model,
+        "CIV",
+        [line],
+        [],
+        REST_CEN,
+        redshift=REDSHIFT,
+        cosmology=COSMO,
+        dispersion=dispersion,
+        emfeat_meas=["flux"],
+        **UNITS,
+    )
+    default = analysis.analyze_emission_feature(
+        model,
+        "CIV",
+        [line],
+        [],
+        REST_CEN,
+        redshift=REDSHIFT,
+        cosmology=COSMO,
+        emfeat_meas=["flux"],
+    )
+    assert default["CIV_flux"] == explicit["CIV_flux"]
+
+    cont_default = analysis.analyze_continuum(
+        model, [cont], [], [1450.0], redshift=REDSHIFT
+    )
+    assert "1450.0_Lwav" in cont_default
+
+
+def test_analysis_without_axis_or_spectrum_raises(setup):
+    model, cont, _, _ = setup
+    with pytest.raises(ValueError, match="No spectrum set"):
+        analysis.analyze_continuum(model, [cont], [], [1450.0], COSMO, REDSHIFT)
 
 
 def test_remove_extinction_matches_extinction_package():

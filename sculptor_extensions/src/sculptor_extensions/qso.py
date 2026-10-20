@@ -12,24 +12,17 @@ components.
 
 """
 
-import importlib.resources
 import logging
 
 import numpy as np
 from astropy import constants as const
 from astropy import units as u
-from linetools import utils as lu
 
 from sculptor import analysis as ana
+from sculptor.utils import c_AngstroemPerSecond, c_km_s, datadir  # noqa: F401
 from sculptor_extensions import qso_advanced_models as qam
 
 logger = logging.getLogger(__name__)
-
-resource_path = importlib.resources.files("sculptor")
-datadir = str(resource_path / "data") + "/"
-
-c_km_s = const.c.to("km/s").value
-c_AngstroemPerSecond = const.c.to(u.AA / u.s).value
 
 KM_S = u.km / u.s
 LWAV_UNIT = u.erg / u.s / u.AA
@@ -274,7 +267,8 @@ def CIII_complex_model_func(
 
     The width of the line is set by the FWHM in km/s.
 
-    The Gaussians are not normalized.
+    The Gaussians are normalized (`analysis.line_model_gaussian`); each
+    line's centre is shifted by its velocity shift.
 
     :param x: Dispersion of the template model
     :type x: np.ndarray
@@ -286,62 +280,37 @@ def CIII_complex_model_func(
     :type cen_alIII: float
     :param cen_siIII:  SiIII] central wavelength
     :type cen_siIII: float
-    :param amp: Amplitude of the CIII] line
-    :type amp: float
+    :param flux: Integrated flux of the CIII] line
+    :type flux: float
     :param fwhm_km_s:  Full Width at Half Maximum (FWHM) of CIII] in km/s
     :type fwhm_km_s: float
     :param shift_km_s: Doppler velocity shift of the central wavelength
     :type shift_km_s: float
-    :param amp_alIII: Amplitude of the AlIII line
+    :param flux_alIII: Integrated flux of the AlIII line
+    :type flux_alIII: float
     :param fwhm_km_s_alIII:  Full Width at Half Maximum (FWHM) of AlIII in km/s
     :type fwhm_km_s_alIII: float
     :param shift_km_s_alIII: Doppler velocity shift of the central wavelength
-    :type shift_km_s: float
-    :param amp_siIII: Amplitude of the SiIII] line
+    :type shift_km_s_alIII: float
+    :param flux_siIII: Integrated flux of the SiIII] line
+    :type flux_siIII: float
     :param fwhm_km_s_siIII: Full Width at Half Maximum (FWHM) of SiIII] in km/s
     :type fwhm_km_s_siIII: float
     :param shift_km_s_siIII: Doppler velocity shift of the central wavelength
-    :type shift_km_s: float
+    :type shift_km_s_siIII: float
     :return: CIII] complex model
 
     """
 
-    cIII_cen = cen * (1 + redsh)
-    siIII_cen = cen_siIII * (1 + redsh)
-    alIII_cen = cen_alIII * (1 + redsh)
+    def _line(flux, cen, fwhm_km_s, shift_km_s):
+        shifted_cen = cen * (1 + shift_km_s / c_km_s)
+        return ana.line_model_gaussian(x, redsh, flux, shifted_cen, fwhm_km_s)
 
-    cIII_delta_cen = shift_km_s / c_km_s * cIII_cen
-    siIII_delta_cen = shift_km_s_siIII / c_km_s * siIII_cen
-    alIII_delta_cen = shift_km_s_alIII / c_km_s * alIII_cen
-
-    central = cIII_cen + cIII_delta_cen
-    fwhm = fwhm_km_s / c_km_s * central
-    sigma = fwhm / np.sqrt(8 * np.log(2))
-    gauss_cIII = (
-        flux
-        / (sigma * np.sqrt(2 * np.pi))
-        * np.exp(-((x - central) ** 2) / (2 * sigma**2))
+    return (
+        _line(flux, cen, fwhm_km_s, shift_km_s)
+        + _line(flux_alIII, cen_alIII, fwhm_km_s_alIII, shift_km_s_alIII)
+        + _line(flux_siIII, cen_siIII, fwhm_km_s_siIII, shift_km_s_siIII)
     )
-
-    central = siIII_cen + siIII_delta_cen
-    fwhm = fwhm_km_s_siIII / c_km_s * central
-    sigma = fwhm / np.sqrt(8 * np.log(2))
-    gauss_siIII = (
-        flux_siIII
-        / (sigma * np.sqrt(2 * np.pi))
-        * np.exp(-((x - central) ** 2) / (2 * sigma**2))
-    )
-
-    central = alIII_cen + alIII_delta_cen
-    fwhm = fwhm_km_s_alIII / c_km_s * central
-    sigma = fwhm / np.sqrt(8 * np.log(2))
-    gauss_alIII = (
-        flux_alIII
-        / (sigma * np.sqrt(2 * np.pi))
-        * np.exp(-((x - central) ** 2) / (2 * sigma**2))
-    )
-
-    return gauss_cIII + gauss_alIII + gauss_siIII
 
 
 # ------------------------------------------------------------------------------
@@ -353,25 +322,32 @@ def CIII_complex_model_func(
 
 def calc_velocity_shifts(z, z_sys, relativistic=True):
     """Calculate the velocity difference of a feature redshift with respect
-    to the systemic redshift.
+    to the systemic redshift:
 
-    This function is currently simply a wrapper around the linetools
-    functions calculating the velocity difference.
+    dv = c ((1 + z)^2 - (1 + z_sys)^2) / ((1 + z)^2 + (1 + z_sys)^2)
+
+    (relativistic), or dv = c (z - z_sys) / (1 + z_sys). Same as
+    `linetools.utils.dv_from_z`, which this used to wrap.
 
     :param z: The redshift of the spectroscopic feature (e.g., absorption or \
         emission line).
-    :type z: float
+    :type z: float or np.ndarray
     :param z_sys: The systemic redshift
-    :type z_sys: float
+    :type z_sys: float or np.ndarray
     :param relativistic: Boolean indicating whether the doppler velocity is \
         calculated assuming relativistic velocities.
-    :type: bool
+    :type relativistic: bool
     :return: Returns the velocity difference in km/s.
-    :rtype: u.Quantity
+    :rtype: astropy.units.Quantity
 
     """
-
-    return lu.dv_from_z(z, z_sys, rel=relativistic).to(KM_S)
+    z = np.asarray(z, dtype=float)
+    z_sys = np.asarray(z_sys, dtype=float)
+    if relativistic:
+        dv = ((1 + z) ** 2 - (1 + z_sys) ** 2) / ((1 + z) ** 2 + (1 + z_sys) ** 2)
+    else:
+        dv = (z - z_sys) / (1.0 + z_sys)
+    return dv * const.c.to(KM_S)
 
 
 def calc_eddington_luminosity(bh_mass):

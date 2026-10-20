@@ -16,7 +16,6 @@ emission line, ...) are in `sculptor_extensions.qso_presets`.
 
 """
 
-import importlib.resources
 import logging
 import os
 import string
@@ -24,28 +23,18 @@ import string
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import tol_colors
 from astropy import units as u
-from astropy.constants import c
 
 from sculptor import analysis as ana
 from sculptor import measurements as meas
 from sculptor import prior as scpri
+from sculptor.utils import datadir
 from sculptor_extensions import qso
 from sculptor_extensions import qso_advanced_models as qam
 from sculptor_extensions.component_setup import initialise_component
 
 logger = logging.getLogger(__name__)
 
-cmap = tol_colors.rainbow_PuRd
-
-resource_path = importlib.resources.files("sculptor")
-datadir = str(resource_path / "data") + "/"
-c_kms = c.to("km/s").value
-c_AngstroemPerSecond = c.to(u.AA / u.s).value
-
-dispersion_unit = 1.0 * u.AA
-fluxden_unit = 1e-17 * u.erg / u.s / u.cm**2 / u.AA
 
 # ------------------------------------------------------------------------------
 # Required functions during fitting
@@ -184,41 +173,43 @@ def extract_median_params_from_summary(prefix, summary, median_cal=None):
 
 def print_variable_parameters(model):
     """
-    Get a summary for all the variable parameters used for MCMC.
+    Log a summary of all the variable parameters used for MCMC: initial
+    value and prior of each.
 
     :param model: model
     :type model: sculptor.model.FitModel
+    :return: the summary text
+    :rtype: str
     """
-
-    print("\n[INFO] Variable Parameters Summary:")
-    print("=" * 60)
 
     model.get_params_to_sample()
 
+    lines = ["Variable Parameters Summary:", "=" * 60]
     for name, param in model.params_variable.items():
-        print(f"- {name}")
-        print(f"    Initial value : {param.value}")
+        lines += [f"- {name}", f"    Initial value : {param.value}"]
 
-        if param.prior is None:
-            print("    Prior         : None")
+        prior = param.prior
+        if prior is None:
+            lines.append("    Prior         : None")
         else:
-            prior = param.prior
-            print(f"    Prior type    : {prior.distribution}")
-
+            lines.append(f"    Prior type    : {prior.distribution}")
             if isinstance(prior, scpri.UniformPrior):
-                print(f"    Lower bound   : {prior.low}")
-                print(f"    Upper bound   : {prior.upp}")
-
+                lines += [
+                    f"    Lower bound   : {prior.low}",
+                    f"    Upper bound   : {prior.upp}",
+                ]
             elif isinstance(prior, scpri.GaussianPrior):
-                print(f"    Mean          : {prior.mean}")
-                print(f"    Sigma         : {prior.sigma}")
-
+                lines += [
+                    f"    Mean          : {prior.mean}",
+                    f"    Sigma         : {prior.sigma}",
+                ]
             else:
-                print(f"    Prior details : {prior.kwargs}")
+                lines.append(f"    Prior details : {prior.kwargs}")
+    lines.append("=" * 60)
 
-        print()
-
-    print("=" * 60)
+    summary = "\n".join(lines)
+    logger.info(summary)
+    return summary
 
 
 def plot_burnin(model, save_dir=".", plot_name="burnin_all_params.pdf", max_walkers=10):
@@ -384,7 +375,7 @@ qso_contfe_Halpha_Shen11 = {
 }
 
 qso_cont_feII_opt = {
-    "name": "QSO Continuum+FeII",
+    "name": "QSO Continuum+FeII (optical)",
     "rest_frame": True,
     "mask_ranges": [
         [4435, 4700],

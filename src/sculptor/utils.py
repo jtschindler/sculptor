@@ -1,7 +1,19 @@
-# Updated with the help of Claude
-# Run src
+"""Shared constants (speed of light, package data directory) and the
+numba-compiled resolution broadening used by `FitModel.eval`."""
+
+import importlib.resources
+
 import numpy as np
+from astropy import constants as const
+from astropy import units as u
 from numba import njit, prange
+
+# Speed of light in km/s and in Angstroem/s
+c_km_s = const.c.to("km/s").value
+c_AngstroemPerSecond = const.c.to(u.AA / u.s).value
+
+# Package data directory (iron templates, HOL data), ending in "/"
+datadir = str(importlib.resources.files("sculptor") / "data") + "/"
 
 
 @njit(cache=True)

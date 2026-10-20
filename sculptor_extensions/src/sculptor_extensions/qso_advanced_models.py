@@ -9,21 +9,14 @@ Lya absorption). The HOL model reads
 ``sculptor/data/balmer_hol_storey_hummer1995.txt`` (see its header).
 """
 
-import importlib.resources
-
 import numpy as np
 from astropy.constants import c, h, k_B
 from scipy.special import voigt_profile
 
 from sculptor import analysis as ana
 from sculptor import component as sccomp
+from sculptor.utils import c_AngstroemPerSecond, c_km_s, datadir
 from sculptor_extensions.component_setup import initialise_component
-
-resource_path = importlib.resources.files("sculptor")
-datadir = str(resource_path / "data") + "/"
-
-c_kms = c.to("km/s").value
-c_AngstroemPerSecond = c.to("AA/s").value
 
 # Physical constants in cgs, computed once at import time (not per call)
 _H_CGS = h.cgs.value  # erg s
@@ -58,8 +51,6 @@ LYA_DAMPING_GAMMA = 6.265e8  # s^-1
 _E_CHARGE_ESU = 4.803e-10
 _M_ELECTRON_G = 9.109e-28
 
-C_KM_S = c.to("km/s").value
-
 
 # ------------------------------------------------------------------------------
 # Balmer continuum with higher order lines (up to n=50)
@@ -80,7 +71,7 @@ def _hol_shape(x_rest, diff2, fwhm, lambda_be, continuum_shape):
     """High-order Balmer lines: Gaussians at `_HOL_TRANSITIONS` weighted by
     `_HOL_EMISS`, scaled to 0.3 times the continuum at the Balmer edge.
     `diff2` is ``(x_rest[:, None] - _HOL_TRANSITIONS[None, :]) ** 2``."""
-    sigma = (fwhm / c_kms) * _HOL_TRANSITIONS / _SIGMA_TO_FWHM
+    sigma = (fwhm / c_km_s) * _HOL_TRANSITIONS / _SIGMA_TO_FWHM
     profile = np.exp(-0.5 * diff2 / sigma[None, :] ** 2)
     flux_density = np.sum(_HOL_EMISS[None, :] * profile / sigma[None, :], axis=1)
     edge_hol = np.interp(lambda_be, x_rest, flux_density)

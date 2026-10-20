@@ -1,9 +1,9 @@
 import logging
+import warnings
 
 import extinction
 import numpy as np
 import scipy as sp
-from astropy import constants as const
 from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
 from astropy.table import QTable
@@ -13,10 +13,9 @@ from tqdm import tqdm
 
 from sculptor import measurements as meas
 from sculptor.component import FakeCode
+from sculptor.utils import c_km_s
 
 logger = logging.getLogger(__name__)
-
-c_km_s = const.c.to("km/s").value
 
 # ------------------------------------------------------------------------------
 # Model functions
@@ -236,7 +235,7 @@ class TemplateModel:
         self.__code__ = FakeCode(
             co_argcount=5, co_varnames=("x", "redsh", "amp", "fwhm", "intr_fwhm")
         )
-        self.__name__ = "template_model"
+        self.__name__ = "TemplateModel"
 
     def __call__(self, x, redsh, amp, fwhm, intr_fwhm, **kwargs):
         """Evaluate the broadened, redshifted and scaled template.
@@ -297,9 +296,9 @@ def line_model_gaussian(x, redsh, flux, cen, fwhm_km_s, **kwargs):
 
     :param x: Dispersion of the continuum model
     :type x: np.ndarray
-    :param z: Redshift
-    :type z: float
-    :param flux: Amplitude of the Gaussian
+    :param redsh: Redshift
+    :type redsh: float
+    :param flux: Integrated flux of the Gaussian
     :type flux: float
     :param cen: Central wavelength
     :type cen: float
@@ -325,6 +324,27 @@ def line_model_gaussian(x, redsh, flux, cen, fwhm_km_s, **kwargs):
 # ------------------------------------------------------------------------------
 # High-level analysis routines
 # ------------------------------------------------------------------------------
+
+
+def _default_axis(model, dispersion, dispersion_unit, fluxden_unit):
+    """Default the analysis axis and units to the model's spectrum."""
+    if dispersion is None:
+        model._require_spectrum("analyse the model without `dispersion`")
+        dispersion = model.spec.dispersion
+        dispersion_unit = dispersion_unit or model.spec.dispersion_unit
+        fluxden_unit = fluxden_unit or model.spec.fluxden_unit
+    return dispersion, dispersion_unit, fluxden_unit
+
+
+def _default_cosmology(cosmology):
+    """FlatLambdaCDM(H0=70, Om0=0.3, Tcmb0=2.725), with a warning, if None."""
+    if cosmology is None:
+        cosmology = FlatLambdaCDM(H0=70, Om0=0.3, Tcmb0=2.725)
+        logger.warning(
+            "No Cosmology specified. Assuming default "
+            "FlatLambdaCDM cosmology with H0=70, Om0=0.3, Tcmb0=2.725."
+        )
+    return cosmology
 
 
 def _remove_extinction(fluxden, dispersion, redshift, a_v, ext_law="calzetti00"):
@@ -457,8 +477,15 @@ def analyze_mcmc_results(
     return result_table
 
 
-# Old private name, still used by scripts written against it.
-_mcmc_analyze = analyze_mcmc_results
+def _mcmc_analyze(*args, **kwargs):
+    """Deprecated old private name of `analyze_mcmc_results`."""
+    warnings.warn(
+        "_mcmc_analyze is deprecated; use analyze_mcmc_results",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return analyze_mcmc_results(*args, **kwargs)
+
 
 emfeat_measures_default = ["peak_fluxden", "peak_redsh", "EW", "FWHM", "flux", "lum"]
 
@@ -504,6 +531,7 @@ def analyze_emission_feature(
     :param redshift: Redshift of the source (required)
     :type redshift: float
     :param dispersion: Dispersion axis on which the models are evaluated
+        (default: the model's spectrum, with its units)
     :type dispersion: np.ndarray
     :param emfeat_meas: Measurements to compute, any of "peak_fluxden",
         "peak_redsh", "EW", "FWHM", "flux", "lum" (the default,
@@ -535,6 +563,9 @@ def analyze_emission_feature(
 
     if redshift is None:
         raise ValueError("No redshift specified for the analysis.")
+    dispersion, dispersion_unit, fluxden_unit = _default_axis(
+        model, dispersion, dispersion_unit, fluxden_unit
+    )
 
     # Build the model flux
     model_fluxden = model.eval(
@@ -579,12 +610,7 @@ def analyze_emission_feature(
     if emfeat_meas is None:
         emfeat_meas = emfeat_measures_default
 
-    if cosmology is None:
-        cosmology = FlatLambdaCDM(H0=70, Om0=0.3, Tcmb0=2.725)
-        logger.warning(
-            "No Cosmology specified. Assuming default "
-            "FlatLambdaCDM cosmology with H0=70, Om0=0.3, Tcmb0=2.725."
-        )
+    cosmology = _default_cosmology(cosmology)
 
     if "peak_fluxden" in emfeat_meas:
         # Calculate the peak flux density
@@ -662,7 +688,7 @@ def analyze_continuum(
     components,
     params_values,
     rest_frame_wavelengths,
-    cosmology,
+    cosmology=None,
     redshift=None,
     dispersion_unit=None,
     fluxden_unit=None,
@@ -685,7 +711,8 @@ def analyze_continuum(
     :param rest_frame_wavelengths: Rest-frame wavelengths to measure at;
         the result keys start with the wavelength (e.g. "1450.0_Lwav")
     :type rest_frame_wavelengths: list(float)
-    :param cosmology: Cosmology for luminosities
+    :param cosmology: Cosmology for luminosities (default: FlatLambdaCDM
+        with H0=70, Om0=0.3, Tcmb0=2.725, with a warning)
     :type cosmology: astropy.cosmology.Cosmology
     :param redshift: Redshift of the source (required)
     :type redshift: float
@@ -694,6 +721,7 @@ def analyze_continuum(
     :param fluxden_unit: Unit of the model flux density
     :type fluxden_unit: astropy.units.Unit
     :param dispersion: Dispersion axis on which the model is evaluated
+        (default: the model's spectrum, with its units)
     :type dispersion: np.ndarray
     :param cont_meas: Measurements to compute, any of "fluxden_avg",
         "Lwav", "appmag" (default: all, `cont_measures_default`)
@@ -708,6 +736,10 @@ def analyze_continuum(
 
     if redshift is None:
         raise ValueError("No redshift specified for the analysis.")
+    dispersion, dispersion_unit, fluxden_unit = _default_axis(
+        model, dispersion, dispersion_unit, fluxden_unit
+    )
+    cosmology = _default_cosmology(cosmology)
 
     # Build the continuum model spectrum
     cont_flux = model.eval(
@@ -746,14 +778,9 @@ def analyze_continuum(
 
         if "appmag" in cont_meas:
             appmag = meas.calc_apparent_mag_from_fluxden(
-                fluxden_avg, wave * (1.0 + redshift) * u.AA
+                fluxden_avg, wave * (1.0 + redshift) * cont_spec.dispersion_unit
             )
             result_dict.update({wave_name + "_appmag": appmag})
-
-        # if 'absmag' in cont_meas:
-        #     absmag = calc_absolute_mag_from_monochromatic_luminosity(
-        #             lwav, wave*u.AA)
-        #     result_dict.update({wave_name + '_absmag': absmag})
 
     return result_dict
 

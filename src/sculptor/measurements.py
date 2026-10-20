@@ -10,14 +10,15 @@ import logging
 
 import numpy as np
 from astropy import constants as const
-from astropy import units
+from astropy import units as u
 from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import UnivariateSpline
 from speconed import speconed as sod
 
+from sculptor.utils import c_km_s
+
 logger = logging.getLogger(__name__)
 
-c_km_s = const.c.to("km/s").value
 
 # ------------------------------------------------------------------------------
 # General model measurements
@@ -37,7 +38,7 @@ def get_integrated_flux(input_spec, disp_range=None):
         boundaries for the integration
     :type disp_range: [float, float]
     :return: Integrated flux
-    :rtype: astropy.units.Quantity
+    :rtype: astropy.u.Quantity
     """
 
     if disp_range is not None:
@@ -61,7 +62,7 @@ def get_average_fluxden(input_spec, dispersion, width=10, redshift=0):
     argument.
 
     Warning: this function currently only works for spectra in wavelength
-    units. For spectra in frequency units the conversion to rest-frame will
+    u. For spectra in frequency units the conversion to rest-frame will
     be incorrect.
 
     :param input_spec: Input spectrum
@@ -74,7 +75,7 @@ def get_average_fluxden(input_spec, dispersion, width=10, redshift=0):
         the observed frame.
     :type redshift: float
     :return: Average flux density
-    :rtype: astropy.units.Quantity
+    :rtype: astropy.u.Quantity
     """
 
     disp_range = [
@@ -112,7 +113,7 @@ def get_equivalent_width(cont_spec, line_spec, disp_range=None, redshift=0):
     """Calculate the rest-frame equivalent width of a spectral feature.
 
     Warning: this function currently only works for spectra in wavelength
-    units. For spectra in frequency units the conversion to rest-frame will
+    u. For spectra in frequency units the conversion to rest-frame will
     be incorrect.
 
     :param cont_spec: Continuum spectrum
@@ -126,7 +127,7 @@ def get_equivalent_width(cont_spec, line_spec, disp_range=None, redshift=0):
     :param redshift: Redshift of the astronomical source
     :type redshift: float
     :return: Rest-frame equivalent width
-    :rtype: astropy.units.Quantity
+    :rtype: astropy.u.Quantity
     """
 
     # TODO: Implement frequency unit support.
@@ -176,7 +177,7 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, s=0, method="spline")
         sign changes in the half peak flux subtracted spectrum.
     :type method: string
     :return: FWHM of the spectral feature
-    :rtype: astropy.units.Quantity
+    :rtype: astropy.u.Quantity
     """
 
     if disp_range is not None:
@@ -203,7 +204,7 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, s=0, method="spline")
         logger.warning(
             f"Found {len(roots)} roots, cannot determine FWHM; returning NaN."
         )
-        return np.nan * units.km / units.s
+        return np.nan * u.km / u.s
 
     max_idx = np.where(fluxden == np.max(fluxden))
     max_wav = dispersion[max_idx]
@@ -211,11 +212,11 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, s=0, method="spline")
     fwhm = (abs(roots[0] - max_wav) + abs(roots[1] - max_wav)) / max_wav * c_km_s
 
     if resolution is None:
-        return fwhm[0] * units.km / units.s
+        return fwhm[0] * u.km / u.s
 
     logger.info(f"FWHM is corrected for the provided resolution of R={resolution}")
     resolution_km_s = c_km_s / resolution
-    return np.sqrt(fwhm**2 - resolution_km_s**2)[0] * units.km / units.s
+    return np.sqrt(fwhm**2 - resolution_km_s**2)[0] * u.km / u.s
 
 
 def get_nonparametric_measurements(
@@ -252,10 +253,10 @@ def get_nonparametric_measurements(
         95% velocity, velocity resolution at median velocity, frequency of
         median velocity, wavelength of median velocity, redshift of median
         velocity
-    :rtype: astropy.units.Quantity, astropy.units.Quantity,
-        astropy.units.Quantity, astropy.units.Quantity,
-        astropy.units.Quantity, astropy.units.Quantity,
-        astropy.units.Quantity, astropy.units.Quantity, float
+    :rtype: astropy.u.Quantity, astropy.u.Quantity,
+        astropy.u.Quantity, astropy.u.Quantity,
+        astropy.u.Quantity, astropy.u.Quantity,
+        astropy.u.Quantity, astropy.u.Quantity, float
     """
 
     if not inplace:
@@ -274,10 +275,10 @@ def get_nonparametric_measurements(
 
     # Calculate velocity dispersion axis
     line_wavel = (1 + redshift) * line_rest_wavel
-    line_cen_freq = const.c / (line_wavel * units.AA)
-    freq_to_vel = units.doppler_optical(line_cen_freq)
+    line_cen_freq = const.c / (line_wavel * u.AA)
+    freq_to_vel = u.doppler_optical(line_cen_freq)
     velocity_disp = (input_spec.dispersion * input_spec.dispersion_unit).to(
-        units.km / units.s, equivalencies=freq_to_vel
+        u.km / u.s, equivalencies=freq_to_vel
     )
 
     # Calculate cumulative flux
@@ -287,7 +288,9 @@ def get_nonparametric_measurements(
     flux_fraction *= input_spec.dispersion_unit * input_spec.fluxden_unit
     flux_fraction /= flux_total
 
-    # Determine velocities for flux fractions
+    # Determine velocities for flux fractions. The axis is frequency, so the
+    # cumulative flux runs from red to blue: the 90% velocity (v90, the
+    # red side) is where 10% of the flux is reached, and so on.
     idx_90 = np.argmin(abs(flux_fraction - 0.1))
     idx_10 = np.argmin(abs(flux_fraction - 0.9))
     idx_95 = np.argmin(abs(flux_fraction - 0.05))
@@ -304,7 +307,7 @@ def get_nonparametric_measurements(
     # Calculate the centroid frequency
     freq_v50 = input_spec.dispersion[idx_50] * input_spec.dispersion_unit
     # Calculate the centroid wavelength
-    wave_v50 = freq_v50.to(units.AA, equivalencies=units.spectral())
+    wave_v50 = freq_v50.to(u.AA, equivalencies=u.spectral())
     # Calculate the centroid redshift
     z_v50 = wave_v50.value / line_rest_wavel - 1.0
 
@@ -321,20 +324,20 @@ def calc_lwav_from_fwav(fluxden, redshift, cosmology):
     density.
 
     :param fluxden: Monochromatic flux density at a given wavelength.
-    :type fluxden: astropy.units.Quantity
+    :type fluxden: astropy.u.Quantity
     :param redshift: Redshift of the source.
     :type redshift: float
     :param cosmology: Cosmology as an astropy Cosmology object
     :type cosmology: astropy.cosmology.Cosmology
     :return: Monochromatic luminosity in units of erg s^-1 Angstroem^-1
-    :rtype: astropy.units.Quantity
+    :rtype: astropy.u.Quantity
     """
 
     # Calculate luminosity distance in Mpc
     lum_distance = cosmology.luminosity_distance(redshift)
 
     return (fluxden * lum_distance**2 * 4 * np.pi * (1.0 + redshift)).decompose(
-        bases=[units.erg, units.s, units.AA]
+        bases=[u.erg, u.s, u.AA]
     )
 
 
@@ -352,7 +355,7 @@ def calc_integrated_luminosity(input_spec, redshift, cosmology, disp_range=None)
     :type disp_range: [float, float]
     :return: Return the integrated luminosity for (dispersion range in) the
         input spectrum.
-    :rtype: astropy.units.Quantity
+    :rtype: astropy.u.Quantity
     """
 
     # Convert to rest-frame flux and dispersion
@@ -390,15 +393,15 @@ def calc_apparent_mag_from_fluxden(fluxden, dispersion):
     density at a specified dispersion value.
 
     :param fluxden: Monochromatic flux density at a given wavelength.
-    :type fluxden: astropy.units.Quantity
+    :type fluxden: astropy.u.Quantity
     :param dispersion: Dispersion value (usually in wavelength).
-    :type dispersion: astropy.units.Quantity
+    :type dispersion: astropy.u.Quantity
     :return: Returns apparent AB magnitude.
-    :rtype: astropy.units.Quantity
+    :rtype: astropy.u.Quantity
     """
 
     f_nu = fluxden * dispersion**2 / const.c
 
-    value = (f_nu / units.ABflux).decompose()
+    value = (f_nu / u.ABflux).decompose()
 
-    return -2.5 * np.log10(value) * units.mag
+    return -2.5 * np.log10(value) * u.mag

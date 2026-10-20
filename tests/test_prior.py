@@ -57,3 +57,20 @@ def test_uniform_logprior_is_float():
 
     assert prior.logprior(0.5) == 0.0 and isinstance(prior.logprior(0.5), float)
     assert prior.logprior(2.0) == -np.inf
+
+
+def test_uniform_prior_takes_arrays():
+    prior = UniformPrior("u", 0.0, 2.0)
+    np.testing.assert_array_equal(
+        prior.logprior(np.array([-1, 0, 1, 3])), [-np.inf, 0, 0, -np.inf]
+    )
+    np.testing.assert_array_equal(prior.evaluate(np.array([1.0, 5.0])), [0.5, 0.0])
+
+
+def test_ppf_inverts_the_distribution():
+    uniform, gaussian = UniformPrior("u", -1.0, 3.0), GaussianPrior("g", 2.0, 0.5)
+    np.testing.assert_allclose(uniform.ppf([0.0, 0.25, 1.0]), [-1.0, 0.0, 3.0])
+    assert gaussian.ppf(0.5) == pytest.approx(2.0)
+    assert gaussian.ppf(0.8413447460685429) == pytest.approx(2.5)
+    with pytest.raises(NotImplementedError):
+        Prior("p", "custom").ppf(0.5)

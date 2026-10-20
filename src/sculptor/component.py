@@ -1,5 +1,9 @@
+import logging
+
 from sculptor.parameter import FitParameter
 from sculptor.persistence import PickleMixin
+
+logger = logging.getLogger(__name__)
 
 
 class _ObservableParamMapping(dict):
@@ -117,11 +121,12 @@ class FitComponent(PickleMixin):
         return f"{self.name}: {self.function}"
 
     def info(self):
-        """Print the component's name, function name and function arguments."""
+        """Log the component's name, function name and function arguments."""
 
-        print(f"[INFO] Component name: {self.name}")
-        print(f"[INFO] Function name: {self.function.__name__}")
-        print(f"[INFO] Function arguments: {self.function_args}")
+        logger.info(
+            f"Component {self.name}: function {self.function.__name__}, "
+            f"arguments {self.function_args}"
+        )
 
     @property
     def param_mapping(self):

@@ -66,35 +66,6 @@ purple = _colors["purple"]
 # Colour map for model components (Tol rainbow, in both palettes)
 component_cmap = tol_colors.rainbow_PuRd
 
-# GeoDataViz Colors
-gdv_div_a = [
-    "#009392",
-    "#39b185",
-    "#9ccb86",
-    "#e9e29c",
-    "#eeb479",
-    "#e88471",
-    "#cf597e",
-]
-gdv_div_b = [
-    "#045275",
-    "#089099",
-    "#7ccba2",
-    "#fcde9c",
-    "#f0746e",
-    "#dc3977",
-    "#7c1d6f",
-]
-gdv_div_d = [
-    "#008042",
-    "#6fa253",
-    "#b7c370",
-    "#fce498",
-    "#d78287",
-    "#bf5688",
-    "#7c1d6f",
-]
-
 
 # Define default setups
 def _set_common_defaults():
