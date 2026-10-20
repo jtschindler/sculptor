@@ -1118,7 +1118,7 @@ that cover different wavelengths in rest-frame.
 """
 
 
-def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None, fast=False):
+def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None, fast=True):
     """
     Setup the Vestergaard et al. 2001 iron template covering UV range between 1075 - 3089 Å.
 
@@ -1129,7 +1129,8 @@ def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None, fast=Fals
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
     :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model
+        instead of `initialise_Fe` (`template_model`); same model.
+        Default True
     :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
@@ -1151,7 +1152,7 @@ def setup_iron_template_VW01_UV(prefix, disp_range=None, fe_dict=None, fast=Fals
     return comp, params
 
 
-def setup_iron_template_V01_FUV(prefix, fe_dict=None, fast=False):
+def setup_iron_template_V01_FUV(prefix, fe_dict=None, fast=True):
     """
     Setup UV part of the Vestergaard et al. 2001 template that coveres the far UV region between 1074-2200 Å.
 
@@ -1161,7 +1162,8 @@ def setup_iron_template_V01_FUV(prefix, fe_dict=None, fast=False):
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
     :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model
+        instead of `initialise_Fe` (`template_model`); same model.
+        Default True
     :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
@@ -1181,7 +1183,7 @@ def setup_iron_template_V01_FUV(prefix, fe_dict=None, fast=False):
     return comp, params
 
 
-def setup_iron_template_V01_CIV(prefix, fe_dict=None, fast=False):
+def setup_iron_template_V01_CIV(prefix, fe_dict=None, fast=True):
     """
     Setup UV part of the Vestergaard et al. 2001 template that coveres the UV region around CIV emission line between 1440-1710 Å.
 
@@ -1191,7 +1193,8 @@ def setup_iron_template_V01_CIV(prefix, fe_dict=None, fast=False):
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
     :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model
+        instead of `initialise_Fe` (`template_model`); same model.
+        Default True
     :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
@@ -1211,7 +1214,7 @@ def setup_iron_template_V01_CIV(prefix, fe_dict=None, fast=False):
     return comp, params
 
 
-def setup_iron_template_VW01_UV_MgII(prefix, fe_dict=None, fast=False):
+def setup_iron_template_VW01_UV_MgII(prefix, fe_dict=None, fast=True):
     """
     Setup the Vestergaard et al. 2001 iron template covering region around MgII emission line within the range of 2200 - 3090 Å.
 
@@ -1221,7 +1224,8 @@ def setup_iron_template_VW01_UV_MgII(prefix, fe_dict=None, fast=False):
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
     :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model
+        instead of `initialise_Fe` (`template_model`); same model.
+        Default True
     :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
@@ -1241,7 +1245,7 @@ def setup_iron_template_VW01_UV_MgII(prefix, fe_dict=None, fast=False):
     return comp, params
 
 
-def setup_iron_template_BG92_OPT(prefix, disp_range=None, fe_dict=None, fast=False):
+def setup_iron_template_BG92_OPT(prefix, disp_range=None, fe_dict=None, fast=True):
     """
     Setup the Boroson and Green et al. 1992 iron template covering the optical region between 3685 - 7844 Å.
 
@@ -1252,7 +1256,8 @@ def setup_iron_template_BG92_OPT(prefix, disp_range=None, fe_dict=None, fast=Fal
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
     :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model
+        instead of `initialise_Fe` (`template_model`); same model.
+        Default True
     :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
@@ -1274,7 +1279,7 @@ def setup_iron_template_BG92_OPT(prefix, disp_range=None, fe_dict=None, fast=Fal
     return comp, params
 
 
-def setup_iron_template_Tsuz_UV(prefix, disp_range=None, fe_dict=None, fast=False):
+def setup_iron_template_Tsuz_UV(prefix, disp_range=None, fe_dict=None, fast=True):
     """
     Setup UV part of the Tsuzuki et al. 2006 template that coveres the region between 2200-3500 Å.
 
@@ -1285,7 +1290,8 @@ def setup_iron_template_Tsuz_UV(prefix, disp_range=None, fe_dict=None, fast=Fals
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
     :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model
+        instead of `initialise_Fe` (`template_model`); same model.
+        Default True
     :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
@@ -1306,7 +1312,7 @@ def setup_iron_template_Tsuz_UV(prefix, disp_range=None, fe_dict=None, fast=Fals
     return comp, params
 
 
-def setup_iron_template_Tsuz_OPT(prefix, disp_range=None, fe_dict=None, fast=False):
+def setup_iron_template_Tsuz_OPT(prefix, disp_range=None, fe_dict=None, fast=True):
     """
     Setup the optical region of the Tsuzuki et al. 2006 template. This template is essentially based on BG 1992 iron template.
 
@@ -1317,7 +1323,8 @@ def setup_iron_template_Tsuz_OPT(prefix, disp_range=None, fe_dict=None, fast=Fal
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
     :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model
+        instead of `initialise_Fe` (`template_model`); same model.
+        Default True
     :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
@@ -1340,7 +1347,7 @@ def setup_iron_template_Tsuz_OPT(prefix, disp_range=None, fe_dict=None, fast=Fal
     return comp, params
 
 
-def setup_iron_template_BG92_OPT_Hbeta(prefix, fe_dict=None, fast=False):
+def setup_iron_template_BG92_OPT_Hbeta(prefix, fe_dict=None, fast=True):
     """
     Setup the Boroson and Green et al. 1992 iron template covering the region around Hbeta between 4435 - 5535 Å.
     The region is chosen from Shen et al. 2011 continnum windows.
@@ -1351,7 +1358,8 @@ def setup_iron_template_BG92_OPT_Hbeta(prefix, fe_dict=None, fast=False):
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
     :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model
+        instead of `initialise_Fe` (`template_model`); same model.
+        Default True
     :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
@@ -1373,7 +1381,7 @@ def setup_iron_template_BG92_OPT_Hbeta(prefix, fe_dict=None, fast=False):
     return comp, params
 
 
-def setup_iron_template_VW01_Fe3(prefix, fe_dict=None, fast=False):
+def setup_iron_template_VW01_Fe3(prefix, fe_dict=None, fast=True):
     """
     Setup the Vestergaard et al. 2001 FeIII template within the range 2379 - 2456 Å.
 
@@ -1383,7 +1391,8 @@ def setup_iron_template_VW01_Fe3(prefix, fe_dict=None, fast=False):
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
     :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model
+        instead of `initialise_Fe` (`template_model`); same model.
+        Default True
     :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
@@ -1400,7 +1409,7 @@ def setup_iron_template_VW01_Fe3(prefix, fe_dict=None, fast=False):
     return comp, params
 
 
-def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None, fast=False):
+def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None, fast=True):
     """
     Setup the PArk et al. 2022 iron template covering the region around Hbeta between 4000 - 5600 Å.
     The region is chosen from Shen et al. 2011 continnum windows.
@@ -1411,7 +1420,8 @@ def setup_iron_template_Park22_OPT_Hbeta(prefix, fe_dict=None, fast=False):
                     redshift, intrinsic_FWHM, templ_disp_unit_str and templ_fluxden_unit_str. The dictionary should
                     contain each parameter value, the priors and boolean stating whether to vary the parameter.
     :param fast: Use the faster `initialise_Fe_fast` (`TemplateModel`)
-        instead of `initialise_Fe` (`template_model`); same model
+        instead of `initialise_Fe` (`template_model`); same model.
+        Default True
     :type fast: bool
     :return comp: model components for the iron template
     :return pars: model parameters for the iron template
@@ -1449,20 +1459,17 @@ def get_fwhm_int_flux(input_spec, low, upp, redsh, **kwargs):
     :param low: lower limit of the dispersion range
     :param upp: upper limit of the dispersion range
     :param redsh: redshift of the source
-    :return: FWHM and integrated flux of the spectral feature
-    :rtype: astropy.units.Quantity
+    :return: FWHM (km/s, NaN if it cannot be measured) and integrated flux
+        (1e-17 erg/s/cm^2) of the spectral feature, as plain floats for the
+        fit parameters
+    :rtype: float, float
     """
-    fwhm = meas.get_fwhm(
-        input_spec, [low * (1 + redsh), upp * (1 + redsh)], s=100, method="spline"
-    )
-    if not np.isnan(fwhm):
-        fwhm = fwhm.value
+    disp_range = [low * (1 + redsh), upp * (1 + redsh)]
+    fwhm = meas.get_fwhm(input_spec, disp_range, s=100, method="spline")
+    fwhm = fwhm.to_value(qso.KM_S)
 
-    int_flux = (
-        meas.get_integrated_flux(
-            input_spec, [low * (1 + redsh), upp * (1 + redsh)]
-        ).value
-        * 1e17
+    int_flux = meas.get_integrated_flux(input_spec, disp_range).to_value(
+        1e-17 * u.erg / u.s / u.cm**2
     )
 
     return fwhm, int_flux
@@ -1540,9 +1547,15 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
     :type df: pd.DataFrame
     :param redshift: redshift of the source
     :type redshift: float
+    The columns of `df` are plain numbers in fixed units (below); they are
+    turned into astropy Quantities for the calculations, and the results are
+    stored in M_sun (BH masses), erg/s (luminosities) and km/s (velocity
+    shifts).
+
     :param param_name_dict: dictionary specifying the columns names of the parameters in the provided dataframe containing -
-        - "fwhm": str ("MgII_fwhm")
-        - "luminosity": str ("L3000")
+        - "fwhm": str ("MgII_fwhm"), MgII FWHM in km/s
+        - "luminosity": str ("L3000"), continuum luminosity at 3000 Å in
+          erg/s/Å
         - "redshift": str ("MgII_redsh")
         - "fe_amp": str ("FeII_amp")
         - "peak_flux": str ("MgII_broad_flux")
@@ -1551,12 +1564,12 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
     :type save_dir: str
     :param source: name of the source
     :type source: str
-    :param model: fit model used
-    :typpe model:
-    :param flat_samples: flat chain from the MCMC fit
+    :param fit_name: iron template used in the fit: "Vest" (Vestergaard &
+        Wilkes 2001; S11 and VO09 masses) or containing "Tsuzuki" (S11 mass)
+    :type fit_name: str
 
     :return df: output dataframe
-    :type df: pd.DataFrames
+    :rtype: pd.DataFrame
     """
 
     fwhm_col = param_name_dict.get("fwhm")
@@ -1575,18 +1588,17 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
                     fwhm = np.float64(row[fwhm_key])
                     lum = np.float64(row[lum_key])
                     if not (np.isnan(fwhm) or np.isnan(lum)):
+                        fwhm = fwhm * qso.KM_S
+                        cont_lwav = lum * qso.LWAV_UNIT
+                        cont_wav = 3000 * u.AA
                         if "Tsuzuki" in fit_name or fit_name == "Vest":
                             BH_mass_s11 = qso.se_bhmass_mgii_s11_fwhm(
-                                fwhm * u.km / u.s,
-                                cont_lwav=lum * u.erg / u.s / u.AA,
-                                cont_wav=3000 * u.AA,
+                                fwhm, cont_lwav=cont_lwav, cont_wav=cont_wav
                             )
 
                         if fit_name == "Vest":
                             BH_mass_vo09 = qso.se_bhmass_mgii_vo09_fwhm(
-                                fwhm * u.km / u.s,
-                                cont_lwav=lum * u.erg / u.s / u.AA,
-                                cont_wav=3000 * u.AA,
+                                fwhm, cont_lwav=cont_lwav, cont_wav=cont_wav
                             )
                         if "Tsuzuki" not in fit_name and fit_name != "Vest":
                             logger.info(
@@ -1595,35 +1607,43 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
                             BH_mass_s11 = [np.nan * u.Msun]
                             BH_mass_vo09 = [np.nan * u.Msun]
 
-                        df.at[idx, "MgII_BH_mass_3000_s11" + key] = BH_mass_s11[0].value
+                        df.at[idx, "MgII_BH_mass_3000_s11" + key] = BH_mass_s11[
+                            0
+                        ].to_value(u.Msun)
 
                         # Bolometric luminosity and Eddington ratio
                         L_bol = qso.calc_bolometric_luminosity(
-                            cont_lwav=lum, cont_wav=3000 * u.AA
+                            cont_lwav=cont_lwav, cont_wav=cont_wav
                         )
-                        df.at[idx, "L_bol_3000" + key] = L_bol[0].value
+                        df.at[idx, "L_bol_3000" + key] = L_bol[0].to_value(qso.LUM_UNIT)
 
                         Edd_ratio = qso.calc_eddington_ratio(L_bol[0], BH_mass_s11[0])
-                        df.at[idx, "Eddington_ratio_3000_s11" + key] = Edd_ratio.value
+                        df.at[idx, "Eddington_ratio_3000_s11" + key] = (
+                            Edd_ratio.to_value(u.dimensionless_unscaled)
+                        )
 
                         # Eddington luminosity
                         Edd_lum = qso.calc_eddington_luminosity(BH_mass_s11[0])
-                        df.at[idx, "Edd_lum_MgII_3000_s11" + key] = Edd_lum.value
+                        df.at[idx, "Edd_lum_MgII_3000_s11" + key] = Edd_lum.to_value(
+                            qso.LUM_UNIT
+                        )
 
                         if fit_name == "Vest":
                             df.at[idx, "MgII_BH_mass_3000_vo09" + key] = BH_mass_vo09[
                                 0
-                            ].value
+                            ].to_value(u.Msun)
                             Edd_ratio = qso.calc_eddington_ratio(
                                 L_bol[0], BH_mass_vo09[0]
                             )
                             df.at[idx, "Eddington_ratio_3000_vo09" + key] = (
-                                Edd_ratio.value
+                                Edd_ratio.to_value(u.dimensionless_unscaled)
                             )
 
                             # Eddington luminosity
                             Edd_lum = qso.calc_eddington_luminosity(BH_mass_vo09[0])
-                            df.at[idx, "Edd_lum_MgII_3000_vo09" + key] = Edd_lum.value
+                            df.at[idx, "Edd_lum_MgII_3000_vo09" + key] = (
+                                Edd_lum.to_value(qso.LUM_UNIT)
+                            )
 
                     else:
                         logger.info(
@@ -1646,7 +1666,7 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
                         delta_v = qso.calc_velocity_shifts(
                             row[z_key], z_sys=redshift, relativistic=True
                         )
-                        df.at[idx, "delta_v_MgII" + key] = delta_v.value
+                        df.at[idx, "delta_v_MgII" + key] = delta_v.to_value(qso.KM_S)
                     except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
                         logger.warning(f"Velocity shift calc failed at row {idx}: {e}")
                 else:
@@ -1734,9 +1754,9 @@ def get_civ_line_prop(df, redshift, param_name_dict, save_dir=None, source=None)
                     lum = np.float64(row[lum_key])
 
                     if not (np.isnan(fwhm) or np.isnan(lum)):
-                        cont_lwav = lum * u.erg / u.s / u.AA
+                        cont_lwav = lum * qso.LWAV_UNIT
                         bh_mass = qso.se_bhmass_civ_vp06_fwhm(
-                            civ_fwhm=fwhm * u.km / u.s,
+                            civ_fwhm=fwhm * qso.KM_S,
                             cont_lwav=cont_lwav,
                             cont_wav=1350 * u.AA,
                         )[0]
@@ -1746,15 +1766,15 @@ def get_civ_line_prop(df, redshift, param_name_dict, save_dir=None, source=None)
                         edd_lum = qso.calc_eddington_luminosity(bh_mass)
                         edd_ratio = qso.calc_eddington_ratio(l_bol, bh_mass)
 
-                        df.at[idx, "CIV_BH_mass_1350_vp06" + key] = bh_mass.to(
+                        df.at[idx, "CIV_BH_mass_1350_vp06" + key] = bh_mass.to_value(
                             u.Msun
-                        ).value
-                        df.at[idx, "L_bol_1350" + key] = l_bol.to(u.erg / u.s).value
-                        df.at[idx, "Edd_lum_CIV_1350_vp06" + key] = edd_lum.to(
-                            u.erg / u.s
-                        ).value
+                        )
+                        df.at[idx, "L_bol_1350" + key] = l_bol.to_value(qso.LUM_UNIT)
+                        df.at[idx, "Edd_lum_CIV_1350_vp06" + key] = edd_lum.to_value(
+                            qso.LUM_UNIT
+                        )
                         df.at[idx, "Eddington_ratio_1350_vp06" + key] = (
-                            edd_ratio.decompose().value
+                            edd_ratio.to_value(u.dimensionless_unscaled)
                         )
                     else:
                         logger.info(
@@ -1780,7 +1800,7 @@ def get_civ_line_prop(df, redshift, param_name_dict, save_dir=None, source=None)
                         delta_v = qso.calc_velocity_shifts(
                             row[z_key], z_sys=redshift, relativistic=True
                         )
-                        df.at[idx, "delta_v_CIV" + key] = delta_v.to(u.km / u.s).value
+                        df.at[idx, "delta_v_CIV" + key] = delta_v.to_value(qso.KM_S)
                     except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
                         logger.warning(f"Velocity shift calc failed at row {idx}: {e}")
                 else:
@@ -1845,13 +1865,13 @@ def get_line_prop_Hbeta_OIII(
 
                     if not (np.isnan(fwhm_Hbeta) or np.isnan(cont_lwave_5100)):
                         hbeta_BH_mass_5100 = qso.se_bhmass_hbeta_vp06(
-                            fwhm_Hbeta * u.km / u.s,
-                            cont_lwav=cont_lwave_5100 * u.erg / u.s / u.AA,
+                            fwhm_Hbeta * qso.KM_S,
+                            cont_lwav=cont_lwave_5100 * qso.LWAV_UNIT,
                             cont_wav=5100 * u.AA,
                         )
 
                         L_bol_5100 = qso.calc_bolometric_luminosity(
-                            cont_lwav=cont_lwave_5100 * u.erg / u.s / u.AA,
+                            cont_lwav=cont_lwave_5100 * qso.LWAV_UNIT,
                             cont_wav=5100 * u.AA,
                         )
 
@@ -1865,17 +1885,19 @@ def get_line_prop_Hbeta_OIII(
 
                         df.at[idx, "Hbeta_BH_mass_5100" + key] = hbeta_BH_mass_5100[
                             0
-                        ].value
+                        ].to_value(u.Msun)
 
                         df.at[idx, "Edd_lum_Hbeta_5100" + key] = (
-                            Edd_lum_Hbeta_5100.value
+                            Edd_lum_Hbeta_5100.to_value(qso.LUM_UNIT)
                         )
 
                         df.at[idx, "Eddington_ratio_5100" + key] = (
-                            Eddington_ratio_5100.value
+                            Eddington_ratio_5100.to_value(u.dimensionless_unscaled)
                         )
 
-                        df.at[idx, "L_bol_5100" + key] = L_bol_5100[0].value
+                        df.at[idx, "L_bol_5100" + key] = L_bol_5100[0].to_value(
+                            qso.LUM_UNIT
+                        )
                     else:
                         logger.info(
                             f"NaN in '{fwhm_key}' or '{lum_key}' at row {idx} — skipping BH mass and Eddington calculations."
@@ -1897,7 +1919,9 @@ def get_line_prop_Hbeta_OIII(
                         delta_v_Hbeta = qso.calc_velocity_shifts(
                             row[z_key], z_sys=redshift, relativistic=True
                         )
-                        df.at[idx, "delta_v_Hbeta" + key] = delta_v_Hbeta.value
+                        df.at[idx, "delta_v_Hbeta" + key] = delta_v_Hbeta.to_value(
+                            qso.KM_S
+                        )
                     except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
                         logger.info(
                             f"Failed to calculate velocity shift for '{z_key}' at row {idx}: {e}"

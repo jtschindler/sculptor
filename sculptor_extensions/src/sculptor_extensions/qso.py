@@ -29,6 +29,53 @@ datadir = str(resource_path / "data") + "/"
 c_km_s = const.c.to("km/s").value
 c_AngstroemPerSecond = const.c.to(u.AA / u.s).value
 
+KM_S = u.km / u.s
+LWAV_UNIT = u.erg / u.s / u.AA
+LUM_UNIT = u.erg / u.s
+
+
+def _quantity(value, unit, name):
+    """Return `value` converted to `unit`, requiring an astropy Quantity.
+
+    The scaling relations in this module are only valid in specific units:
+    a bare number, or a Quantity in other units read with `.value`, would
+    silently give a wrong result. Every physical input must therefore carry
+    its unit; it is converted here, so any compatible unit works (e.g. m/s
+    for a FWHM, W/nm for a monochromatic luminosity).
+
+    :param value: input quantity
+    :type value: astropy.units.Quantity
+    :param unit: unit the relation needs
+    :type unit: astropy.units.Unit
+    :param name: argument name, for the error message
+    :type name: str
+    :return: `value` in `unit`
+    :rtype: astropy.units.Quantity
+    :raises TypeError: if `value` is not an `astropy.units.Quantity`
+    :raises astropy.units.UnitConversionError: if its unit cannot be
+        converted to `unit`
+    """
+    if not isinstance(value, u.Quantity):
+        raise TypeError(
+            f"`{name}` must be an astropy Quantity in units of {unit}, "
+            f"got {type(value).__name__} {value!r}"
+        )
+    return value.to(unit)
+
+
+def _is_wav(cont_wav, *wavs):
+    """Return whether `cont_wav` (a Quantity in Angstroem) equals one of
+    `wavs` (Angstroem).
+
+    :param cont_wav: continuum wavelength
+    :type cont_wav: astropy.units.Quantity
+    :param wavs: allowed wavelengths in Angstroem
+    :type wavs: float
+    :rtype: bool
+    """
+    return any(np.isclose(cont_wav.to_value(u.AA), wav) for wav in wavs)
+
+
 # ------------------------------------------------------------------------------
 # Model functions
 # ------------------------------------------------------------------------------
@@ -352,7 +399,7 @@ def calc_velocity_shifts(z, z_sys, relativistic=True):
 
     """
 
-    return lu.dv_from_z(z, z_sys, rel=relativistic)
+    return lu.dv_from_z(z, z_sys, rel=relativistic).to(KM_S)
 
 
 def calc_eddington_luminosity(bh_mass):
@@ -365,8 +412,7 @@ def calc_eddington_luminosity(bh_mass):
 
     """
 
-    # Convert the black hole mass to solar masses
-    bh_mass = bh_mass.to(u.Msun)
+    bh_mass = _quantity(bh_mass, u.Msun, "bh_mass")
 
     factor = (4 * np.pi * const.G * const.c * const.m_p) / const.sigma_T
     factor = factor.to(u.erg / u.s / u.Msun)
@@ -382,12 +428,14 @@ def calc_eddington_ratio(lbol, bh_mass):
     :type lbol: u.Quantity
     :param bh_mass: Black hole mass
     :type bh_mass: u.Quantity
-    :return:
+    :return: Eddington ratio
+    :rtype: astropy.units.Quantity (dimensionless)
 
     """
 
+    lbol = _quantity(lbol, LUM_UNIT, "lbol")
     edd_lum = calc_eddington_luminosity(bh_mass)
-    return lbol / edd_lum
+    return (lbol / edd_lum).to(u.dimensionless_unscaled)
 
 
 def se_bhmass_hbeta_vp06(hbeta_fwhm, cont_lwav, cont_wav=5100 * u.AA):
@@ -422,7 +470,11 @@ def se_bhmass_hbeta_vp06(hbeta_fwhm, cont_lwav, cont_wav=5100 * u.AA):
 
     """
 
-    if cont_wav.value == 5100:
+    hbeta_fwhm = _quantity(hbeta_fwhm, KM_S, "hbeta_fwhm")
+    cont_lwav = _quantity(cont_lwav, LWAV_UNIT, "cont_lwav")
+    cont_wav = _quantity(cont_wav, u.AA, "cont_wav")
+
+    if _is_wav(cont_wav, 5100):
         reference = "Hbeta_VP06_fwhm"
 
         bhmass = (
@@ -486,7 +538,11 @@ def se_bhmass_hbeta_park12(hbeta_fwhm, cont_lwav, cont_wav=5100 * u.AA):
 
     """
 
-    if cont_wav.value == 5100:
+    hbeta_fwhm = _quantity(hbeta_fwhm, KM_S, "hbeta_fwhm")
+    cont_lwav = _quantity(cont_lwav, LWAV_UNIT, "cont_lwav")
+    cont_wav = _quantity(cont_wav, u.AA, "cont_wav")
+
+    if _is_wav(cont_wav, 5100):
         if np.median(hbeta_fwhm.value) > 3000:
             reference = "Hbeta_Park12_fwhm_eq15"
 
@@ -553,7 +609,8 @@ def se_bhmass_gh05(line_fwhm, lwav, single_epoch_rel="Ha_LHa"):
 
     :param line_fwhm: FWHM of the Balmer line in km/s
     :type line_fwhm: astropy.units.Quantity
-    :param lwav: Luminosity of either the continuum or the line (narrow+broad)
+    :param lwav: Luminosity of either the continuum (erg/s/A, for
+        "Hb_L5100") or the line (narrow+broad, erg/s)
     :type lwav: astropy.units.Quantity
     :param single_epoch_rel: Selection of the mode of the SE virial estimator
     :type single_epoch_rel: str
@@ -562,6 +619,10 @@ def se_bhmass_gh05(line_fwhm, lwav, single_epoch_rel="Ha_LHa"):
     :rtype: astropy.units.Quantity, string
 
     """
+
+    line_fwhm = _quantity(line_fwhm, KM_S, "line_fwhm")
+    lwav_unit = LWAV_UNIT if single_epoch_rel == "Hb_L5100" else LUM_UNIT
+    lwav = _quantity(lwav, lwav_unit, "lwav")
 
     if single_epoch_rel == "Ha_LHa":
         reference = "Halpha_GH05_HaLHa"
@@ -632,6 +693,9 @@ def se_bhmass_db20(line_fwhm, lwav, single_epoch_rel="Hb_LHb", virial_factor=1.0
     :rtype: astropy.units.Quantity, string
     """
 
+    line_fwhm = _quantity(line_fwhm, KM_S, "line_fwhm")
+    lwav = _quantity(lwav, LUM_UNIT, "lwav")
+
     logger.info(f"The virial factor is set to {virial_factor}")
 
     if single_epoch_rel == "Hb_LHb":
@@ -687,7 +751,11 @@ def se_bhmass_civ_vp06_fwhm(civ_fwhm, cont_lwav, cont_wav):
 
     """
 
-    if cont_wav.value == 1450 or cont_wav.value == 1350:
+    civ_fwhm = _quantity(civ_fwhm, KM_S, "civ_fwhm")
+    cont_lwav = _quantity(cont_lwav, LWAV_UNIT, "cont_lwav")
+    cont_wav = _quantity(cont_wav, u.AA, "cont_wav")
+
+    if _is_wav(cont_wav, 1350, 1450):
         reference = "CIV_VP06_fwhm"
 
         bhmass = (
@@ -741,7 +809,11 @@ def se_bhmass_civ_vp06_sigma(civ_sigma, cont_lwav, cont_wav):
 
     """
 
-    if cont_wav.value == 1450 or cont_wav.value == 1350:
+    civ_sigma = _quantity(civ_sigma, KM_S, "civ_sigma")
+    cont_lwav = _quantity(cont_lwav, LWAV_UNIT, "cont_lwav")
+    cont_wav = _quantity(cont_wav, u.AA, "cont_wav")
+
+    if _is_wav(cont_wav, 1350, 1450):
         reference = "CIV_VP06_sigma"
 
         bhmass = (
@@ -802,10 +874,15 @@ def se_bhmass_mgii_vo09_fwhm(mgii_fwhm, cont_lwav, cont_wav):
 
     zero_points = {1350: 6.72, 2100: 6.79, 3000: 6.86, 5100: 6.96}
 
-    if cont_wav.value in [1350, 2100, 3000, 5100]:
-        reference = f"MgII_VO09_fwhm_{cont_wav.value}"
+    mgii_fwhm = _quantity(mgii_fwhm, KM_S, "mgii_fwhm")
+    cont_lwav = _quantity(cont_lwav, LWAV_UNIT, "cont_lwav")
+    cont_wav = _quantity(cont_wav, u.AA, "cont_wav")
+    matches = [wav for wav in zero_points if _is_wav(cont_wav, wav)]
 
-        zp = zero_points[cont_wav.value]
+    if matches:
+        reference = f"MgII_VO09_fwhm_{float(matches[0])}"
+
+        zp = zero_points[matches[0]]
 
         bhmass = (
             10**zp
@@ -858,7 +935,11 @@ def se_bhmass_mgii_s11_fwhm(mgii_fwhm, cont_lwav, cont_wav):
 
     """
 
-    if cont_wav.value == 3000:
+    mgii_fwhm = _quantity(mgii_fwhm, KM_S, "mgii_fwhm")
+    cont_lwav = _quantity(cont_lwav, LWAV_UNIT, "cont_lwav")
+    cont_wav = _quantity(cont_wav, u.AA, "cont_wav")
+
+    if _is_wav(cont_wav, 3000):
         reference = "MgII_S11_fwhm_3000"
 
         zp = 6.74
@@ -906,17 +987,20 @@ def calc_bolometric_luminosity(cont_lwav, cont_wav, reference="Shen2011"):
 
     """
 
-    if cont_wav.value == 1350 and reference == "Shen2011":
+    cont_lwav = _quantity(cont_lwav, LWAV_UNIT, "cont_lwav")
+    cont_wav = _quantity(cont_wav, u.AA, "cont_wav")
+
+    if _is_wav(cont_wav, 1350) and reference == "Shen2011":
         reference = "Shen2011_1350"
-        return cont_lwav * cont_wav * 3.81, reference
+        return (cont_lwav * cont_wav * 3.81).to(LUM_UNIT), reference
 
-    if cont_wav.value == 3000 and reference == "Shen2011":
+    if _is_wav(cont_wav, 3000) and reference == "Shen2011":
         reference = "Shen2011_3000"
-        return cont_lwav * cont_wav * 5.15, reference
+        return (cont_lwav * cont_wav * 5.15).to(LUM_UNIT), reference
 
-    if cont_wav.value == 5100 and reference == "Shen2011":
+    if _is_wav(cont_wav, 5100) and reference == "Shen2011":
         reference = "Shen2011_5100"
-        return cont_lwav * cont_wav * 9.26, reference
+        return (cont_lwav * cont_wav * 9.26).to(LUM_UNIT), reference
     else:
         raise ValueError(
             "No bolometric correction available for the "
@@ -941,7 +1025,8 @@ def calc_bolometric_luminosity_db20(line_lwav):
     :rtype: astropy.units.Quantity, string
     """
 
-    log_lbol = 44.717 + 0.802 * (np.log10(line_lwav.to(u.erg / u.s).value) - 41.746)
+    line_lwav = _quantity(line_lwav, LUM_UNIT, "line_lwav")
+    log_lbol = 44.717 + 0.802 * (np.log10(line_lwav.value) - 41.746)
 
     lbol = 10**log_lbol * u.erg / u.s
 
@@ -965,6 +1050,8 @@ def correct_CIV_fwhm_for_blueshift(civ_fwhm, blueshift):
 
     """
 
+    civ_fwhm = _quantity(civ_fwhm, KM_S, "civ_fwhm")
+    blueshift = _quantity(blueshift, KM_S, "blueshift")
     return civ_fwhm / (0.41 * blueshift / (1000 * u.km / u.s) + 0.62)
 
 
@@ -998,7 +1085,11 @@ def se_bhmass_civ_c17_fwhm(civ_fwhm, cont_lwav, cont_wav):
 
     """
 
-    if cont_wav.value == 1350:
+    civ_fwhm = _quantity(civ_fwhm, KM_S, "civ_fwhm")
+    cont_lwav = _quantity(cont_lwav, LWAV_UNIT, "cont_lwav")
+    cont_wav = _quantity(cont_wav, u.AA, "cont_wav")
+
+    if _is_wav(cont_wav, 1350):
         reference = "CIV_C17_fwhm"
 
         bhmass = (

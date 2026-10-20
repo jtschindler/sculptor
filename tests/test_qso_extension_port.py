@@ -491,6 +491,7 @@ def test_qso_autofit_iron_template_default_disp_range_matches_original(
     orig_disp, orig_flux = captured["disp"], captured["flux"]
 
     monkeypatch.setattr(new_qso_autofit, "initialise_Fe", _capture_initialise_fe)
+    monkeypatch.setattr(new_qso_autofit, "initialise_Fe_fast", _capture_initialise_fe)
     getattr(new_qso_autofit, func_name)("test_prefix")
     new_disp, new_flux = captured["disp"], captured["flux"]
 

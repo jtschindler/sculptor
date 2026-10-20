@@ -83,7 +83,7 @@ def _fe_dict(slow):
 
 def test_fast_iron_setup_gives_the_same_model():
     slow_comp, slow_params = qa.setup_iron_template_VW01_UV(
-        "Fe", fe_dict=_fe_dict(True)
+        "Fe", fe_dict=_fe_dict(True), fast=False
     )
     fast_comp, fast_params = qa.setup_iron_template_VW01_UV(
         "Fe", fe_dict=_fe_dict(False), fast=True
@@ -105,4 +105,4 @@ def test_all_iron_setups_accept_fast():
     setups = [n for n in dir(qa) if n.startswith("setup_iron_template_")]
     assert len(setups) == 10
     for name in setups:
-        assert inspect.signature(getattr(qa, name)).parameters["fast"].default is False
+        assert inspect.signature(getattr(qa, name)).parameters["fast"].default is True

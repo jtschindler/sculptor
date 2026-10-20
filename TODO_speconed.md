@@ -53,6 +53,10 @@ the same model. Both points change fitted values, so decide before fixing:
   the `Fe_OPT_BR92_linear` and `Tsuzuki06` iron templates (2000 and 4414
   pixels), none for the UV templates (4181 pixels). This biases fitted
   iron-template redshifts with those templates by that amount.
+- [ ] **Iron setups now default to `fast=True`** (2026-10-20, for speed,
+  before this review). `TemplateModel` reproduces both quirks above, so
+  fixing them means changing `TemplateModel` as well as `speconed`, and
+  then re-checking that `fast=True` and `fast=False` still agree.
 
 ## Differences between the bundled copy and the package
 

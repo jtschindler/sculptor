@@ -158,7 +158,7 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, s=0, method="spline")
     The function will subtract a flux density value of half of the maximum
     and then find the two roots (flux density = 0) of the new flux density
     axis. If the emission feature has multiple components more than two
-    roots can be found in which case a np.nan value will be returned.
+    roots can be found in which case NaN km/s is returned.
 
     :param input_spec: Input spectrum
     :type input_spec: speconed.speconed.SpecOneD
@@ -202,7 +202,7 @@ def get_fwhm(input_spec, disp_range=None, resolution=None, s=0, method="spline")
         logger.warning(
             f"Found {len(roots)} roots, cannot determine FWHM; returning NaN."
         )
-        return np.nan
+        return np.nan * units.km / units.s
 
     max_idx = np.where(fluxden == np.max(fluxden))
     max_wav = dispersion[max_idx]

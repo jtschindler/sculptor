@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026-10-20
+
+### Units: astropy Quantities required in `qso` and the line-property functions
+- **Behaviour change**: every scaling relation in `sculptor_extensions.qso`
+  (`se_bhmass_*`, `calc_bolometric_luminosity[_db20]`,
+  `calc_eddington_luminosity`, `calc_eddington_ratio`,
+  `correct_CIV_fwhm_for_blueshift`) now requires astropy Quantities: a bare
+  number raises `TypeError`, an incompatible unit raises
+  `UnitConversionError`. Compatible units are converted (e.g. m/s, W/nm,
+  nm), and the continuum wavelength is compared in Å, so `300 * u.nm`
+  selects the 3000 Å relations. Before, `cont_wav.value == 3000` was read
+  in whatever unit was passed, and a bare luminosity went through
+  unchecked.
+- Results come back in fixed units: BH masses in M_sun, luminosities in
+  erg/s, the Eddington ratio dimensionless, velocity shifts in km/s. New
+  module constants `qso.KM_S`, `qso.LWAV_UNIT`, `qso.LUM_UNIT`.
+- `Qso_autofit.get_line_prop_MgII` passed a unitless 3000 Å luminosity to
+  `calc_bolometric_luminosity`, so L_bol came out in Å instead of erg/s
+  (the stored number was right); it now builds Quantities once and stores
+  every column with `.to_value(<unit>)`, like `get_civ_line_prop` and
+  `get_line_prop_Hbeta_OIII`. Its docstring lists `fit_name` and the
+  column units, and no longer the unused `model` / `flat_samples`.
+- `Qso_autofit.get_fwhm_int_flux` returned `integrated_flux.value * 1e17`,
+  which is only right for spectra in erg/s/cm²/Å: for a spectrum in
+  1e-17 erg/s/cm²/Å, the flux (and so the `create_emission_line_dict`
+  flux priors) came out 1e17 too large. It now converts to
+  1e-17 erg/s/cm² explicitly.
+- `measurements.get_fwhm` returns NaN km/s instead of a bare NaN when it
+  cannot measure the FWHM, so it always returns a Quantity.
+- New `tests/test_qso_units.py`.
+
+### Iron templates: `fast=True` by default
+- All ten `setup_iron_template_*` functions now default to `fast=True`
+  (`TemplateModel`, ~10-20x faster). `fast=False` restores
+  `template_model`. The `speconed` `broaden_by_gaussian` review is still
+  open (`TODO_speconed.md`).
+
 ## 2026-10-19
 
 ### `Qso_autofit.get_civ_line_prop` (restored, units fixed)
