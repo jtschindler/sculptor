@@ -301,3 +301,58 @@ def test_plot_quick_fit_result(fit_model, tmp_path):
     best = fit_model.eval(fit_model.spec.dispersion, result.values)
     np.testing.assert_allclose(residuals, fit_model.spec.fluxden - best)
     assert dispersion.size == residuals.size
+
+
+@pytest.mark.parametrize("suffix", [".ecsv", ".json"])
+def test_export_round_trip(fit_model, tmp_path, suffix):
+    fit_model.parameters["pl_slope"].vary = False
+    result = fit_model.run_quick_fit()
+    path = tmp_path / f"fit{suffix}"
+    result.write(path)
+
+    back = QuickFitResult.read(path)
+    assert back.param_names == result.param_names
+    np.testing.assert_allclose(back.values, result.values, rtol=1e-12)
+    np.testing.assert_allclose(back.errors, result.errors, rtol=1e-12)
+    np.testing.assert_allclose(back.covariance, result.covariance, rtol=1e-12)
+    for key in ("log_prob", "chi_sq", "bic", "aicc", "red_chisq"):
+        assert getattr(back, key) == pytest.approx(getattr(result, key))
+    assert back.dof == result.dof
+    assert back.success == result.success
+    assert back.fixed_params == {
+        "pl_redsh": pytest.approx(3.227),
+        "pl_slope": -1.5,
+        "SiIV_a_redsh": pytest.approx(3.227),
+        "SiIV_a_cen": pytest.approx(1399.8),
+    }
+
+    with pytest.raises(FileExistsError):
+        result.write(path)
+    result.write(path, overwrite=True)
+
+
+def test_ecsv_export_is_a_readable_table(fit_model, tmp_path):
+    from astropy.table import Table
+
+    result = fit_model.run_quick_fit()
+    result.write(tmp_path / "fit.ecsv")
+    table = Table.read(tmp_path / "fit.ecsv")
+    assert list(table["name"]) == result.param_names
+    assert table.meta["aicc"] == pytest.approx(result.aicc)
+
+
+def test_json_export_handles_nan(tmp_path):
+    import json
+
+    model, *_ = _linear_model()
+    result = model.run_quick_fit()
+    result.errors[:] = np.nan
+    result.write(tmp_path / "fit.json")
+    json.loads((tmp_path / "fit.json").read_text())  # valid JSON
+    assert np.all(np.isnan(QuickFitResult.read(tmp_path / "fit.json").errors))
+
+
+def test_export_unknown_extension(fit_model, tmp_path):
+    result = fit_model.run_quick_fit()
+    with pytest.raises(ValueError, match="extension"):
+        result.write(tmp_path / "fit.txt")

@@ -10,10 +10,13 @@ starting point of an MCMC run (`FitModel.positions_around_quick_fit`).
 optimizer and the result.
 """
 
+import json
 import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
+from astropy.table import Table
 from scipy import optimize
 
 from sculptor.prior import GaussianPrior, UniformPrior
@@ -71,6 +74,8 @@ class QuickFitResult:
     :type nfev: int
     :param at_bound: Parameters at a uniform prior's bound
     :type at_bound: list(str)
+    :param fixed_params: Values of the fixed parameters during the fit
+    :type fixed_params: dict
     """
 
     param_names: list
@@ -87,6 +92,132 @@ class QuickFitResult:
     method: str
     nfev: int
     at_bound: list = field(default_factory=list)
+    fixed_params: dict = field(default_factory=dict)
+
+    # Scalars written to / read from the export files, besides the table
+    _META_KEYS = (
+        "log_prob",
+        "log_likelihood",
+        "chi_sq",
+        "dof",
+        "bic",
+        "success",
+        "message",
+        "method",
+        "nfev",
+        "at_bound",
+        "fixed_params",
+    )
+
+    def to_table(self):
+        """The result as an astropy Table: one row per variable parameter
+        (`name`, `value`, `error`, `at_bound`); the fit statistics, the
+        covariance and the fixed parameters in `meta`.
+
+        :rtype: astropy.table.Table
+        """
+        table = Table(
+            {
+                "name": list(self.param_names),
+                "value": np.asarray(self.values, dtype=float),
+                "error": np.asarray(self.errors, dtype=float),
+                "at_bound": [name in self.at_bound for name in self.param_names],
+            }
+        )
+        table.meta.update(self._meta())
+        return table
+
+    def _meta(self):
+        """Plain-Python fit statistics, covariance and derived criteria."""
+        meta = {key: getattr(self, key) for key in self._META_KEYS}
+        for key in ("log_prob", "log_likelihood", "chi_sq", "bic"):
+            meta[key] = float(meta[key])
+        meta["dof"], meta["nfev"] = int(self.dof), int(self.nfev)
+        meta["success"] = bool(self.success)
+        meta["at_bound"] = list(self.at_bound)
+        meta["fixed_params"] = {
+            k: (float(v) if v is not None else None)
+            for k, v in self.fixed_params.items()
+        }
+        meta["covariance"] = np.asarray(self.covariance, dtype=float).tolist()
+        # Derived, written for convenience (recomputed on read)
+        meta["red_chisq"] = float(self.red_chisq)
+        meta["aic"] = float(self.aic)
+        meta["aicc"] = float(self.aicc)
+        return meta
+
+    def write(self, path, overwrite=False):
+        """Write the result to a light, human-readable file.
+
+        The format follows the extension: ".ecsv" (astropy ECSV: a table of
+        name, value, error, at_bound with the statistics in the YAML header)
+        or ".json". Read it back with `QuickFitResult.read`. The model
+        itself (components, priors, spectrum) is not included; save it with
+        `FitModel.save` for that.
+
+        :param path: Output file (.ecsv or .json)
+        :type path: str or pathlib.Path
+        :param overwrite: Replace an existing file
+        :type overwrite: bool
+        :raises FileExistsError: if the file exists and `overwrite` is False
+        :raises ValueError: for an unknown extension
+        """
+        path = Path(path)
+        if path.exists() and not overwrite:
+            raise FileExistsError(f"{path} exists; pass overwrite=True.")
+        suffix = path.suffix.lower()
+        if suffix == ".ecsv":
+            self.to_table().write(path, format="ascii.ecsv", overwrite=True)
+        elif suffix == ".json":
+            data = {
+                "params": {
+                    name: {"value": float(v), "error": float(e)}
+                    for name, v, e in zip(
+                        self.param_names, self.values, self.errors, strict=True
+                    )
+                },
+                **self._meta(),
+            }
+            # JSON has no NaN / inf; write them as strings
+            path.write_text(json.dumps(_json_safe(data), indent=2) + "\n")
+        else:
+            raise ValueError(f"Unknown extension {suffix!r}; use .ecsv or .json.")
+
+    @classmethod
+    def read(cls, path):
+        """Read a result written by `write`.
+
+        :param path: An .ecsv or .json file
+        :type path: str or pathlib.Path
+        :rtype: QuickFitResult
+        :raises ValueError: for an unknown extension
+        """
+        path = Path(path)
+        suffix = path.suffix.lower()
+        if suffix == ".ecsv":
+            table = Table.read(path, format="ascii.ecsv")
+            meta = dict(table.meta)
+            names = [str(n) for n in table["name"]]
+            values = np.asarray(table["value"], dtype=float)
+            errors = np.asarray(table["error"], dtype=float)
+        elif suffix == ".json":
+            meta = _json_restore(json.loads(path.read_text()))
+            params = meta.pop("params")
+            names = list(params)
+            values = np.array([params[n]["value"] for n in names], dtype=float)
+            errors = np.array([params[n]["error"] for n in names], dtype=float)
+        else:
+            raise ValueError(f"Unknown extension {suffix!r}; use .ecsv or .json.")
+
+        return cls(
+            param_names=names,
+            values=values,
+            errors=errors,
+            covariance=np.array(meta["covariance"], dtype=float).reshape(
+                len(names), len(names)
+            ),
+            **{key: meta[key] for key in cls._META_KEYS},
+        )
 
     @property
     def red_chisq(self):
@@ -149,6 +280,28 @@ class QuickFitResult:
             flag = "  (at prior bound)" if name in self.at_bound else ""
             lines.append(f"  {name} = {value:.6g} +- {error:.3g}{flag}")
         return "\n".join(lines)
+
+
+def _json_safe(obj):
+    """Replace NaN and inf (not valid JSON) by strings, recursively."""
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_json_safe(v) for v in obj]
+    if isinstance(obj, float) and not np.isfinite(obj):
+        return str(obj)
+    return obj
+
+
+def _json_restore(obj):
+    """Undo `_json_safe`."""
+    if isinstance(obj, dict):
+        return {k: _json_restore(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_json_restore(v) for v in obj]
+    if obj in ("nan", "inf", "-inf"):
+        return float(obj)
+    return obj
 
 
 def _bounds_and_scales(params_variable):
@@ -328,4 +481,7 @@ def quick_fit(model, log_probability, x, y, yerr, method="L-BFGS-B", options=Non
         method=method,
         nfev=int(res.nfev),
         at_bound=at_bound,
+        fixed_params=dict(
+            zip(model.params_constant, model.params_constant_val, strict=True)
+        ),
     )
