@@ -24,6 +24,12 @@
 - **Behavior change**: `get_median_params` and `get_sampled_values` default
   to `discard=2000` like `FitModel` (it was 0), with a one-time warning when
   `discard` is not given.
+- **Behavior change**: `UniformPrior.logprior` is normalized,
+  -ln(upp - low) inside the interval (it was 0), like `GaussianPrior`.
+  MCMC chains are unchanged (a constant offset); log-probabilities
+  (`get_flat_log_prob`, the MAP sample's value) shift by that constant per
+  uniform parameter and are now comparable between models with different
+  prior widths.
 - `setup_iron_template_VW01_CIV`: kept 1300 - 1800 Å (covers the
   `qso_contfe_CIV_Shen11` windows), to be confirmed.
 

@@ -62,7 +62,8 @@ def test_uniform_logprior_is_float():
 def test_uniform_prior_takes_arrays():
     prior = UniformPrior("u", 0.0, 2.0)
     np.testing.assert_array_equal(
-        prior.logprior(np.array([-1, 0, 1, 3])), [-np.inf, 0, 0, -np.inf]
+        prior.logprior(np.array([-1, 0, 1, 3])),
+        [-np.inf, -np.log(2), -np.log(2), -np.inf],
     )
     np.testing.assert_array_equal(prior.evaluate(np.array([1.0, 5.0])), [0.5, 0.0])
 
@@ -74,3 +75,12 @@ def test_ppf_inverts_the_distribution():
     assert gaussian.ppf(0.8413447460685429) == pytest.approx(2.5)
     with pytest.raises(NotImplementedError):
         Prior("p", "custom").ppf(0.5)
+
+
+def test_uniform_logprior_is_normalized():
+    """exp(logprior) integrates to 1, as for GaussianPrior."""
+    for prior in (UniformPrior("u", -1.0, 3.0), GaussianPrior("g", 0.5, 0.2)):
+        x = np.linspace(-5, 5, 200001)
+        density = np.exp(prior.logprior(x))
+        assert np.trapezoid(density, x) == pytest.approx(1.0, rel=1e-3)
+        assert prior.evaluate(0.5) == pytest.approx(np.exp(prior.logprior(0.5)))

@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from scipy import stats
 
@@ -95,21 +97,23 @@ class UniformPrior(Prior):
         return np.where(inside, 1 / (self.upp - self.low), 0.0)
 
     def logprior(self, x):
-        """Log prior at `x`, up to a constant: 0 inside the interval, -inf outside.
-
-        Unnormalized (the -ln(upp - low) is left out), unlike
-        `GaussianPrior.logprior`; this does not matter for MCMC, but does for
-        an evidence (nested sampling).
+        """Normalized log prior at `x`: -ln(upp - low) inside the interval,
+        -inf outside (like `GaussianPrior.logprior`, so log-probabilities of
+        models with different prior widths are comparable).
 
         :param x: Parameter value(s)
         :type x: float or np.ndarray
         :rtype: float or np.ndarray
         """
 
+        # Computed per call: the bounds may be changed after creation (e.g. by
+        # `Qso_autofit.create_emission_line_dict`).
         if isinstance(x, (float, int, np.number)):  # fast path, per likelihood call
-            return 0.0 if self.low <= x <= self.upp else -np.inf
+            if self.low <= x <= self.upp:
+                return -math.log(self.upp - self.low)
+            return -np.inf
         inside = (self.low <= np.asarray(x)) & (np.asarray(x) <= self.upp)
-        return np.where(inside, 0.0, -np.inf)
+        return np.where(inside, -np.log(self.upp - self.low), -np.inf)
 
     def ppf(self, q):
         """Inverse cumulative distribution: low + q (upp - low).
