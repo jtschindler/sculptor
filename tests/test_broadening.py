@@ -110,3 +110,14 @@ def test_fitmodel_scalar_and_array_resolution_agree(line):
             np.full_like(dispersion, 2000.0),
         )
     )
+
+
+def test_big_endian_input_gives_the_same_result(line):
+    """FITS data (e.g. read with astropy) is often big-endian, which numba
+    cannot type; `broaden_spectrum` casts its inputs itself."""
+    dispersion, fluxden = line
+    resolution = np.full_like(dispersion, 2000.0)
+    native = scut.broaden_spectrum(dispersion, fluxden, resolution)
+    big_endian = scut.broaden_spectrum(dispersion.astype(">f8"), fluxden, resolution)
+    assert np.all(np.isfinite(big_endian))
+    np.testing.assert_array_equal(native, big_endian)

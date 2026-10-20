@@ -95,8 +95,10 @@ def get_median_params(model, discard=0):
     """
     Calculate median value, 1-sigma uncertainties and upper,lower bounds for all parameters from the MCMC chain.
 
-    :param model: model
+    :param model: model (with a sampler or a stored chain)
+    :type model: sculptor.model.FitModel
     :param discard: number of steps to discard
+    :type discard: int
 
     :return param_dict: Dictionary with keys as parameter names and values as:
         - param_name: median value
@@ -106,7 +108,7 @@ def get_median_params(model, discard=0):
     :type param_dict: dict
     """
 
-    flat_chain = model.sampler.get_chain(discard=discard, thin=1, flat=True)
+    flat_chain = model.get_flat_chain(discard=discard)
     param_names = list(model.params_variable.keys())
 
     param_dict = {}
@@ -219,18 +221,28 @@ def print_variable_parameters(model):
     print("=" * 60)
 
 
-def plot_burnin(model, save_dir=".", plot_name="burnin_all_params.pdf"):
+def plot_burnin(model, save_dir=".", plot_name="burnin_all_params.pdf", max_walkers=10):
     """
-    Generate a plot to assess how much burn-in is necessary for a given MCMC run.
+    Generate a plot to assess how much burn-in is necessary for a given MCMC run:
+    the chain of every variable parameter against the step number, for up to
+    `max_walkers` walkers.
 
-    :param model: model
+    :param model: model with a sampler (the unflattened chain is needed)
     :type model: sculptor.model.FitModel
     :param save_dir: path to save the output
     :type save_dir: str
     :param plot_name: output filename
     :type plot_name: str
+    :param max_walkers: number of walkers to plot (default 10; None for all)
+    :type max_walkers: int
+    :raises ValueError: if the model has no sampler (e.g. a loaded chain)
     """
 
+    if model.sampler is None:
+        raise ValueError(
+            "plot_burnin needs the sampler (the per-walker chain); this model "
+            "only has a flat chain."
+        )
     samples = model.sampler.get_chain(discard=0, flat=False)
 
     param_names = list(model.params_variable.keys())
@@ -242,14 +254,12 @@ def plot_burnin(model, save_dir=".", plot_name="burnin_all_params.pdf"):
     if n_params == 1:
         axes = [axes]
 
-    low = 0
-    upp = n_steps
-
-    n_walkers = 10
+    if max_walkers is not None:
+        n_walkers = min(n_walkers, max_walkers)
     for i, param_name in enumerate(param_names):
         ax = axes[i]
         for w in range(n_walkers):
-            ax.plot(np.arange(low, upp), samples[low:upp, w, i], alpha=0.5, lw=0.3)
+            ax.plot(np.arange(n_steps), samples[:, w, i], alpha=0.5, lw=0.3)
         ax.set_ylabel(param_name)
 
     axes[-1].set_xlabel("MCMC Step")
@@ -266,7 +276,7 @@ def get_sampled_values(model, param_name, discard=0):
     """
     Extract the MCMC samples of a specific parameter from a given model.
 
-    :param model: model
+    :param model: model (with a sampler or a stored chain)
     :type model: sculptor.model.FitModel
     :param param_name: parameter
     :type param_name: str
@@ -274,13 +284,10 @@ def get_sampled_values(model, param_name, discard=0):
     :type discard: int
 
     :return: 1D array of parameter values from the MCMC chain.
-    :type : array
+    :rtype: np.ndarray
     """
 
-    if model.sampler is None:
-        raise RuntimeError("Sampler not found. Run model.run_emcee() first.")
-
-    chain = model.sampler.get_chain(discard=discard, flat=True)
+    chain = model.get_flat_chain(discard=discard)
     param_names = list(model.params_variable.keys())
 
     if param_name not in param_names:

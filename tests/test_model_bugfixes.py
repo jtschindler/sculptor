@@ -189,9 +189,8 @@ def test_eval_with_resolution_handles_bigendian_dispersion():
 # --------------------------------------------------------------------------
 # Fix: FitComponent.param_mapping mutation always invalidates the cached
 # get_arg_keys() result, even after the component has already been
-# evaluated once (the coupled-parameter idiom used throughout
-# _ground_truth/agn_fit_new.py, e.g. `comp.param_mapping.update({'redsh':
-# 'redsh_nl'})`).
+# evaluated once (the coupled-parameter idiom, e.g.
+# `comp.param_mapping.update({'redsh': 'redsh_nl'})`).
 # --------------------------------------------------------------------------
 
 

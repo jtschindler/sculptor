@@ -71,10 +71,9 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-norecursedirs = ["tests/ground_truth"]
 
 [tool.ruff]
-extend-exclude = ["tests/ground_truth", "_ground_truth", "deprecated"]
+extend-exclude = ["_ground_truth", "deprecated"]
 # pre-commit passes explicit filenames to ruff, which otherwise ignores
 # exclude/extend-exclude for paths given directly on the command line.
 force-exclude = true
@@ -83,6 +82,6 @@ force-exclude = true
 extend-select = ["B", "I", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
-# Filename matches upstream jtschindler/sculptor for parity tracking; renaming
-# it would break that correspondence (see tests/ground_truth/*/Qso_autofit.py).
+# Filename matches upstream jtschindler/sculptor (Qso_autofit.py); keep it so
+# changes can be compared with upstream.
 "sculptor_extensions/src/sculptor_extensions/Qso_autofit.py" = ["N999"]

@@ -1,46 +1,12 @@
-import sys
-from pathlib import Path
-
 import numpy as np
 import pytest
 from astropy import units as u
 from speconed import speconed as sod
 
-import sculptor
 from sculptor import analysis as ana
 from sculptor import component as sccomp
 from sculptor import model as scmod
 from sculptor import prior as scpri
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-DEPRECATED_SCULPTOR_DIR = REPO_ROOT / "deprecated" / "src" / "sculptor"
-
-
-@pytest.fixture(scope="module")
-def deprecated_sculptor():
-    """Make the deprecated `sculptor` modules importable under their old names.
-
-    The ground-truth reference copies in `tests/ground_truth/` import e.g.
-    `sculptor.dep_v1.speconed`, `sculptor.dep_v1.specanalysis` and
-    `sculptor.colors`, which now live in `deprecated/src/sculptor/`. This
-    exposes them only for the test module that requests the fixture, so the
-    maintained package cannot silently depend on deprecated code.
-    """
-    sculptor.__path__.append(str(DEPRECATED_SCULPTOR_DIR))
-    try:
-        yield
-    finally:
-        sculptor.__path__.remove(str(DEPRECATED_SCULPTOR_DIR))
-        for name, module in list(sys.modules.items()):
-            origin = getattr(module, "__file__", None) or ""
-            if name.startswith("sculptor.") and origin.startswith(
-                str(DEPRECATED_SCULPTOR_DIR)
-            ):
-                del sys.modules[name]
-                attr = name.split(".")[1]
-                if hasattr(sculptor, attr):
-                    delattr(sculptor, attr)
-
 
 REDSHIFT = 3.227  # used by the model fixtures below
 
