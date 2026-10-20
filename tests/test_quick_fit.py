@@ -1,0 +1,303 @@
+"""Tests for the quick fit (`FitModel.run_quick_fit`, `sculptor.quick_fit`)
+and the `FitModel.fit` dispatcher."""
+
+import logging
+
+import numpy as np
+import pytest
+from astropy import units as u
+from speconed import speconed as sod
+
+from sculptor import analysis as ana
+from sculptor import component as sccomp
+from sculptor import model as scmod
+from sculptor import prior as scpri
+from sculptor.quick_fit import QuickFitResult
+
+TRUTH = {
+    "pl_amp": 0.02,
+    "pl_slope": -1.5,
+    "SiIV_a_flux": 6.0,
+    "SiIV_a_fwhm_km_s": 1200,
+}
+
+
+def _perturb(model):
+    """Start away from the truth the synthetic spectrum was made with."""
+    model.parameters["pl_amp"].value = 0.05
+    model.parameters["SiIV_a_flux"].value = 3.0
+    model.parameters["SiIV_a_fwhm_km_s"].value = 3000
+
+
+def linear(x, a, b):
+    """Straight line a * x + b."""
+    return a * x + b
+
+
+def _linear_model(prior_a=None, prior_b=None, seed=1):
+    x = np.linspace(0, 10, 50)
+    rng = np.random.default_rng(seed)
+    err = np.full_like(x, 0.5)
+    spec = sod.SpecOneD(
+        dispersion=x,
+        fluxden=linear(x, 2.0, 1.0) + rng.normal(0, 0.5, x.size),
+        fluxden_err=err,
+        dispersion_unit=u.AA,
+        fluxden_unit=u.erg / u.s / u.cm**2 / u.AA,
+    )
+    comp = sccomp.FitComponent("lin", linear)
+    pars = comp.create_params()
+    pars["lin_a"].value, pars["lin_a"].prior = 1.0, prior_a
+    pars["lin_b"].value, pars["lin_b"].prior = 0.0, prior_b
+    model = scmod.FitModel(components=[comp], parameters=pars, spectrum=spec)
+    model.add_wavelength_range_to_fit_mask(0, 10)
+    return model, x, err
+
+
+def test_recovers_the_input_parameters(fit_model):
+    _perturb(fit_model)
+    result = fit_model.run_quick_fit()
+
+    assert isinstance(result, QuickFitResult)
+    assert fit_model.quick_fit_result is result
+    assert result.success
+    assert result.param_names == list(TRUTH)
+    assert result.at_bound == []
+    for name, (value, error) in result.params_dict().items():
+        assert error > 0
+        assert abs(value - TRUTH[name]) < 4 * error, name
+    assert 0.8 < result.red_chisq < 1.2
+
+
+def test_linear_model_matches_weighted_least_squares():
+    """For a linear model without priors the MAP is the weighted
+    least-squares solution and the Gauss-Newton covariance is exact."""
+
+    model, x, err = _linear_model()
+    result = model.run_quick_fit()
+
+    design = np.vstack([x, np.ones_like(x)]).T / err[:, None]
+    coef, *_ = np.linalg.lstsq(design, model.spec.fluxden / err, rcond=None)
+    cov = np.linalg.inv(design.T @ design)
+
+    np.testing.assert_allclose(result.values, coef, rtol=1e-5)
+    np.testing.assert_allclose(result.covariance, cov, rtol=1e-4)
+    assert result.dof == x.size - 2
+    assert result.n_data == x.size
+
+
+def test_information_criteria():
+    model, x, _ = _linear_model()
+    result = model.run_quick_fit()
+
+    k, n = 2, x.size
+    assert result.bic == pytest.approx(k * np.log(n) - 2 * result.log_likelihood)
+    assert result.aic == pytest.approx(2 * k - 2 * result.log_likelihood)
+    assert result.aicc == pytest.approx(result.aic + 2 * k * (k + 1) / (n - k - 1))
+
+
+def test_uses_the_mcmc_log_probability(fit_model):
+    """The stored log-probability is the one emcee samples."""
+
+    result = fit_model.run_quick_fit()
+    spec = fit_model.spec
+    expected = scmod.log_probability(
+        result.values, spec.dispersion, fit_model, spec.fluxden, spec.fluxden_err
+    )
+    assert result.log_prob == pytest.approx(expected)
+    assert result.log_likelihood == pytest.approx(
+        scmod.log_likelihood_chi_square(
+            result.values, fit_model, spec.dispersion, spec.fluxden, spec.fluxden_err
+        )
+    )
+
+
+def test_gaussian_prior_enters_value_and_uncertainty():
+    """A strong Gaussian prior pulls the fit and shrinks the uncertainty."""
+
+    free, *_ = _linear_model()
+    free_result = free.run_quick_fit()
+
+    prior = scpri.GaussianPrior("lin_b", 5.0, 0.01)
+    tied, *_ = _linear_model(prior_b=prior)
+    tied_result = tied.run_quick_fit()
+
+    assert tied_result.values[1] == pytest.approx(5.0, abs=0.05)
+    assert tied_result.errors[1] < 0.01
+    assert tied_result.errors[1] < free_result.errors[1]
+
+
+def test_uniform_prior_bound_is_respected_and_flagged(caplog):
+    model, *_ = _linear_model(prior_a=scpri.UniformPrior("lin_a", 0, 1.5))
+    with caplog.at_level(logging.WARNING):
+        result = model.run_quick_fit()
+
+    assert result.values[0] <= 1.5
+    assert result.values[0] == pytest.approx(1.5)
+    assert result.at_bound == ["lin_a"]
+    assert "prior bound" in caplog.text
+
+
+def test_start_outside_the_prior_is_moved_inside(caplog):
+    model, *_ = _linear_model(prior_a=scpri.UniformPrior("lin_a", 1.5, 3))
+    model.parameters["lin_a"].value = 10.0
+    with caplog.at_level(logging.WARNING):
+        result = model.run_quick_fit()
+
+    assert "outside its prior" in caplog.text
+    assert result.success
+    assert result.values[0] == pytest.approx(2.0, abs=0.2)
+
+
+def test_fixed_parameters_stay_fixed(fit_model):
+    fit_model.parameters["pl_slope"].vary = False
+    fit_model.parameters["pl_slope"].value = -1.5
+    result = fit_model.run_quick_fit()
+
+    assert "pl_slope" not in result.param_names
+    assert fit_model.parameters["pl_slope"].value == -1.5
+
+
+def test_update_values(fit_model):
+    _perturb(fit_model)
+    fit_model.run_quick_fit()
+    assert fit_model.parameters["SiIV_a_flux"].value == 3.0
+
+    result = fit_model.run_quick_fit(update_values=True)
+    for name, value in zip(result.param_names, result.values, strict=True):
+        assert fit_model.parameters[name].value == value
+
+
+def test_requires_values_and_variable_parameters():
+    model, *_ = _linear_model()
+    model.parameters["lin_a"].value = None
+    with pytest.raises(ValueError, match="without a starting value"):
+        model.run_quick_fit()
+
+    model.parameters["lin_a"].vary = False
+    model.parameters["lin_b"].vary = False
+    with pytest.raises(ValueError, match="no variable parameters"):
+        model.run_quick_fit()
+
+
+def test_spec_with_other_pixels_raises(fit_model):
+    other = fit_model.spec.copy()
+    other.dispersion = other.dispersion[:-1]
+    other.fluxden = other.fluxden[:-1]
+    other.fluxden_err = other.fluxden_err[:-1]
+    with pytest.raises(ValueError, match="pixels"):
+        fit_model.run_quick_fit(spec=other)
+
+
+def test_positions_around_quick_fit(fit_model):
+    with pytest.raises(ValueError, match="run_quick_fit"):
+        fit_model.positions_around_quick_fit(8)
+
+    result = fit_model.run_quick_fit()
+    pos = fit_model.positions_around_quick_fit(32, spread=1.0)
+
+    assert pos.shape == (32, len(result.param_names))
+    np.testing.assert_allclose(pos.mean(axis=0), result.values, atol=0, rtol=0.1)
+    for idx, name in enumerate(result.param_names):
+        prior = fit_model.parameters[name].prior
+        if isinstance(prior, scpri.UniformPrior):
+            assert np.all((pos[:, idx] >= prior.low) & (pos[:, idx] <= prior.upp))
+
+    # A changed set of variable parameters invalidates the result.
+    fit_model.parameters["pl_slope"].vary = False
+    with pytest.raises(ValueError, match="current variable parameters"):
+        fit_model.positions_around_quick_fit(8)
+
+
+def test_positions_stay_inside_a_bound():
+    model, *_ = _linear_model(prior_a=scpri.UniformPrior("lin_a", 0, 1.5))
+    model.run_quick_fit()
+    pos = model.positions_around_quick_fit(200, spread=5.0)
+    assert np.all(pos[:, 0] <= 1.5)
+    assert np.all(pos[:, 0] >= 0)
+
+
+def test_fit_dispatcher(fit_model):
+    result = fit_model.fit("quick")
+    assert fit_model.quick_fit_result is result
+
+    assert fit_model.fit("mcmc", nsteps=5, nwalkers=10, progress=False) is None
+    assert fit_model.sampler.iteration == 5
+
+    with pytest.raises(ValueError, match="Unknown fit method"):
+        fit_model.fit("lmfit")
+
+
+def test_quick_then_mcmc_starts_at_the_best_fit(fit_model):
+    _perturb(fit_model)
+    fit_model.fit("quick+mcmc", nsteps=3, nwalkers=10, progress=False)
+
+    best = fit_model.quick_fit_result
+    first = fit_model.sampler.get_chain()[0]
+    spread = np.abs(first - best.values) / best.errors
+    assert np.all(spread < 2)
+
+    with pytest.raises(ValueError, match="sets `pos`"):
+        fit_model.fit("quick+mcmc", nsteps=3, nwalkers=10, pos=first, progress=False)
+
+
+def test_quick_fit_result_survives_save_and_load(fit_model, tmp_path):
+    result = fit_model.run_quick_fit()
+    fit_model.save("fit", tmp_path)
+
+    loaded = scmod.FitModel()
+    loaded.load("fit", tmp_path)
+    np.testing.assert_array_equal(loaded.quick_fit_result.values, result.values)
+    assert loaded.quick_fit_result.param_names == result.param_names
+
+
+def test_analysis_runs_on_the_best_fit(fit_model):
+    """The analysis functions take the best-fit vector like a sample."""
+
+    result = fit_model.run_quick_fit()
+    comp_pl, comp_line = fit_model.components
+    table = ana.analyze_mcmc_results(
+        fit_model,
+        result.values[None, :],
+        {"components": [comp_pl], "rest_frame_wavelengths": [1450.0]},
+        [
+            {
+                "feature_name": "SiIV",
+                "components": [comp_line],
+                "rest_frame_wavelength": 1399.8,
+            }
+        ],
+        fit_model.redshift,
+        None,
+    )
+    assert len(table) == 1
+    assert table["SiIV_FWHM"][0].to_value(u.km / u.s) == pytest.approx(
+        result.params_dict()["SiIV_a_fwhm_km_s"][0], rel=0.05
+    )
+
+
+def test_str_lists_parameters(fit_model):
+    text = str(fit_model.run_quick_fit())
+    assert "converged" in text
+    for name in TRUTH:
+        assert name in text
+
+
+def test_plot_quick_fit_result(fit_model, tmp_path):
+    import matplotlib
+
+    matplotlib.use("Agg")
+    with pytest.raises(ValueError, match="run_quick_fit"):
+        fit_model.plot_quick_fit_result(save=True, save_dir=tmp_path)
+
+    result = fit_model.run_quick_fit()
+    residuals, dispersion = fit_model.plot_quick_fit_result(
+        save=True, save_dir=tmp_path, show_components=True, save_data=True
+    )
+
+    assert (tmp_path / "quick_fit_result.png").exists()
+    assert (tmp_path / "quick_fit_model.csv").exists()
+    assert (tmp_path / "quick_fit_model_pl.csv").exists()
+    best = fit_model.eval(fit_model.spec.dispersion, result.values)
+    np.testing.assert_allclose(residuals, fit_model.spec.fluxden - best)
+    assert dispersion.size == residuals.size

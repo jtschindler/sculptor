@@ -122,7 +122,7 @@ def test_plot_mcmc_result_without_sampler(fit_model, tmp_path):
         discard=DISCARD, save=True, save_dir=tmp_path, show_components=True
     )
 
-    assert (tmp_path / "fit_result.pdf").exists()
+    assert (tmp_path / "fit_result.png").exists()
     assert other.posterior_discard == DISCARD
 
 

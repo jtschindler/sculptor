@@ -15,6 +15,8 @@ from speconed import speconed as sod
 from tqdm import tqdm
 
 from sculptor import plot as scp
+from sculptor import prior as scpri
+from sculptor import quick_fit as scqf
 from sculptor import utils as scut
 from sculptor.persistence import PickleMixin
 
@@ -139,8 +141,9 @@ class FitModel(PickleMixin):
 
     The model flux density is the sum of the components, optionally
     broadened by the instrumental resolution (`eval`). Fits use emcee
-    (`run_emcee`); results are read through `get_flat_chain` and the
-    plotting/analysis methods.
+    (`run_emcee`), or an optimizer for a quick best fit (`run_quick_fit`);
+    both use the same log-probability, and `fit` selects one. MCMC results
+    are read through `get_flat_chain` and the plotting/analysis methods.
 
     The fit uses the pixels inside the fit regions (`gpm_fit`, set with
     `add_wavelength_range_to_fit_mask`) that are not masked in the spectrum
@@ -204,6 +207,9 @@ class FitModel(PickleMixin):
 
         self.red_chisq = None
         self.bic = None
+
+        # Result of the last quick fit (`run_quick_fit`)
+        self.quick_fit_result = None
 
         # The spectrum, the good pixel mask (gpm) for the fit and the model
         # flux density from the fit
@@ -461,6 +467,150 @@ class FitModel(PickleMixin):
                 raise ValueError("Provided position array has wrong shape.")
 
         self.sampler.run_mcmc(pos, nsteps, progress=progress)
+
+    def run_quick_fit(
+        self,
+        log_probability=log_probability,
+        spec=None,
+        method="L-BFGS-B",
+        options=None,
+        update_values=False,
+    ):
+        """Quick fit: find the maximum of the posterior (MAP) with an optimizer.
+
+        Maximizes the same `log_probability` the MCMC samples (priors plus
+        likelihood over the fit mask), starting from the parameters' current
+        values. Uniform priors become bounds. The result, with Gauss-Newton
+        uncertainties, is stored in `quick_fit_result` and returned. Analysis
+        functions take its `values` like a posterior sample, e.g.
+        `analyze_mcmc_results(model, result.values[None, :], ...)`.
+
+        :param log_probability: Function to maximize (see `initialize_emcee`)
+        :type log_probability: callable
+        :param spec: Spectrum to fit instead of `self.spec` (same pixels)
+        :type spec: speconed.speconed.SpecOneD
+        :param method: `scipy.optimize.minimize` method that supports bounds
+        :type method: str
+        :param options: Passed on to `scipy.optimize.minimize`
+        :type options: dict
+        :param update_values: Also set the variable parameters' `value` to
+            the best fit (e.g. to start the next fit from there)
+        :type update_values: bool
+        :return: The fit result
+        :rtype: sculptor.quick_fit.QuickFitResult
+        :raises ValueError: if no spectrum is set, `spec` has a different
+            number of pixels, or a variable parameter has no value
+        """
+
+        if spec is None:
+            self._require_spectrum("run the quick fit")
+            spec = self.spec
+        elif self.gpm_fit is not None and len(spec.dispersion) != len(self.gpm_fit):
+            raise ValueError(
+                f"`spec` has {len(spec.dispersion)} pixels but the fit mask "
+                f"(from `self.spec`) has {len(self.gpm_fit)}."
+            )
+
+        result = scqf.quick_fit(
+            self,
+            log_probability,
+            spec.dispersion,
+            spec.fluxden,
+            spec.fluxden_err,
+            method=method,
+            options=options,
+        )
+        self.quick_fit_result = result
+        logger.info(str(result))
+
+        if update_values:
+            for name, value in zip(result.param_names, result.values, strict=True):
+                self.parameters[name].value = float(value)
+
+        return result
+
+    def positions_around_quick_fit(self, nwalkers, spread=0.1):
+        """Initial walker positions in a small Gaussian ball around the quick
+        fit, to start an MCMC run from the best fit.
+
+        Each parameter is drawn with a width of `spread` times its quick-fit
+        uncertainty (or `spread` times 1% of its value where the uncertainty
+        is not finite) and kept inside its uniform prior.
+
+        :param nwalkers: Number of walkers
+        :type nwalkers: int
+        :param spread: Width of the ball in units of the uncertainties
+        :type spread: float
+        :return: Positions, shape (nwalkers, number of variable parameters)
+        :rtype: np.ndarray
+        :raises ValueError: if there is no quick-fit result for the current
+            variable parameters
+        """
+
+        result = getattr(self, "quick_fit_result", None)
+        self.get_params_to_sample()
+        if result is None or result.param_names != list(self.params_variable):
+            raise ValueError(
+                "No quick-fit result for the current variable parameters. "
+                "Run run_quick_fit() first."
+            )
+
+        width = np.where(
+            np.isfinite(result.errors) & (result.errors > 0),
+            result.errors,
+            0.01 * np.abs(result.values),
+        )
+        width = np.where(width > 0, width, 1e-8)
+        pos = result.values + spread * width * self.rng.standard_normal(
+            (nwalkers, result.values.size)
+        )
+
+        for idx, param in enumerate(self.params_variable.values()):
+            prior = param.prior
+            if isinstance(prior, scpri.UniformPrior):
+                # Reflect at the bounds, so that walkers stay inside
+                # the prior without piling up on the bound.
+                low, upp = prior.low, prior.upp
+                col = pos[:, idx]
+                col = np.where(col < low, 2 * low - col, col)
+                col = np.where(col > upp, 2 * upp - col, col)
+                pos[:, idx] = np.clip(col, low, upp)
+
+        return pos
+
+    def fit(self, method="quick", **kwargs):
+        """Fit the model with the quick fit or MCMC.
+
+        One entry point for scripts and the GUI. `"quick"` calls
+        `run_quick_fit(**kwargs)`; `"mcmc"` calls `run_emcee(**kwargs)`
+        (`nsteps` and `nwalkers` required). With `"quick+mcmc"` a quick fit
+        runs first and the MCMC walkers start around it
+        (`positions_around_quick_fit`); pass the quick-fit options as
+        `quick_fit_kwargs`.
+
+        :param method: "quick", "mcmc" or "quick+mcmc"
+        :type method: str
+        :param kwargs: Passed on to `run_quick_fit` or `run_emcee`
+        :return: The quick-fit result for "quick", else None
+        :rtype: sculptor.quick_fit.QuickFitResult or None
+        :raises ValueError: for an unknown method
+        """
+
+        if method == "quick":
+            return self.run_quick_fit(**kwargs)
+        if method == "mcmc":
+            self.run_emcee(**kwargs)
+            return None
+        if method == "quick+mcmc":
+            self.run_quick_fit(**kwargs.pop("quick_fit_kwargs", {}))
+            if kwargs.get("pos") is not None:
+                raise ValueError("quick+mcmc sets `pos`; do not pass it.")
+            kwargs["pos"] = self.positions_around_quick_fit(kwargs["nwalkers"])
+            self.run_emcee(**kwargs)
+            return None
+        raise ValueError(
+            f"Unknown fit method {method!r}; use 'quick', 'mcmc' or 'quick+mcmc'."
+        )
 
     def get_components_by_prefix(self, prefixes):
         """Return the components whose name starts with any of the prefixes.
@@ -791,7 +941,7 @@ class FitModel(PickleMixin):
         save=False,
         save_dir=".",
         show_components=False,
-        save_name="fit_result.pdf",
+        save_name="fit_result.png",
         save_data=False,
         pool=None,
     ):
@@ -820,7 +970,8 @@ class FitModel(PickleMixin):
         :type save_dir: str
         :param show_components: Plot the posterior median of every component
         :type show_components: bool
-        :param save_name: File name of the figure
+        :param save_name: File name of the figure; the extension sets the
+            format (PNG by default, e.g. ".pdf" for a PDF)
         :type save_name: str
         :param save_data: Also write the plotted models as CSV files
         :type save_data: bool
@@ -831,6 +982,189 @@ class FitModel(PickleMixin):
         """
 
         self._require_spectrum("plot the MCMC result")
+
+        logger.info("Evaluating the MCMC model results.")
+        if (
+            self.mcmc_model_posterior is None
+            or getattr(self, "posterior_discard", None) != discard
+        ):
+            self.get_mcmc_model_results(discard=discard, pool=pool)
+
+        med_model, low_model, upp_model = self.mcmc_model_posterior
+
+        if save_data:
+            filename = os.path.join(save_dir, "mcmc_model_results.csv")
+            np.savetxt(
+                filename,
+                np.vstack([self.spec.dispersion, med_model, low_model, upp_model]).T,
+                delimiter=",",
+                header="dispersion, med_model, low_model, upp_model",
+            )
+
+        component_fluxes = []
+        if show_components:
+            logger.info("Evaluating the components in the MCMC chain.")
+            for component in self.components:
+                comp = component.name
+                med_comp, _, _ = self._posterior_model_bands(
+                    discard=discard, components=[component], pool=pool
+                )
+                component_fluxes.append((comp, med_comp))
+
+                if save_data:
+                    filename = os.path.join(save_dir, f"mcmc_model_results_{comp}.csv")
+                    np.savetxt(
+                        filename,
+                        np.vstack([self.spec.dispersion, med_comp]).T,
+                        delimiter=",",
+                        header="dispersion, med_comp",
+                    )
+
+        extra = None
+        if show_ml_model:
+            self.model_fluxden = self.get_mode_model(discard=discard)
+            extra = (self.model_fluxden, "MAP sample")
+
+            if save_data:
+                filename = os.path.join(save_dir, "mcmc_model_results_ml.csv")
+                np.savetxt(
+                    filename,
+                    np.vstack([self.spec.dispersion, self.model_fluxden]).T,
+                    delimiter=",",
+                    header="dispersion, model_flux",
+                )
+
+        _chi_sq, _dof, reduced_chi_sq = self.calculate_chi_sq()
+
+        return self._plot_fit(
+            med_model,
+            "Median",
+            band=(low_model, upp_model),
+            component_fluxes=component_fluxes,
+            extra=extra,
+            reduced_chi_sq=reduced_chi_sq,
+            show_fit_mask=show_fit_mask,
+            ylim=ylim,
+            xlim=xlim,
+            resid_ylim=resid_ylim,
+            save=save,
+            save_dir=save_dir,
+            save_name=save_name,
+        )
+
+    def plot_quick_fit_result(
+        self,
+        show_fit_mask=True,
+        ylim=None,
+        xlim=None,
+        resid_ylim=None,
+        save=False,
+        save_dir=".",
+        show_components=False,
+        save_name="quick_fit_result.png",
+        save_data=False,
+    ):
+        """Plot the spectrum with the quick-fit model and the residuals.
+
+        The same figure as `plot_mcmc_result`, for the best fit of the last
+        `run_quick_fit` (no uncertainty band).
+
+        :param show_fit_mask: Shade the fitted regions
+        :type show_fit_mask: bool
+        :param ylim: y-axis limits of the spectrum panel
+        :type ylim: [float, float]
+        :param xlim: x-axis limits
+        :type xlim: [float, float]
+        :param resid_ylim: y-axis limits of the residual panel
+        :type resid_ylim: [float, float]
+        :param save: Save the figure instead of showing it
+        :type save: bool
+        :param save_dir: Directory for the figure and data files
+        :type save_dir: str
+        :param show_components: Plot every component at the best fit
+        :type show_components: bool
+        :param save_name: File name of the figure; the extension sets the
+            format (PNG by default, e.g. ".pdf" for a PDF)
+        :type save_name: str
+        :param save_data: Also write the plotted models as CSV files
+        :type save_data: bool
+        :return: Residuals of the best-fit model and the matching dispersion
+            (both within the spectrum's mask)
+        :rtype: tuple(np.ndarray, np.ndarray)
+        :raises ValueError: if no spectrum is set or there is no quick-fit
+            result
+        """
+
+        self._require_spectrum("plot the quick-fit result")
+        result = getattr(self, "quick_fit_result", None)
+        if result is None:
+            raise ValueError("No quick-fit result. Run run_quick_fit() first.")
+
+        dispersion = self.spec.dispersion
+        self.model_fluxden = self.eval(dispersion, result.values)
+
+        if save_data:
+            np.savetxt(
+                os.path.join(save_dir, "quick_fit_model.csv"),
+                np.vstack([dispersion, self.model_fluxden]).T,
+                delimiter=",",
+                header="dispersion, model_flux",
+            )
+
+        component_fluxes = []
+        if show_components:
+            for component in self.components:
+                comp_flux = self.eval(dispersion, result.values, components=[component])
+                component_fluxes.append((component.name, comp_flux))
+                if save_data:
+                    np.savetxt(
+                        os.path.join(save_dir, f"quick_fit_model_{component.name}.csv"),
+                        np.vstack([dispersion, comp_flux]).T,
+                        delimiter=",",
+                        header="dispersion, model_flux",
+                    )
+
+        return self._plot_fit(
+            self.model_fluxden,
+            "Best-fit",
+            component_fluxes=component_fluxes,
+            reduced_chi_sq=result.red_chisq,
+            show_fit_mask=show_fit_mask,
+            ylim=ylim,
+            xlim=xlim,
+            resid_ylim=resid_ylim,
+            save=save,
+            save_dir=save_dir,
+            save_name=save_name,
+        )
+
+    def _plot_fit(
+        self,
+        model_flux,
+        label,
+        band=None,
+        component_fluxes=(),
+        extra=None,
+        reduced_chi_sq=None,
+        show_fit_mask=True,
+        ylim=None,
+        xlim=None,
+        resid_ylim=None,
+        save=False,
+        save_dir=".",
+        save_name="fit_result.png",
+    ):
+        """Spectrum, model and residual figure shared by `plot_mcmc_result`
+        and `plot_quick_fit_result`.
+
+        :param model_flux: Main model ("<label> model", with residuals)
+        :param label: Name of the main model in the legend
+        :param band: (lower, upper) model band to shade
+        :param component_fluxes: (name, flux) per component to plot
+        :param extra: (flux, label) of a second model, dashed, with residuals
+        :param reduced_chi_sq: Shown in the legend
+        :return: Residuals of the main model and the matching dispersion
+        """
 
         scp.set_presentation_defaults()
 
@@ -881,92 +1215,48 @@ class FitModel(PickleMixin):
             lw=1.5,
         )
 
-        # Plot the MCMC model results
-        logger.info("Evaluating the MCMC model results.")
-        if (
-            self.mcmc_model_posterior is None
-            or getattr(self, "posterior_discard", None) != discard
-        ):
-            self.get_mcmc_model_results(discard=discard, pool=pool)
-
-        med_model, low_model, upp_model = self.mcmc_model_posterior
-
-        if save_data:
-            filename = os.path.join(save_dir, "mcmc_model_results.csv")
-            np.savetxt(
-                filename,
-                np.vstack([self.spec.dispersion, med_model, low_model, upp_model]).T,
-                delimiter=",",
-                header="dispersion, med_model, low_model, upp_model",
-            )
-
-        # Plot the median model
+        # Plot the main model
         ax_main.step(
             self.spec.dispersion,
-            med_model,
+            model_flux,
             color=scp.dblue,
             where="mid",
-            label="Median model",
+            label=f"{label} model",
             lw=2,
         )
         # Plot the 1-sigma model region
-        ax_main.fill_between(
-            self.spec.dispersion,
-            low_model,
-            upp_model,
-            color=scp.dblue,
-            alpha=0.3,
-            step="mid",
-        )
+        if band is not None:
+            ax_main.fill_between(
+                self.spec.dispersion,
+                band[0],
+                band[1],
+                color=scp.dblue,
+                alpha=0.3,
+                step="mid",
+            )
 
-        if show_components:
-            logger.info("Evaluating the components in the MCMC chain.")
-            n_comp = len(self.components)
-            for ldx, component in enumerate(self.components):
-                comp = component.name
-                c = cmap(ldx / n_comp)
-                med_comp, _, _ = self._posterior_model_bands(
-                    discard=discard, components=[component], pool=pool
-                )
-                ax_main.step(
-                    self.spec.dispersion,
-                    med_comp,
-                    where="mid",
-                    color=c,
-                    lw=1.5,
-                    label=comp,
-                )
-
-                if save_data:
-                    filename = os.path.join(save_dir, f"mcmc_model_results_{comp}.csv")
-                    np.savetxt(
-                        filename,
-                        np.vstack([self.spec.dispersion, med_comp]).T,
-                        delimiter=",",
-                        header="dispersion, med_comp",
-                    )
-
-        # Plot the maximum likelihood model
-        if show_ml_model:
-            self.model_fluxden = self.get_mode_model(discard=discard)
+        n_comp = len(self.components)
+        for ldx, (comp, comp_flux) in enumerate(component_fluxes):
             ax_main.step(
                 self.spec.dispersion,
-                self.model_fluxden,
+                comp_flux,
+                where="mid",
+                color=cmap(ldx / n_comp),
+                lw=1.5,
+                label=comp,
+            )
+
+        # Plot the second model (e.g. the MAP sample)
+        if extra is not None:
+            ax_main.step(
+                self.spec.dispersion,
+                extra[0],
                 color=scp.vermillion,
                 where="mid",
-                label="MAP sample",
+                label=extra[1],
                 ls="--",
                 lw=2,
             )
-
-            if save_data:
-                filename = os.path.join(save_dir, "mcmc_model_results_ml.csv")
-                np.savetxt(
-                    filename,
-                    np.vstack([self.spec.dispersion, self.model_fluxden]).T,
-                    delimiter=",",
-                    header="dispersion, model_flux",
-                )
 
         ax_main.plot(self.spec.dispersion, self.spec.dispersion * 0, "k:", lw=1.5)
 
@@ -981,27 +1271,27 @@ class FitModel(PickleMixin):
         )
 
         # Plot the residuals
-        residuals = self.spec.fluxden[self.spec.mask] - med_model[self.spec.mask]
+        residuals = self.spec.fluxden[self.spec.mask] - model_flux[self.spec.mask]
         ax_resid.step(
             self.spec.dispersion[self.spec.mask],
             residuals,
             color=scp.dblue,
             where="mid",
             lw=1.5,
-            label="Median residuals",
+            label=f"{label} residuals",
             zorder=-100,
         )
-        if show_ml_model:
-            residuals_ml = (
-                self.spec.fluxden[self.spec.mask] - self.model_fluxden[self.spec.mask]
+        if extra is not None:
+            residuals_extra = (
+                self.spec.fluxden[self.spec.mask] - extra[0][self.spec.mask]
             )
             ax_resid.step(
                 self.spec.dispersion[self.spec.mask],
-                residuals_ml,
+                residuals_extra,
                 color=scp.vermillion,
                 where="mid",
                 lw=1.5,
-                label="MAP residuals",
+                label=extra[1].replace("sample", "residuals"),
                 zorder=-100,
             )
 
@@ -1049,14 +1339,13 @@ class FitModel(PickleMixin):
             )
 
         # Add reduced-chi2 value on the plot for the fit
-        _chi_sq, _dof, reduced_chi_sq = self.calculate_chi_sq()
-
-        stats_handle = Line2D(
-            [0], [0], color="none", label=f"reduced chi-sq = {reduced_chi_sq:.2f}"
-        )
         handles, labels = ax_main.get_legend_handles_labels()
-        handles.append(stats_handle)
-        labels.append(stats_handle.get_label())
+        if reduced_chi_sq is not None:
+            stats_handle = Line2D(
+                [0], [0], color="none", label=f"reduced chi-sq = {reduced_chi_sq:.2f}"
+            )
+            handles.append(stats_handle)
+            labels.append(stats_handle.get_label())
 
         ax_main.set_ylabel(
             "Flux density ({})".format(
@@ -1091,7 +1380,7 @@ class FitModel(PickleMixin):
 
         if save:
             filename = os.path.join(save_dir, save_name)
-            plt.savefig(filename, bbox_inches="tight")
+            plt.savefig(filename, bbox_inches="tight", dpi=150)
         else:
             plt.show()
 
@@ -1116,7 +1405,8 @@ class FitModel(PickleMixin):
         :type save: bool
         :param save_dir: Directory for the figure
         :type save_dir: str
-        :param save_name: File name of the figure
+        :param save_name: File name of the figure; the extension sets the
+            format (PNG by default, e.g. ".pdf" for a PDF)
         :type save_name: str
         :return: chainconsumer summary (parameter name -> bounds)
         :rtype: dict
