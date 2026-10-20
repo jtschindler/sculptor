@@ -217,6 +217,19 @@ class GaussianLineRule(Rule):
         lines with sigma clipping of negative outliers (`clip` with `low`),
         which removes the absorbers before they can be modeled.
     :type kind: str
+    :param function: Line profile (default `analysis.line_model_gaussian`)
+        with the arguments `redsh`, `flux`, `fwhm_km_s` and optionally `cen`
+        (fixed at the line in `lines`; a function without `cen`, e.g. a
+        doublet, needs `lines`) plus any in `fixed`; linear in `flux`
+    :type function: callable
+    :param fixed: Fixed values of further arguments, e.g.
+        `{"fluxratio": 2.98}` for the [OIII] doublet
+    :type fixed: dict
+    :param shared: Argument -> name of a parameter shared by all the
+        components this rule adds, e.g. `{"redsh": "redsh_narrow"}`; created
+        with the first component (its starting value and prior), dropped
+        with the last
+    :type shared: dict
     """
 
     def __init__(
@@ -232,6 +245,9 @@ class GaussianLineRule(Rule):
         min_significance=3.0,
         n_candidates=4,
         kind="emission",
+        function=None,
+        fixed=None,
+        shared=None,
     ):
         if kind not in ("emission", "absorption"):
             raise ValueError(f"kind must be 'emission' or 'absorption', not {kind!r}")
@@ -247,6 +263,15 @@ class GaussianLineRule(Rule):
         self.trial_fwhm = np.geomspace(*self.fwhm_range, n_trial_fwhm + 2)[1:-1]
         self.min_significance = min_significance
         self.n_candidates = n_candidates
+        self.function = ana.line_model_gaussian if function is None else function
+        self.fixed = dict(fixed or {})
+        self.shared = dict(shared or {})
+        args = FitComponent("check", self.function).function_args
+        missing = {"redsh", "flux", "fwhm_km_s"} - set(args)
+        if missing:
+            raise ValueError(f"`function` lacks the arguments {sorted(missing)}")
+        if "cen" not in args and self.lines is None:
+            raise ValueError("A `function` without `cen` needs `lines`.")
 
     def owned(self, model):
         """Names of the components this rule added (`<prefix>_<n>`).
@@ -351,15 +376,20 @@ class GaussianLineRule(Rule):
             if len(chosen) == self.n_candidates:
                 break
 
-        return [self._candidate(model, *det) for det in chosen]
+        candidates = [
+            self._candidate(model, result, sig, obs, fwhm)
+            for sig, obs, fwhm, _ in chosen
+        ]
+        return [cand for cand in candidates if cand is not None]
 
-    def _candidate(self, model, signif, obs, fwhm, amp):
-        """A Gaussian at observed wavelength `obs` with width `fwhm`."""
+    def _candidate(self, model, result, signif, obs, fwhm):
+        """A line at observed wavelength `obs` with width `fwhm`, or None if
+        the residuals do not ask for it (least-squares flux of the wrong
+        sign)."""
         name = self._new_name(model)
-        comp = FitComponent(name, ana.line_model_gaussian)
+        comp = FitComponent(name, self.function)
         pars = comp.create_params()
-        sigma_obs = fwhm / scut.c_km_s * obs * _FWHM_TO_SIGMA
-        flux = max(amp, 0.0) * np.sqrt(2 * np.pi) * sigma_obs
+        args = comp.function_args
 
         if self.lines is None:
             rest = obs / (1 + self.redshift)
@@ -376,21 +406,41 @@ class GaussianLineRule(Rule):
                 self.lines, key=lambda line: abs(line * (1 + self.redshift) - obs)
             )
             dz = self.velocity_range / scut.c_km_s * (1 + self.redshift)
-            pars[f"{name}_cen"].value = rest
-            pars[f"{name}_cen"].vary = False
+            if "cen" in args:
+                pars[f"{name}_cen"].value = rest
+                pars[f"{name}_cen"].vary = False
             pars[f"{name}_redsh"].value = obs / rest - 1
             pars[f"{name}_redsh"].prior = UniformPrior(
                 f"{name}_redsh", self.redshift - dz, self.redshift + dz
             )
             where = f"line {rest:.2f} A"
 
-        pars[f"{name}_flux"].value = self.sign * flux
-        bounds = sorted([0.0, self.sign * 100 * flux])
-        pars[f"{name}_flux"].prior = UniformPrior(f"{name}_flux", *bounds)
         pars[f"{name}_fwhm_km_s"].value = fwhm
         pars[f"{name}_fwhm_km_s"].prior = UniformPrior(
             f"{name}_fwhm_km_s", *self.fwhm_range
         )
+        for arg, value in self.fixed.items():
+            pars[f"{name}_{arg}"].value = value
+            pars[f"{name}_{arg}"].vary = False
+
+        # Shared parameters: map the argument onto one parameter for all the
+        # rule's components, created with the first one
+        for arg, shared in self.shared.items():
+            own = pars.pop(f"{name}_{arg}")
+            comp.param_mapping[arg] = shared
+            if shared not in model.parameters:
+                own.name = shared
+                if own.prior is not None:
+                    own.prior.name = shared
+                pars[shared] = own
+
+        pars[f"{name}_flux"].value = self.sign
+        amp = _linear_amplitude(model, result, comp, pars, f"{name}_flux")
+        if amp is None or self.sign * amp <= 0:
+            return None
+        pars[f"{name}_flux"].value = amp
+        bounds = sorted([0.0, 100 * amp])
+        pars[f"{name}_flux"].prior = UniformPrior(f"{name}_flux", *bounds)
         return Candidate(
             description=f"add {self.kind} {name} at {where}, FWHM {fwhm:.0f} km/s "
             f"({signif:.1f} sigma)",
@@ -398,6 +448,25 @@ class GaussianLineRule(Rule):
             parameters=pars,
             significance=float(signif),
         )
+
+
+def _linear_amplitude(model, result, comp, params, key):
+    """Least-squares amplitude of a new component on the residuals of the
+    current fit, for a component linear in parameter `key` (evaluated with
+    `key` = 1); None if it has no flux in the fit."""
+    mask = model.get_fit_mask()
+    x = model.spec.dispersion
+    lookup = {name: p.value for name, p in model.parameters.items()}
+    lookup.update(dict(zip(result.param_names, result.values, strict=True)))
+    lookup.update({name: p.value for name, p in params.items()})
+    lookup[key] = 1.0
+    unit = comp.eval(x, [lookup[k] for k in comp.get_arg_keys()])[mask]
+    resid = (model.spec.fluxden - model.eval(x, result.values))[mask]
+    weight = 1 / model.spec.fluxden_err[mask] ** 2
+    denom = np.sum(weight * unit**2)
+    if not denom > 0:
+        return None
+    return float(np.sum(weight * unit * resid) / denom)
 
 
 class ComponentRule(Rule):
@@ -510,24 +579,11 @@ class ComponentRule(Rule):
             raise ValueError("linear_param needs a factory with one component")
         comp = comps[0]
         key = comp.param_mapping[self.linear_param]
-        par = params[key]
-        mask = model.get_fit_mask()
-        x = model.spec.dispersion
-        lookup = {name: p.value for name, p in model.parameters.items()}
-        lookup.update(dict(zip(result.param_names, result.values, strict=True)))
-        lookup.update({name: p.value for name, p in params.items()})
-        lookup[key] = 1.0
-        unit = comp.eval(x, [lookup[k] for k in comp.get_arg_keys()])[mask]
-        resid = (model.spec.fluxden - model.eval(x, result.values))[mask]
-        weight = 1 / model.spec.fluxden_err[mask] ** 2
-        denom = np.sum(weight * unit**2)
-        if not denom > 0:
+        amp = _linear_amplitude(model, result, comp, params, key)
+        if amp is None or not amp > 0:
             return False
-        amp = np.sum(weight * unit * resid) / denom
-        if not amp > 0:
-            return False
-        par.value = amp
-        par.prior = UniformPrior(key, 0.0, self.prior_factor * amp)
+        params[key].value = amp
+        params[key].prior = UniformPrior(key, 0.0, self.prior_factor * amp)
         return True
 
 

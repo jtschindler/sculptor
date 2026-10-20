@@ -20,8 +20,8 @@ import string
 
 from sculptor.autofit import ComponentRule, GaussianLineRule
 from sculptor.prior import UniformPrior
+from sculptor_extensions import qso, qso_presets
 from sculptor_extensions import qso_autofit as qa
-from sculptor_extensions import qso_presets
 
 # Rest-frame vacuum wavelengths (Angstrom) of the strong quasar lines
 QSO_LINES = {
@@ -39,12 +39,19 @@ QSO_LINES = {
     "Halpha": 6564.61,
 }
 
+# Doublets fitted as one component: name -> (function, line used for the
+# detection, fixed arguments). [OIII] 5008/4960 = 2.98 (Storey & Zeippen
+# 2000); `flux` is the 4960 line's.
+DOUBLETS = {
+    "OIII": (qso.line_model_gaussian_oiii_doublet, 5008.24, {"fluxratio": 2.98}),
+}
+
 # Lines fitted by default: Lya and NV need absorption modeling and are left
 # out
-DEFAULT_LINES = ("SiIV", "CIV", "CIII", "MgII", "Hbeta", "OIII_5008", "Halpha")
+DEFAULT_LINES = ("SiIV", "CIV", "CIII", "MgII", "Hbeta", "OIII", "Halpha")
 
 # Narrow lines get a narrow FWHM range
-NARROW_LINES = ("OIII_4960", "OIII_5008")
+NARROW_LINES = ("OIII", "OIII_4960", "OIII_5008")
 
 
 def _fixed(value):
@@ -55,14 +62,17 @@ def line_rules(
     redshift,
     lines=DEFAULT_LINES,
     broad_fwhm=(1000.0, 15000.0),
-    narrow_fwhm=(100.0, 1500.0),
+    narrow_fwhm=(100.0, 2500.0),
     velocity_range=5000.0,
     max_components=3,
+    shared_redshift=None,
     **kwargs,
 ):
     """One `GaussianLineRule` per line, at the line's rest wavelength
     (fixed center, redshift free within +-`velocity_range`), with up to
-    `max_components` Gaussians each.
+    `max_components` Gaussians each. Doublets in `DOUBLETS` (e.g. "OIII")
+    are one component per pair, with one redshift and width and a fixed
+    flux ratio.
 
     :param redshift: Systemic redshift
     :type redshift: float
@@ -77,24 +87,41 @@ def line_rules(
     :type velocity_range: float
     :param max_components: Maximum Gaussians per line
     :type max_components: int
+    :param shared_redshift: Line name -> name of a redshift parameter its
+        components share (lines with the same name share one), e.g.
+        `{"OIII": "redsh_narrow"}`; by default each component has its own
+    :type shared_redshift: dict
     :param kwargs: Passed on to `GaussianLineRule`
     :return: The rules
     :rtype: list(sculptor.autofit.GaussianLineRule)
     """
+    shared_redshift = shared_redshift or {}
     if not isinstance(lines, dict):
-        lines = {name: QSO_LINES[name] for name in lines}
-    return [
-        GaussianLineRule(
-            name,
-            redshift=redshift,
-            lines=[rest],
-            fwhm_range=narrow_fwhm if name in NARROW_LINES else broad_fwhm,
-            velocity_range=velocity_range,
-            max_components=max_components,
-            **kwargs,
+        lines = {
+            name: (DOUBLETS[name][1] if name in DOUBLETS else QSO_LINES[name])
+            for name in lines
+        }
+    rules = []
+    for name, rest in lines.items():
+        function, fixed = None, None
+        if name in DOUBLETS:
+            function, _, fixed = DOUBLETS[name]
+        shared = {"redsh": shared_redshift[name]} if name in shared_redshift else None
+        rules.append(
+            GaussianLineRule(
+                name,
+                redshift=redshift,
+                lines=[rest],
+                fwhm_range=narrow_fwhm if name in NARROW_LINES else broad_fwhm,
+                velocity_range=velocity_range,
+                max_components=max_components,
+                function=function,
+                fixed=fixed,
+                shared=shared,
+                **kwargs,
+            )
         )
-        for name, rest in lines.items()
-    ]
+    return rules
 
 
 def iron_template_rule(

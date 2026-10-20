@@ -381,3 +381,82 @@ def test_correlated_noise_keeps_the_residual_amplitude():
     noise = correlated_noise(model, result, np.random.default_rng(5))
     mask = model.get_fit_mask()
     assert np.std(noise[mask]) == pytest.approx(4 * ERR, rel=0.1)
+
+
+# -- line profiles, fixed and shared parameters ---------------------------------
+
+
+def doublet(x, redsh, flux, fwhm_km_s, fluxratio):
+    """Two Gaussians at 1800 and 1850 A, the second `fluxratio` x brighter."""
+    return ana.line_model_gaussian(
+        x, redsh, flux, 1800.0, fwhm_km_s
+    ) + ana.line_model_gaussian(x, redsh, fluxratio * flux, 1850.0, fwhm_km_s)
+
+
+def _no_flux(x, redsh, amp, fwhm_km_s):
+    """A profile without a `flux` argument."""
+    return amp * np.ones_like(x)
+
+
+def test_doublet_function_with_fixed_ratio():
+    base = _model(lines=[(4.0, 1800.0, 1500.0), (12.0, 1850.0, 1500.0)])
+    rule = GaussianLineRule(
+        "D",
+        redshift=Z,
+        lines=[1850.0],
+        fwhm_range=(300, 5000),
+        function=doublet,
+        fixed={"fluxratio": 3.0},
+    )
+    result = AutoFit(base, [rule]).run()
+
+    assert [c.name for c in result.model.components] == ["PL", "D_0"]
+    par = result.model.parameters
+    assert not par["D_0_fluxratio"].vary
+    assert par["D_0_flux"].value == pytest.approx(4.0, rel=0.1)
+    assert par["D_0_fwhm_km_s"].value == pytest.approx(1500, rel=0.1)
+
+    with pytest.raises(ValueError, match="needs `lines`"):
+        GaussianLineRule("D", redshift=Z, function=doublet)
+    with pytest.raises(ValueError, match="lacks the arguments"):
+        GaussianLineRule("D", redshift=Z, lines=[1850.0], function=_no_flux)
+
+
+def test_shared_redshift():
+    """Two lines at the same velocity offset: one shared redshift."""
+
+    z_true = Z * 1.0005
+    lines = [(15.0, CIII, 2000.0), (20.0, CIV, 2000.0)]
+    base = _model(lines=[])
+    x = base.spec.dispersion
+    for flux, cen, fwhm in lines:
+        base.spec.fluxden = base.spec.fluxden + ana.line_model_gaussian(
+            x, z_true, flux, cen, fwhm
+        )
+    rules = [
+        GaussianLineRule(
+            name,
+            redshift=Z,
+            lines=[cen],
+            fwhm_range=(300, 5000),
+            max_components=1,
+            shared={"redsh": "z_lines"},
+        )
+        for name, cen in (("CIII", CIII), ("CIV", CIV))
+    ]
+    result = AutoFit(base, rules).run()
+
+    names = sorted(c.name for c in result.model.components)
+    assert names == ["CIII_0", "CIV_0", "PL"]
+    par = result.model.parameters
+    assert "CIII_0_redsh" not in par and "CIV_0_redsh" not in par
+    assert par["z_lines"].vary
+    assert par["z_lines"].value == pytest.approx(z_true, abs=2e-4)
+    for comp in result.model.components[1:]:
+        assert comp.param_mapping["redsh"] == "z_lines"
+
+    # Removing one user keeps the shared parameter; removing both drops it
+    one = AutoFit._without(result.model, "CIV_0")
+    assert "z_lines" in one.parameters
+    none = AutoFit._without(one, "CIII_0")
+    assert "z_lines" not in none.parameters

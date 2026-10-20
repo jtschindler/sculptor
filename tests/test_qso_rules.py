@@ -67,7 +67,7 @@ def test_line_rules():
     assert [r.prefix for r in rules] == ["CIV", "OIII_5008"]
     assert all(isinstance(r, GaussianLineRule) for r in rules)
     assert rules[0].lines == [qr.QSO_LINES["CIV"]]
-    assert rules[1].fwhm_range == (100.0, 1500.0)  # narrow
+    assert rules[1].fwhm_range == (100.0, 2500.0)  # narrow
     assert rules[0].max_components == 2
 
     custom = qr.line_rules(Z, {"X": 1700.0})
@@ -142,3 +142,24 @@ def test_qso_rules_bundle():
     assert kinds.count("GaussianLineRule") == len(qr.DEFAULT_LINES)
     assert kinds.count("ComponentRule") == 2
     assert len(qr.qso_rules(Z, iron=None, balmer=False)) == len(qr.DEFAULT_LINES)
+
+
+def test_oiii_doublet_rule():
+    (rule,) = qr.line_rules(Z, ["OIII"], shared_redshift={"OIII": "redsh_nl"})
+    assert rule.lines == [5008.24]
+    assert rule.fixed == {"fluxratio": 2.98}
+    assert rule.shared == {"redsh": "redsh_nl"}
+    assert rule.fwhm_range == (100.0, 2500.0)
+
+    # Found in a spectrum at the right rest frame
+    z = 0.2
+    x = np.geomspace(4800 * (1 + z), 5100 * (1 + z), 600)
+    model = _model(x=x)
+    model.parameters["PL_redsh"].value = z
+    oiii = qso_presets.qso.line_model_gaussian_oiii_doublet(x, z, 5.0, 600.0, 2.98)
+    model.spec.fluxden = model.spec.fluxden + oiii
+    (rule,) = qr.line_rules(z, ["OIII"])
+    result = AutoFit(model, [rule]).run()
+    names = [c.name for c in result.model.components]
+    assert names[:2] == ["PL", "OIII_0"]
+    assert result.model.parameters["OIII_0_flux"].value == pytest.approx(5.0, rel=0.1)
