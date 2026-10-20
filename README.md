@@ -20,10 +20,14 @@ The core package (`sculptor`):
   log-probability), posterior models, plots (`plot_quick_fit_result`,
   `plot_mcmc_result`, `plot_posterior_corner`) and save/load.
 - `sculptor.autofit`: automatic model building on the quick fit. Rules
-  (`GaussianLineRule`) propose components; they are kept while they lower
-  the BIC (or AICc) by more than a threshold (`calibrate_threshold` sets it
-  from simulations with the residuals' noise correlations); optional
-  sigma clipping between steps. See the example below.
+  propose components (`GaussianLineRule` for emission or absorption lines,
+  `ComponentRule` for predefined components or continuum swaps); they are
+  kept while they lower the BIC (or AICc, or SpIC, the spectral information
+  criterion of Webb et al. 2021) by more than a threshold
+  (`calibrate_threshold` sets it from simulations with the residuals' noise
+  correlations); optional sigma clipping between steps. Quasar rules (lines,
+  iron templates, Balmer continuum) are in `sculptor_extensions.qso_rules`.
+  See the example below.
 - `sculptor.component.FitComponent`: one model function and the mapping of
   its arguments onto parameters (e.g. a redshift shared by several lines).
 - `sculptor.parameter.FitParameter` and `sculptor.prior` (`UniformPrior`,
@@ -87,6 +91,8 @@ Automatic model building, starting from a model with only the continuum:
 from sculptor.autofit import AutoFit, GaussianLineRule, calibrate_threshold
 
 rules = [GaussianLineRule("line", redshift=3.22, fwhm_range=(300, 15000))]
+# or, for a quasar: from sculptor_extensions.qso_rules import qso_rules
+# rules = qso_rules(redshift=3.22)
 auto = AutoFit(base_model, rules, criterion="bic", clip={"low": 3, "grow": 2})
 result = auto.run()
 print(result)                     # the accepted steps and the final quick fit
