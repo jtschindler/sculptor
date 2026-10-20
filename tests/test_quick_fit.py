@@ -415,3 +415,26 @@ def test_quick_fit_with_clipping(fit_model):
     assert clipped.red_chisq < plain.red_chisq
     with pytest.raises(ValueError, match="clip"):
         fit_model.run_quick_fit(spec=fit_model.spec, clip={"low": 3})
+
+
+def test_sigma_clip_scale_follows_underestimated_errors(fit_model):
+    """Errors 4x too small: with scale="errors" ordinary noise is clipped,
+    with the robust scales only the absorber."""
+
+    dip = _absorbed(fit_model)
+    fit_model.spec.fluxden_err = fit_model.spec.fluxden_err / 4
+    values = fit_model.run_quick_fit().values
+    region = fit_model._fit_region_mask().sum()
+
+    fit_model.sigma_clip(low=3, scale="errors", values=values, max_fraction=1)
+    n_errors = region - fit_model.get_fit_mask().sum()
+    assert n_errors > 0.1 * region
+
+    for scale in ("robust", "local"):
+        fit_model.sigma_clip(low=3, scale=scale, values=values)
+        clipped = fit_model._fit_region_mask() & ~fit_model.get_fit_mask()
+        assert clipped[dip & fit_model._fit_region_mask()].all()
+        assert clipped.sum() < dip.sum() + 10, scale
+
+    with pytest.raises(ValueError, match="scale"):
+        fit_model.sigma_clip(scale="mad", values=values)

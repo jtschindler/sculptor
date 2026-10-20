@@ -11,9 +11,11 @@ from sculptor import model as scmod
 from sculptor import prior as scpri
 from sculptor.autofit import (
     AutoFit,
+    ComponentRule,
     GaussianLineRule,
     calibrate_threshold,
     correlated_noise,
+    spic,
 )
 
 Z = 2.0
@@ -148,12 +150,12 @@ def test_removes_a_component_that_does_not_earn_the_threshold():
 
 
 def test_criteria():
-    for criterion in ("aicc", "aic", lambda r: r.bic):
+    for criterion in ("aicc", "aic", lambda r, m: r.bic):
         result = AutoFit(_model(), [_rule()], criterion=criterion).run()
         assert len(result.model.components) >= 4
 
     with pytest.raises(ValueError, match="Unknown criterion"):
-        AutoFit(_model(), [_rule()], criterion="spic")
+        AutoFit(_model(), [_rule()], criterion="nope")
 
 
 def test_a_high_threshold_keeps_the_base_model():
@@ -237,3 +239,145 @@ def test_clip_after_delays_clipping():
     result = AutoFit(base, [_rule()], clip={"low": 3, "grow": 2}, clip_after=3).run()
     actions = [s.action for s in result.history]
     assert actions.index("clip") > 3
+
+
+# -- rules: components, swaps, absorption; SpIC -------------------------------
+
+
+def _line_factory(name, cen, fwhm=3000.0):
+    """Factory for a fixed-center Gaussian named `name`."""
+
+    def factory(model):
+        comp = sccomp.FitComponent(name, ana.line_model_gaussian)
+        pars = comp.create_params()
+        pars[f"{name}_redsh"].value, pars[f"{name}_redsh"].vary = Z, False
+        pars[f"{name}_cen"].value, pars[f"{name}_cen"].vary = cen, False
+        pars[f"{name}_flux"].value = 1.0
+        pars[f"{name}_fwhm_km_s"].value = fwhm
+        pars[f"{name}_fwhm_km_s"].prior = scpri.UniformPrior(
+            f"{name}_fwhm_km_s", 300, 15000
+        )
+        return comp, pars
+
+    return factory
+
+
+def test_component_rule_scales_and_adds_once():
+    rule = ComponentRule("CIII]", _line_factory("CIII_x", CIII), linear_param="flux")
+    base = _model(lines=[(15.0, CIII, 3000.0)])
+    result = base.run_quick_fit()
+
+    (cand,) = rule.propose(base, result)
+    flux = cand.parameters["CIII_x_flux"]
+    assert flux.value == pytest.approx(15.0, rel=0.1)  # least squares
+    assert flux.prior.upp == pytest.approx(100 * flux.value)
+
+    final = AutoFit(base, [rule]).run()
+    assert [c.name for c in final.model.components] == ["PL", "CIII_x"]
+    assert rule.owned(final.model) == ["CIII_x"]
+    assert rule.propose(final.model, final.result) == []  # already there
+
+
+def test_component_rule_skips_components_the_data_do_not_ask_for():
+    rule = ComponentRule("HeII", _line_factory("HeII_x", HEII), linear_param="flux")
+    base = _model(lines=[])
+    result = AutoFit(base, [rule]).run()
+    assert [c.name for c in result.model.components] == ["PL"]
+
+
+def test_component_rule_max_uses_and_none():
+    names = iter([("a", 5000.0), ("b", 1200.0), ("c", 3000.0)])
+
+    def factory(model):
+        nxt = next(names, None)
+        if nxt is None:
+            return None
+        return _line_factory(f"CIV_{nxt[0]}", CIV, fwhm=nxt[1])(model)
+
+    rule = ComponentRule("CIV", factory, max_uses=2, linear_param="flux")
+    result = AutoFit(_model(), [rule]).run()
+    assert [c.name for c in result.model.components] == ["PL", "CIV_a", "CIV_b"]
+
+
+def curved_power_law(x, redsh, amp, slope, curv):
+    """Power law with a log-parabolic curvature."""
+    logx = np.log(x / 5000.0)
+    return amp * np.exp((slope + curv * logx) * logx)
+
+
+def test_component_rule_swaps_the_continuum():
+    """A curved continuum: swapping the power law for a curved one is
+    accepted, and the old power law and its parameters are gone."""
+
+    model = _model(lines=[], noise=np.zeros(800))
+    x = model.spec.dispersion
+    model.spec.fluxden = curved_power_law(x, Z, 2.0, -1.5, -3.0) + (
+        np.random.default_rng(3).normal(0, ERR, x.size)
+    )
+
+    def factory(model):
+        comp = sccomp.FitComponent("curvedPL", curved_power_law)
+        pars = comp.create_params()
+        pars["curvedPL_redsh"].value, pars["curvedPL_redsh"].vary = Z, False
+        pars["curvedPL_amp"].value = 1.0
+        pars["curvedPL_amp"].prior = scpri.UniformPrior("curvedPL_amp", 0, 10)
+        pars["curvedPL_slope"].value = -1.0
+        pars["curvedPL_slope"].prior = scpri.UniformPrior("curvedPL_slope", -4, 2)
+        pars["curvedPL_curv"].value = 0.0
+        pars["curvedPL_curv"].prior = scpri.UniformPrior("curvedPL_curv", -10, 10)
+        return comp, pars
+
+    rule = ComponentRule("curvature", factory, replaces=["PL"])
+    result = AutoFit(model, [rule]).run()
+
+    assert [c.name for c in result.model.components] == ["curvedPL"]
+    assert not any(k.startswith("PL_") for k in result.model.parameters)
+    assert "replacing PL" in result.history[1].description
+    values = dict(zip(result.result.param_names, result.result.values, strict=True))
+    assert values["curvedPL_curv"] == pytest.approx(-3.0, abs=0.3)
+
+    # Nothing left to replace: no proposal
+    assert rule.propose(result.model, result.result) == []
+
+
+def test_absorption_rule():
+    base = _model(lines=[(-8.0, 1800.0, 400.0)])
+    rule = GaussianLineRule(
+        "abs", redshift=Z, fwhm_range=(100, 2000), kind="absorption"
+    )
+    result = AutoFit(base, [rule]).run()
+
+    assert len(result.model.components) == 2
+    par = result.model.parameters
+    assert par["abs_0_flux"].value == pytest.approx(-8.0, rel=0.15)
+    assert par["abs_0_flux"].prior.upp == 0
+    assert par["abs_0_cen"].value == pytest.approx(1800.0, abs=1)
+
+    with pytest.raises(ValueError, match="kind"):
+        GaussianLineRule("x", redshift=Z, kind="both")
+
+
+def test_spic():
+    model = _model()
+    result = AutoFit(model, [_rule()], criterion="spic").run()
+    assert len(result.model.components) == 4
+    assert result.criterion == "spic"
+
+    fit = result.result
+    value = spic(fit, result.model)
+    assert value == pytest.approx(result.history[-1].score)
+    assert value > fit.chi_sq
+    # f = 1 (AICc-like) penalizes more than f = 0 (BIC-like) for strong lines
+    assert spic(fit, result.model, f=1.0) != spic(fit, result.model, f=0.0)
+    # No lines: SpIC of the base model is chi^2 plus the continuum's penalty
+    base = _model(lines=[])
+    base_fit = base.run_quick_fit()
+    assert spic(base_fit, base) > base_fit.chi_sq
+
+
+def test_correlated_noise_keeps_the_residual_amplitude():
+    model = _model(lines=[], noise=np.random.default_rng(4).normal(0, 4 * ERR, 800))
+    result = model.run_quick_fit()
+    noise = correlated_noise(model, result, np.random.default_rng(5))
+    mask = model.get_fit_mask()
+    assert np.std(noise[mask]) == pytest.approx(4 * ERR, rel=0.1)

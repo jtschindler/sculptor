@@ -70,10 +70,56 @@ def _quiet_fits():
             lg.setLevel(level)
 
 
+def spic(result, model, f=0.5):
+    """Spectral information criterion (Webb, Lee, Carswell & Milakovic
+    2021, MNRAS 501, 2268, eq. 3), adapted to additive components.
+
+    SpIC = chi^2 + sum_a [2 f k_a R_a / (R_a - k_a - 1)
+    + (1 - f) k_a ln(R_a)], summed over the components a, where k_a is the
+    number of variable parameters of component a (a parameter shared by n
+    components counts 1/n for each) and R_a = sum_i |m_a,i| / err_i over
+    the fitted pixels: the component's flux in units of the noise, the
+    analogue of the paper's normalized absorption depth (eq. 5, 6). R_a is
+    bounded below by k_a + 2. Unlike AICc and BIC, a component is penalized
+    by the pixels it affects and its strength, not by the size of the fit
+    window. f = 1 is AICc-like, f = 0 BIC-like; the paper favors
+    f = 1/2 (SpIC_H).
+
+    :param result: Quick fit of `model`
+    :type result: sculptor.quick_fit.QuickFitResult
+    :param model: The fitted model
+    :type model: sculptor.model.FitModel
+    :param f: Weight of the AICc-like term
+    :type f: float
+    :return: SpIC
+    :rtype: float
+    """
+    x = model.spec.dispersion
+    mask = model.get_fit_mask()
+    err = model.spec.fluxden_err[mask]
+    variable = set(result.param_names)
+
+    users = {}
+    for comp in model.components:
+        for key in set(comp.get_arg_keys()) & variable:
+            users[key] = users.get(key, 0) + 1
+
+    penalty = 0.0
+    for comp in model.components:
+        k = sum(1 / users[key] for key in set(comp.get_arg_keys()) & variable)
+        if k == 0:
+            continue
+        flux = model.eval(x, result.values, components=[comp])[mask]
+        r = max(np.sum(np.abs(flux) / err), k + 2)
+        penalty += 2 * f * k * r / (r - k - 1) + (1 - f) * k * np.log(r)
+    return result.chi_sq + penalty
+
+
 CRITERIA = {
-    "bic": lambda result: result.bic,
-    "aicc": lambda result: result.aicc,
-    "aic": lambda result: result.aic,
+    "bic": lambda result, model: result.bic,
+    "aicc": lambda result, model: result.aicc,
+    "aic": lambda result, model: result.aic,
+    "spic": spic,
 }
 
 
@@ -89,19 +135,55 @@ class Candidate:
     :type parameters: dict
     :param significance: Detection significance used to rank candidates
     :type significance: float
+    :param remove: Names of components to remove first (e.g. a continuum
+        model the candidate replaces)
+    :type remove: list(str)
     """
 
     description: str
     components: list
     parameters: dict
     significance: float = np.nan
+    remove: list = field(default_factory=list)
 
 
-class GaussianLineRule:
-    """Rule: Gaussian emission lines (`analysis.line_model_gaussian`).
+class Rule:
+    """Base class of the rules: something that proposes changes.
+
+    Subclasses implement `propose` and `owned`.
+    """
+
+    def propose(self, model, result):
+        """Candidate changes for the current model and its quick fit.
+
+        :param model: The current model
+        :type model: sculptor.model.FitModel
+        :param result: Its quick fit
+        :type result: sculptor.quick_fit.QuickFitResult
+        :return: Candidates
+        :rtype: list(Candidate)
+        """
+        raise NotImplementedError
+
+    def owned(self, model):
+        """Names of the components of `model` this rule added (AutoFit may
+        remove them again).
+
+        :param model: The model
+        :type model: sculptor.model.FitModel
+        :rtype: list(str)
+        """
+        raise NotImplementedError
+
+
+class GaussianLineRule(Rule):
+    """Rule: Gaussian emission (or absorption) lines
+    (`analysis.line_model_gaussian`).
 
     Candidates are placed where a matched filter on the residuals of the
-    current fit finds the most significant unmodeled emission, for a few
+    current fit finds the most significant unmodeled emission (absorption
+    with `kind="absorption"`: a Gaussian with negative flux, an additive
+    approximation valid for weak, resolved absorbers), for a few
     trial widths within `fwhm_range`. With `lines` (rest-frame centers),
     only those lines are considered: the center is fixed and the redshift
     may vary by +-`velocity_range`; without, the center is free (+-1 FWHM
@@ -131,6 +213,10 @@ class GaussianLineRule:
     :type min_significance: float
     :param n_candidates: Candidates proposed per iteration
     :type n_candidates: int
+    :param kind: "emission" or "absorption". Do not combine absorption
+        lines with sigma clipping of negative outliers (`clip` with `low`),
+        which removes the absorbers before they can be modeled.
+    :type kind: str
     """
 
     def __init__(
@@ -145,7 +231,12 @@ class GaussianLineRule:
         n_trial_fwhm=4,
         min_significance=3.0,
         n_candidates=4,
+        kind="emission",
     ):
+        if kind not in ("emission", "absorption"):
+            raise ValueError(f"kind must be 'emission' or 'absorption', not {kind!r}")
+        self.kind = kind
+        self.sign = 1.0 if kind == "emission" else -1.0
         self.prefix = prefix
         self.redshift = redshift
         self.fwhm_range = tuple(fwhm_range)
@@ -157,8 +248,13 @@ class GaussianLineRule:
         self.min_significance = min_significance
         self.n_candidates = n_candidates
 
-    def _own_components(self, model):
-        """Names of the components this rule added."""
+    def owned(self, model):
+        """Names of the components this rule added (`<prefix>_<n>`).
+
+        :param model: The model
+        :type model: sculptor.model.FitModel
+        :rtype: list(str)
+        """
         return [
             c.name for c in model.components if c.name.startswith(self.prefix + "_")
         ]
@@ -189,7 +285,7 @@ class GaussianLineRule:
         """
         spec = model.spec
         x = spec.dispersion
-        resid = spec.fluxden - model.eval(x, result.values)
+        resid = self.sign * (spec.fluxden - model.eval(x, result.values))
         weight = np.where(self._search_mask(model), 1 / spec.fluxden_err**2, 0.0)
 
         # Kernel width in pixels, from the median pixel scale (constant for
@@ -233,7 +329,7 @@ class GaussianLineRule:
         :return: Up to `n_candidates` candidates, most significant first
         :rtype: list(Candidate)
         """
-        if len(self._own_components(model)) >= self.max_components:
+        if len(self.owned(model)) >= self.max_components:
             return []
 
         x = model.spec.dispersion
@@ -288,19 +384,151 @@ class GaussianLineRule:
             )
             where = f"line {rest:.2f} A"
 
-        pars[f"{name}_flux"].value = flux
-        pars[f"{name}_flux"].prior = UniformPrior(f"{name}_flux", 0, 100 * flux)
+        pars[f"{name}_flux"].value = self.sign * flux
+        bounds = sorted([0.0, self.sign * 100 * flux])
+        pars[f"{name}_flux"].prior = UniformPrior(f"{name}_flux", *bounds)
         pars[f"{name}_fwhm_km_s"].value = fwhm
         pars[f"{name}_fwhm_km_s"].prior = UniformPrior(
             f"{name}_fwhm_km_s", *self.fwhm_range
         )
         return Candidate(
-            description=f"add {name} at {where}, FWHM {fwhm:.0f} km/s "
+            description=f"add {self.kind} {name} at {where}, FWHM {fwhm:.0f} km/s "
             f"({signif:.1f} sigma)",
             components=[comp],
             parameters=pars,
             significance=float(signif),
         )
+
+
+class ComponentRule(Rule):
+    """Rule: add a predefined component (or several), or swap one for
+    another, e.g. an iron template, a Balmer continuum, the next Gaussian of
+    an emission line, or a different continuum model.
+
+    `factory(model)` builds the components and parameters for the current
+    model and returns `(component, parameters)`, `(components,
+    parameters)`, or None when there is nothing to propose. The rule
+    proposes the result while none of its components is in the model and it
+    was used fewer than `max_uses` times, so a factory that names its
+    components `<line>_broad_a`, `<line>_broad_b`, ... can add one more each
+    time.
+
+    With `linear_param` (e.g. "amp" or "flux"), the starting value of that
+    parameter of the (single) new component is the least-squares amplitude
+    on the current residuals, and the uniform prior's upper bound is
+    `prior_factor` times it; a non-positive amplitude means the data do not
+    ask for the component, and nothing is proposed.
+
+    :param name: Name of the rule (for the log)
+    :type name: str
+    :param factory: Builds the components, see above
+    :type factory: callable
+    :param replaces: Names of components the new ones replace (removed in
+        the same step, e.g. the old continuum)
+    :type replaces: list(str)
+    :param max_uses: How many components the rule may add (one per use)
+    :type max_uses: int
+    :param linear_param: Parameter (without the component prefix) that
+        scales the new component linearly
+    :type linear_param: str
+    :param prior_factor: Upper prior bound in units of the estimated
+        amplitude, with `linear_param`
+    :type prior_factor: float
+    """
+
+    def __init__(
+        self,
+        name,
+        factory,
+        replaces=(),
+        max_uses=1,
+        linear_param=None,
+        prior_factor=100.0,
+    ):
+        self.name = name
+        self.factory = factory
+        self.replaces = list(replaces)
+        self.max_uses = max_uses
+        self.linear_param = linear_param
+        self.prior_factor = prior_factor
+        self._produced = set()
+
+    def owned(self, model):
+        """Names of the components of `model` this rule added.
+
+        :param model: The model
+        :type model: sculptor.model.FitModel
+        :rtype: list(str)
+        """
+        return [c.name for c in model.components if c.name in self._produced]
+
+    def propose(self, model, result):
+        """The factory's components as one candidate (see the class).
+
+        :param model: The current model
+        :type model: sculptor.model.FitModel
+        :param result: Its quick fit
+        :type result: sculptor.quick_fit.QuickFitResult
+        :return: Zero or one candidate
+        :rtype: list(Candidate)
+        """
+        if len(self.owned(model)) >= self.max_uses:
+            return []
+        if self.replaces and not any(c.name in self.replaces for c in model.components):
+            return []
+        built = self.factory(model)
+        if built is None:
+            return []
+        comps, params = built
+        if not isinstance(comps, (list, tuple)):
+            comps = [comps]
+        names = {c.name for c in model.components}
+        if any(c.name in names for c in comps):
+            return []
+        self._produced.update(c.name for c in comps)
+
+        description = f"{self.name}: add {', '.join(c.name for c in comps)}"
+        if self.replaces:
+            description += f" (replacing {', '.join(self.replaces)})"
+        if self.linear_param is not None and not self._scale(
+            model, result, comps, params
+        ):
+            return []
+        return [
+            Candidate(
+                description=description,
+                components=list(comps),
+                parameters=dict(params),
+                remove=[n for n in self.replaces if n in names],
+            )
+        ]
+
+    def _scale(self, model, result, comps, params):
+        """Least-squares starting value for `linear_param`; False if the
+        residuals do not ask for the component."""
+        if len(comps) != 1:
+            raise ValueError("linear_param needs a factory with one component")
+        comp = comps[0]
+        key = comp.param_mapping[self.linear_param]
+        par = params[key]
+        mask = model.get_fit_mask()
+        x = model.spec.dispersion
+        lookup = {name: p.value for name, p in model.parameters.items()}
+        lookup.update(dict(zip(result.param_names, result.values, strict=True)))
+        lookup.update({name: p.value for name, p in params.items()})
+        lookup[key] = 1.0
+        unit = comp.eval(x, [lookup[k] for k in comp.get_arg_keys()])[mask]
+        resid = (model.spec.fluxden - model.eval(x, result.values))[mask]
+        weight = 1 / model.spec.fluxden_err[mask] ** 2
+        denom = np.sum(weight * unit**2)
+        if not denom > 0:
+            return False
+        amp = np.sum(weight * unit * resid) / denom
+        if not amp > 0:
+            return False
+        par.value = amp
+        par.prior = UniformPrior(key, 0.0, self.prior_factor * amp)
+        return True
 
 
 def _local_maxima(values, minimum):
@@ -382,8 +610,10 @@ class AutoFit:
     :type model: sculptor.model.FitModel
     :param rules: Rules that propose components (e.g. `GaussianLineRule`)
     :type rules: list
-    :param criterion: "bic" (default), "aicc", "aic", or a callable taking
-        a `QuickFitResult` and returning the score (lower is better)
+    :param criterion: "bic" (default), "aicc", "aic", "spic" (see `spic`),
+        or a callable `criterion(result, model)` taking the
+        `QuickFitResult` and the fitted model and returning the score
+        (lower is better)
     :type criterion: str or callable
     :param threshold: Minimum improvement of the criterion to add a
         component (and to keep one)
@@ -445,29 +675,31 @@ class AutoFit:
         except (ValueError, np.linalg.LinAlgError) as err:
             logger.debug(f"AutoFit: quick fit failed: {err}")
             return None, np.inf
-        score = self.criterion(result)
+        score = self.criterion(result, model)
         return result, score if np.isfinite(score) else np.inf
 
     def _removable(self, model):
         """Components that may be removed."""
         added = set()
         for rule in self.rules:
-            added.update(rule._own_components(model))
+            added.update(rule.owned(model))
         return [c.name for c in model.components if c.name in added | self.removable]
 
     @staticmethod
     def _with(model, candidate):
-        """Copy of `model` with the candidate's components added."""
+        """Copy of `model` with the candidate's removals and additions."""
         new = copy.deepcopy(model)
-        new.components.extend(candidate.components)
-        new.add_parameters(candidate.parameters)
+        for name in candidate.remove:
+            new = AutoFit._without(new, name, copy_model=False)
+        new.components.extend(copy.deepcopy(candidate.components))
+        new.add_parameters(copy.deepcopy(candidate.parameters))
         return new
 
     @staticmethod
-    def _without(model, name):
-        """Copy of `model` without component `name` and the parameters only
-        it used."""
-        new = copy.deepcopy(model)
+    def _without(model, name, copy_model=True):
+        """Copy of `model` (or `model` itself) without component `name` and
+        the parameters only it used."""
+        new = copy.deepcopy(model) if copy_model else model
         new.components = [c for c in new.components if c.name != name]
         used = {key for c in new.components for key in c.get_arg_keys()}
         new.parameters = {k: p for k, p in new.parameters.items() if k in used}
@@ -641,7 +873,8 @@ def correlated_noise(model, result, rng):
 
     The residuals over the fitted pixels, divided by the errors, are taken as
     one series; a series with the same power spectrum and random phases is
-    drawn, scaled to unit variance and multiplied by the errors. Pixels
+    drawn and multiplied by the errors. It keeps the residuals' amplitude, so
+    errors that underestimate the scatter are accounted for too. Pixels
     outside the fit mask get white noise.
 
     :param model: The model
@@ -664,7 +897,7 @@ def correlated_noise(model, result, rng):
     phases = rng.uniform(0, 2 * np.pi, amplitude.size)
     phases[0] = 0.0
     series = np.fft.irfft(amplitude * np.exp(1j * phases), n=norm.size)
-    series /= series.std()
+    series *= norm.std() / series.std()
 
     noise = rng.standard_normal(spec.dispersion.size)
     noise[mask] = series

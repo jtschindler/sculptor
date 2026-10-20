@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import gridspec
 from matplotlib.lines import Line2D
+from scipy.ndimage import median_filter
 from speconed import speconed as sod
 from tqdm import tqdm
 
@@ -749,14 +750,31 @@ class FitModel(PickleMixin):
             return self.gpm_fit
         return self.gpm_fit & spec_mask
 
-    def sigma_clip(self, low=3.0, high=None, grow=0, values=None, max_fraction=0.2):
+    def sigma_clip(
+        self,
+        low=3.0,
+        high=None,
+        grow=0,
+        values=None,
+        max_fraction=0.2,
+        scale="local",
+        window=101,
+    ):
         """Clip outlying pixels from the fit, given a model fit.
 
         Recomputed from scratch on every call over the fit regions: a pixel
         clipped before comes back if the model now explains it. Pixels with
-        (flux - model) / error below -`low` or above `high` are clipped, plus
-        `grow` pixels on each side (e.g. the wings of an absorber). The
-        result is stored in `clip_mask` and applied by `get_fit_mask`.
+        (flux - model) / (error * s) below -`low` or above `high` are
+        clipped, plus `grow` pixels on each side (e.g. the wings of an
+        absorber). The result is stored in `clip_mask` and applied by
+        `get_fit_mask`.
+
+        The scale s corrects for errors that do not match the scatter:
+        "local" (default) is the robust standard deviation (1.4826 x median
+        absolute deviation) of the error-normalized residuals in a running
+        window of `window` fitted pixels, "robust" the same over all fitted
+        pixels, "errors" 1 (trust the errors). s is never below 1, so
+        clipping is never stricter than the errors say.
 
         Clipping only negative outliers (`high=None`, the default) suits
         emission-line fits: absorbers are removed, while unmodeled emission
@@ -775,12 +793,21 @@ class FitModel(PickleMixin):
             would be clipped, log a warning and keep the previous mask (the
             model is probably far off)
         :type max_fraction: float
+        :param scale: "local", "robust" or "errors", see above
+        :type scale: str
+        :param window: Window of the "local" scale, in fitted pixels
+        :type window: int
         :return: Whether the clip mask changed
         :rtype: bool
-        :raises ValueError: if no spectrum is set or there are no values
+        :raises ValueError: if no spectrum is set, there are no values or
+            `scale` is unknown
         """
 
         self._require_spectrum("sigma-clip")
+        if scale not in ("local", "robust", "errors"):
+            raise ValueError(
+                f"Unknown scale {scale!r}; use 'local', 'robust' or 'errors'."
+            )
         if values is None:
             result = getattr(self, "quick_fit_result", None)
             if result is None:
@@ -793,6 +820,16 @@ class FitModel(PickleMixin):
             norm = (spec.fluxden - self.eval(spec.dispersion, values)) / (
                 spec.fluxden_err
             )
+        if scale != "errors" and region.any():
+            fitted = norm[region]
+            if scale == "robust":
+                mad = np.median(np.abs(fitted - np.median(fitted)))
+            else:
+                local = median_filter(fitted, size=window, mode="nearest")
+                mad = median_filter(np.abs(fitted - local), size=window, mode="nearest")
+            norm = norm.copy()
+            norm[region] = fitted / np.maximum(1.4826 * mad, 1.0)
+
         bad = np.zeros_like(region)
         if low is not None:
             bad |= norm < -low
