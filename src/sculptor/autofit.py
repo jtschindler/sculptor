@@ -12,7 +12,13 @@ a base model (e.g. a power-law continuum), each iteration
    `threshold`, then tries removing each removable component and drops it
    if it no longer earns `threshold`,
 
-and stops when no candidate improves the model. Run an MCMC on the result
+and stops when no candidate improves the model.
+
+With `clip`, the fit mask is sigma-clipped (`FitModel.sigma_clip`) after
+every accepted change once `clip_after` components were added, and the
+current model is refitted and re-scored on the new mask. Candidates are
+always compared on the same pixels: criteria from different masks are not
+comparable. Run an MCMC on the result
 (`model.fit("quick+mcmc", ...)`) for the posterior.
 
 Example::
@@ -29,6 +35,7 @@ favor too many components; calibrate `threshold` on simulated spectra with
 a known number of components.
 """
 
+import contextlib
 import copy
 import logging
 from dataclasses import dataclass, field
@@ -43,6 +50,25 @@ from sculptor.prior import UniformPrior
 logger = logging.getLogger(__name__)
 
 _FWHM_TO_SIGMA = 1 / np.sqrt(8 * np.log(2))
+
+# Loggers of the quick fits run during the search; their per-fit messages
+# are silenced (warnings included: candidates at prior bounds are expected)
+_FIT_LOGGERS = ("sculptor.quick_fit", "sculptor.model")
+
+
+@contextlib.contextmanager
+def _quiet_fits():
+    """Only errors from the per-fit loggers inside the block."""
+    loggers = [logging.getLogger(name) for name in _FIT_LOGGERS]
+    levels = [lg.level for lg in loggers]
+    for lg in loggers:
+        lg.setLevel(logging.ERROR)
+    try:
+        yield
+    finally:
+        for lg, level in zip(loggers, levels, strict=True):
+            lg.setLevel(level)
+
 
 CRITERIA = {
     "bic": lambda result: result.bic,
@@ -288,7 +314,9 @@ def _local_maxima(values, minimum):
 class AutoFitStep:
     """One accepted change of the model.
 
-    :param action: "start", "add" or "remove"
+    :param action: "start", "add", "remove" or "clip" (the fit mask
+        changed; later scores are on the new mask, `delta` is not an
+        improvement)
     :type action: str
     :param description: What changed
     :type description: str
@@ -365,6 +393,13 @@ class AutoFit:
     :type removable: list(str)
     :param quick_fit_kwargs: Passed on to `FitModel.run_quick_fit`
     :type quick_fit_kwargs: dict
+    :param clip: Sigma clipping between steps: keyword arguments of
+        `FitModel.sigma_clip` plus `max_iterations` (default 5), e.g.
+        `{"low": 3, "grow": 2}`; None for no clipping
+    :type clip: dict
+    :param clip_after: Start clipping once this many components were added
+        (before, the model is too far off and would clip real features)
+    :type clip_after: int
     """
 
     def __init__(
@@ -375,6 +410,8 @@ class AutoFit:
         threshold=10.0,
         removable=(),
         quick_fit_kwargs=None,
+        clip=None,
+        clip_after=2,
     ):
         if callable(criterion):
             self.criterion_name = getattr(criterion, "__name__", "criterion")
@@ -392,6 +429,8 @@ class AutoFit:
         self.threshold = threshold
         self.removable = set(removable)
         self.quick_fit_kwargs = dict(quick_fit_kwargs or {})
+        self.clip = None if clip is None else dict(clip)
+        self.clip_after = clip_after
         self.n_fits = 0
 
     def _fit(self, model):
@@ -399,7 +438,10 @@ class AutoFit:
         None if the fit fails."""
         self.n_fits += 1
         try:
-            result = model.run_quick_fit(update_values=True, **self.quick_fit_kwargs)
+            with _quiet_fits():
+                result = model.run_quick_fit(
+                    update_values=True, **self.quick_fit_kwargs
+                )
         except (ValueError, np.linalg.LinAlgError) as err:
             logger.debug(f"AutoFit: quick fit failed: {err}")
             return None, np.inf
@@ -496,12 +538,49 @@ class AutoFit:
 
             model, result, score = self._backward(model, result, score, history, seen)
 
+            n_added = sum(step.action == "add" for step in history)
+            if self.clip is not None and n_added >= self.clip_after:
+                model, result, score = self._clip(model, result, score, history)
+
         model.quick_fit_result = result
         logger.info(
             f"AutoFit done: {[c.name for c in model.components]}, "
             f"{self.criterion_name} = {score:.2f}"
         )
         return AutoFitResult(model, result, self.criterion_name, history, self.n_fits)
+
+    def _clip(self, model, result, score, history):
+        """Sigma-clip with the current model and refit, until the mask no
+        longer changes; record a "clip" step if it changed."""
+        clip = dict(self.clip)
+        max_iterations = clip.pop("max_iterations", 5)
+        changed = False
+        before = score
+        for _ in range(max_iterations):
+            previous = model.clip_mask
+            with _quiet_fits():
+                if not model.sigma_clip(values=result.values, **clip):
+                    break
+            new_result, new_score = self._fit(model)
+            if new_result is None:
+                # Keep result and score consistent with the mask
+                model.clip_mask = previous
+                break
+            changed = True
+            result, score = new_result, new_score
+        if changed:
+            n_clipped = int((model._fit_region_mask() & ~model.get_fit_mask()).sum())
+            history.append(
+                AutoFitStep(
+                    "clip",
+                    f"sigma clipping: {n_clipped} pixels clipped",
+                    score,
+                    score - before,
+                    [c.name for c in model.components],
+                )
+            )
+            logger.info(f"AutoFit: {n_clipped} pixels clipped, re-scored")
+        return model, result, score
 
     def _backward(self, model, result, score, history, seen):
         """Remove components that no longer earn `threshold`, one at a time

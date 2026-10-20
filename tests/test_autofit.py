@@ -198,3 +198,42 @@ def test_calibrate_threshold_grows_with_correlated_noise():
 
     with pytest.raises(ValueError, match="Unknown noise"):
         calibrate_threshold(corr_model, [_rule()], noise="pink")
+
+
+ABSORBERS = [(4600, 0.9), (4660, 0.6), (5200, 0.8)]  # observed center, depth
+
+
+def _with_absorbers(model):
+    x = model.spec.dispersion
+    for cen, depth in ABSORBERS:
+        model.spec.fluxden = model.spec.fluxden * (
+            1 - depth * np.exp(-0.5 * ((x - cen) / 1.5) ** 2)
+        )
+    return model
+
+
+def test_clipping_keeps_absorbers_from_becoming_components():
+    base = _with_absorbers(_model())
+
+    plain = AutoFit(base, [_rule()]).run()
+    clipped = AutoFit(base, [_rule()], clip={"low": 3, "grow": 2}).run()
+
+    assert len(plain.model.components) > 4  # absorbers modeled as lines
+    assert len(clipped.model.components) == 4
+    np.testing.assert_allclose(_centers(clipped.model), [CIV, CIV, CIII], atol=2)
+    assert 0.85 < clipped.result.red_chisq < 1.15
+    actions = [s.action for s in clipped.history]
+    assert actions.index("clip") == 3  # after clip_after=2 additions
+
+    x = clipped.model.spec.dispersion
+    fitted = clipped.model.get_fit_mask()
+    for cen, _ in ABSORBERS:
+        assert not fitted[np.argmin(np.abs(x - cen))]
+    assert base.clip_mask is None  # the base model is not changed
+
+
+def test_clip_after_delays_clipping():
+    base = _with_absorbers(_model())
+    result = AutoFit(base, [_rule()], clip={"low": 3, "grow": 2}, clip_after=3).run()
+    actions = [s.action for s in result.history]
+    assert actions.index("clip") > 3

@@ -215,6 +215,9 @@ class FitModel(PickleMixin):
         # flux density from the fit
         self.spec = None
         self.gpm_fit = None
+        # Pixels kept by the last sigma clipping (`sigma_clip`), None if none
+        # was done
+        self.clip_mask = None
         self.model_fluxden = None
 
         if spectrum is not None:
@@ -475,6 +478,7 @@ class FitModel(PickleMixin):
         method="L-BFGS-B",
         options=None,
         update_values=False,
+        clip=None,
     ):
         """Quick fit: find the maximum of the posterior (MAP) with an optimizer.
 
@@ -496,12 +500,19 @@ class FitModel(PickleMixin):
         :param update_values: Also set the variable parameters' `value` to
             the best fit (e.g. to start the next fit from there)
         :type update_values: bool
+        :param clip: Sigma-clip and refit until the clip mask no longer
+            changes: keyword arguments of `sigma_clip`, plus
+            `max_iterations` (default 5); e.g. `{"low": 3, "grow": 2}`
+        :type clip: dict
         :return: The fit result
         :rtype: sculptor.quick_fit.QuickFitResult
         :raises ValueError: if no spectrum is set, `spec` has a different
-            number of pixels, or a variable parameter has no value
+            number of pixels, a variable parameter has no value, or `clip`
+            is combined with `spec`
         """
 
+        if clip is not None and spec is not None:
+            raise ValueError("`clip` uses `self.spec`; do not pass `spec`.")
         if spec is None:
             self._require_spectrum("run the quick fit")
             spec = self.spec
@@ -511,15 +522,24 @@ class FitModel(PickleMixin):
                 f"(from `self.spec`) has {len(self.gpm_fit)}."
             )
 
-        result = scqf.quick_fit(
-            self,
-            log_probability,
-            spec.dispersion,
-            spec.fluxden,
-            spec.fluxden_err,
-            method=method,
-            options=options,
-        )
+        def _fit():
+            return scqf.quick_fit(
+                self,
+                log_probability,
+                spec.dispersion,
+                spec.fluxden,
+                spec.fluxden_err,
+                method=method,
+                options=options,
+            )
+
+        result = _fit()
+        if clip is not None:
+            clip = dict(clip)
+            for _ in range(clip.pop("max_iterations", 5)):
+                if not self.sigma_clip(values=result.values, **clip):
+                    break
+                result = _fit()
         self.quick_fit_result = result
         logger.info(str(result))
 
@@ -703,8 +723,9 @@ class FitModel(PickleMixin):
     # Functions related to the good pixel fit mask (gpm_fit)
     # -----------------------------------------------------------------------
     def get_fit_mask(self):
-        """Pixels used in the fit: inside the fit regions (`gpm_fit`) and not
-        masked in the spectrum (`spec.mask`, True = good pixel).
+        """Pixels used in the fit: inside the fit regions (`gpm_fit`), not
+        masked in the spectrum (`spec.mask`, True = good pixel) and not
+        sigma-clipped (`clip_mask`, see `sigma_clip`).
 
         Pixels masked in the spectrum (e.g. bad or NaN pixels) are excluded
         from the likelihood, the chi-square and the BIC even if they lie in a
@@ -714,10 +735,95 @@ class FitModel(PickleMixin):
         :rtype: np.ndarray
         """
 
+        mask = self._fit_region_mask()
+        clip_mask = getattr(self, "clip_mask", None)
+        if clip_mask is None:
+            return mask
+        return mask & clip_mask
+
+    def _fit_region_mask(self):
+        """Fit regions minus the spectrum's mask, before sigma clipping."""
+
         spec_mask = getattr(self.spec, "mask", None)
         if spec_mask is None:
             return self.gpm_fit
         return self.gpm_fit & spec_mask
+
+    def sigma_clip(self, low=3.0, high=None, grow=0, values=None, max_fraction=0.2):
+        """Clip outlying pixels from the fit, given a model fit.
+
+        Recomputed from scratch on every call over the fit regions: a pixel
+        clipped before comes back if the model now explains it. Pixels with
+        (flux - model) / error below -`low` or above `high` are clipped, plus
+        `grow` pixels on each side (e.g. the wings of an absorber). The
+        result is stored in `clip_mask` and applied by `get_fit_mask`.
+
+        Clipping only negative outliers (`high=None`, the default) suits
+        emission-line fits: absorbers are removed, while unmodeled emission
+        stays in the residuals for the model to explain.
+
+        :param low: Clip below -`low` sigma (None: no lower clipping)
+        :type low: float
+        :param high: Clip above `high` sigma (None: no upper clipping)
+        :type high: float
+        :param grow: Also clip this many pixels on each side of a clipped one
+        :type grow: int
+        :param values: Variable parameter values of the model to compare with
+            (default: the last quick fit)
+        :type values: np.ndarray
+        :param max_fraction: If more than this fraction of the fitted pixels
+            would be clipped, log a warning and keep the previous mask (the
+            model is probably far off)
+        :type max_fraction: float
+        :return: Whether the clip mask changed
+        :rtype: bool
+        :raises ValueError: if no spectrum is set or there are no values
+        """
+
+        self._require_spectrum("sigma-clip")
+        if values is None:
+            result = getattr(self, "quick_fit_result", None)
+            if result is None:
+                raise ValueError("No model values; run run_quick_fit() first.")
+            values = result.values
+
+        spec = self.spec
+        region = self._fit_region_mask()
+        with np.errstate(divide="ignore", invalid="ignore"):
+            norm = (spec.fluxden - self.eval(spec.dispersion, values)) / (
+                spec.fluxden_err
+            )
+        bad = np.zeros_like(region)
+        if low is not None:
+            bad |= norm < -low
+        if high is not None:
+            bad |= norm > high
+        bad &= region
+        if grow > 0:
+            bad = np.convolve(bad, np.ones(2 * grow + 1), mode="same") > 0
+        new = ~bad
+
+        n_region = int(region.sum())
+        n_clipped = int((bad & region).sum())
+        if n_region and n_clipped > max_fraction * n_region:
+            logger.warning(
+                f"Sigma clipping would remove {n_clipped} of {n_region} fitted "
+                f"pixels (more than {max_fraction:.0%}); keeping the previous "
+                "clip mask."
+            )
+            return False
+
+        old = getattr(self, "clip_mask", None)
+        changed = old is None or not np.array_equal(old & region, new & region)
+        self.clip_mask = new
+        if changed:
+            logger.info(f"Sigma clipping: {n_clipped} of {n_region} pixels clipped")
+        return changed
+
+    def reset_clip_mask(self):
+        """Undo the sigma clipping (all fit-region pixels are fitted again)."""
+
+        self.clip_mask = None
 
     def reset_fit_mask(self):
         """Reset the fit mask based on the supplied astronomical spectrum.
@@ -1206,6 +1312,19 @@ class FitModel(PickleMixin):
                 where="mid",
                 lw=1.5,
             )
+        # Mark the sigma-clipped pixels
+        clipped = self._fit_region_mask() & ~self.get_fit_mask()
+        if np.any(clipped):
+            ax_main.plot(
+                self.spec.dispersion[clipped],
+                self.spec.fluxden[clipped],
+                "x",
+                color=scp.vermillion,
+                ms=5,
+                label="Clipped",
+                zorder=10,
+            )
+
         # Plot the spectrum flux density
         ax_main.step(
             self.spec.dispersion[self.spec.mask],

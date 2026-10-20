@@ -356,3 +356,62 @@ def test_export_unknown_extension(fit_model, tmp_path):
     result = fit_model.run_quick_fit()
     with pytest.raises(ValueError, match="extension"):
         result.write(tmp_path / "fit.txt")
+
+
+def _absorbed(fit_model):
+    """The fixture's spectrum with a narrow absorber on the continuum."""
+    x = fit_model.spec.dispersion
+    dip = np.abs(x - 6000) < 6
+    fit_model.spec.fluxden = np.where(
+        dip, fit_model.spec.fluxden - 0.03, fit_model.spec.fluxden
+    )
+    return dip
+
+
+def test_sigma_clip_masks_and_restores(fit_model):
+    dip = _absorbed(fit_model)
+    result = fit_model.run_quick_fit()
+    with pytest.raises(ValueError, match="run_quick_fit"):
+        scmod.FitModel(spectrum=fit_model.spec).sigma_clip()
+
+    assert fit_model.sigma_clip(low=3, grow=1)
+    mask = fit_model.get_fit_mask()
+    assert not np.any(mask[dip])
+    assert mask.sum() < fit_model._fit_region_mask().sum()
+    # Same input, same mask: no change
+    assert not fit_model.sigma_clip(low=3, grow=1, values=result.values)
+
+    # Recomputed from scratch: once the data are fixed, the pixels come back
+    fit_model.spec.fluxden[dip] += 0.03
+    fit_model.sigma_clip(low=3, grow=1)
+    assert fit_model.get_fit_mask()[dip].all()
+
+    fit_model.reset_clip_mask()
+    assert fit_model.clip_mask is None
+
+
+def test_sigma_clip_upper_and_max_fraction(fit_model, caplog):
+    fit_model.spec.fluxden[200] += 0.1
+    result = fit_model.run_quick_fit()
+    fit_model.sigma_clip(low=None, high=None)
+    assert fit_model.get_fit_mask()[200]
+    fit_model.sigma_clip(low=None, high=5)
+    assert not fit_model.get_fit_mask()[200]
+
+    before = fit_model.clip_mask.copy()
+    with caplog.at_level(logging.WARNING):
+        assert not fit_model.sigma_clip(low=0, values=result.values)
+    assert "keeping the previous" in caplog.text
+    np.testing.assert_array_equal(fit_model.clip_mask, before)
+
+
+def test_quick_fit_with_clipping(fit_model):
+    dip = _absorbed(fit_model)
+    plain = fit_model.run_quick_fit()
+    clipped = fit_model.run_quick_fit(clip={"low": 3, "grow": 1})
+
+    assert not np.any(fit_model.get_fit_mask()[dip])
+    assert clipped.n_data < plain.n_data
+    assert clipped.red_chisq < plain.red_chisq
+    with pytest.raises(ValueError, match="clip"):
+        fit_model.run_quick_fit(spec=fit_model.spec, clip={"low": 3})

@@ -19,6 +19,11 @@ The core package (`sculptor`):
   optimizer; `run_emcee`: posterior samples, both with the same
   log-probability), posterior models, plots (`plot_quick_fit_result`,
   `plot_mcmc_result`, `plot_posterior_corner`) and save/load.
+- `sculptor.autofit`: automatic model building on the quick fit. Rules
+  (`GaussianLineRule`) propose components; they are kept while they lower
+  the BIC (or AICc) by more than a threshold (`calibrate_threshold` sets it
+  from simulations with the residuals' noise correlations); optional
+  sigma clipping between steps. See the example below.
 - `sculptor.component.FitComponent`: one model function and the mapping of
   its arguments onto parameters (e.g. a redshift shared by several lines).
 - `sculptor.parameter.FitParameter` and `sculptor.prior` (`UniformPrior`,
@@ -74,6 +79,22 @@ model.plot_quick_fit_result()
 # MCMC with the walkers started around the quick fit
 model.fit("quick+mcmc", nsteps=2000, nwalkers=50)
 model.plot_mcmc_result(discard=500)
+```
+
+Automatic model building, starting from a model with only the continuum:
+
+```python
+from sculptor.autofit import AutoFit, GaussianLineRule, calibrate_threshold
+
+rules = [GaussianLineRule("line", redshift=3.22, fwhm_range=(300, 15000))]
+auto = AutoFit(base_model, rules, criterion="bic", clip={"low": 3, "grow": 2})
+result = auto.run()
+print(result)                     # the accepted steps and the final quick fit
+
+# Optional: a threshold that accounts for correlated pixels
+threshold, _ = calibrate_threshold(result.model, rules)
+result = AutoFit(base_model, rules, threshold=threshold, clip={"low": 3}).run()
+result.model.fit("quick+mcmc", nsteps=2000, nwalkers=50)
 ```
 
 ![Sculptor example fit][logo]
