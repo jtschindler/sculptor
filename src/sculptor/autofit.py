@@ -9,8 +9,9 @@ a base model (e.g. a power-law continuum), each iteration
 2. quick-fits the model with each candidate added and scores it with the
    criterion (BIC by default, or AICc, or any callable),
 3. keeps the best candidate if it lowers the criterion by more than
-   `threshold`, then tries removing each removable component and drops it
-   if it no longer earns `threshold`,
+   `threshold`, then tries removing each removable component (or group of
+   components that share guarded parameters, see below) and drops it if
+   it no longer earns `threshold`,
 
 and stops when no candidate improves the model.
 
@@ -31,6 +32,14 @@ width. When the search converges, each applicable tie is tested like a
 removal: it is kept unless the untied model earns `threshold`, and the
 search resumes from the tied model. `AutoFitResult.ties` reports each
 outcome, e.g. a tie the data reject.
+
+A rule may also name parameters that must not end at a prior bound
+(`Rule.guarded`, e.g. the shared redshift and width of a `LineGroupRule`):
+a candidate is rejected if one does, and when the search converges the
+components of a guarded parameter that has since drifted to a bound are
+removed and the search resumes. Components that share guarded parameters
+are removed together: a group earns the threshold jointly, so backward
+steps test it as a whole, not one member at a time.
 
 The threshold is calibrated by default (`threshold="calibrate"`): a
 preliminary search with a fixed threshold gives a model of the real
@@ -209,6 +218,19 @@ class Rule:
         :rtype: list(str)
         """
         raise NotImplementedError
+
+    def guarded(self, model):
+        """Parameters of `model` that must not end at a prior bound, with
+        the components that use them: AutoFit removes those components
+        when, at convergence, one of the parameters is at a bound, and
+        backward steps remove them together, never one alone.
+
+        :param model: The model
+        :type model: sculptor.model.FitModel
+        :return: (parameter names, component names) pairs
+        :rtype: list(tuple(list(str), list(str)))
+        """
+        return []
 
 
 class GaussianLineRule(Rule):
@@ -788,10 +810,13 @@ class LineGroupRule(Rule):
     doublet): it then tests narrow cores on top of the lines' fits instead
     of standing in for the lines while they are unmodeled. It is proposed
     while no component uses its shared parameters (`<name>_<arg>`) and
-    every member rule has room, and rejected if a shared width ends at a
-    bound of `fwhm_range` (not narrow). The components are named and owned
-    by the member rules, so backward steps may remove them one at a time. Give a `Tie` of the same lines the same
-    name (e.g. "narrow"): it then counts the group as tied.
+    every member rule has room. The shared parameters are guarded
+    (`guarded`): the group is rejected if one ends at a prior bound (a
+    width at a bound of `fwhm_range` is not narrow, a redshift at
+    +-`velocity_range` not systemic), and removed if one drifts there
+    later. The components are named and owned by the member rules, so
+    backward steps may remove them one at a time. Give a `Tie` of the same
+    lines the same name (e.g. "narrow"): it then counts the group as tied.
 
     :param name: Name of the group and prefix of the shared parameters
     :type name: str
@@ -857,6 +882,21 @@ class LineGroupRule(Rule):
     def shared_name(self, arg):
         """Name of the shared parameter of `arg`."""
         return f"{self.name}_{arg}"
+
+    def guarded(self, model):
+        """The shared parameters, with the components that use them.
+
+        :param model: The model
+        :type model: sculptor.model.FitModel
+        :rtype: list(tuple(list(str), list(str)))
+        """
+        shared = [self.shared_name(arg) for arg in self.args]
+        comps = [
+            c.name
+            for c in model.components
+            if set(c.param_mapping.values()) & set(shared)
+        ]
+        return [(shared, comps)] if comps else []
 
     def propose(self, model, result):
         """The group as one candidate (see the class).
@@ -944,9 +984,7 @@ class LineGroupRule(Rule):
                 components=comps,
                 parameters=pars,
                 starts=starts[1:],
-                reject_at_bound=[
-                    self.shared_name(arg) for arg in self.args if "fwhm" in arg
-                ],
+                reject_at_bound=[self.shared_name(arg) for arg in self.args],
             )
         ]
 
@@ -1462,6 +1500,23 @@ class AutoFit:
             added.update(rule.owned(model))
         return [c.name for c in model.components if c.name in added | self.removable]
 
+    def _removal_units(self, model):
+        """What a backward step may remove: each removable component on its
+        own, except that components sharing guarded parameters (see
+        `Rule.guarded`) go together.
+
+        :rtype: list(list(str))
+        """
+        removable = self._removable(model)
+        units, grouped = [], set()
+        for rule in self.rules:
+            for _, comps in rule.guarded(model):
+                if all(name in removable for name in comps):
+                    units.append(list(comps))
+                grouped.update(comps)
+        units.extend([name] for name in removable if name not in grouped)
+        return units
+
     @staticmethod
     def _with(model, candidate):
         """Copy of `model` with the candidate's removals and additions."""
@@ -1573,8 +1628,14 @@ class AutoFit:
                         best = (trial, trial_result, trial_score, cand)
 
             if best is None or score - best[2] <= threshold:
-                # Converged: a tie the data accept simplifies the model, and
-                # the search goes on from there
+                # Converged: guarded parameters that drifted to a bound take
+                # their components with them, and a tie the data accept
+                # simplifies the model; the search goes on from there
+                model, result, score, removed = self._remove_at_bound(
+                    model, result, score, history, seen
+                )
+                if removed:
+                    continue
                 model, result, score, tied = self._test_ties(
                     model, result, score, history, seen, threshold, ties
                 )
@@ -1618,6 +1679,42 @@ class AutoFit:
             threshold=threshold,
             ties=ties,
         )
+
+    def _remove_at_bound(self, model, result, score, history, seen):
+        """Remove the components of the first guarded parameters (see
+        `Rule.guarded`) one of which is at a prior bound.
+
+        :return: model, result, score, and whether components were removed
+        """
+        at_bound = set(result.at_bound)
+        for rule in self.rules:
+            for params, comps in rule.guarded(model):
+                bad = sorted(at_bound & set(params))
+                if not bad:
+                    continue
+                trial = model
+                for name in comps:
+                    trial = self._without(trial, name)
+                trial_result, trial_score = self._fit(trial)
+                if trial_result is None:
+                    continue
+                history.append(
+                    AutoFitStep(
+                        "remove",
+                        f"remove {', '.join(comps)} ({', '.join(bad)} at a "
+                        "prior bound)",
+                        trial_score,
+                        trial_score - score,
+                        [c.name for c in trial.components],
+                    )
+                )
+                logger.info(
+                    f"AutoFit: remove {', '.join(comps)}, {', '.join(bad)} at a "
+                    f"prior bound: {trial_score - score:+.2f}"
+                )
+                seen.add(_signature(trial))
+                return trial, trial_result, trial_score, True
+        return model, result, score, False
 
     def _test_ties(self, model, result, score, history, seen, threshold, ties):
         """Test the applicable ties (see `Tie`); apply the first one the data
@@ -1702,18 +1799,20 @@ class AutoFit:
         (the least useful first)."""
         while True:
             worst = None
-            for name in self._removable(model):
-                trial = self._without(model, name)
+            for names in self._removal_units(model):
+                trial = model
+                for name in names:
+                    trial = self._without(trial, name)
                 if not trial.components:
                     continue
                 trial_result, trial_score = self._fit(trial)
                 if trial_result is None:
                     continue
-                # Keeping `name` is worth trial_score - score
+                # Keeping `names` is worth trial_score - score
                 if trial_score - score < threshold and (
                     worst is None or trial_score < worst[2]
                 ):
-                    worst = (trial, trial_result, trial_score, name)
+                    worst = (trial, trial_result, trial_score, ", ".join(names))
             if worst is None:
                 return model, result, score
 

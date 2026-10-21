@@ -88,8 +88,9 @@ NARROW_FWHM_MAX = 1200.0
 NARROW_TIE_LINES = ("Hbeta", "Halpha", "OIII")
 
 # Allowed velocity offset of the narrow-line group from the systemic
-# redshift, km/s
-NARROW_VELOCITY_RANGE = 1000.0
+# redshift, km/s: the group models cores at the systemic redshift, not
+# shifted outflows (a group whose redshift ends at the bound is removed)
+NARROW_VELOCITY_RANGE = 300.0
 
 # Rest-frame wavelengths of the CIII] complex (`qso.CIII_complex_model_func`)
 CIII_COMPLEX = {"cen": 1908.73, "cen_alIII": 1857.40, "cen_siIII": 1892.03}

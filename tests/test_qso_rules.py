@@ -308,7 +308,7 @@ def test_narrow_line_group_found_at_systemic():
 
 def test_narrow_line_group_starts_at_a_residual_peak():
     model, lines, z = _weak_narrow_model(1.5, dv=500.0)
-    group = qr.narrow_line_group(lines, z)
+    group = qr.narrow_line_group(lines, z, velocity_range=1000.0)
     result = AutoFit(model, [*lines, group]).run()
     par = result.model.parameters
     z_nl = z + 500.0 / 2.998e5 * (1 + z)
@@ -331,7 +331,7 @@ def test_narrow_line_group_waits_for_the_members_and_proposes_once():
 
     fitted = AutoFit(model, lines).run()  # broad Hbeta and [OIII], no group
     (cand,) = group.propose(fitted.model, fitted.result)
-    assert cand.reject_at_bound == ["narrow_fwhm_km_s"]
+    assert cand.reject_at_bound == ["narrow_redsh", "narrow_fwhm_km_s"]
     fluxes = [p for p in cand.parameters if p.endswith("_flux")]
     assert len(fluxes) == 2
     assert all(cand.parameters[f].value > 0 for f in fluxes)
@@ -346,6 +346,49 @@ def test_group_rejected_when_not_narrow():
     group = qr.narrow_line_group(lines, z)
     result = AutoFit(model, [*lines, group]).run()
     assert "narrow_redsh" not in result.model.parameters
+
+
+def test_group_removed_as_a_whole():
+    """Backward steps test the group as one unit: here its narrow Hbeta
+    alone is worth less than the threshold (~36), the pair more (~235)."""
+    model, lines, z = _weak_narrow_model(1.0)
+    group = qr.narrow_line_group(lines, z)
+    fit = AutoFit(model, [*lines, group], threshold=50.0)
+    result = fit.run()
+    tied = _narrow_members({c.name: c for c in result.model.components})
+    assert {name.split("_")[0] for name in tied} == {"Hbeta", "OIII"}
+    assert sorted(tied) in [sorted(u) for u in fit._removal_units(result.model)]
+    assert [tied[0]] not in fit._removal_units(result.model)
+
+
+def test_group_rejected_when_not_systemic():
+    """Cores 600 km/s from the systemic redshift are outside the default
+    window: the group would end at its redshift bound."""
+    model, lines, z = _weak_narrow_model(1.5, dv=600.0)
+    group = qr.narrow_line_group(lines, z)
+    result = AutoFit(model, [*lines, group]).run()
+    assert "narrow_redsh" not in result.model.parameters
+
+
+def test_group_that_drifts_to_a_bound_is_removed_at_convergence():
+    """A group already in the model whose redshift ends at its bound is
+    removed when the search converges."""
+    model, lines, z = _weak_narrow_model(1.5, dv=600.0)
+    wide = qr.narrow_line_group(lines, z, velocity_range=1000.0)
+    start = AutoFit(model, [*lines, wide]).run().model
+    assert "narrow_redsh" in start.parameters
+    dz = 300.0 / 2.998e5 * (1 + z)
+    start.parameters["narrow_redsh"].prior = scpri.UniformPrior(
+        "narrow_redsh", z - dz, z + dz
+    )
+    start.parameters["narrow_redsh"].value = z
+
+    # Only the group's rule: no other change can take its place first
+    result = AutoFit(start, [qr.narrow_line_group(lines, z)]).run()
+    assert "narrow_redsh" not in result.model.parameters
+    removal = next(s for s in result.history if "at a prior bound" in s.description)
+    assert removal.action == "remove"
+    assert "narrow_redsh" in removal.description
 
 
 def test_ciii_complex_rule():
