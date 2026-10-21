@@ -6,11 +6,11 @@ from astropy import units as u
 from speconed import speconed as sod
 
 from sculptor import analysis as ana
+from sculptor import autofit
 from sculptor import component as sccomp
 from sculptor import model as scmod
 from sculptor import prior as scpri
 from sculptor.autofit import (
-    AutoFit,
     ComponentRule,
     GaussianLineRule,
     calibrate_threshold,
@@ -23,6 +23,14 @@ CIV, CIII, HEII = 1549.06, 1908.73, 1640.42
 # (flux, rest-frame center, FWHM km/s): broad + narrow CIV, CIII]
 LINES = [(60.0, CIV, 5000.0), (20.0, CIV, 1200.0), (15.0, CIII, 3000.0)]
 ERR = 0.05
+
+
+class AutoFit(autofit.AutoFit):
+    """AutoFit with the fixed threshold 10: these tests check the search,
+    not the calibration (see the calibration tests)."""
+
+    def __init__(self, *args, threshold=10.0, **kwargs):
+        super().__init__(*args, threshold=threshold, **kwargs)
 
 
 def _continuum(x):
@@ -187,16 +195,18 @@ def test_correlated_noise_keeps_the_residual_correlations():
 
 
 def test_calibrate_threshold_grows_with_correlated_noise():
-    white, white_imp = calibrate_threshold(_model(lines=[]), [_rule()], n_sims=5)
-    assert white_imp.shape == (5,)
-    assert np.all(white_imp >= 0)
+    white = calibrate_threshold(_model(lines=[]), [_rule()], n_sims=5)
+    assert white.improvements.shape == (5,)
+    assert np.all(white.improvements >= 0)
+    assert list(white.thresholds) == [0.95, 0.99]
 
     rng = np.random.default_rng(1)
     raw = np.convolve(rng.normal(0, 1, 820), np.ones(5), "same")[10:-10]
     corr_model = _model(lines=[], noise=raw * ERR / raw.std())
-    corr, _ = calibrate_threshold(corr_model, [_rule()], n_sims=5)
-    assert corr > white
-    assert corr > 10
+    corr = calibrate_threshold(corr_model, [_rule()], n_sims=5, quantiles=[0.9])
+    assert list(corr.thresholds) == [0.9]
+    assert corr.threshold(0.9) > white.threshold(0.9)
+    assert corr.threshold(0.9) > 10
 
     with pytest.raises(ValueError, match="Unknown noise"):
         calibrate_threshold(corr_model, [_rule()], noise="pink")
@@ -581,3 +591,47 @@ def test_component_rule_starts_rescale_the_amplitude():
 
     trial, _, _ = AutoFit(base, [rule])._fit_candidate(base, cand)
     assert trial.parameters["G_fwhm_km_s"].value == pytest.approx(3000, rel=0.1)
+
+
+def test_calibration_reports_every_quantile():
+    calibration = calibrate_threshold(
+        _model(lines=[]), [_rule()], n_sims=20, quantiles=(0.5, 0.8, 0.95)
+    )
+    imp = calibration.improvements
+    assert list(calibration.thresholds) == [0.5, 0.8, 0.95]
+    for quantile, value in calibration.thresholds.items():
+        assert value == pytest.approx(np.quantile(imp, quantile))
+        low, high = calibration.intervals[quantile]
+        assert low <= high
+    assert calibration.threshold(0.7) == pytest.approx(np.quantile(imp, 0.7))
+    assert calibration.n_fits > 20
+    text = str(calibration)
+    assert "20 simulations" in text and "80.0% quantile" in text
+
+    with pytest.raises(ValueError, match="quantiles"):
+        calibrate_threshold(_model(lines=[]), [_rule()], quantiles=(95,))
+
+
+def test_calibrated_threshold_is_the_default():
+    base = _model()
+    search = autofit.AutoFit(
+        base, [_rule()], calibration={"n_sims": 10, "quantiles": (0.6, 0.9)}
+    )
+    assert search.threshold == "calibrate"
+    result = search.run()
+
+    cal = result.calibration
+    assert list(result.by_quantile) == [0.6, 0.9]
+    assert result.by_quantile[0.6] is result
+    assert result.quantile == 0.6
+    assert result.threshold == cal.thresholds[0.6]
+    assert result.by_quantile[0.9].threshold == cal.thresholds[0.9]
+    assert result.preliminary.threshold == 10.0
+    assert result.n_fits > cal.n_fits
+    assert len(result.model.components) == 4  # the three input lines
+    assert cal.criterion == "bic"
+    text = str(result)
+    assert "Models by quantile" in text and "60.0%" in text and "90.0%" in text
+
+    with pytest.raises(ValueError, match="threshold must be"):
+        autofit.AutoFit(base, [_rule()], threshold="auto")

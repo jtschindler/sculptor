@@ -9,15 +9,24 @@ from astropy import units as u
 from speconed import speconed as sod
 
 from sculptor import analysis as ana
+from sculptor import autofit
 from sculptor import component as sccomp
 from sculptor import model as scmod
 from sculptor import prior as scpri
-from sculptor.autofit import AutoFit, ComponentRule, GaussianLineRule
+from sculptor.autofit import ComponentRule, GaussianLineRule
 from sculptor_extensions import qso_presets
 from sculptor_extensions import qso_rules as qr
 
 Z = 2.0
 ERR = 0.05
+
+
+class AutoFit(autofit.AutoFit):
+    """AutoFit with the fixed threshold 10: these tests check the search,
+    not the calibration (see the calibration tests)."""
+
+    def __init__(self, *args, threshold=10.0, **kwargs):
+        super().__init__(*args, threshold=threshold, **kwargs)
 
 
 def _model(extra=None, x=None):

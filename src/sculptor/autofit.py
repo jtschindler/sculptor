@@ -20,6 +20,14 @@ fitted from each and the best fit counts. This matters for degenerate
 components, e.g. a second broad Gaussian of a line, whose fit depends on
 where it starts.
 
+The threshold is calibrated by default (`threshold="calibrate"`): a
+preliminary search with a fixed threshold gives a model of the real
+features; `calibrate_threshold` simulates it with noise like its residuals
+and takes quantiles of the criterion improvements that noise alone
+achieves (95% and 99% by default); the search is then rerun for each
+quantile. `AutoFitResult` holds the model of the first quantile, the
+others in `by_quantile`, and the calibration.
+
 With `clip`, the fit mask is sigma-clipped (`FitModel.sigma_clip`) after
 every accepted change once `clip_after` components were added, and the
 current model is refitted and re-scored on the new mask. Candidates are
@@ -36,9 +44,9 @@ Example::
     print(result)
     result.model.plot_quick_fit_result()
 
-Pixels of resampled spectra are correlated, which makes every criterion
-favor too many components; calibrate `threshold` on simulated spectra with
-a known number of components.
+Pixels of resampled spectra are correlated and models of real spectra are
+imperfect, which makes every criterion favor too many components; this is
+what the calibration accounts for.
 """
 
 import contextlib
@@ -742,8 +750,21 @@ class AutoFitResult:
     :type criterion: str
     :param history: Accepted changes, in order
     :type history: list(AutoFitStep)
-    :param n_fits: Number of quick fits run
+    :param n_fits: Number of quick fits run (of this search; of all the
+        searches and the calibration for the result `AutoFit.run` returns)
     :type n_fits: int
+    :param threshold: Threshold of this search
+    :type threshold: float
+    :param quantile: With a calibrated threshold: its quantile
+    :type quantile: float
+    :param calibration: The calibration, if the threshold was calibrated
+    :type calibration: Calibration
+    :param by_quantile: With a calibrated threshold: quantile -> result of
+        the search with that quantile's threshold (this one included)
+    :type by_quantile: dict
+    :param preliminary: With a calibrated threshold: the preliminary search
+        the calibration simulated
+    :type preliminary: AutoFitResult
     """
 
     model: object
@@ -751,11 +772,27 @@ class AutoFitResult:
     criterion: str
     history: list = field(default_factory=list)
     n_fits: int = 0
+    threshold: float = np.nan
+    quantile: float = np.nan
+    calibration: object = None
+    by_quantile: dict = field(default_factory=dict)
+    preliminary: object = None
+
+    def components(self):
+        """Names of the selected components.
+
+        :rtype: list(str)
+        """
+        return [c.name for c in self.model.components]
 
     def __str__(self):
+        where = f"threshold {self.threshold:.1f}"
+        if self.calibration is not None:
+            where += f" ({self.quantile:.0%} quantile)"
         header = (
-            f"AutoFit ({self.criterion}): {len(self.model.components)} components "
-            f"after {len(self.history) - 1} changes and {self.n_fits} quick fits"
+            f"AutoFit ({self.criterion}, {where}): "
+            f"{len(self.model.components)} components after "
+            f"{len(self.history) - 1} changes and {self.n_fits} quick fits"
         )
         lines = [header]
         for step in self.history:
@@ -763,6 +800,23 @@ class AutoFitResult:
                 f"  {step.action:6s} {self.criterion} = {step.score:.2f} "
                 f"(delta {step.delta:+.2f}): {step.description}"
             )
+        if self.calibration is not None:
+            lines += ["", str(self.calibration), "", "Models by quantile:"]
+            mine = set(self.components())
+            for quantile, other in self.by_quantile.items():
+                names = other.components()
+                text = (
+                    f"  {quantile:.1%}: threshold {other.threshold:.1f}, "
+                    f"{len(names)} components, reduced chi2 "
+                    f"{other.result.red_chisq:.3f}"
+                )
+                extra = sorted(set(names) - mine)
+                missing = sorted(mine - set(names))
+                if extra:
+                    text += f"; also {', '.join(extra)}"
+                if missing:
+                    text += f"; without {', '.join(missing)}"
+                lines.append(text)
         return "\n".join(lines)
 
 
@@ -782,8 +836,10 @@ class AutoFit:
         (lower is better)
     :type criterion: str or callable
     :param threshold: Minimum improvement of the criterion to add a
-        component (and to keep one)
-    :type threshold: float
+        component (and to keep one), or "calibrate" (default): calibrated
+        with `calibrate_threshold` on the model of a preliminary search
+        (see the module docstring)
+    :type threshold: float or str
     :param removable: Names of base-model components that may be removed;
         components added by the rules always may
     :type removable: list(str)
@@ -799,6 +855,13 @@ class AutoFit:
     :param multistart: Fit candidates from their alternative starting values
         too (`Candidate.starts`); False for one start (faster)
     :type multistart: bool
+    :param calibration: With `threshold="calibrate"`: keyword arguments of
+        `calibrate_threshold`, e.g. `{"quantiles": (0.9, 0.95, 0.99),
+        "n_sims": 500}`; the first quantile selects `AutoFitResult.model`
+    :type calibration: dict
+    :param preliminary_threshold: With `threshold="calibrate"`: fixed
+        threshold of the preliminary search
+    :type preliminary_threshold: float
     """
 
     def __init__(
@@ -806,13 +869,19 @@ class AutoFit:
         model,
         rules,
         criterion="bic",
-        threshold=10.0,
+        threshold="calibrate",
         removable=(),
         quick_fit_kwargs=None,
         clip=None,
         clip_after=2,
         multistart=True,
+        calibration=None,
+        preliminary_threshold=10.0,
     ):
+        if isinstance(threshold, str) and threshold != "calibrate":
+            raise ValueError(
+                f"threshold must be a number or 'calibrate', not {threshold!r}"
+            )
         if callable(criterion):
             self.criterion_name = getattr(criterion, "__name__", "criterion")
             self.criterion = criterion
@@ -824,6 +893,7 @@ class AutoFit:
                 )
             self.criterion_name = criterion
             self.criterion = CRITERIA[criterion]
+        self.criterion_arg = criterion
         self.base = model
         self.rules = list(rules)
         self.threshold = threshold
@@ -832,6 +902,8 @@ class AutoFit:
         self.clip = None if clip is None else dict(clip)
         self.clip_after = clip_after
         self.multistart = multistart
+        self.calibration = dict(calibration or {})
+        self.preliminary_threshold = preliminary_threshold
         self.n_fits = 0
 
     def _fit(self, model):
@@ -902,17 +974,51 @@ class AutoFit:
         return new
 
     def run(self, max_iterations=20):
-        """Build the model.
+        """Build the model: one search with a fixed threshold, or with
+        `threshold="calibrate"` a preliminary search, the calibration and a
+        search per quantile.
 
-        :param max_iterations: Maximum number of accepted additions
+        :param max_iterations: Maximum number of accepted additions per
+            search
         :type max_iterations: int
-        :return: The selected model, its quick fit and the history
+        :return: The selected model, its quick fit and the history (and the
+            calibration and the models of the other quantiles)
         :rtype: AutoFitResult
         :raises ValueError: if the base model cannot be fitted
         """
         self.n_fits = 0
+        if self.threshold != "calibrate":
+            return self._search(self.threshold, max_iterations)
+
+        preliminary = self._search(self.preliminary_threshold, max_iterations)
+        calibration = calibrate_threshold(
+            preliminary.model,
+            self.rules,
+            criterion=self.criterion_arg,
+            quick_fit_kwargs=self.quick_fit_kwargs,
+            multistart=self.multistart,
+            **self.calibration,
+        )
+        self.n_fits += calibration.n_fits
+        by_quantile, by_threshold = {}, {}
+        for quantile, threshold in calibration.thresholds.items():
+            if threshold not in by_threshold:
+                by_threshold[threshold] = self._search(threshold, max_iterations)
+            found = copy.copy(by_threshold[threshold])
+            found.quantile = quantile
+            found.calibration = calibration
+            found.preliminary = preliminary
+            found.by_quantile = by_quantile
+            by_quantile[quantile] = found
+        selected = next(iter(by_quantile.values()))
+        selected.n_fits = self.n_fits
+        return selected
+
+    def _search(self, threshold, max_iterations):
+        """One greedy search with a fixed threshold."""
+        n_fits_before = self.n_fits
         logger.info(
-            f"AutoFit: {self.criterion_name}, threshold {self.threshold}, "
+            f"AutoFit: {self.criterion_name}, threshold {threshold:.2f}, "
             f"{len(self.rules)} rule(s)"
         )
         model = copy.deepcopy(self.base)
@@ -946,7 +1052,7 @@ class AutoFit:
                     ):
                         best = (trial, trial_result, trial_score, cand)
 
-            if best is None or score - best[2] <= self.threshold:
+            if best is None or score - best[2] <= threshold:
                 break
 
             model, result, new_score, cand = best
@@ -963,7 +1069,9 @@ class AutoFit:
             score = new_score
             seen.add(_signature(model))
 
-            model, result, score = self._backward(model, result, score, history, seen)
+            model, result, score = self._backward(
+                model, result, score, history, seen, threshold
+            )
 
             n_added = sum(step.action == "add" for step in history)
             if self.clip is not None and n_added >= self.clip_after:
@@ -974,7 +1082,14 @@ class AutoFit:
             f"AutoFit done: {[c.name for c in model.components]}, "
             f"{self.criterion_name} = {score:.2f}"
         )
-        return AutoFitResult(model, result, self.criterion_name, history, self.n_fits)
+        return AutoFitResult(
+            model,
+            result,
+            self.criterion_name,
+            history,
+            self.n_fits - n_fits_before,
+            threshold=threshold,
+        )
 
     def _clip(self, model, result, score, history):
         """Sigma-clip with the current model and refit, until the mask no
@@ -1009,7 +1124,7 @@ class AutoFit:
             logger.info(f"AutoFit: {n_clipped} pixels clipped, re-scored")
         return model, result, score
 
-    def _backward(self, model, result, score, history, seen):
+    def _backward(self, model, result, score, history, seen, threshold):
         """Remove components that no longer earn `threshold`, one at a time
         (the least useful first)."""
         while True:
@@ -1022,7 +1137,7 @@ class AutoFit:
                 if trial_result is None:
                     continue
                 # Keeping `name` is worth trial_score - score
-                if trial_score - score < self.threshold and (
+                if trial_score - score < threshold and (
                     worst is None or trial_score < worst[2]
                 ):
                     worst = (trial, trial_result, trial_score, name)
@@ -1099,30 +1214,90 @@ def correlated_noise(model, result, rng):
     return noise * err
 
 
+@dataclass
+class Calibration:
+    """Result of `calibrate_threshold`: criterion improvements that noise
+    alone achieves, and thresholds at their quantiles.
+
+    :param criterion: Name of the criterion
+    :type criterion: str
+    :param improvements: Largest improvement of each simulation (failed
+        simulations left out)
+    :type improvements: np.ndarray
+    :param thresholds: Quantile -> threshold
+    :type thresholds: dict
+    :param intervals: Quantile -> (low, high): 90% bootstrap interval of the
+        threshold, its uncertainty from the finite number of simulations
+    :type intervals: dict
+    :param noise: Noise model of the simulations
+    :type noise: str
+    :param n_fits: Number of quick fits run
+    :type n_fits: int
+    """
+
+    criterion: str
+    improvements: np.ndarray
+    thresholds: dict
+    intervals: dict
+    noise: str = "residuals"
+    n_fits: int = 0
+
+    def threshold(self, quantile):
+        """The threshold at `quantile` (computed if it was not requested).
+
+        :param quantile: Quantile, e.g. 0.95
+        :type quantile: float
+        :rtype: float
+        """
+        if quantile in self.thresholds:
+            return self.thresholds[quantile]
+        return float(np.quantile(self.improvements, quantile))
+
+    def __str__(self):
+        imp = self.improvements
+        header = (
+            f"Calibration ({self.criterion}, {imp.size} simulations, "
+            f"{self.noise} noise): improvements from noise: median "
+            f"{np.median(imp):.1f}, zero in {np.mean(imp == 0):.0%}"
+        )
+        lines = [header]
+        for quantile, value in self.thresholds.items():
+            low, high = self.intervals[quantile]
+            lines.append(
+                f"  {quantile:.1%} quantile: threshold {value:.1f} "
+                f"(90% bootstrap interval {low:.1f} - {high:.1f})"
+            )
+        return "\n".join(lines)
+
+
 def calibrate_threshold(
     model,
     rules,
     criterion="bic",
-    n_sims=30,
-    quantile=0.95,
+    n_sims=200,
+    quantiles=(0.95, 0.99),
     noise="residuals",
     seed=0,
     quick_fit_kwargs=None,
     multistart=True,
+    n_bootstrap=1000,
 ):
-    """Threshold for `AutoFit` from simulations without extra components.
+    """Thresholds for `AutoFit` from simulations without extra components.
 
     Each simulation replaces the flux of a copy of `model` by its best fit
     plus noise ("residuals": with the correlations of the residuals, see
     `correlated_noise`; "white": independent Gaussian noise from the
     errors), quick-fits it, and runs one forward step of the search. The
     largest improvement of the criterion that any candidate achieves is
-    noise only; the `quantile` of these improvements is the threshold
-    above which an added component is unlikely to fit noise (a false
-    positive rate of about 1 - `quantile` per step).
+    noise only; a quantile q of these improvements is the threshold above
+    which an added component is unlikely to fit noise (a false positive
+    rate of about 1 - q per step). Each threshold comes with a bootstrap
+    interval; high quantiles need many simulations (n_sims (1 - q) of them
+    lie above the threshold).
 
-    Use the base model, or the model `AutoFit` selected (residuals that
-    still contain real features make the threshold conservative).
+    Use a model of the real features, e.g. from a search with a fixed
+    threshold (as `AutoFit` does with `threshold="calibrate"`): residuals
+    that still contain real features make the thresholds conservative.
 
     :param model: The null model (spectrum, fit mask, starting values)
     :type model: sculptor.model.FitModel
@@ -1132,8 +1307,8 @@ def calibrate_threshold(
     :type criterion: str or callable
     :param n_sims: Number of simulations
     :type n_sims: int
-    :param quantile: Quantile of the null improvements to return
-    :type quantile: float
+    :param quantiles: Quantiles of the null improvements to report
+    :type quantiles: tuple(float)
     :param noise: "residuals" or "white"
     :type noise: str
     :param seed: Seed of the random generator
@@ -1143,17 +1318,24 @@ def calibrate_threshold(
     :param multistart: As for `AutoFit` (use the same setting as the
         search)
     :type multistart: bool
-    :return: threshold, and the improvement of every simulation
-    :rtype: (float, np.ndarray)
-    :raises ValueError: for an unknown `noise`
+    :param n_bootstrap: Bootstrap resamples for the intervals
+    :type n_bootstrap: int
+    :return: The improvements and the thresholds
+    :rtype: Calibration
+    :raises ValueError: for an unknown `noise`, quantiles outside (0, 1), or
+        a model that cannot be fitted
     """
     if noise not in ("residuals", "white"):
         raise ValueError(f"Unknown noise {noise!r}; use 'residuals' or 'white'.")
+    quantiles = tuple(float(q) for q in np.atleast_1d(quantiles))
+    if not quantiles or not all(0 < q < 1 for q in quantiles):
+        raise ValueError(f"quantiles must lie in (0, 1), not {quantiles}")
     rng = np.random.default_rng(seed)
     search = AutoFit(
         model,
         rules,
         criterion=criterion,
+        threshold=0.0,
         quick_fit_kwargs=quick_fit_kwargs,
         multistart=multistart,
     )
@@ -1164,7 +1346,7 @@ def calibrate_threshold(
         raise ValueError("calibrate_threshold: the model cannot be fitted.")
     best_flux = null.eval(null.spec.dispersion, null_result.values)
 
-    improvements = np.zeros(n_sims)
+    improvements = np.full(n_sims, np.nan)
     for idx in range(n_sims):
         sim = copy.deepcopy(null)
         if noise == "residuals":
@@ -1180,11 +1362,35 @@ def calibrate_threshold(
                 _, _, score = search._fit_candidate(sim, cand)
                 best = min(best, score)
         improvements[idx] = sim_score - best
+    improvements = improvements[np.isfinite(improvements)]
+    if improvements.size == 0:
+        raise ValueError("calibrate_threshold: all simulations failed.")
+    if improvements.size < n_sims:
+        logger.warning(
+            f"calibrate_threshold: {n_sims - improvements.size} of {n_sims} "
+            "simulations failed"
+        )
 
-    threshold = float(np.quantile(improvements, quantile))
-    logger.info(
-        f"calibrate_threshold: {search.criterion_name} improvements from noise: "
-        f"median {np.median(improvements):.1f}, "
-        f"{quantile:.0%} quantile {threshold:.1f} ({n_sims} simulations)"
+    resampled = rng.choice(improvements, (n_bootstrap, improvements.size))
+    thresholds, intervals = {}, {}
+    for quantile in quantiles:
+        thresholds[quantile] = float(np.quantile(improvements, quantile))
+        boot = np.quantile(resampled, quantile, axis=1)
+        intervals[quantile] = tuple(float(v) for v in np.quantile(boot, [0.05, 0.95]))
+        if improvements.size * (1 - quantile) < 3:
+            logger.warning(
+                f"calibrate_threshold: only {improvements.size * (1 - quantile):.1f}"
+                f" simulations above the {quantile:.1%} quantile; use more "
+                "simulations for a stable threshold"
+            )
+
+    calibration = Calibration(
+        search.criterion_name,
+        improvements,
+        thresholds,
+        intervals,
+        noise=noise,
+        n_fits=search.n_fits,
     )
-    return threshold, improvements
+    logger.info(str(calibration))
+    return calibration

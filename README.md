@@ -22,10 +22,11 @@ The core package (`sculptor`):
 - `sculptor.autofit`: automatic model building on the quick fit. Rules
   propose components (`GaussianLineRule` for emission or absorption lines,
   `ComponentRule` for predefined components or continuum swaps); they are
-  kept while they lower the BIC (or AICc, or SpIC, the spectral information
-  criterion of Webb et al. 2021) by more than a threshold
-  (`calibrate_threshold` sets it from simulations with the residuals' noise
-  correlations); each candidate is fitted from several starting widths
+  kept while they lower the BIC (or AICc, AIC, SpIC, the spectral
+  information criterion of Webb et al. 2021, or a custom criterion) by more
+  than a threshold, by default calibrated from simulations with the
+  residuals' noise correlations (`calibrate_threshold`; the models for
+  several quantiles, 95% and 99% by default, are reported); each candidate is fitted from several starting widths
   (multi-start) and the best fit counts; optional sigma clipping between
   steps. Quasar rules (lines, iron templates, Balmer continuum; narrow
   Hbeta and the [OIII] core share redshift and width by default) are in
@@ -90,18 +91,25 @@ model.plot_mcmc_result(discard=500)
 Automatic model building, starting from a model with only the continuum:
 
 ```python
-from sculptor.autofit import AutoFit, GaussianLineRule, calibrate_threshold
+from sculptor.autofit import AutoFit, GaussianLineRule
 
 rules = [GaussianLineRule("line", redshift=3.22, fwhm_range=(300, 15000))]
 # or, for a quasar: from sculptor_extensions.qso_rules import qso_rules
 # rules = qso_rules(redshift=3.22)
-auto = AutoFit(base_model, rules, criterion="bic", clip={"low": 3, "grow": 2})
-result = auto.run()
-print(result)                     # the accepted steps and the final quick fit
 
-# Optional: a threshold that accounts for correlated pixels
-threshold, _ = calibrate_threshold(result.model, rules)
-result = AutoFit(base_model, rules, threshold=threshold, clip={"low": 3}).run()
+# BIC with a threshold calibrated on simulations (noise with the residuals'
+# correlations): one model per quantile, the first one selected
+auto = AutoFit(
+    base_model,
+    rules,
+    clip={"low": 3, "grow": 2},
+    calibration={"quantiles": (0.95, 0.99), "n_sims": 200},
+)
+result = auto.run()
+print(result)                     # steps, calibration, models by quantile
+strict = result.by_quantile[0.99]
+# Faster, without calibration: AutoFit(base_model, rules, threshold=10)
+
 result.model.fit("quick+mcmc", nsteps=2000, nwalkers=50)
 ```
 
