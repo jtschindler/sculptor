@@ -20,6 +20,11 @@ fitted from each and the best fit counts. This matters for degenerate
 components, e.g. a second broad Gaussian of a line, whose fit depends on
 where it starts.
 
+Several weak lines with the same kinematics, e.g. the narrow cores of
+Hbeta and [OIII], may earn the threshold together but not one at a time:
+`LineGroupRule` proposes them as one candidate with shared parameters,
+starting at the systemic redshift.
+
 Ties (`Tie`, passed among the rules) are hypotheses that components share
 parameters, e.g. the narrow cores of Hbeta and [OIII] their redshift and
 width. When the search converges, each applicable tie is tested like a
@@ -553,19 +558,51 @@ def _linear_amplitude(model, result, comp, params, key):
     """Least-squares amplitude of a new component on the residuals of the
     current fit, for a component linear in parameter `key` (evaluated with
     `key` = 1); None if it has no flux in the fit."""
+    amps = _linear_amplitudes(model, result, [comp], params, [key])
+    return None if amps is None else float(amps[0])
+
+
+def _linear_amplitudes(model, result, comps, params, keys):
+    """Joint least-squares amplitudes of new components on the residuals of
+    the current fit, for components linear (and additive) in the
+    parameters `keys`, each evaluated with its key = 1 and the others 0;
+    None if one has no flux in the fit."""
     mask = model.get_fit_mask()
     x = model.spec.dispersion
     lookup = {name: p.value for name, p in model.parameters.items()}
     lookup.update(dict(zip(result.param_names, result.values, strict=True)))
     lookup.update({name: p.value for name, p in params.items()})
-    lookup[key] = 1.0
-    unit = comp.eval(x, [lookup[k] for k in comp.get_arg_keys()])[mask]
+    units = []
+    for key in keys:
+        trial = {**lookup, **dict.fromkeys(keys, 0.0), key: 1.0}
+        unit = sum(
+            comp.eval(x, [trial[k] for k in comp.get_arg_keys()]) for comp in comps
+        )
+        units.append(unit[mask])
+    design = np.array(units).T
     resid = (model.spec.fluxden - model.eval(x, result.values))[mask]
     weight = 1 / model.spec.fluxden_err[mask] ** 2
-    denom = np.sum(weight * unit**2)
-    if not denom > 0:
+    gram = design.T @ (weight[:, None] * design)
+    if not np.all(np.diag(gram) > 0):
         return None
-    return float(np.sum(weight * unit * resid) / denom)
+    try:
+        return np.linalg.solve(gram, design.T @ (weight * resid))
+    except np.linalg.LinAlgError:
+        return None
+
+
+def _scaled_fluxes(amps, signs, prior_factor):
+    """Starting values and uniform prior bounds of the linear parameters of
+    a new group of components from their least-squares amplitudes (`signs`:
+    +1 emission, -1 absorption): those of the wrong sign start at 1% of the
+    strongest. None if none has the right sign."""
+    signed = np.asarray(amps) * np.asarray(signs)
+    top = np.max(signed)
+    if not top > 0:
+        return None
+    values = np.maximum(signed, 0.01 * top) * signs
+    bounds = [tuple(sorted([0.0, prior_factor * top * sign])) for sign in signs]
+    return [float(v) for v in values], bounds
 
 
 class ComponentRule(Rule):
@@ -585,7 +622,9 @@ class ComponentRule(Rule):
     parameter of the (single) new component is the least-squares amplitude
     on the current residuals, and the uniform prior's upper bound is
     `prior_factor` times it; a non-positive amplitude means the data do not
-    ask for the component, and nothing is proposed.
+    ask for the component, and nothing is proposed. A list (e.g. the fluxes
+    of a line complex) is estimated jointly; the component is proposed if
+    any is positive, and the others start at 1% of the largest.
 
     :param name: Name of the rule (for the log)
     :type name: str
@@ -597,8 +636,8 @@ class ComponentRule(Rule):
     :param max_uses: How many components the rule may add (one per use)
     :type max_uses: int
     :param linear_param: Parameter (without the component prefix) that
-        scales the new component linearly
-    :type linear_param: str
+        scales the new component linearly, or several
+    :type linear_param: str or list(str)
     :param prior_factor: Upper prior bound in units of the estimated
         amplitude, with `linear_param`
     :type prior_factor: float
@@ -622,7 +661,13 @@ class ComponentRule(Rule):
         self.factory = factory
         self.replaces = list(replaces)
         self.max_uses = max_uses
-        self.linear_param = linear_param
+        self.linear_params = (
+            []
+            if linear_param is None
+            else [linear_param]
+            if isinstance(linear_param, str)
+            else list(linear_param)
+        )
         self.prior_factor = prior_factor
         self.starts = [dict(start) for start in starts]
         self._produced = set()
@@ -664,9 +709,7 @@ class ComponentRule(Rule):
         description = f"{self.name}: add {', '.join(c.name for c in comps)}"
         if self.replaces:
             description += f" (replacing {', '.join(self.replaces)})"
-        if self.linear_param is not None and not self._scale(
-            model, result, comps, params
-        ):
+        if self.linear_params and not self._scale(model, result, comps, params):
             return []
         return [
             Candidate(
@@ -681,35 +724,260 @@ class ComponentRule(Rule):
     def _starts(self, model, result, comps, params):
         """`starts`, with `linear_param` re-estimated for each; starts the
         residuals do not ask for are dropped."""
-        if self.linear_param is None:
+        if not self.linear_params:
             return [dict(start) for start in self.starts]
-        key = comps[0].param_mapping[self.linear_param]
-        prior = params[key].prior
+        keys = [comps[0].param_mapping[p] for p in self.linear_params]
         starts = []
         for start in self.starts:
             trial = copy.deepcopy(params)
             for name, value in start.items():
                 trial[name].value = value
-            trial[key].value = 1.0
-            amp = _linear_amplitude(model, result, comps[0], trial, key)
-            if amp is None or not amp > 0:
+            amps = _linear_amplitudes(model, result, comps[:1], trial, keys)
+            scaled = (
+                None if amps is None else _scaled_fluxes(amps, [1.0] * len(keys), 1)
+            )
+            if scaled is None:
                 continue
-            starts.append({**start, key: float(np.clip(amp, prior.low, prior.upp))})
+            start = dict(start)
+            for key, value in zip(keys, scaled[0], strict=True):
+                prior = params[key].prior
+                start[key] = float(np.clip(value, prior.low, prior.upp))
+            starts.append(start)
         return starts
 
     def _scale(self, model, result, comps, params):
-        """Least-squares starting value for `linear_param`; False if the
+        """Least-squares starting values for `linear_param`; False if the
         residuals do not ask for the component."""
         if len(comps) != 1:
             raise ValueError("linear_param needs a factory with one component")
-        comp = comps[0]
-        key = comp.param_mapping[self.linear_param]
-        amp = _linear_amplitude(model, result, comp, params, key)
-        if amp is None or not amp > 0:
+        keys = [comps[0].param_mapping[p] for p in self.linear_params]
+        amps = _linear_amplitudes(model, result, comps, params, keys)
+        scaled = (
+            None
+            if amps is None
+            else _scaled_fluxes(amps, [1.0] * len(keys), self.prior_factor)
+        )
+        if scaled is None:
             return False
-        params[key].value = amp
-        params[key].prior = UniformPrior(key, 0.0, self.prior_factor * amp)
+        for key, value, bounds in zip(keys, *scaled, strict=True):
+            params[key].value = value
+            params[key].prior = UniformPrior(key, *bounds)
         return True
+
+
+class LineGroupRule(Rule):
+    """Rule: one line component of each of several `GaussianLineRule`s at
+    once, sharing parameters, e.g. the narrow cores of Hbeta and [OIII]
+    with one redshift and width.
+
+    Lines too weak to earn the threshold one at a time may earn it
+    together, and the shared kinematics keep e.g. a narrow Hbeta from
+    fitting the peak of a broad profile. The candidate starts at
+    `redshift`, trusted unless the data say otherwise: its prior allows
+    +-`velocity_range`, and the strongest narrow residual peak near the
+    members' lines is a further start. It is fitted from each width in
+    `start_fwhm`, with the fluxes from a joint least-squares fit to the
+    residuals.
+
+    The rule proposes the group while no component uses its shared
+    parameters (`<name>_<arg>`) and every member rule has room. The
+    components are named and owned by the member rules, so backward steps
+    may remove them one at a time. Give a `Tie` of the same lines the same
+    name (e.g. "narrow"): it then counts the group as tied.
+
+    :param name: Name of the group and prefix of the shared parameters
+    :type name: str
+    :param members: Rules of the lines, each with one line in `lines`
+    :type members: list(GaussianLineRule)
+    :param redshift: Starting redshift (e.g. the systemic one)
+    :type redshift: float
+    :param fwhm_range: FWHM prior range, km/s
+    :type fwhm_range: (float, float)
+    :param velocity_range: Allowed velocity offset from `redshift`, km/s
+    :type velocity_range: float
+    :param start_fwhm: Starting widths, km/s (default: three log-spaced in
+        `fwhm_range`)
+    :type start_fwhm: list(float)
+    :param args: Shared arguments
+    :type args: list(str)
+    :param prior_factor: Upper flux prior bound in units of the largest
+        estimated flux
+    :type prior_factor: float
+    """
+
+    def __init__(
+        self,
+        name,
+        members,
+        redshift,
+        fwhm_range=(100.0, 1200.0),
+        velocity_range=1000.0,
+        start_fwhm=None,
+        args=("redsh", "fwhm_km_s"),
+        prior_factor=100.0,
+    ):
+        for member in members:
+            if member.lines is None or len(member.lines) != 1:
+                raise ValueError(f"Member {member.prefix!r} needs exactly one line.")
+        if len({member.prefix for member in members}) != len(members):
+            raise ValueError("Members need distinct prefixes.")
+        self.name = name
+        self.members = list(members)
+        self.redshift = redshift
+        self.fwhm_range = tuple(fwhm_range)
+        self.velocity_range = velocity_range
+        self.start_fwhm = (
+            list(np.geomspace(*self.fwhm_range, 5)[1:-1])
+            if start_fwhm is None
+            else list(start_fwhm)
+        )
+        self.args = list(args)
+        self.prior_factor = prior_factor
+
+    def owned(self, model):
+        """The member rules own the components.
+
+        :rtype: list
+        """
+        return []
+
+    def shared_name(self, arg):
+        """Name of the shared parameter of `arg`."""
+        return f"{self.name}_{arg}"
+
+    def propose(self, model, result):
+        """The group as one candidate (see the class).
+
+        :param model: The current model
+        :type model: sculptor.model.FitModel
+        :param result: Its quick fit
+        :type result: sculptor.quick_fit.QuickFitResult
+        :return: Zero or one candidate
+        :rtype: list(Candidate)
+        """
+        if any(self.shared_name(arg) in model.parameters for arg in self.args):
+            return []
+        if any(len(m.owned(model)) >= m.max_components for m in self.members):
+            return []
+
+        dz = self.velocity_range / scut.c_km_s * (1 + self.redshift)
+        start = {
+            "redsh": (self.redshift, (self.redshift - dz, self.redshift + dz)),
+            "fwhm_km_s": (self.start_fwhm[0], self.fwhm_range),
+        }
+        comps, pars = [], {}
+        for member in self.members:
+            cname = member._new_name(model)
+            comp = FitComponent(cname, member.function)
+            own = comp.create_params()
+            if "cen" in comp.function_args:
+                own[f"{cname}_cen"].value = member.lines[0]
+                own[f"{cname}_cen"].vary = False
+            for arg, value in member.fixed.items():
+                own[f"{cname}_{arg}"].value = value
+                own[f"{cname}_{arg}"].vary = False
+            for arg in self.args:
+                param = own.pop(f"{cname}_{arg}")
+                shared = self.shared_name(arg)
+                comp.param_mapping[arg] = shared
+                if shared not in pars:
+                    param.name = shared
+                    if arg in start:
+                        param.value = start[arg][0]
+                        param.prior = UniformPrior(shared, *start[arg][1])
+                    elif param.prior is not None:
+                        param.prior.name = shared
+                    pars[shared] = param
+            comps.append(comp)
+            pars.update(own)
+
+        keys = [comp.param_mapping["flux"] for comp in comps]
+        signs = [member.sign for member in self.members]
+        valid = []
+        for variant in self._variants(model, result, pars):
+            trial = copy.deepcopy(pars)
+            for key, value in variant.items():
+                trial[key].value = value
+            amps = _linear_amplitudes(model, result, comps, trial, keys)
+            scaled = None if amps is None else _scaled_fluxes(amps, signs, 1.0)
+            if scaled is not None:
+                valid.append((variant, scaled[0]))
+        if not valid:
+            return []
+        top = max(abs(v) for _, values in valid for v in values)
+        for key, sign in zip(keys, signs, strict=True):
+            bounds = sorted([0.0, sign * self.prior_factor * top])
+            pars[key].prior = UniformPrior(key, *bounds)
+        starts = []
+        for variant, values in valid:
+            start = dict(variant)
+            for key, value in zip(keys, values, strict=True):
+                prior = pars[key].prior
+                start[key] = float(np.clip(value, prior.low, prior.upp))
+            starts.append(start)
+        for key, value in starts[0].items():
+            pars[key].value = value
+
+        names = ", ".join(comp.name for comp in comps)
+        return [
+            Candidate(
+                description=f"add {self.name} group {names} at z "
+                f"{pars[self.shared_name('redsh')].value:.4f}"
+                if "redsh" in self.args
+                else f"add {self.name} group {names}",
+                components=comps,
+                parameters=pars,
+                starts=starts[1:],
+            )
+        ]
+
+    def _peak_redshift(self, model, result, fwhm):
+        """Redshift of the most significant residual peak of width `fwhm`
+        near the members' lines, or None."""
+        x = model.spec.dispersion
+        best = (0.0, None)
+        for member in self.members:
+            line = member.lines[0]
+            obs = line * (1 + self.redshift)
+            near = np.abs(x - obs) <= self.velocity_range / scut.c_km_s * obs
+            near &= model.get_fit_mask()
+            if not np.any(near):
+                continue
+            signif, _ = member.significance_map(model, result, fwhm)
+            signif = np.where(near, signif, 0.0)
+            idx = int(np.argmax(signif))
+            if signif[idx] > max(best[0], member.min_significance):
+                best = (signif[idx], x[idx] / line - 1)
+        return best[1]
+
+    def _variants(self, model, result, pars):
+        """Starting values: each width of `start_fwhm` at `redshift`, then
+        the strongest residual peak's redshift (if offset by more than a
+        quarter of the width)."""
+        z_key = self.shared_name("redsh") if "redsh" in self.args else None
+        w_key = self.shared_name("fwhm_km_s") if "fwhm_km_s" in self.args else None
+        widths = self.start_fwhm if w_key is not None else [self.start_fwhm[0]]
+        variants = []
+        for width in widths:
+            variant = {} if w_key is None else {w_key: float(width)}
+            if z_key is not None:
+                variant[z_key] = float(self.redshift)
+            variants.append(variant)
+        if z_key is not None:
+            width = self.start_fwhm[0]
+            z_peak = self._peak_redshift(model, result, width)
+            dz = width / 4 / scut.c_km_s * (1 + self.redshift)
+            prior = pars[z_key].prior
+            if (
+                z_peak is not None
+                and abs(z_peak - self.redshift) > dz
+                and prior.low < z_peak < prior.upp
+            ):
+                variant = {z_key: float(z_peak)}
+                if w_key is not None:
+                    variant[w_key] = float(width)
+                variants.append(variant)
+        return variants
 
 
 @dataclass
@@ -830,7 +1098,18 @@ class Tie(Rule):
                 width = model.parameters[key].value
                 if self.max_width is None or width <= self.max_width:
                     widths[comp.name] = width
-            if widths:
+            # A component already sharing the tie's parameters (e.g. added
+            # by a `LineGroupRule` of the same name) comes first
+            sharing = [
+                c.name
+                for c in model.components
+                if c.name in widths
+                and c.param_mapping.get(self.width_arg)
+                == self.shared_name(self.width_arg)
+            ]
+            if sharing:
+                chosen.append(sharing[0])
+            elif widths:
                 chosen.append(min(widths, key=widths.get))
             else:
                 missing.append(prefix)

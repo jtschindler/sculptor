@@ -3,12 +3,17 @@
 
 `qso_rules(redshift)` returns a default set: Gaussians at the strong
 broad and narrow lines in the fit regions, the UV iron template and the
-Balmer continuum, and the hypothesis that the narrow components of Hbeta,
-Halpha and [OIII] share redshift and width (`narrow_line_tie`), which
-AutoFit keeps only if the data accept it. Components narrower than
+Balmer continuum, the narrow components of Hbeta, Halpha and [OIII]
+proposed together at the systemic redshift (`narrow_line_group`), and the
+hypothesis that they share redshift and width (`narrow_line_tie`), which
+AutoFit keeps only if the data accept it. Weaker blended lines
+(`BLEND_LINES`: HeII, OIII] 1663, AlIII, SiIII]) and the CIII] complex
+(`ciii_complex_rule`) are available. Components narrower than
 `NARROW_FWHM_MAX` count as narrow; change it before building the rules::
 
-    qso_rules.NARROW_FWHM_MAX = 1000.0 Start `AutoFit` from a power-law continuum::
+    qso_rules.NARROW_FWHM_MAX = 1000.0
+
+Start `AutoFit` from a power-law continuum::
 
     from sculptor.autofit import AutoFit
     from sculptor_extensions import qso_rules
@@ -23,7 +28,9 @@ Each rule can also be built on its own (`line_rules`, `iron_template_rule`,
 import copy
 import string
 
-from sculptor.autofit import ComponentRule, GaussianLineRule, Tie
+from sculptor import utils as scut
+from sculptor.autofit import ComponentRule, GaussianLineRule, LineGroupRule, Tie
+from sculptor.component import FitComponent
 from sculptor.prior import UniformPrior
 from sculptor_extensions import qso, qso_presets
 from sculptor_extensions import qso_autofit as qa
@@ -35,6 +42,9 @@ QSO_LINES = {
     "SiIV": 1399.80,
     "CIV": 1549.06,
     "HeII": 1640.42,
+    "OIII1663": 1663.48,  # OIII] 1661 + 1666
+    "AlIII": 1857.40,
+    "SiIII": 1892.03,
     "CIII": 1908.73,
     "MgII": 2798.75,
     "Hgamma": 4341.68,
@@ -55,6 +65,10 @@ DOUBLETS = {
 # out
 DEFAULT_LINES = ("SiIV", "CIV", "CIII", "MgII", "Hbeta", "OIII", "Halpha")
 
+# Weaker lines blended with the strong ones: HeII and OIII] 1663 in the red
+# wing of CIV, AlIII and SiIII] next to CIII] (see also `ciii_complex_rule`)
+BLEND_LINES = ("HeII", "OIII1663", "AlIII", "SiIII")
+
 # Forbidden lines get the narrow FWHM range
 NARROW_LINES = ("OIII", "OIII_4960", "OIII_5008")
 
@@ -66,8 +80,16 @@ LINES_WITH_NARROW = ("Hbeta", "Halpha")
 # `narrow_line_tie`; change it before building the rules
 NARROW_FWHM_MAX = 1200.0
 
-# Lines whose narrow components `narrow_line_tie` ties by default
+# Lines whose narrow components `narrow_line_tie` ties (and
+# `narrow_line_group` proposes together) by default
 NARROW_TIE_LINES = ("Hbeta", "Halpha", "OIII")
+
+# Allowed velocity offset of the narrow-line group from the systemic
+# redshift, km/s
+NARROW_VELOCITY_RANGE = 1000.0
+
+# Rest-frame wavelengths of the CIII] complex (`qso.CIII_complex_model_func`)
+CIII_COMPLEX = {"cen": 1908.73, "cen_alIII": 1857.40, "cen_siIII": 1892.03}
 
 
 def _fixed(value):
@@ -171,6 +193,109 @@ def narrow_line_tie(lines=NARROW_TIE_LINES, max_fwhm=None, args=None):
         lines,
         args=("redsh", "fwhm_km_s") if args is None else args,
         max_width=NARROW_FWHM_MAX if max_fwhm is None else max_fwhm,
+    )
+
+
+def narrow_line_group(
+    rules, redshift, lines=NARROW_TIE_LINES, max_fwhm=None, min_fwhm=100.0, **kwargs
+):
+    """Rule that proposes the narrow components of `lines` together, at the
+    systemic redshift, sharing redshift and FWHM (`narrow_redsh`,
+    `narrow_fwhm_km_s`, the names `narrow_line_tie` uses): weak narrow
+    lines that would not earn the threshold one at a time may earn it
+    together. See `sculptor.autofit.LineGroupRule`.
+
+    :param rules: The line rules (from `line_rules`)
+    :type rules: list
+    :param redshift: Systemic redshift (the starting value)
+    :type redshift: float
+    :param lines: Line names (rule prefixes); those without a rule are
+        skipped
+    :type lines: list(str)
+    :param max_fwhm: Largest FWHM, km/s (default `NARROW_FWHM_MAX`, read
+        when called)
+    :type max_fwhm: float
+    :param min_fwhm: Smallest FWHM, km/s
+    :type min_fwhm: float
+    :param kwargs: Passed on to `LineGroupRule` (default `velocity_range`:
+        `NARROW_VELOCITY_RANGE`)
+    :return: The rule, or None with fewer than two of the lines
+    :rtype: sculptor.autofit.LineGroupRule
+    """
+    by_prefix = {
+        r.prefix: r
+        for r in rules
+        if isinstance(r, GaussianLineRule) and r.lines is not None
+    }
+    members = [by_prefix[name] for name in lines if name in by_prefix]
+    if len(members) < 2:
+        return None
+    kwargs.setdefault("velocity_range", NARROW_VELOCITY_RANGE)
+    return LineGroupRule(
+        "narrow",
+        members,
+        redshift,
+        fwhm_range=(min_fwhm, NARROW_FWHM_MAX if max_fwhm is None else max_fwhm),
+        **kwargs,
+    )
+
+
+def ciii_complex_rule(
+    redshift,
+    prefix="CIIIc",
+    fwhm=3000.0,
+    fwhm_range=(1000.0, 15000.0),
+    velocity_range=5000.0,
+    start_fwhm=(1500.0, 6000.0),
+):
+    """Rule that adds the CIII] complex (`qso.CIII_complex_model_func`):
+    CIII], SiIII] and AlIII at one redshift, each with its own flux and
+    FWHM (velocity shifts fixed at 0), fluxes estimated jointly from the
+    residuals. An alternative to separate rules for "CIII", "SiIII" and
+    "AlIII" (`BLEND_LINES`).
+
+    :param redshift: Systemic redshift
+    :type redshift: float
+    :param prefix: Component name
+    :type prefix: str
+    :param fwhm: Starting FWHM of the three lines, km/s
+    :type fwhm: float
+    :param fwhm_range: FWHM prior range, km/s
+    :type fwhm_range: (float, float)
+    :param velocity_range: Allowed velocity offset, km/s
+    :type velocity_range: float
+    :param start_fwhm: Further starting FWHMs (all three lines), km/s
+    :type start_fwhm: list(float)
+    :return: The rule
+    :rtype: sculptor.autofit.ComponentRule
+    """
+    widths = ("fwhm_km_s", "fwhm_km_s_alIII", "fwhm_km_s_siIII")
+    dz = velocity_range / scut.c_km_s * (1 + redshift)
+
+    def factory(model):
+        """The complex at the systemic redshift."""
+        comp = FitComponent(prefix, qso.CIII_complex_model_func)
+        pars = comp.create_params()
+        pars[f"{prefix}_redsh"].value = redshift
+        pars[f"{prefix}_redsh"].prior = UniformPrior(
+            f"{prefix}_redsh", redshift - dz, redshift + dz
+        )
+        for arg, value in CIII_COMPLEX.items():
+            pars[f"{prefix}_{arg}"].value = value
+            pars[f"{prefix}_{arg}"].vary = False
+        for arg in ("shift_km_s", "shift_km_s_alIII", "shift_km_s_siIII"):
+            pars[f"{prefix}_{arg}"].value = 0.0
+            pars[f"{prefix}_{arg}"].vary = False
+        for arg in widths:
+            pars[f"{prefix}_{arg}"].value = fwhm
+            pars[f"{prefix}_{arg}"].prior = UniformPrior(f"{prefix}_{arg}", *fwhm_range)
+        return comp, pars
+
+    return ComponentRule(
+        "CIII] complex",
+        factory,
+        linear_param=["flux", "flux_siIII", "flux_alIII"],
+        starts=[{f"{prefix}_{arg}": w for arg in widths} for w in start_fwhm],
     )
 
 
@@ -326,10 +451,12 @@ def qso_rules(
     iron="VW01_UV",
     balmer=True,
     narrow_tie=True,
+    narrow_group=True,
     **line_kwargs,
 ):
     """Default rules for a quasar spectrum: Gaussians at `lines`, an iron
-    template, a Balmer continuum and the narrow-line tie.
+    template, a Balmer continuum, the narrow lines proposed together at
+    the systemic redshift and the narrow-line tie.
 
     :param redshift: Systemic redshift
     :type redshift: float
@@ -342,11 +469,17 @@ def qso_rules(
     :param narrow_tie: Include `narrow_line_tie` (for the tied lines among
         `lines`)
     :type narrow_tie: bool
+    :param narrow_group: Include `narrow_line_group` (same lines)
+    :type narrow_group: bool
     :param line_kwargs: Passed on to `line_rules`
     :return: The rules
     :rtype: list
     """
     rules = line_rules(redshift, lines, **line_kwargs)
+    if narrow_group:
+        group = narrow_line_group(rules, redshift)
+        if group is not None:
+            rules.append(group)
     if iron is not None:
         rules.append(iron_template_rule(redshift, preset=iron))
     if balmer:

@@ -13,7 +13,7 @@ from sculptor import autofit
 from sculptor import component as sccomp
 from sculptor import model as scmod
 from sculptor import prior as scpri
-from sculptor.autofit import ComponentRule, GaussianLineRule
+from sculptor.autofit import ComponentRule, GaussianLineRule, LineGroupRule
 from sculptor_extensions import qso_presets
 from sculptor_extensions import qso_rules as qr
 
@@ -151,8 +151,15 @@ def test_qso_rules_bundle():
     assert kinds.count("GaussianLineRule") == len(qr.DEFAULT_LINES)
     assert kinds.count("ComponentRule") == 2
     assert kinds.count("Tie") == 1
+    assert kinds.count("LineGroupRule") == 1
     assert rules[-1].prefixes == ["Hbeta", "Halpha", "OIII"]
-    bare = qr.qso_rules(Z, iron=None, balmer=False, narrow_tie=False)
+    group = next(r for r in rules if isinstance(r, LineGroupRule))
+    assert [m.prefix for m in group.members] == ["Hbeta", "Halpha", "OIII"]
+    assert group.fwhm_range == (100.0, qr.NARROW_FWHM_MAX)
+    assert group.velocity_range == qr.NARROW_VELOCITY_RANGE
+    bare = qr.qso_rules(
+        Z, iron=None, balmer=False, narrow_tie=False, narrow_group=False
+    )
     assert len(bare) == len(qr.DEFAULT_LINES)
     assert len(qr.qso_rules(Z, lines=["CIV", "Hbeta"])) == 4  # nothing to tie
 
@@ -249,3 +256,120 @@ def test_narrow_fwhm_limit_is_a_module_setting(monkeypatch):
     assert rules["Hbeta"].fwhm_range == (100.0, 15000.0)
     assert rules["CIV"].fwhm_range == (1000.0, 15000.0)
     assert rules["OIII"].fwhm_range == (100.0, 2500.0)
+
+
+def _weak_narrow_model(narrow_flux, dv=0.0):
+    """Broad Hbeta with weak narrow Hbeta and [OIII] cores (400 km/s, offset
+    by `dv` km/s from the systemic redshift) at z = 0.2."""
+    z = 0.2
+    x = np.geomspace(4700 * (1 + z), 5100 * (1 + z), 900)
+    model = _model(x=x)
+    model.parameters["PL_redsh"].value = z
+    z_nl = z + dv / 2.998e5 * (1 + z)
+    model.spec.fluxden = (
+        model.spec.fluxden
+        + ana.line_model_gaussian(x, z, 40.0, 4862.68, 4000.0)
+        + ana.line_model_gaussian(x, z_nl, narrow_flux, 4862.68, 400.0)
+        + qso_presets.qso.line_model_gaussian_oiii_doublet(
+            x, z_nl, narrow_flux, 400.0, 2.98
+        )
+    )
+    lines = qr.line_rules(z, ["Hbeta", "OIII"])
+    return model, lines, z
+
+
+def test_narrow_line_group_found_at_systemic():
+    model, lines, z = _weak_narrow_model(1.0)
+    group = qr.narrow_line_group(lines, z)
+    rules = [*lines, group, qr.narrow_line_tie(["Hbeta", "OIII"])]
+    result = AutoFit(model, rules).run()
+
+    comps = {c.name: c for c in result.model.components}
+    tied = [
+        name
+        for name, comp in comps.items()
+        if comp.param_mapping.get("redsh") == "narrow_redsh"
+    ]
+    assert len(tied) == 2
+    assert {name.split("_")[0] for name in tied} == {"Hbeta", "OIII"}
+    par = result.model.parameters
+    assert par["narrow_redsh"].value == pytest.approx(z, abs=3e-4)
+    assert par["narrow_fwhm_km_s"].value == pytest.approx(400, rel=0.2)
+    assert "narrow group" in " ".join(step.description for step in result.history)
+    assert result.ties["narrow"].status == "tied"  # the tie sees the group
+
+
+def test_narrow_line_group_starts_at_a_residual_peak():
+    model, lines, z = _weak_narrow_model(3.0, dv=500.0)
+    group = qr.narrow_line_group(lines, z)
+    result = AutoFit(model, [*lines, group]).run()
+    par = result.model.parameters
+    z_nl = z + 500.0 / 2.998e5 * (1 + z)
+    assert par["narrow_redsh"].value == pytest.approx(z_nl, abs=3e-4)
+
+
+def test_narrow_line_group_needs_two_lines():
+    lines = qr.line_rules(Z, ["CIV", "Hbeta"])
+    assert qr.narrow_line_group(lines, Z) is None
+    with pytest.raises(ValueError, match="one line"):
+        LineGroupRule("g", [GaussianLineRule("a", Z), lines[1]], Z)
+
+
+def test_narrow_line_group_proposes_once():
+    model, lines, z = _weak_narrow_model(1.0)
+    group = qr.narrow_line_group(lines, z)
+    fitted = AutoFit(model, [*lines, group]).run()
+    assert group.propose(fitted.model, fitted.result) == []
+    (cand,) = group.propose(model, model.run_quick_fit())
+    widths = [s["narrow_fwhm_km_s"] for s in cand.starts if "narrow_fwhm_km_s" in s]
+    assert len(widths) == 2  # the other start widths
+    fluxes = [p for p in cand.parameters if p.endswith("_flux")]
+    assert len(fluxes) == 2
+    assert all(cand.parameters[f].value > 0 for f in fluxes)
+
+
+def test_ciii_complex_rule():
+    def complex_(x):
+        return qso_presets.qso.CIII_complex_model_func(
+            x,
+            Z,
+            1908.73,
+            1857.40,
+            1892.03,
+            30.0,
+            3000.0,
+            0.0,
+            6.0,
+            2500.0,
+            0.0,
+            8.0,
+            2500.0,
+            0.0,
+        )
+
+    model = _model(complex_)
+    rule = qr.ciii_complex_rule(Z)
+    (cand,) = rule.propose(model, model.run_quick_fit())
+    assert (
+        cand.parameters["CIIIc_flux"].value
+        > cand.parameters["CIIIc_flux_siIII"].value
+        > 0
+    )
+    assert len(cand.starts) == 2
+    assert all("CIIIc_flux_alIII" in start for start in cand.starts)
+
+    result = AutoFit(model, [rule]).run()
+    par = result.model.parameters
+    assert [c.name for c in result.model.components] == ["PL", "CIIIc"]
+    assert par["CIIIc_flux"].value == pytest.approx(30.0, rel=0.1)
+    assert par["CIIIc_flux_siIII"].value == pytest.approx(8.0, rel=0.3)
+    assert par["CIIIc_flux_alIII"].value == pytest.approx(6.0, rel=0.3)
+    assert not par["CIIIc_shift_km_s"].vary
+
+
+def test_blend_lines():
+    rules = {r.prefix: r for r in qr.line_rules(Z, qr.BLEND_LINES)}
+    assert rules["OIII1663"].lines == [1663.48]
+    assert rules["SiIII"].fwhm_range == (1000.0, 15000.0)
+    model = _model()
+    assert rules["OIII1663"].owned(model) == []
