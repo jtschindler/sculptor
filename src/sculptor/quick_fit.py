@@ -19,7 +19,6 @@ import numpy as np
 from astropy.table import Table
 from scipy import optimize
 
-from sculptor import utils as scut
 from sculptor.prior import GaussianPrior, UniformPrior
 
 logger = logging.getLogger(__name__)
@@ -360,8 +359,8 @@ def _start_values(params_variable, bounds):
 class _ComponentEvaluator:
     """Evaluates a model component by component, so that the derivative
     with respect to a parameter only re-evaluates the components that use
-    it. The model is linear in its components (the resolution broadening
-    too), so the sum of the (broadened) components is `FitModel.eval`.
+    it. The model is linear in its components (the resolution matrix too),
+    so the sum of the components in the pixels is `FitModel.eval`.
     """
 
     def __init__(self, model, x):
@@ -380,23 +379,24 @@ class _ComponentEvaluator:
                 if key in self.index:
                     self.users[self.index[key]].append(c_idx)
 
-        resolution = model.resolution
-        if isinstance(resolution, (int, float)):
-            resolution = np.full_like(x, resolution, dtype=np.float64)
-        self.resolution = resolution
+        # With a resolution, components are evaluated on the fine grid and
+        # turned into pixels by the resolution matrix (`FitModel.eval`)
+        self.matrix, self.x_eval = None, x
+        if model.resolution is not None:
+            self.matrix, self.x_eval = model.resolution_matrix(x)
 
     def component(self, c_idx, theta):
-        """Flux of component `c_idx` at `theta` (broadened if the model
-        has a resolution)."""
+        """Flux of component `c_idx` at `theta` in the pixels (convolved
+        with the resolution, if the model has one)."""
         values = [
             theta[self.index[k]] if k in self.index else self.constants[k]
             for k in self.keys[c_idx]
         ]
         flux = np.asarray(
-            self.model.components[c_idx].eval(self.x, values), dtype=float
+            self.model.components[c_idx].eval(self.x_eval, values), dtype=float
         )
-        if self.resolution is not None:
-            flux = scut.broaden_spectrum(self.x, flux, self.resolution, fwhm_lim=5.0)
+        if self.matrix is not None:
+            flux = self.matrix @ flux
         return flux
 
     def all(self, theta):

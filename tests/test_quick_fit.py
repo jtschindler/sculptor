@@ -284,6 +284,22 @@ def test_str_lists_parameters(fit_model):
         assert name in text
 
 
+def test_plot_marks_clipped_and_absorber_pixels(fit_model, tmp_path):
+    import matplotlib
+    import matplotlib.pyplot as plt
+
+    matplotlib.use("Agg")
+    dip = _absorbed(fit_model)
+    fit_model.run_quick_fit()
+    fit_model.absorber_mask = ~dip
+    fit_model.sigma_clip(low=3)
+    fit_model.run_quick_fit()
+    fit_model.plot_quick_fit_result(save=True, save_dir=tmp_path)
+    labels = plt.gcf().axes[0].get_legend_handles_labels()[1]
+    plt.close("all")
+    assert "Absorber (masked)" in labels
+
+
 def test_plot_quick_fit_result(fit_model, tmp_path):
     import matplotlib
 
@@ -452,7 +468,7 @@ def test_save_spectrum_fits(fit_model, tmp_path):
 
     table = Table.read(path)
     spec = fit_model.spec
-    np.testing.assert_allclose(table["wave"], spec.dispersion)
+    np.testing.assert_allclose(table["dispersion"], spec.dispersion)
     np.testing.assert_allclose(table["flux"], spec.fluxden)
     np.testing.assert_allclose(table["flux_err"], spec.fluxden_err)
     np.testing.assert_array_equal(table["fitted"], fit_model.get_fit_mask())

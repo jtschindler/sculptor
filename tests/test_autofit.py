@@ -1,5 +1,6 @@
 """Tests for the automatic model building (`sculptor.autofit`)."""
 
+import copy
 import logging
 
 import numpy as np
@@ -78,6 +79,32 @@ def _centers(model):
         for c in model.components
         if c.name.startswith("line_")
     )
+
+
+def test_matched_filter_uses_the_local_pixel_scale():
+    """A grid with 80 km/s pixels in the blue and 180 km/s in the red (a
+    coadd of two gratings): a line in the red gets the right amplitude."""
+    blue = 4200 * np.exp(np.arange(2000) * 80 / 2.998e5)
+    red = blue[-1] * np.exp(np.arange(1, 400) * 180 / 2.998e5)
+    x = np.concatenate([blue, red])
+    model = _model(lines=[], n=x.size)
+    cen = 0.5 * (red[100] + red[300]) / (1 + Z)
+    line = ana.line_model_gaussian(x, Z, 50.0, cen, 3000.0)
+    model.spec = sod.SpecOneD(
+        dispersion=x,
+        fluxden=_continuum(x) + line,
+        fluxden_err=np.full_like(x, ERR),
+        dispersion_unit=u.AA,
+        fluxden_unit=u.erg / u.s / u.cm**2 / u.AA,
+    )
+    model.reset_fit_mask()
+    model.add_wavelength_range_to_fit_mask(x[0], x[-1])
+    model.parameters["PL_amp"].value, model.parameters["PL_slope"].value = 1.0, -1.5
+    result = model.run_quick_fit()
+    signif, amp = _rule().significance_map(model, result, 3000.0)
+    peak = np.argmax(signif)
+    assert x[peak] == pytest.approx(cen * (1 + Z), rel=1e-3)
+    assert amp[peak] == pytest.approx(line.max(), rel=0.1)
 
 
 def test_finds_the_input_lines():
@@ -278,6 +305,82 @@ def test_final_clip_matches_the_final_model(caplog):
 
     unclipped = AutoFit(base, [_rule()]).run()
     assert all(s.action != "clip" for s in unclipped.history)
+
+
+def _with_mgii_absorber(model, z_abs=0.9):
+    """A MgII doublet absorber (unresolved, 60% / 40% deep) in the
+    continuum."""
+    x = model.spec.dispersion
+    for rest, depth in ((2796.354, 0.6), (2803.531, 0.4)):
+        cen = rest * (1 + z_abs)
+        sigma = 150.0 / 2.998e5 * cen / 2.3548
+        model.spec.fluxden = model.spec.fluxden * (
+            1 - depth * np.exp(-0.5 * ((x - cen) / sigma) ** 2)
+        )
+    return model
+
+
+@pytest.mark.parametrize("threshold", [10.0, "calibrate"])
+def test_absorbers_are_reported_and_masked(threshold):
+    base = _with_mgii_absorber(_model(n=2500))
+    fit = autofit.AutoFit(
+        base,
+        [_rule()],
+        threshold=threshold,
+        calibration={"n_sims": 5, "quantiles": [0.9]},
+        absorbers={"redshift": Z, "name": "QSO", "n_sims": 30},
+    )
+    result = fit.run()
+    inventory = result.absorbers
+    assert list(inventory.systems["species"]) == ["MgII"]
+    assert inventory.systems["z_abs"][0] == pytest.approx(0.9, abs=3e-4)
+    assert not result.model.get_fit_mask()[~inventory.mask].any()
+    np.testing.assert_allclose(_centers(result.model), [CIV, CIV, CIII], atol=2)
+    assert "MgII" in str(result)
+    assert fit.base is base and base.absorber_mask is None
+
+
+def _clip_with(monkeypatch, masks):
+    """A clip whose sigma_clip sets the given masks in turn (always
+    "changed"); returns the warnings and the number of calls."""
+    fit = AutoFit(_model(), [_rule()], clip={"low": 3})
+    model = copy.deepcopy(fit.base)
+    result, score = fit._fit(model)
+    calls = []
+
+    def fake(values=None, **kwargs):
+        model.clip_mask = masks(len(calls), model.spec.dispersion.size).copy()
+        calls.append(1)
+        return True
+
+    monkeypatch.setattr(model, "sigma_clip", fake)
+    return fit, model, result, score, calls
+
+
+def test_clip_warns_when_the_mask_oscillates(monkeypatch, caplog):
+    def alternate(i, n):
+        mask = np.ones(n, bool)
+        mask[10 if i % 2 == 0 else 20] = False
+        return mask
+
+    fit, model, result, score, calls = _clip_with(monkeypatch, alternate)
+    with caplog.at_level(logging.WARNING, logger="sculptor.autofit"):
+        fit._clip(model, result, score, [])
+    assert "oscillates" in caplog.text
+    assert len(calls) == 3  # a, b, a again
+
+
+def test_clip_warns_when_it_does_not_converge(monkeypatch, caplog):
+    def fresh(i, n):
+        mask = np.ones(n, bool)
+        mask[i] = False
+        return mask
+
+    fit, model, result, score, calls = _clip_with(monkeypatch, fresh)
+    with caplog.at_level(logging.WARNING, logger="sculptor.autofit"):
+        fit._clip(model, result, score, [])
+    assert "did not converge in 10 passes" in caplog.text
+    assert len(calls) == 10
 
 
 # -- rules: components, swaps, absorption; SpIC -------------------------------

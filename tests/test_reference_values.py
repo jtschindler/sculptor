@@ -125,7 +125,10 @@ def _gaussian(x, amp, cen, sigma):
 @pytest.mark.parametrize("as_array", [False, True])
 def test_eval_broadens_by_resolution_by_default(as_array):
     """`FitModel.eval` broadens by `resolution` by default, for a scalar or
-    a per-pixel resolution, like upstream `v2_dev`."""
+    a per-pixel resolution, like upstream `v2_dev`. The values differ from
+    upstream's (pixel-center convolution): the model is now convolved on a
+    fine grid and averaged over the pixels (`sculptor.resolution`, checked
+    against analytic results in test_broadening.py)."""
     b = INPUTS["broadening"]
     comp = sccomp.FitComponent("line", _gaussian)
     params = comp.create_params()
@@ -140,7 +143,10 @@ def test_eval_broadens_by_resolution_by_default(as_array):
     assert not np.allclose(
         y, model.eval(b["x"], b["values"], broaden_by_resolution=False)
     )
-    _close(y, "broadening__y", 1e-10)
+    # R = 20: the line spread function is wider than the grid; the line
+    # is spread out
+    raw = model.eval(b["x"], b["values"], broaden_by_resolution=False)
+    assert y.max() < 0.2 * raw.max()
 
 
 # --- relations -------------------------------------------------------------------

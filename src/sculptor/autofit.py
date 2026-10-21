@@ -193,6 +193,48 @@ class Candidate:
     reject_at_bound: list = field(default_factory=list)
 
 
+def matched_filter(x, resid, weight, fwhm_km_s):
+    """Matched filter of a Gaussian of FWHM `fwhm_km_s` on residuals:
+    significance and peak amplitude of the best-fitting Gaussian centered
+    on each pixel (weighted least squares, the weights 1 / error^2 and 0
+    for pixels to ignore).
+
+    The kernel width in pixels follows the local pixel scale in velocity
+    (and `fwhm_km_s`, if it is given per pixel): pixels whose kernel widths
+    agree within ~5% share one kernel, e.g. the sections of a coadd of
+    several gratings.
+
+    :param x: Dispersion, increasing
+    :type x: np.ndarray
+    :param resid: Residuals (flip the sign to look for absorption)
+    :type resid: np.ndarray
+    :param weight: Weights
+    :type weight: np.ndarray
+    :param fwhm_km_s: FWHM, one value or one per pixel
+    :type fwhm_km_s: float or np.ndarray
+    :return: significance, peak amplitude (both per pixel)
+    :rtype: (np.ndarray, np.ndarray)
+    """
+    fwhm_pix = (
+        np.broadcast_to(fwhm_km_s, x.shape) / scut.c_km_s / np.gradient(np.log(x))
+    )
+    group = np.round(np.log10(fwhm_pix) / 0.02)
+    num = np.zeros_like(resid, dtype=float)
+    den = np.zeros_like(resid, dtype=float)
+    for value in np.unique(group):
+        sel = group == value
+        sigma_pix = np.median(fwhm_pix[sel]) * _FWHM_TO_SIGMA
+        half = int(np.ceil(4 * sigma_pix))
+        offsets = np.arange(-half, half + 1)
+        kernel = np.exp(-0.5 * (offsets / sigma_pix) ** 2)
+        num[sel] = np.convolve(weight * resid, kernel, mode="same")[sel]
+        den[sel] = np.convolve(weight, kernel**2, mode="same")[sel]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        amp = np.where(den > 0, num / den, 0.0)
+        signif = np.where(den > 0, num / np.sqrt(den), 0.0)
+    return signif, amp
+
+
 class Rule:
     """Base class of the rules: something that proposes changes.
 
@@ -387,22 +429,7 @@ class GaussianLineRule(Rule):
         x = spec.dispersion
         resid = self.sign * (spec.fluxden - model.eval(x, result.values))
         weight = np.where(self._search_mask(model), 1 / spec.fluxden_err**2, 0.0)
-
-        # Kernel width in pixels, from the median pixel scale (constant for
-        # log-linear spectra like SDSS)
-        mid = np.median(x)
-        pix = np.median(np.diff(x))
-        sigma_pix = fwhm_km_s / scut.c_km_s * mid * _FWHM_TO_SIGMA / pix
-        half = int(np.ceil(4 * sigma_pix))
-        offsets = np.arange(-half, half + 1)
-        kernel = np.exp(-0.5 * (offsets / sigma_pix) ** 2)
-
-        num = np.convolve(weight * resid, kernel, mode="same")
-        den = np.convolve(weight, kernel**2, mode="same")
-        with np.errstate(divide="ignore", invalid="ignore"):
-            amp = np.where(den > 0, num / den, 0.0)
-            signif = np.where(den > 0, num / np.sqrt(den), 0.0)
-        return signif, amp
+        return matched_filter(x, resid, weight, fwhm_km_s)
 
     def _search_mask(self, model):
         """Fitted pixels inside the window (and near the listed lines)."""
@@ -1289,6 +1316,9 @@ class AutoFitResult:
     :param preliminary: With a calibrated threshold: the preliminary search
         the calibration simulated
     :type preliminary: AutoFitResult
+    :param absorbers: The absorber inventory, if `AutoFit(absorbers=...)`
+        searched for them (`sculptor.absorbers.AbsorberInventory`)
+    :type absorbers: sculptor.absorbers.AbsorberInventory
     :param ties: Tie name -> outcome of its last test
     :type ties: dict(str, TieTest)
     """
@@ -1304,6 +1334,7 @@ class AutoFitResult:
     by_quantile: dict = field(default_factory=dict)
     preliminary: object = None
     ties: dict = field(default_factory=dict)
+    absorbers: object = None
 
     @property
     def at_bound(self):
@@ -1340,6 +1371,8 @@ class AutoFitResult:
             lines.append(f"  tie {name}: {test}")
         if self.at_bound:
             lines.append(f"  at a prior bound: {', '.join(self.at_bound)}")
+        if self.absorbers is not None:
+            lines += ["", str(self.absorbers)]
         if self.calibration is not None:
             lines += ["", str(self.calibration), "", "Models by quantile:"]
             mine = set(self.components())
@@ -1386,7 +1419,9 @@ class AutoFit:
     :param quick_fit_kwargs: Passed on to `FitModel.run_quick_fit`
     :type quick_fit_kwargs: dict
     :param clip: Sigma clipping between steps: keyword arguments of
-        `FitModel.sigma_clip` plus `max_iterations` (default 5), e.g.
+        `FitModel.sigma_clip` plus `max_iterations` (default 10: clip and
+        refit until the mask no longer changes; a warning if it still
+        changes after that many passes or returns to an earlier mask), e.g.
         `{"low": 3, "grow": 2}`; None for no clipping
     :type clip: dict
     :param clip_after: Start clipping once this many components were added
@@ -1406,6 +1441,13 @@ class AutoFit:
         listed in `AutoFitResult.at_bound`; "reject": in addition, a
         candidate whose own parameters end at a bound is not added
     :type at_bound: str
+    :param absorbers: Keyword arguments of
+        `sculptor.absorbers.find_absorbers` (e.g. `{"redshift": 7.18,
+        "name": "J0412"}`) to search the preliminary model's residuals (a
+        first search with a fixed threshold) for narrow absorbers, report
+        them (`AutoFitResult.absorbers`) and mask them (`absorber_mask`) for
+        the calibration and the searches; None (default) for no search
+    :type absorbers: dict
     """
 
     def __init__(
@@ -1422,6 +1464,7 @@ class AutoFit:
         calibration=None,
         preliminary_threshold=10.0,
         at_bound="flag",
+        absorbers=None,
     ):
         if isinstance(threshold, str) and threshold != "calibrate":
             raise ValueError(
@@ -1453,6 +1496,7 @@ class AutoFit:
         self.calibration = dict(calibration or {})
         self.preliminary_threshold = preliminary_threshold
         self.at_bound = at_bound
+        self.absorbers = None if absorbers is None else dict(absorbers)
         self.n_fits = 0
 
     def _fit(self, model):
@@ -1552,11 +1596,39 @@ class AutoFit:
         :rtype: AutoFitResult
         :raises ValueError: if the base model cannot be fitted
         """
+        base = self.base
+        try:
+            return self._run(max_iterations)
+        finally:
+            # The absorber mask applies to this run only
+            self.base = base
+
+    def _run(self, max_iterations):
+        """`run` (it restores the base model)."""
         self.n_fits = 0
+        inventory = None
         if self.threshold != "calibrate":
-            return self._search(self.threshold, max_iterations)
+            if self.absorbers is None:
+                return self._search(self.threshold, max_iterations)
+            first = self._search(self.threshold, max_iterations)
+            inventory = self._mask_absorbers(first.model)
+            if not len(inventory.features):
+                first.absorbers = inventory
+                return first
+            found = self._search(self.threshold, max_iterations)
+            found.absorbers = inventory
+            found.n_fits = self.n_fits
+            return found
 
         preliminary = self._search(self.preliminary_threshold, max_iterations)
+        if self.absorbers is not None:
+            inventory = self._mask_absorbers(preliminary.model)
+            if len(inventory.features):
+                # The null model of the calibration without the absorbers
+                preliminary.model.absorber_mask = inventory.mask
+                refit, _ = self._fit(preliminary.model)
+                if refit is not None:
+                    preliminary.model.quick_fit_result = refit
         calibration = calibrate_threshold(
             preliminary.model,
             self.rules,
@@ -1575,10 +1647,25 @@ class AutoFit:
             found.calibration = calibration
             found.preliminary = preliminary
             found.by_quantile = by_quantile
+            found.absorbers = inventory
             by_quantile[quantile] = found
         selected = next(iter(by_quantile.values()))
         selected.n_fits = self.n_fits
         return selected
+
+    def _mask_absorbers(self, model):
+        """Absorber inventory from `model`'s residuals; the absorbers are
+        masked in the base model of the following searches.
+
+        :rtype: sculptor.absorbers.AbsorberInventory
+        """
+        from sculptor import absorbers as scabs
+
+        inventory = scabs.find_absorbers(model, **self.absorbers)
+        logger.info(f"AutoFit: {inventory}")
+        self.base = copy.deepcopy(self.base)
+        self.base.absorber_mask = inventory.mask
+        return inventory
 
     def _search(self, threshold, max_iterations):
         """One greedy search with a fixed threshold."""
@@ -1771,9 +1858,10 @@ class AutoFit:
         (end of the search) is logged even if it changed nothing."""
         label = "final sigma clipping" if final else "sigma clipping"
         clip = dict(self.clip)
-        max_iterations = clip.pop("max_iterations", 5)
+        max_iterations = clip.pop("max_iterations", 10)
         changed = False
         before = score
+        seen = [] if model.clip_mask is None else [model.clip_mask.tobytes()]
         for _ in range(max_iterations):
             previous = model.clip_mask
             with _quiet_fits():
@@ -1786,6 +1874,19 @@ class AutoFit:
                 break
             changed = True
             result, score = new_result, new_score
+            key = model.clip_mask.tobytes()
+            if key in seen:
+                logger.warning(
+                    f"AutoFit: {label} returned to an earlier mask (it "
+                    "oscillates); keeping the current one."
+                )
+                break
+            seen.append(key)
+        else:
+            logger.warning(
+                f"AutoFit: {label} did not converge in {max_iterations} passes; "
+                "keeping the last mask."
+            )
         n_clipped = int((model._fit_region_mask() & ~model.get_fit_mask()).sum())
         if final and not changed:
             logger.info(

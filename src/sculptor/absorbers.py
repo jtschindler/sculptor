@@ -1,0 +1,465 @@
+"""Inventory of narrow absorption systems in the residuals of a fit, and a
+mask that keeps them out of the fit.
+
+`find_absorbers` looks for absorption features in the residuals of a model
+(all pixels of the fit regions, before sigma clipping) with a matched
+filter at widths tied to the instrumental resolution: unresolved and
+slightly resolved absorbers, as metal absorbers are at R ~ 1000 - 3000.
+A feature counts if its significance exceeds a threshold calibrated on
+simulations: the model plus noise with the correlations of the residuals
+(`sculptor.autofit.correlated_noise`), so that a quantile q of the largest
+significance in noise-only spectra gives a chance of about 1 - q of one
+false feature per spectrum.
+
+Features are then grouped into systems: transitions of one species
+(doublets, multiplets, `ABSORPTION_LINES`) matched at a common redshift,
+and species at the same redshift (within `system_dv`) joined into one
+system. A system needs at least two matched transitions, and a species
+counts only if its transitions stronger than the weakest matched one are
+matched too where the spectrum covers them (e.g. FeII 2587 and 2600
+without 2383 are a coincidence); single features stay unidentified. Every feature is masked (`FitModel.absorber_mask`) over
++-`mask_fwhm` times its matched-filter FWHM.
+
+TODO: broad absorption (BAL troughs, several 1000 km/s) is not searched for
+yet; it needs masking of whole regions rather than of features.
+
+`AutoFit(absorbers={...})` runs the search on its preliminary model and
+masks the absorbers for the calibration and the final searches.
+"""
+
+from dataclasses import dataclass, field
+
+import numpy as np
+from astropy.table import Table
+
+from sculptor import utils as scut
+
+# Rest-frame vacuum wavelengths (Angstrom) of common metal absorption lines
+# in quasar spectra (Morton 2003), by species, the strongest transition
+# (oscillator strength) first: a species is identified only if the
+# transitions stronger than its weakest matched one are matched too, where
+# the spectrum covers them
+ABSORPTION_LINES = {
+    "MgII": {"MgII 2796": 2796.354, "MgII 2803": 2803.531},
+    "FeII": {
+        "FeII 2383": 2382.765,
+        "FeII 2600": 2600.173,
+        "FeII 2344": 2344.214,
+        "FeII 2587": 2586.650,
+        "FeII 2374": 2374.461,
+    },
+    "MgI": {"MgI 2853": 2852.964},
+    "CIV": {"CIV 1548": 1548.204, "CIV 1551": 1550.781},
+    "SiIV": {"SiIV 1394": 1393.760, "SiIV 1403": 1402.773},
+    "NV": {"NV 1239": 1238.821, "NV 1243": 1242.804},
+    "AlIII": {"AlIII 1855": 1854.718, "AlIII 1863": 1862.790},
+    "AlII": {"AlII 1671": 1670.789},
+    "SiII": {"SiII 1260": 1260.422, "SiII 1527": 1526.707},
+    "CII": {"CII 1335": 1334.532},
+    "OI": {"OI 1302": 1302.168},
+    "CaII": {"CaII 3935": 3934.777, "CaII 3970": 3969.591},
+}
+
+# Matched-filter FWHMs in units of the instrumental FWHM (c / R) with a
+# resolution, else in km/s
+WIDTH_FACTORS = (1.0, 1.5, 2.5)
+WIDTHS_KM_S = (150.0, 300.0, 600.0)
+
+
+@dataclass
+class AbsorberInventory:
+    """Result of `find_absorbers`.
+
+    :param features: One row per feature, from the detection: `wave`
+        (observed, Angstrom), `significance`, `fwhm_km_s` and `amplitude`
+        (of the best matched filter: FWHM, absorbed flux density at the
+        center), `system` (index into `systems`, -1 if unidentified),
+        `transition`
+    :type features: astropy.table.Table
+    :param systems: The inventory, one row per system: `absorber_id`
+        ("<name> z=<z_abs>"), `z_abs`, `species` (identified), `transitions`
+        (the matched lines), `n_lines`, `max_significance` (of its lines)
+        and `associated` (within `associated_dv` of the quasar's redshift)
+    :type systems: astropy.table.Table
+    :param threshold: Significance threshold
+    :type threshold: float
+    :param quantile: Its quantile of the noise-only maxima
+    :type quantile: float
+    :param null_maxima: Largest significance in each simulation
+    :type null_maxima: np.ndarray
+    :param mask: False on the masked pixels (`FitModel.absorber_mask`)
+    :type mask: np.ndarray
+    """
+
+    features: Table
+    systems: Table
+    threshold: float
+    quantile: float
+    null_maxima: np.ndarray = field(default_factory=lambda: np.array([]))
+    mask: np.ndarray | None = None
+
+    def __str__(self):
+        lines = [
+            (
+                f"Absorbers: {len(self.features)} feature(s) above significance "
+                f"{self.threshold:.2f} ({self.quantile:.0%} of noise-only maxima), "
+                f"{len(self.systems)} system(s)"
+            )
+        ]
+        for idx in range(len(self.systems)):
+            row = self.systems[idx]
+            tag = " (associated)" if row["associated"] else ""
+            lines.append(
+                f"  {row['absorber_id']}{tag}: {row['species']} ({row['transitions']})"
+            )
+        unidentified = self.features[self.features["system"] < 0]
+        if len(unidentified):
+            waves = ", ".join(
+                f"{w:.0f} A ({s:.1f})"
+                for w, s in zip(
+                    unidentified["wave"], unidentified["significance"], strict=True
+                )
+            )
+            lines.append(f"  unidentified (wavelength, significance): {waves}")
+        return "\n".join(lines)
+
+
+def _trial_widths(model, x, widths):
+    """Matched-filter FWHMs (km/s, per pixel): multiples of the
+    instrumental FWHM with a resolution, else `WIDTHS_KM_S`."""
+    if widths is not None:
+        return [np.full(x.shape, w, dtype=float) for w in widths]
+    resolution = getattr(model, "resolution", None)
+    if resolution is None:
+        return [np.full(x.shape, w, dtype=float) for w in WIDTHS_KM_S]
+    res = np.broadcast_to(np.asarray(resolution, dtype=float), x.shape)
+    return [factor * scut.c_km_s / res for factor in WIDTH_FACTORS]
+
+
+def significance_map(model, values, flux, region, widths=None):
+    """Absorption significance at each pixel, the largest over the trial
+    widths, with the FWHM (km/s) and the matched-filter amplitude (the
+    absorbed flux density at the center) that give it.
+
+    :param model: The model (its spectrum's dispersion and errors)
+    :type model: sculptor.model.FitModel
+    :param values: Variable parameter values of the model
+    :type values: np.ndarray
+    :param flux: Flux density to search (e.g. the spectrum's, or a
+        simulation's)
+    :type flux: np.ndarray
+    :param region: Pixels to search
+    :type region: np.ndarray
+    :param widths: FWHMs in km/s (default: see `_trial_widths`)
+    :type widths: list(float)
+    :return: significance, FWHM (km/s), amplitude
+    :rtype: (np.ndarray, np.ndarray, np.ndarray)
+    """
+    from sculptor.autofit import matched_filter
+
+    x = model.spec.dispersion
+    resid = model.eval(x, values) - flux  # absorption is positive
+    weight = np.where(region, 1 / model.spec.fluxden_err**2, 0.0)
+    best = np.full(x.shape, -np.inf)
+    best_fwhm = np.full(x.shape, np.nan)
+    best_amp = np.zeros(x.shape)
+    for fwhm in _trial_widths(model, x, widths):
+        signif, amp = matched_filter(x, resid, weight, fwhm)
+        better = signif > best
+        best[better] = signif[better]
+        best_fwhm[better] = fwhm[better]
+        best_amp[better] = amp[better]
+    best[~region] = 0.0
+    return best, best_fwhm, best_amp
+
+
+def _peaks(x, signif, fwhm, threshold):
+    """Local maxima above `threshold`, at least one FWHM apart (the
+    strongest first)."""
+    above = np.flatnonzero(signif >= threshold)
+    order = above[np.argsort(signif[above])[::-1]]
+    taken = []
+    for idx in order:
+        width = fwhm[idx] / scut.c_km_s * x[idx]
+        if all(abs(x[idx] - x[j]) > width for j in taken):
+            taken.append(idx)
+    return sorted(taken)
+
+
+def identify_systems(
+    waves,
+    significance,
+    tolerance_km_s,
+    z_max=None,
+    lines=None,
+    system_dv=200.0,
+    covered=None,
+):
+    """Group features into absorption systems (see the module docstring).
+
+    :param waves: Observed wavelengths of the features
+    :type waves: np.ndarray
+    :param significance: Their significances (to rank competing matches)
+    :type significance: np.ndarray
+    :param tolerance_km_s: Match tolerance, one value or one per feature
+    :type tolerance_km_s: float or np.ndarray
+    :param z_max: Largest absorber redshift (e.g. the quasar's plus a few
+        1000 km/s); None for no limit
+    :type z_max: float
+    :param lines: Species -> {transition: rest wavelength} (default
+        `ABSORPTION_LINES`)
+    :type lines: dict
+    :param system_dv: Species within this velocity form one system, km/s
+    :type system_dv: float
+    :param covered: Whether the spectrum covers (searched) an observed
+        wavelength, callable; None: everywhere
+    :type covered: callable
+    :return: per feature (system index or -1, transition name), and the
+        systems as (z, {transition: feature index})
+    :rtype: (list(tuple(int, str)), list(tuple(float, dict)))
+    """
+    lines = ABSORPTION_LINES if lines is None else lines
+    waves = np.asarray(waves, dtype=float)
+    significance = np.asarray(significance, dtype=float)
+    tol = np.broadcast_to(np.asarray(tolerance_km_s, dtype=float), waves.shape)
+
+    def match(z, transitions):
+        """Feature index per transition matched at z (each feature once)."""
+        found = {}
+        for name, rest in transitions.items():
+            dv = (waves / (rest * (1 + z)) - 1) * scut.c_km_s
+            close = np.flatnonzero(np.abs(dv) <= tol)
+            close = [i for i in close if i not in found.values()]
+            if close:
+                found[name] = min(close, key=lambda i: abs(dv[i]))
+        return found
+
+    def consistent(z, transitions, found):
+        """The transitions stronger than the weakest matched one (the
+        dict's order) are matched, where covered."""
+        names = list(transitions)
+        weakest = max(names.index(n) for n in found)
+        for name in names[:weakest]:
+            if name in found:
+                continue
+            if covered is None or covered(transitions[name] * (1 + z)):
+                return False
+        return True
+
+    # Candidates: a species at the redshift that puts one of its transitions
+    # on a feature, with at least two transitions matched
+    candidates = []
+    for species, transitions in lines.items():
+        if len(transitions) < 2:
+            continue
+        for wave in waves:
+            for rest in transitions.values():
+                z = wave / rest - 1
+                if z < 0 or (z_max is not None and z > z_max):
+                    continue
+                found = match(z, transitions)
+                if len(found) >= 2 and consistent(z, transitions, found):
+                    idx = list(found.values())
+                    z_fit = np.mean(
+                        [waves[j] / transitions[n] - 1 for n, j in found.items()]
+                    )
+                    candidates.append(
+                        (len(found), significance[idx].sum(), z_fit, species, found)
+                    )
+    candidates.sort(key=lambda c: (c[0], c[1]), reverse=True)
+
+    used, accepted = set(), []
+    for _, _, z, species, found in candidates:
+        if used & set(found.values()):
+            continue
+        used |= set(found.values())
+        accepted.append((z, species, found))
+
+    # Species at the same redshift form one system
+    systems = []
+    for z, _species, found in sorted(accepted, key=lambda a: a[0]):
+        if systems and abs(z - systems[-1][0]) / (1 + z) * scut.c_km_s <= system_dv:
+            systems[-1][1].update(found)
+        else:
+            systems.append([z, dict(found)])
+
+    # Single transitions (and further ones of matched species) at a system's
+    # redshift
+    for system in systems:
+        z = system[0]
+        for transitions in lines.values():
+            remaining = {n: r for n, r in transitions.items() if n not in system[1]}
+            for name, j in match(z, remaining).items():
+                mine = {n: i for n, i in system[1].items() if n in transitions}
+                if j not in used and consistent(z, transitions, {**mine, name: j}):
+                    system[1][name] = j
+                    used.add(j)
+
+    per_feature = [(-1, "") for _ in waves]
+    for s_idx, (_, found) in enumerate(systems):
+        for name, j in found.items():
+            per_feature[j] = (s_idx, name)
+    return per_feature, [(z, found) for z, found in systems]
+
+
+def find_absorbers(
+    model,
+    values=None,
+    redshift=None,
+    name=None,
+    quantile=0.95,
+    n_sims=200,
+    seed=0,
+    widths=None,
+    mask_fwhm=1.0,
+    associated_dv=5000.0,
+    lines=None,
+    max_iterations=5,
+):
+    """Find, identify and mask narrow absorbers (see the module docstring).
+
+    :param model: The fitted model (a model of the emission, e.g. AutoFit's
+        preliminary one)
+    :type model: sculptor.model.FitModel
+    :param values: Its variable parameter values (default: its last quick
+        fit)
+    :type values: np.ndarray
+    :param redshift: The quasar's redshift: absorbers up to 5000 km/s
+        beyond it are searched, and velocities are given from it
+    :type redshift: float
+    :param name: Name of the quasar, for the absorber ids
+    :type name: str
+    :param quantile: Quantile of the noise-only maxima used as threshold
+    :type quantile: float
+    :param n_sims: Number of noise-only simulations
+    :type n_sims: int
+    :param seed: Seed of the random generator
+    :type seed: int
+    :param widths: Matched-filter FWHMs, km/s (default: 1, 1.5 and 2.5
+        times the instrumental FWHM with a resolution, else 150, 300, 600)
+    :type widths: list(float)
+    :param mask_fwhm: Masked half-width around a feature, in its FWHMs
+    :type mask_fwhm: float
+    :param associated_dv: Systems within this velocity of `redshift` are
+        associated, km/s
+    :type associated_dv: float
+    :param lines: Species -> {transition: rest wavelength} (default
+        `ABSORPTION_LINES`)
+    :type lines: dict
+    :param max_iterations: Detect, mask and recompute the threshold up to
+        this many times (the noise-only simulations follow the residuals
+        without the absorbers found)
+    :type max_iterations: int
+    :return: The inventory (with the mask)
+    :rtype: AbsorberInventory
+    """
+    from sculptor.autofit import correlated_noise
+
+    result = model.quick_fit_result
+    if values is None:
+        if result is None:
+            raise ValueError("No model values; run run_quick_fit() first.")
+        values = result.values
+    spec = model.spec
+    x = spec.dispersion
+    # Before sigma clipping (it removes absorbers) and earlier absorber masks
+    saved = getattr(model, "absorber_mask", None)
+    model.absorber_mask = None
+    region = model._fit_region_mask()
+    model.absorber_mask = saved
+
+    signif, fwhm, amp = significance_map(model, values, spec.fluxden, region, widths)
+    best = model.eval(x, values)
+
+    def mask_of(peaks):
+        """False within +-mask_fwhm FWHM of the features at `peaks`."""
+        mask = np.ones(x.size, dtype=bool)
+        for idx in peaks:
+            half = mask_fwhm * fwhm[idx] / scut.c_km_s * x[idx]
+            mask &= np.abs(x - x[idx]) > half
+        return mask
+
+    # The simulated noise follows the residuals: the absorbers found so far
+    # are masked from them (else they inflate it), until nothing changes
+    peaks, mask = [], np.ones(x.size, dtype=bool)
+    for _ in range(max_iterations):
+        model.absorber_mask = mask
+        try:
+            rng = np.random.default_rng(seed)
+            maxima = np.empty(n_sims)
+            for k in range(n_sims):
+                sim = best + correlated_noise(model, result, rng)
+                maxima[k] = significance_map(model, values, sim, region, widths)[
+                    0
+                ].max()
+        finally:
+            model.absorber_mask = saved
+        threshold = float(np.quantile(maxima, quantile))
+        new = _peaks(x, signif, fwhm, threshold)
+        if new == peaks:
+            break
+        peaks, mask = new, mask_of(new)
+
+    waves = x[peaks]
+    z_max = None
+    if redshift is not None:
+        z_max = (1 + redshift) * (1 + associated_dv / scut.c_km_s) - 1
+
+    def covered(wave):
+        """Inside the searched pixels."""
+        if wave < x[0] or wave > x[-1]:
+            return False
+        return bool(region[np.argmin(np.abs(x - wave))])
+
+    per_feature, systems = identify_systems(
+        waves,
+        signif[peaks],
+        0.5 * fwhm[peaks],
+        z_max=z_max,
+        lines=lines,
+        covered=covered,
+    )
+
+    features = Table(
+        {
+            "wave": waves,
+            "significance": signif[peaks],
+            "fwhm_km_s": fwhm[peaks],
+            "amplitude": amp[peaks],
+            "system": np.array([s for s, _ in per_feature], dtype=int),
+            "transition": [t for _, t in per_feature],
+        }
+    )
+    rows = []
+    for z, found in systems:
+        associated = redshift is not None and (
+            abs((1 + z) / (1 + redshift) - 1) * scut.c_km_s < associated_dv
+        )
+        # Species in the order of their strongest-listed line
+        species = list(dict.fromkeys(n.split()[0] for n in found))
+        prefix = "" if name is None else f"{name} "
+        rows.append(
+            (
+                f"{prefix}z={z:.4f}",
+                z,
+                ", ".join(species),
+                ", ".join(sorted(found, key=lambda n: waves[found[n]])),
+                len(found),
+                float(max(signif[peaks][j] for j in found.values())),
+                associated,
+            )
+        )
+    systems_table = Table(
+        rows=rows or None,
+        names=(
+            "absorber_id",
+            "z_abs",
+            "species",
+            "transitions",
+            "n_lines",
+            "max_significance",
+            "associated",
+        ),
+        dtype=(str, float, str, str, int, float, bool),
+    )
+    return AbsorberInventory(features, systems_table, threshold, quantile, maxima, mask)

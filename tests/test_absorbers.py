@@ -1,0 +1,147 @@
+"""`sculptor.absorbers`: detection, identification and masking of narrow
+absorbers."""
+
+import numpy as np
+import pytest
+from astropy import units as u
+from speconed import speconed as sod
+
+from sculptor import absorbers as scabs
+from sculptor import analysis as ana
+from sculptor import component as sccomp
+from sculptor import model as scmod
+from sculptor import prior as scpri
+
+Z = 2.0
+ERR = 0.02
+LINES = scabs.ABSORPTION_LINES
+
+
+def _absorbed_model(absorbers, seed=1, n=3000):
+    """Power law at z = 2 with Gaussian absorbers (observed center, FWHM
+    km/s, depth), fitted with a power law."""
+    x = np.geomspace(4200, 6200, n)
+    rng = np.random.default_rng(seed)
+    cont = ana.power_law_at2500(x, Z, 1.0, -1.5)
+    flux = cont.copy()
+    for cen, fwhm, depth in absorbers:
+        sigma = fwhm / 2.998e5 * cen / 2.3548
+        flux = flux * (1 - depth * np.exp(-0.5 * ((x - cen) / sigma) ** 2))
+    spec = sod.SpecOneD(
+        dispersion=x,
+        fluxden=flux + rng.normal(0, ERR, n),
+        fluxden_err=np.full_like(x, ERR),
+        dispersion_unit=u.AA,
+        fluxden_unit=u.erg / u.s / u.cm**2 / u.AA,
+    )
+    comp = sccomp.FitComponent("PL", ana.power_law_at2500)
+    pars = comp.create_params()
+    pars["PL_redsh"].value, pars["PL_redsh"].vary = Z, False
+    pars["PL_amp"].value = 0.9
+    pars["PL_amp"].prior = scpri.UniformPrior("PL_amp", 0, 10)
+    pars["PL_slope"].value = -1.2
+    pars["PL_slope"].prior = scpri.UniformPrior("PL_slope", -3, 1)
+    model = scmod.FitModel(components=[comp], parameters=pars, spectrum=spec)
+    model.add_wavelength_range_to_fit_mask(4250, 6150)
+    model.run_quick_fit(update_values=True)
+    return model
+
+
+def _obs(transition, z_abs):
+    species = transition.split()[0]
+    return LINES[species][transition] * (1 + z_abs)
+
+
+def test_identify_systems_groups_doublets_and_species():
+    z1, z2 = 1.0, 2.5
+    waves = [
+        _obs("MgII 2796", z1),
+        _obs("MgII 2803", z1),
+        _obs("FeII 2383", z1),
+        _obs("FeII 2600", z1),
+        _obs("CIV 1548", z2),
+        _obs("CIV 1551", z2),
+        5555.0,  # unrelated
+    ]
+    per_feature, systems = scabs.identify_systems(
+        np.array(waves), np.ones(len(waves)), 30.0, z_max=3.0
+    )
+    assert len(systems) == 2
+    zs = sorted(z for z, _ in systems)
+    assert zs == pytest.approx([z1, z2], abs=1e-4)
+    first = dict(systems[0][1])
+    assert set(first) == {"MgII 2796", "MgII 2803", "FeII 2383", "FeII 2600"}
+    assert per_feature[-1] == (-1, "")
+    # A single line is not a system; above z_max nothing is identified
+    _, none = scabs.identify_systems(np.array(waves[3:5]), np.ones(2), 30.0, z_max=2.0)
+    assert none == []
+
+
+def test_identify_systems_needs_the_stronger_transitions():
+    """FeII 2587 + 2600 without the stronger 2383 is a coincidence, unless
+    the spectrum does not cover 2383."""
+    z = 1.2
+    waves = np.array([_obs("FeII 2587", z), _obs("FeII 2600", z)])
+    _, systems = scabs.identify_systems(waves, np.ones(2), 30.0)
+    assert systems == []
+    cutoff = _obs("FeII 2383", z) + 50
+
+    def covered(wave):
+        return wave > cutoff
+
+    _, systems = scabs.identify_systems(waves, np.ones(2), 30.0, covered=covered)
+    assert len(systems) == 1
+    # MgII 2796 alone with FeII 2383 + 2600: 2803 is weaker, allowed
+    waves = np.array([_obs("FeII 2383", z), _obs("FeII 2600", z), _obs("MgII 2796", z)])
+    _, systems = scabs.identify_systems(waves, np.ones(3), 30.0)
+    assert set(systems[0][1]) == {"FeII 2383", "FeII 2600", "MgII 2796"}
+
+
+def test_find_absorbers_inventory_and_mask():
+    z_mg, z_c = 0.8, 1.8
+    absorbers = [
+        (_obs("MgII 2796", z_mg), 150.0, 0.6),
+        (_obs("MgII 2803", z_mg), 150.0, 0.4),
+        (_obs("CIV 1548", z_c), 150.0, 0.5),
+        (_obs("CIV 1551", z_c), 150.0, 0.3),
+        (5800.0, 150.0, 0.5),  # unidentified
+    ]
+    model = _absorbed_model(absorbers)
+    inv = scabs.find_absorbers(model, redshift=Z, name="QSO", n_sims=50)
+
+    assert inv.threshold > 0
+    assert list(inv.systems["species"]) == ["MgII", "CIV"]
+    assert inv.systems["z_abs"] == pytest.approx([z_mg, z_c], abs=3e-4)
+    assert inv.systems["absorber_id"][0] == f"QSO z={inv.systems['z_abs'][0]:.4f}"
+    assert not inv.systems["associated"][0]
+    unidentified = inv.features[inv.features["system"] < 0]
+    assert list(unidentified["wave"]) == pytest.approx([5800.0], abs=3)
+    x = model.spec.dispersion
+    for cen, _, _ in absorbers:
+        assert not inv.mask[np.argmin(np.abs(x - cen))]
+    assert inv.mask.mean() > 0.95
+    assert "QSO z=" in str(inv)
+
+
+def test_find_absorbers_clean_spectrum_and_mask_in_fit():
+    model = _absorbed_model([])
+    inv = scabs.find_absorbers(model, n_sims=50)
+    assert len(inv.features) == 0
+    assert inv.mask.all()
+
+    absorbed = _absorbed_model([(5000.0, 150.0, 0.7)])
+    inv = scabs.find_absorbers(absorbed, n_sims=50)
+    absorbed.absorber_mask = inv.mask
+    assert not absorbed.get_fit_mask()[~inv.mask].any()
+    # Masked absorbers are not counted as clipped and stay out of clipping
+    absorbed.sigma_clip(low=3)
+    assert absorbed.get_fit_mask().sum() <= absorbed._fit_region_mask().sum()
+
+
+def test_widths_follow_the_resolution():
+    model = _absorbed_model([])
+    model.resolution = 2000.0
+    x = model.spec.dispersion
+    widths = scabs._trial_widths(model, x, None)
+    assert widths[0] == pytest.approx(np.full(x.size, 2.998e5 / 2000.0), rel=1e-3)
+    assert len(widths) == len(scabs.WIDTH_FACTORS)

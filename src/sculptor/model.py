@@ -20,6 +20,7 @@ from tqdm import tqdm
 from sculptor import plot as scp
 from sculptor import prior as scpri
 from sculptor import quick_fit as scqf
+from sculptor import resolution as scres
 from sculptor import utils as scut
 from sculptor.persistence import PickleMixin
 
@@ -170,7 +171,9 @@ class FitModel(PickleMixin):
     to fit and the fit results.
 
     The model flux density is the sum of the components, optionally
-    broadened by the instrumental resolution (`eval`). Fits use emcee
+    convolved with the instrumental resolution and averaged over the pixels
+    (`resolution`, see `sculptor.resolution`; `eval`). The components'
+    parameters (e.g. line widths) are then intrinsic. Fits use emcee
     (`run_emcee`), or an optimizer for a quick best fit (`run_quick_fit`);
     both use the same log-probability, and `fit` selects one. MCMC results
     are read through `get_flat_chain` and the plotting/analysis methods.
@@ -187,6 +190,8 @@ class FitModel(PickleMixin):
         spectrum=None,
         redshift=None,
         resolution=None,
+        pixel_edges=None,
+        oversample=5,
     ):
         """:param components: Model components
         :type components: list(sculptor.component.FitComponent)
@@ -199,10 +204,17 @@ class FitModel(PickleMixin):
         :param redshift: Redshift of the source, used for the rest-frame axis
             in plots
         :type redshift: float
-        :param resolution: Instrumental resolution R = lambda / delta lambda,
-            scalar or one value per pixel; if set, `eval` broadens the model by
-            it
+        :param resolution: Instrumental resolution R = lambda / FWHM, scalar
+            or one value per pixel of the spectrum; if set, `eval` evaluates
+            the components on a fine grid, convolves them with a Gaussian
+            line spread function and averages them over the pixels
+            (`sculptor.resolution.resolution_matrix`)
         :type resolution: float or np.ndarray
+        :param pixel_edges: N + 1 edges of the spectrum's pixels (default:
+            halfway between the pixel centers)
+        :type pixel_edges: np.ndarray
+        :param oversample: Fine-grid points per pixel for `resolution`
+        :type oversample: int
         """
 
         if parameters is None:
@@ -234,6 +246,8 @@ class FitModel(PickleMixin):
         self.vardim = None
 
         self.resolution = resolution
+        self.pixel_edges = pixel_edges
+        self.oversample = oversample
 
         self.red_chisq = None
         self.bic = None
@@ -248,6 +262,9 @@ class FitModel(PickleMixin):
         # Pixels kept by the last sigma clipping (`sigma_clip`), None if none
         # was done
         self.clip_mask = None
+        # Pixels outside absorption features (False: masked as an absorber,
+        # e.g. by `sculptor.absorbers.find_absorbers`), None if none
+        self.absorber_mask = None
         self.model_fluxden = None
 
         if spectrum is not None:
@@ -323,24 +340,46 @@ class FitModel(PickleMixin):
             zip(self.params_constant.keys(), self.params_constant_val, strict=True)
         )
 
-        y = np.zeros_like(x, dtype=float)
+        matrix = None
+        x_eval = x
+        if broaden_by_resolution and self.resolution is not None:
+            matrix, x_eval = self.resolution_matrix(x)
+
+        y = np.zeros_like(x_eval, dtype=float)
 
         # Iterate over the components and evaluate them using a parameter
         # mapping
         for component in components:
             mapped = map(params.get, component.get_arg_keys())
 
-            y += component.eval(x, mapped)
+            y += component.eval(x_eval, mapped)
 
-        # If resolution is provided, convolve the model with the resolution
-        if self.resolution is not None and broaden_by_resolution:
-            resolution = self.resolution
-            if isinstance(resolution, (int, float)):
-                resolution = np.full_like(x, resolution, dtype=np.float64)
+        return y if matrix is None else matrix @ y
 
-            y = scut.broaden_spectrum(x, y, resolution, fwhm_lim=5.0)
+    def resolution_matrix(self, x):
+        """Matrix and fine grid that turn the model into pixels at `x` (see
+        `sculptor.resolution.resolution_matrix`), from `resolution`,
+        `pixel_edges` and `oversample`; cached.
 
-        return y
+        :param x: Pixel centers: the spectrum's dispersion, or another grid
+            (then a per-pixel `resolution` is interpolated onto it and the
+            edges are halfway between its points)
+        :type x: np.ndarray
+        :return: K and the fine grid
+        :rtype: (scipy.sparse.csr_matrix, np.ndarray)
+        """
+
+        resolution = np.asarray(self.resolution, dtype=float)
+        # getattr: models pickled before these existed lack them
+        edges = getattr(self, "pixel_edges", None)
+        oversample = getattr(self, "oversample", 5)
+        spec = getattr(self, "spec", None)
+        own = spec is not None and np.array_equal(x, spec.dispersion)
+        if not own:
+            edges = None
+            if resolution.ndim and spec is not None:
+                resolution = np.interp(x, spec.dispersion, resolution)
+        return scres.resolution_matrix(x, resolution, edges, oversample)
 
     def get_params_to_sample(self):
         """Split the parameters into variable (`params_variable`, sampled) and
@@ -765,8 +804,9 @@ class FitModel(PickleMixin):
     # -----------------------------------------------------------------------
     def get_fit_mask(self):
         """Pixels used in the fit: inside the fit regions (`gpm_fit`), not
-        masked in the spectrum (`spec.mask`, True = good pixel) and not
-        sigma-clipped (`clip_mask`, see `sigma_clip`).
+        masked in the spectrum (`spec.mask`, True = good pixel), not in an
+        absorption feature (`absorber_mask`) and not sigma-clipped
+        (`clip_mask`, see `sigma_clip`).
 
         Pixels masked in the spectrum (e.g. bad or NaN pixels) are excluded
         from the likelihood, the chi-square and the BIC even if they lie in a
@@ -783,12 +823,18 @@ class FitModel(PickleMixin):
         return mask & clip_mask
 
     def _fit_region_mask(self):
-        """Fit regions minus the spectrum's mask, before sigma clipping."""
+        """Fit regions minus the spectrum's mask and the absorbers
+        (`absorber_mask`), before sigma clipping."""
 
+        mask = self.gpm_fit
         spec_mask = getattr(self.spec, "mask", None)
-        if spec_mask is None:
-            return self.gpm_fit
-        return self.gpm_fit & spec_mask
+        if spec_mask is not None:
+            mask = mask & spec_mask
+        # getattr: models pickled before absorber_mask existed lack it
+        absorber_mask = getattr(self, "absorber_mask", None)
+        if absorber_mask is not None:
+            mask = mask & absorber_mask
+        return mask
 
     def _shown_pixels(self, xlim=None):
         """Pixels that set a plot's y-axis limits: the fitted pixels within
@@ -934,11 +980,11 @@ class FitModel(PickleMixin):
 
     def save_spectrum_fits(self, filename, overwrite=False):
         """Write the spectrum with its masks as a FITS table, one row per
-        pixel: `wave`, `flux`, `flux_err` (with units), and the boolean
-        masks `good` (the spectrum's mask), `fit_region` (`gpm_fit`),
-        `not_clipped` (`clip_mask`; all True without clipping) and `fitted`
-        (`get_fit_mask`: the pixels the fit used). Read it back with
-        `astropy.table.Table.read`.
+        pixel: `dispersion` (the fitted grid), `flux`, `flux_err` (with
+        units), and the boolean masks `good` (the spectrum's mask),
+        `fit_region` (`gpm_fit`), `not_absorbed` (`absorber_mask`),
+        `not_clipped` (`clip_mask`; all True without either) and `fitted`
+        (`get_fit_mask`: the pixels the fit used). Read it back with `astropy.table.Table.read`.
 
         :param filename: Output file
         :type filename: str or pathlib.Path
@@ -959,19 +1005,20 @@ class FitModel(PickleMixin):
         err = spec.fluxden_err
         table = Table(
             {
-                "wave": np.asarray(spec.dispersion, dtype=float),
+                "dispersion": np.asarray(spec.dispersion, dtype=float),
                 "flux": np.asarray(spec.fluxden, dtype=float),
                 "flux_err": np.full(n, np.nan)
                 if err is None
                 else np.asarray(err, dtype=float),
                 "good": as_mask(getattr(spec, "mask", None)),
                 "fit_region": as_mask(self.gpm_fit),
+                "not_absorbed": as_mask(getattr(self, "absorber_mask", None)),
                 "not_clipped": as_mask(getattr(self, "clip_mask", None)),
                 "fitted": self.get_fit_mask(),
             }
         )
         # Units may be quantities, e.g. 1e-17 erg / (s cm2 Angstrom)
-        table["wave"].unit = u.Unit(spec.dispersion_unit)
+        table["dispersion"].unit = u.Unit(spec.dispersion_unit)
         table["flux"].unit = table["flux_err"].unit = u.Unit(spec.fluxden_unit)
         table.meta["NCLIPPED"] = int((self._fit_region_mask() & ~table["fitted"]).sum())
         table.write(filename, format="fits", overwrite=overwrite)
@@ -1468,7 +1515,7 @@ class FitModel(PickleMixin):
                 where="mid",
                 lw=1.5,
             )
-        # Mark the sigma-clipped pixels
+        # Mark the sigma-clipped pixels and those masked as absorbers
         clipped = self._fit_region_mask() & ~self.get_fit_mask()
         if np.any(clipped):
             ax_main.plot(
@@ -1480,6 +1527,19 @@ class FitModel(PickleMixin):
                 label="Clipped",
                 zorder=10,
             )
+        absorber_mask = getattr(self, "absorber_mask", None)
+        if absorber_mask is not None:
+            absorbed = ~absorber_mask & self.gpm_fit & self.spec.mask
+            if np.any(absorbed):
+                ax_main.plot(
+                    self.spec.dispersion[absorbed],
+                    self.spec.fluxden[absorbed],
+                    "+",
+                    color=scp.blue,
+                    ms=6,
+                    label="Absorber (masked)",
+                    zorder=10,
+                )
 
         # Plot the spectrum flux density
         ax_main.step(
