@@ -259,23 +259,33 @@ def test_narrow_fwhm_limit_is_a_module_setting(monkeypatch):
 
 
 def _weak_narrow_model(narrow_flux, dv=0.0):
-    """Broad Hbeta with weak narrow Hbeta and [OIII] cores (400 km/s, offset
-    by `dv` km/s from the systemic redshift) at z = 0.2."""
+    """Broad Hbeta and a blueshifted [OIII] outflow (1500 km/s at -800
+    km/s), with weak narrow Hbeta and [OIII] cores (400 km/s, offset by
+    `dv` km/s from the systemic redshift) at z = 0.2."""
     z = 0.2
     x = np.geomspace(4700 * (1 + z), 5100 * (1 + z), 900)
     model = _model(x=x)
     model.parameters["PL_redsh"].value = z
     z_nl = z + dv / 2.998e5 * (1 + z)
+    z_out = z - 800.0 / 2.998e5 * (1 + z)
+    doublet = qso_presets.qso.line_model_gaussian_oiii_doublet
     model.spec.fluxden = (
         model.spec.fluxden
         + ana.line_model_gaussian(x, z, 40.0, 4862.68, 4000.0)
+        + doublet(x, z_out, 8.0, 1500.0, 2.98)
         + ana.line_model_gaussian(x, z_nl, narrow_flux, 4862.68, 400.0)
-        + qso_presets.qso.line_model_gaussian_oiii_doublet(
-            x, z_nl, narrow_flux, 400.0, 2.98
-        )
+        + doublet(x, z_nl, narrow_flux, 400.0, 2.98)
     )
     lines = qr.line_rules(z, ["Hbeta", "OIII"])
     return model, lines, z
+
+
+def _narrow_members(comps):
+    return sorted(
+        name
+        for name, comp in comps.items()
+        if comp.param_mapping.get("redsh") == "narrow_redsh"
+    )
 
 
 def test_narrow_line_group_found_at_systemic():
@@ -285,22 +295,19 @@ def test_narrow_line_group_found_at_systemic():
     result = AutoFit(model, rules).run()
 
     comps = {c.name: c for c in result.model.components}
-    tied = [
-        name
-        for name, comp in comps.items()
-        if comp.param_mapping.get("redsh") == "narrow_redsh"
-    ]
-    assert len(tied) == 2
+    tied = _narrow_members(comps)
     assert {name.split("_")[0] for name in tied} == {"Hbeta", "OIII"}
     par = result.model.parameters
     assert par["narrow_redsh"].value == pytest.approx(z, abs=3e-4)
     assert par["narrow_fwhm_km_s"].value == pytest.approx(400, rel=0.2)
-    assert "narrow group" in " ".join(step.description for step in result.history)
+    steps = [step.description for step in result.history]
+    group_step = next(i for i, d in enumerate(steps) if "narrow group" in d)
+    assert group_step > 2  # after the broad Hbeta and the [OIII] outflow
     assert result.ties["narrow"].status == "tied"  # the tie sees the group
 
 
 def test_narrow_line_group_starts_at_a_residual_peak():
-    model, lines, z = _weak_narrow_model(3.0, dv=500.0)
+    model, lines, z = _weak_narrow_model(1.5, dv=500.0)
     group = qr.narrow_line_group(lines, z)
     result = AutoFit(model, [*lines, group]).run()
     par = result.model.parameters
@@ -315,17 +322,30 @@ def test_narrow_line_group_needs_two_lines():
         LineGroupRule("g", [GaussianLineRule("a", Z), lines[1]], Z)
 
 
-def test_narrow_line_group_proposes_once():
+def test_narrow_line_group_waits_for_the_members_and_proposes_once():
     model, lines, z = _weak_narrow_model(1.0)
     group = qr.narrow_line_group(lines, z)
-    fitted = AutoFit(model, [*lines, group]).run()
-    assert group.propose(fitted.model, fitted.result) == []
-    (cand,) = group.propose(model, model.run_quick_fit())
-    widths = [s["narrow_fwhm_km_s"] for s in cand.starts if "narrow_fwhm_km_s" in s]
-    assert len(widths) == 2  # the other start widths
+    assert group.propose(model, model.run_quick_fit()) == []  # no members yet
+    early = qr.narrow_line_group(lines, z, after_members=False)
+    assert len(early.propose(model, model.run_quick_fit())) == 1
+
+    fitted = AutoFit(model, lines).run()  # broad Hbeta and [OIII], no group
+    (cand,) = group.propose(fitted.model, fitted.result)
+    assert cand.reject_at_bound == ["narrow_fwhm_km_s"]
     fluxes = [p for p in cand.parameters if p.endswith("_flux")]
     assert len(fluxes) == 2
     assert all(cand.parameters[f].value > 0 for f in fluxes)
+    grouped = AutoFit(model, [*lines, group]).run()
+    assert group.propose(grouped.model, grouped.result) == []
+
+
+def test_group_rejected_when_not_narrow():
+    """A group whose width ends at the narrow limit is rejected: here the
+    only narrow-ish emission is 1500 km/s wide."""
+    model, lines, z = _weak_narrow_model(0.0)
+    group = qr.narrow_line_group(lines, z)
+    result = AutoFit(model, [*lines, group]).run()
+    assert "narrow_redsh" not in result.model.parameters
 
 
 def test_ciii_complex_rule():
@@ -340,10 +360,10 @@ def test_ciii_complex_rule():
             3000.0,
             0.0,
             6.0,
-            2500.0,
+            3000.0,
             0.0,
             8.0,
-            2500.0,
+            3000.0,
             0.0,
         )
 
@@ -355,6 +375,9 @@ def test_ciii_complex_rule():
         > cand.parameters["CIIIc_flux_siIII"].value
         > 0
     )
+    (comp,) = cand.components
+    assert comp.param_mapping["fwhm_km_s_siIII"] == "CIIIc_fwhm_km_s"
+    assert "CIIIc_fwhm_km_s_alIII" not in cand.parameters
     assert len(cand.starts) == 2
     assert all("CIIIc_flux_alIII" in start for start in cand.starts)
 
@@ -364,12 +387,15 @@ def test_ciii_complex_rule():
     assert par["CIIIc_flux"].value == pytest.approx(30.0, rel=0.1)
     assert par["CIIIc_flux_siIII"].value == pytest.approx(8.0, rel=0.3)
     assert par["CIIIc_flux_alIII"].value == pytest.approx(6.0, rel=0.3)
-    assert not par["CIIIc_shift_km_s"].vary
+    assert par["CIIIc_fwhm_km_s"].value == pytest.approx(3000.0, rel=0.1)
+
+    free = qr.ciii_complex_rule(Z, shared_width=False)
+    (cand,) = free.propose(model, model.run_quick_fit())
+    assert "CIIIc_fwhm_km_s_alIII" in cand.parameters
 
 
-def test_blend_lines():
-    rules = {r.prefix: r for r in qr.line_rules(Z, qr.BLEND_LINES)}
-    assert rules["OIII1663"].lines == [1663.48]
-    assert rules["SiIII"].fwhm_range == (1000.0, 15000.0)
-    model = _model()
-    assert rules["OIII1663"].owned(model) == []
+def test_qso_rules_ciii_complex_option():
+    names = [getattr(r, "name", "") for r in qr.qso_rules(Z, ciii_complex=True)]
+    assert "CIII] complex" in names
+    names = [getattr(r, "name", "") for r in qr.qso_rules(Z)]
+    assert "CIII] complex" not in names

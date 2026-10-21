@@ -168,6 +168,9 @@ class Candidate:
         -> value applied on top of `parameters`; the candidate is fitted
         from `parameters` and from each of these, and the best fit counts
     :type starts: list(dict)
+    :param reject_at_bound: Parameters that must not end at a prior bound:
+        the candidate is rejected if one does (whatever `AutoFit.at_bound`)
+    :type reject_at_bound: list(str)
     """
 
     description: str
@@ -176,6 +179,7 @@ class Candidate:
     significance: float = np.nan
     remove: list = field(default_factory=list)
     starts: list = field(default_factory=list)
+    reject_at_bound: list = field(default_factory=list)
 
 
 class Rule:
@@ -779,10 +783,14 @@ class LineGroupRule(Rule):
     `start_fwhm`, with the fluxes from a joint least-squares fit to the
     residuals.
 
-    The rule proposes the group while no component uses its shared
-    parameters (`<name>_<arg>`) and every member rule has room. The
-    components are named and owned by the member rules, so backward steps
-    may remove them one at a time. Give a `Tie` of the same lines the same
+    With `after_members` (default), the group is proposed only once every
+    member rule has a component (e.g. the broad Hbeta and the [OIII]
+    doublet): it then tests narrow cores on top of the lines' fits instead
+    of standing in for the lines while they are unmodeled. It is proposed
+    while no component uses its shared parameters (`<name>_<arg>`) and
+    every member rule has room, and rejected if a shared width ends at a
+    bound of `fwhm_range` (not narrow). The components are named and owned
+    by the member rules, so backward steps may remove them one at a time. Give a `Tie` of the same lines the same
     name (e.g. "narrow"): it then counts the group as tied.
 
     :param name: Name of the group and prefix of the shared parameters
@@ -803,6 +811,9 @@ class LineGroupRule(Rule):
     :param prior_factor: Upper flux prior bound in units of the largest
         estimated flux
     :type prior_factor: float
+    :param after_members: Propose the group only once every member rule
+        has a component
+    :type after_members: bool
     """
 
     def __init__(
@@ -815,6 +826,7 @@ class LineGroupRule(Rule):
         start_fwhm=None,
         args=("redsh", "fwhm_km_s"),
         prior_factor=100.0,
+        after_members=True,
     ):
         for member in members:
             if member.lines is None or len(member.lines) != 1:
@@ -833,6 +845,7 @@ class LineGroupRule(Rule):
         )
         self.args = list(args)
         self.prior_factor = prior_factor
+        self.after_members = after_members
 
     def owned(self, model):
         """The member rules own the components.
@@ -857,7 +870,10 @@ class LineGroupRule(Rule):
         """
         if any(self.shared_name(arg) in model.parameters for arg in self.args):
             return []
-        if any(len(m.owned(model)) >= m.max_components for m in self.members):
+        owned = [len(m.owned(model)) for m in self.members]
+        if any(n >= m.max_components for n, m in zip(owned, self.members, strict=True)):
+            return []
+        if self.after_members and not all(owned):
             return []
 
         dz = self.velocity_range / scut.c_km_s * (1 + self.redshift)
@@ -928,6 +944,9 @@ class LineGroupRule(Rule):
                 components=comps,
                 parameters=pars,
                 starts=starts[1:],
+                reject_at_bound=[
+                    self.shared_name(arg) for arg in self.args if "fwhm" in arg
+                ],
             )
         ]
 
@@ -1540,14 +1559,16 @@ class AutoFit:
                     )
                     if trial_result is None:
                         continue
+                    own = set(cand.reject_at_bound)
                     if self.at_bound == "reject":
-                        own = set(cand.parameters) & set(trial_result.at_bound)
-                        if own:
-                            logger.debug(
-                                f"AutoFit: {cand.description}: rejected, "
-                                f"{', '.join(sorted(own))} at a prior bound"
-                            )
-                            continue
+                        own |= set(cand.parameters)
+                    own &= set(trial_result.at_bound)
+                    if own:
+                        logger.debug(
+                            f"AutoFit: {cand.description}: rejected, "
+                            f"{', '.join(sorted(own))} at a prior bound"
+                        )
+                        continue
                     if best is None or trial_score < best[2]:
                         best = (trial, trial_result, trial_score, cand)
 

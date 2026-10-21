@@ -32,7 +32,7 @@ The core package (`sculptor`):
   (`LineGroupRule`); ties (`Tie`, e.g. narrow lines sharing redshift and
   width) are hypotheses tested once the search converges and kept only if
   the data accept them; parameters at a prior bound are flagged. Quasar
-  rules (lines, blended weak lines, the CIII] complex, iron templates,
+  rules (lines, the CIII] / SiIII] / AlIII complex, iron templates,
   Balmer continuum, the narrow Hbeta / Halpha / [OIII] group and tie with
   the narrow limit `qso_rules.NARROW_FWHM_MAX = 1200` km/s) are in
   `sculptor_extensions.qso_rules`. See the example below.

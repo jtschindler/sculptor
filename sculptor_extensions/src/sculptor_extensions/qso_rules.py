@@ -6,9 +6,10 @@ broad and narrow lines in the fit regions, the UV iron template and the
 Balmer continuum, the narrow components of Hbeta, Halpha and [OIII]
 proposed together at the systemic redshift (`narrow_line_group`), and the
 hypothesis that they share redshift and width (`narrow_line_tie`), which
-AutoFit keeps only if the data accept it. Weaker blended lines
-(`BLEND_LINES`: HeII, OIII] 1663, AlIII, SiIII]) and the CIII] complex
-(`ciii_complex_rule`) are available. Components narrower than
+AutoFit keeps only if the data accept it. The CIII] complex with SiIII]
+and AlIII (`ciii_complex_rule`, `qso_rules(ciii_complex=True)`) and the
+weaker lines in `QSO_LINES` (e.g. "HeII") are optional. Components
+narrower than
 `NARROW_FWHM_MAX` count as narrow; change it before building the rules::
 
     qso_rules.NARROW_FWHM_MAX = 1000.0
@@ -65,10 +66,12 @@ DOUBLETS = {
 # out
 DEFAULT_LINES = ("SiIV", "CIV", "CIII", "MgII", "Hbeta", "OIII", "Halpha")
 
-# Weaker lines blended with the strong ones: HeII and OIII] 1663 in the red
-# wing of CIV, AlIII and SiIII] next to CIII] (see also `ciii_complex_rule`)
-BLEND_LINES = ("HeII", "OIII1663", "AlIII", "SiIII")
-
+# Weaker lines, not fitted by default. In JWST spectra of z ~ 7 quasars a
+# single broad (~10000 km/s) "HeII" Gaussian takes up the excess between
+# CIV and CIII] (the red shelf: HeII, OIII] 1663, iron) rather than HeII
+# alone. AlIII and SiIII] are best fitted with CIII] as one complex
+# (`ciii_complex_rule`): as separate Gaussians they trade places with
+# CIII] in broad blends.
 # Forbidden lines get the narrow FWHM range
 NARROW_LINES = ("OIII", "OIII_4960", "OIII_5008")
 
@@ -247,12 +250,13 @@ def ciii_complex_rule(
     fwhm_range=(1000.0, 15000.0),
     velocity_range=5000.0,
     start_fwhm=(1500.0, 6000.0),
+    shared_width=True,
 ):
     """Rule that adds the CIII] complex (`qso.CIII_complex_model_func`):
-    CIII], SiIII] and AlIII at one redshift, each with its own flux and
-    FWHM (velocity shifts fixed at 0), fluxes estimated jointly from the
-    residuals. An alternative to separate rules for "CIII", "SiIII" and
-    "AlIII" (`BLEND_LINES`).
+    CIII], SiIII] and AlIII at one redshift, each with its own flux, with
+    one FWHM (`shared_width`) or one each, velocity shifts fixed at 0;
+    fluxes estimated jointly from the residuals. A shared width keeps
+    SiIII] and AlIII from taking over a broad, blended CIII].
 
     :param redshift: Systemic redshift
     :type redshift: float
@@ -266,10 +270,15 @@ def ciii_complex_rule(
     :type velocity_range: float
     :param start_fwhm: Further starting FWHMs (all three lines), km/s
     :type start_fwhm: list(float)
+    :param shared_width: One FWHM (`<prefix>_fwhm_km_s`) for the three
+        lines
+    :type shared_width: bool
     :return: The rule
     :rtype: sculptor.autofit.ComponentRule
     """
     widths = ("fwhm_km_s", "fwhm_km_s_alIII", "fwhm_km_s_siIII")
+    if shared_width:
+        widths = widths[:1]
     dz = velocity_range / scut.c_km_s * (1 + redshift)
 
     def factory(model):
@@ -289,6 +298,10 @@ def ciii_complex_rule(
         for arg in widths:
             pars[f"{prefix}_{arg}"].value = fwhm
             pars[f"{prefix}_{arg}"].prior = UniformPrior(f"{prefix}_{arg}", *fwhm_range)
+        if shared_width:
+            for arg in ("fwhm_km_s_alIII", "fwhm_km_s_siIII"):
+                del pars[f"{prefix}_{arg}"]
+                comp.param_mapping[arg] = f"{prefix}_fwhm_km_s"
         return comp, pars
 
     return ComponentRule(
@@ -452,6 +465,7 @@ def qso_rules(
     balmer=True,
     narrow_tie=True,
     narrow_group=True,
+    ciii_complex=False,
     **line_kwargs,
 ):
     """Default rules for a quasar spectrum: Gaussians at `lines`, an iron
@@ -471,6 +485,9 @@ def qso_rules(
     :type narrow_tie: bool
     :param narrow_group: Include `narrow_line_group` (same lines)
     :type narrow_group: bool
+    :param ciii_complex: Include `ciii_complex_rule` (with "CIII" in
+        `lines`)
+    :type ciii_complex: bool
     :param line_kwargs: Passed on to `line_rules`
     :return: The rules
     :rtype: list
@@ -480,6 +497,8 @@ def qso_rules(
         group = narrow_line_group(rules, redshift)
         if group is not None:
             rules.append(group)
+    if ciii_complex and "CIII" in lines:
+        rules.append(ciii_complex_rule(redshift))
     if iron is not None:
         rules.append(iron_template_rule(redshift, preset=iron))
     if balmer:
