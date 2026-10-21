@@ -156,9 +156,13 @@ def read_jwst_dispersion(filename):
     return wave[order], res[order]
 
 
-def resolution_on_grid(dispersion, curves, boundaries=(), scale=1.0):
+def resolution_on_grid(dispersion, curves, boundaries=(), scale=1.0, blends=None):
     """Resolution at each pixel from one or several resolution curves (e.g.
     gratings stitched in a coadd), interpolated in wavelength.
+
+    Where a coadd is a weighted mean of two gratings (`blends`), the line
+    spread function is their weighted mix; it is replaced by the Gaussian
+    with the same second moment, FWHM^2 = w FWHM_1^2 + (1 - w) FWHM_2^2.
 
     :param dispersion: Pixel centers (Angstrom)
     :type dispersion: np.ndarray
@@ -170,6 +174,10 @@ def resolution_on_grid(dispersion, curves, boundaries=(), scale=1.0):
     :param scale: Factor applied to R, e.g. > 1 for a point source in a slit
         (the JWST curves are for a uniformly illuminated slit)
     :type scale: float
+    :param blends: Per boundary, None (the curves hand over at the boundary)
+        or (lo, hi, w): between lo and hi the two curves are mixed, with
+        weight w for the first (e.g. from `overlap_weight`)
+    :type blends: list
     :return: R at each pixel
     :rtype: np.ndarray
     :raises ValueError: if a pixel is outside the curve that covers it
@@ -189,4 +197,53 @@ def resolution_on_grid(dispersion, curves, boundaries=(), scale=1.0):
                 f"pixels span {x[sel].min():.0f}-{x[sel].max():.0f} A."
             )
         res[sel] = np.interp(x[sel], wave, values)
+
+    for idx, blend in enumerate(blends or []):
+        if blend is None:
+            continue
+        lo, hi, weight = blend
+        sel = (x >= lo) & (x <= hi)
+        if not sel.any():
+            continue
+        fwhm2 = 0.0
+        for k, w in ((idx, weight), (idx + 1, 1 - weight)):
+            wave, values = curves[k]
+            if x[sel].min() < wave.min() or x[sel].max() > wave.max():
+                raise ValueError(
+                    f"Curve {k} does not cover the blend {lo:.0f}-{hi:.0f} A."
+                )
+            fwhm2 = fwhm2 + w * (x[sel] / np.interp(x[sel], wave, values)) ** 2
+        res[sel] = x[sel] / np.sqrt(fwhm2)
     return res * scale
+
+
+def overlap_weight(dispersion, error, lo, hi, width=1000.0, mask=None):
+    """Weight of the first of two gratings in an inverse-variance weighted
+    mean over [lo, hi], from the errors just outside the overlap, where
+    each grating is alone (median error over `width` below lo and above
+    hi).
+
+    :param dispersion: Pixel centers
+    :type dispersion: np.ndarray
+    :param error: Errors of the coadd
+    :type error: np.ndarray
+    :param lo: Start of the overlap
+    :type lo: float
+    :param hi: End of the overlap
+    :type hi: float
+    :param width: Width of the ranges outside the overlap
+    :type width: float
+    :param mask: Good pixels (default: all)
+    :type mask: np.ndarray
+    :return: Weight of the first grating (below lo)
+    :rtype: float
+    """
+    x = np.asarray(dispersion, dtype=float)
+    good = np.ones(x.shape, dtype=bool) if mask is None else np.asarray(mask, bool)
+    below = good & (x >= lo - width) & (x < lo)
+    above = good & (x > hi) & (x <= hi + width)
+    if not below.any() or not above.any():
+        raise ValueError("No good pixels next to the overlap.")
+    inv1 = np.median(error[below]) ** -2.0
+    inv2 = np.median(error[above]) ** -2.0
+    return float(inv1 / (inv1 + inv2))

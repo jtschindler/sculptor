@@ -123,6 +123,21 @@ def test_find_absorbers_inventory_and_mask():
     assert "QSO z=" in str(inv)
 
 
+def test_weak_doublet_found_together():
+    """MgII 2803 below the single-line threshold is found as the partner of
+    2796 (the pair is significant together); a line is not paired twice."""
+    model = _absorbed_model(
+        [(_obs("MgII 2796", 0.8), 150.0, 0.016), (_obs("MgII 2803", 0.8), 150.0, 0.014)]
+    )
+    inv = scabs.find_absorbers(model, n_sims=100)
+    assert list(inv.systems["species"]) == ["MgII"]
+    assert inv.systems["z_abs"][0] == pytest.approx(0.8, abs=3e-4)
+    assert len(inv.features) == 2
+    weak = inv.features[inv.features["transition"] == "MgII 2803"][0]
+    assert weak["found_by"] == "doublet"
+    assert weak["significance"] < inv.threshold
+
+
 def test_find_absorbers_clean_spectrum_and_mask_in_fit():
     model = _absorbed_model([])
     inv = scabs.find_absorbers(model, n_sims=50)

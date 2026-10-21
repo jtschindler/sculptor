@@ -1320,6 +1320,9 @@ class AutoFitResult:
         searched for them (`sculptor.absorbers.AbsorberInventory`)
     :type absorbers: sculptor.absorbers.AbsorberInventory
     :param ties: Tie name -> outcome of its last test
+    :param rule_thresholds: Rule key -> its own threshold in this search
+        (per-rule calibration); the others used `threshold`
+    :type rule_thresholds: dict
     :type ties: dict(str, TieTest)
     """
 
@@ -1335,6 +1338,7 @@ class AutoFitResult:
     preliminary: object = None
     ties: dict = field(default_factory=dict)
     absorbers: object = None
+    rule_thresholds: dict = field(default_factory=dict)
 
     @property
     def at_bound(self):
@@ -1448,6 +1452,10 @@ class AutoFit:
         them (`AutoFitResult.absorbers`) and mask them (`absorber_mask`) for
         the calibration and the searches; None (default) for no search
     :type absorbers: dict
+    :param per_rule: With `threshold="calibrate"`: each rule's candidates
+        must also earn the rule's own calibrated threshold, where it has one
+        (`calibrate_threshold(per_rule=True)`), instead of the global one
+    :type per_rule: bool
     """
 
     def __init__(
@@ -1465,6 +1473,7 @@ class AutoFit:
         preliminary_threshold=10.0,
         at_bound="flag",
         absorbers=None,
+        per_rule=True,
     ):
         if isinstance(threshold, str) and threshold != "calibrate":
             raise ValueError(
@@ -1497,6 +1506,10 @@ class AutoFit:
         self.preliminary_threshold = preliminary_threshold
         self.at_bound = at_bound
         self.absorbers = None if absorbers is None else dict(absorbers)
+        self.per_rule = per_rule
+        self.rule_keys = rule_keys(self.rules)
+        # Rule key -> threshold of the running search (per-rule thresholds)
+        self._rule_thresholds = {}
         self.n_fits = 0
 
     def _fit(self, model):
@@ -1553,14 +1566,28 @@ class AutoFit:
 
         :rtype: list(list(str))
         """
+        return [names for names, _ in self._keyed_removal_units(model)]
+
+    def _keyed_removal_units(self, model):
+        """`_removal_units` with the key of the rule that owns each unit
+        (the guarding rule for a group; None if no rule owns it).
+
+        :rtype: list(tuple(list(str), str))
+        """
         removable = self._removable(model)
         units, grouped = [], set()
-        for rule in self.rules:
+        for key, rule in zip(self.rule_keys, self.rules, strict=True):
             for _, comps in rule.guarded(model):
                 if all(name in removable for name in comps):
-                    units.append(list(comps))
+                    units.append((list(comps), key))
                 grouped.update(comps)
-        units.extend([name] for name in removable if name not in grouped)
+        owner = {}
+        for key, rule in zip(self.rule_keys, self.rules, strict=True):
+            for name in rule.owned(model):
+                owner.setdefault(name, key)
+        units.extend(
+            ([name], owner.get(name)) for name in removable if name not in grouped
+        )
         return units
 
     @staticmethod
@@ -1629,20 +1656,25 @@ class AutoFit:
                 refit, _ = self._fit(preliminary.model)
                 if refit is not None:
                     preliminary.model.quick_fit_result = refit
+        kwargs = {"per_rule": self.per_rule, **self.calibration}
         calibration = calibrate_threshold(
             preliminary.model,
             self.rules,
             criterion=self.criterion_arg,
             quick_fit_kwargs=self.quick_fit_kwargs,
             multistart=self.multistart,
-            **self.calibration,
+            **kwargs,
         )
         self.n_fits += calibration.n_fits
         by_quantile, by_threshold = {}, {}
         for quantile, threshold in calibration.thresholds.items():
-            if threshold not in by_threshold:
-                by_threshold[threshold] = self._search(threshold, max_iterations)
-            found = copy.copy(by_threshold[threshold])
+            rule_thresholds = calibration.rule_thresholds(quantile)
+            cache = (threshold, tuple(sorted(rule_thresholds.items())))
+            if cache not in by_threshold:
+                by_threshold[cache] = self._search(
+                    threshold, max_iterations, rule_thresholds
+                )
+            found = copy.copy(by_threshold[cache])
             found.quantile = quantile
             found.calibration = calibration
             found.preliminary = preliminary
@@ -1667,8 +1699,16 @@ class AutoFit:
         self.base.absorber_mask = inventory.mask
         return inventory
 
-    def _search(self, threshold, max_iterations):
-        """One greedy search with a fixed threshold."""
+    def _search(self, threshold, max_iterations, rule_thresholds=None):
+        """One greedy search with a fixed threshold (and per-rule ones)."""
+        self._rule_thresholds = dict(rule_thresholds or {})
+        try:
+            return self._greedy(threshold, max_iterations)
+        finally:
+            self._rule_thresholds = {}
+
+    def _greedy(self, threshold, max_iterations):
+        """`_search` (with `_rule_thresholds` set)."""
         n_fits_before = self.n_fits
         logger.info(
             f"AutoFit: {self.criterion_name}, threshold {threshold:.2f}, "
@@ -1692,7 +1732,8 @@ class AutoFit:
 
         for _ in range(max_iterations):
             best = None
-            for rule in self.rules:
+            for key, rule in zip(self.rule_keys, self.rules, strict=True):
+                rule_threshold = self._rule_thresholds.get(key, threshold)
                 for cand in rule.propose(model, result):
                     if _signature(self._with(model, cand)) in seen:
                         continue
@@ -1713,10 +1754,12 @@ class AutoFit:
                             f"{', '.join(sorted(own))} at a prior bound"
                         )
                         continue
+                    if score - trial_score <= rule_threshold:
+                        continue
                     if best is None or trial_score < best[2]:
                         best = (trial, trial_result, trial_score, cand)
 
-            if best is None or score - best[2] <= threshold:
+            if best is None:
                 # Converged: guarded parameters that drifted to a bound take
                 # their components with them, and a tie the data accept
                 # simplifies the model; the search goes on from there
@@ -1769,6 +1812,7 @@ class AutoFit:
             self.n_fits - n_fits_before,
             threshold=threshold,
             ties=ties,
+            rule_thresholds=dict(self._rule_thresholds),
         )
 
     def _remove_at_bound(self, model, result, score, history, seen):
@@ -1910,7 +1954,7 @@ class AutoFit:
         (the least useful first)."""
         while True:
             worst = None
-            for names in self._removal_units(model):
+            for names, key in self._keyed_removal_units(model):
                 trial = model
                 for name in names:
                     trial = self._without(trial, name)
@@ -1920,7 +1964,8 @@ class AutoFit:
                 if trial_result is None:
                     continue
                 # Keeping `names` is worth trial_score - score
-                if trial_score - score < threshold and (
+                rule_threshold = self._rule_thresholds.get(key, threshold)
+                if trial_score - score < rule_threshold and (
                     worst is None or trial_score < worst[2]
                 ):
                     worst = (trial, trial_result, trial_score, ", ".join(names))
@@ -2016,6 +2061,14 @@ class Calibration:
     :type noise: str
     :param n_fits: Number of quick fits run
     :type n_fits: int
+    :param rule_improvements: Rule key (`rule_keys`) -> largest improvement
+        of the rule's candidates in each simulation (NaN where it proposed
+        none)
+    :type rule_improvements: dict
+    :param by_rule: Rule key -> {quantile: threshold}: thresholds of the
+        rules on their own, for the quantile corrected for the number of
+        calibrated rules (see `calibrate_threshold`)
+    :type by_rule: dict
     """
 
     criterion: str
@@ -2024,6 +2077,17 @@ class Calibration:
     intervals: dict
     noise: str = "residuals"
     n_fits: int = 0
+    rule_improvements: dict = field(default_factory=dict)
+    by_rule: dict = field(default_factory=dict)
+
+    def rule_thresholds(self, quantile):
+        """Rule key -> threshold at `quantile`, for the calibrated rules.
+
+        :param quantile: Quantile, one of `thresholds`
+        :type quantile: float
+        :rtype: dict
+        """
+        return {key: values[quantile] for key, values in self.by_rule.items()}
 
     def threshold(self, quantile):
         """The threshold at `quantile` (computed if it was not requested).
@@ -2050,7 +2114,62 @@ class Calibration:
                 f"  {quantile:.1%} quantile: threshold {value:.1f} "
                 f"(90% bootstrap interval {low:.1f} - {high:.1f})"
             )
+        if self.by_rule:
+            lines.append(
+                f"  per rule ({len(self.by_rule)} rules; quantile corrected for "
+                "their number; others use the threshold above):"
+            )
+            for key, values in self.by_rule.items():
+                text = ", ".join(f"{q:.1%}: {v:.1f}" for q, v in values.items())
+                lines.append(f"    {key}: {text}")
         return "\n".join(lines)
+
+
+def rule_keys(rules):
+    """A name per rule (its `name` or `prefix`, else its class; "tie
+    <name>" for a `Tie`, which shares its name with the group it tests),
+    made unique with the rule's index.
+
+    :param rules: Rules
+    :type rules: list
+    :rtype: list(str)
+    """
+    names = [
+        f"tie {rule.name}"
+        if isinstance(rule, Tie)
+        else getattr(rule, "name", None)
+        or getattr(rule, "prefix", None)
+        or type(rule).__name__
+        for rule in rules
+    ]
+    return [
+        name if names.count(name) == 1 else f"{name}#{idx}"
+        for idx, name in enumerate(names)
+    ]
+
+
+def tail_threshold(values, quantile, tail_fraction=0.2):
+    """Quantile of `values`, from an exponential fit to the largest
+    `tail_fraction` of them (peaks over a threshold) when it lies beyond
+    the empirical range of a sample this size.
+
+    :param values: Samples (e.g. improvements of noise-only simulations)
+    :type values: np.ndarray
+    :param quantile: Quantile
+    :type quantile: float
+    :param tail_fraction: Fraction of the samples in the fitted tail
+    :type tail_fraction: float
+    :rtype: float
+    """
+    values = np.asarray(values, dtype=float)
+    if quantile <= 1 - tail_fraction:
+        return float(np.quantile(values, quantile))
+    base = float(np.quantile(values, 1 - tail_fraction))
+    excess = values[values > base] - base
+    if excess.size == 0:
+        return base
+    scale = float(np.mean(excess))
+    return base + scale * np.log(tail_fraction / (1 - quantile))
 
 
 def calibrate_threshold(
@@ -2064,6 +2183,8 @@ def calibrate_threshold(
     quick_fit_kwargs=None,
     multistart=True,
     n_bootstrap=1000,
+    per_rule=True,
+    min_rule_sims=20,
 ):
     """Thresholds for `AutoFit` from simulations without extra components.
 
@@ -2081,6 +2202,19 @@ def calibrate_threshold(
     Use a model of the real features, e.g. from a search with a fixed
     threshold (as `AutoFit` does with `threshold="calibrate"`): residuals
     that still contain real features make the thresholds conservative.
+
+    With `per_rule`, each rule also gets its own threshold from the
+    improvements of its own candidates: a constrained hypothesis (e.g. the
+    narrow lines at the systemic redshift, `LineGroupRule`) fits noise far
+    less than a Gaussian free to go anywhere, and is held to its own noise.
+    The quantile is corrected for the number k of calibrated rules, 1 -
+    (1 - q) / k, so that the chance that any rule fits noise stays about 1
+    - q; such quantiles lie in the tail of a few hundred simulations and are
+    extrapolated with an exponential fit to it (`tail_threshold`). A rule
+    whose components are in `model` (`Rule.guarded`, e.g. the narrow group
+    found by the preliminary search) is calibrated on simulations of
+    `model` without them. Rules that propose nothing in at least
+    `min_rule_sims` simulations keep the global threshold.
 
     :param model: The null model (spectrum, fit mask, starting values)
     :type model: sculptor.model.FitModel
@@ -2103,6 +2237,11 @@ def calibrate_threshold(
     :type multistart: bool
     :param n_bootstrap: Bootstrap resamples for the intervals
     :type n_bootstrap: int
+    :param per_rule: Also calibrate a threshold per rule
+    :type per_rule: bool
+    :param min_rule_sims: Simulations a rule needs candidates in to get its
+        own threshold
+    :type min_rule_sims: int
     :return: The improvements and the thresholds
     :rtype: Calibration
     :raises ValueError: for an unknown `noise`, quantiles outside (0, 1), or
@@ -2128,23 +2267,60 @@ def calibrate_threshold(
     if null_result is None:
         raise ValueError("calibrate_threshold: the model cannot be fitted.")
     best_flux = null.eval(null.spec.dispersion, null_result.values)
+    keys = rule_keys(search.rules)
+
+    # Rules whose components are in the null model: their own null model
+    # without them
+    without = {}
+    if per_rule:
+        for key, rule in zip(keys, search.rules, strict=True):
+            names = [name for _, comps in rule.guarded(null) for name in comps]
+            if not names:
+                continue
+            reduced = null
+            for name in names:
+                reduced = search._without(reduced, name)
+            reduced_result, _ = search._fit(reduced)
+            if reduced_result is not None:
+                flux = reduced.eval(reduced.spec.dispersion, reduced_result.values)
+                without[key] = (reduced, flux)
 
     improvements = np.full(n_sims, np.nan)
+    by_key = {key: np.full(n_sims, np.nan) for key in keys}
     for idx in range(n_sims):
-        sim = copy.deepcopy(null)
         if noise == "residuals":
-            sim.spec.fluxden = best_flux + correlated_noise(null, null_result, rng)
+            realization = correlated_noise(null, null_result, rng)
         else:
-            sim.spec.fluxden = best_flux + rng.normal(0, sim.spec.fluxden_err)
+            realization = rng.normal(0, null.spec.fluxden_err)
+        sim = copy.deepcopy(null)
+        sim.spec.fluxden = best_flux + realization
         sim_result, sim_score = search._fit(sim)
         if sim_result is None:
             continue
         best = sim_score
-        for rule in search.rules:
+        for key, rule in zip(keys, search.rules, strict=True):
+            rule_best = None
             for cand in rule.propose(sim, sim_result):
                 _, _, score = search._fit_candidate(sim, cand)
                 best = min(best, score)
+                rule_best = score if rule_best is None else min(rule_best, score)
+            if rule_best is not None:
+                by_key[key][idx] = max(sim_score - rule_best, 0.0)
         improvements[idx] = sim_score - best
+
+        for key, (reduced, flux) in without.items():
+            rule = search.rules[keys.index(key)]
+            red = copy.deepcopy(reduced)
+            red.spec.fluxden = flux + realization
+            red_result, red_score = search._fit(red)
+            if red_result is None:
+                continue
+            scores = [
+                search._fit_candidate(red, cand)[2]
+                for cand in rule.propose(red, red_result)
+            ]
+            if scores:
+                by_key[key][idx] = max(red_score - min(scores), 0.0)
     improvements = improvements[np.isfinite(improvements)]
     if improvements.size == 0:
         raise ValueError("calibrate_threshold: all simulations failed.")
@@ -2167,6 +2343,19 @@ def calibrate_threshold(
                 "simulations for a stable threshold"
             )
 
+    rule_improvements = {
+        key: values[np.isfinite(values)]
+        for key, values in by_key.items()
+        if np.isfinite(values).sum() >= min_rule_sims
+    }
+    by_rule = {}
+    if per_rule and rule_improvements:
+        n_rules = len(rule_improvements)
+        for key, values in rule_improvements.items():
+            by_rule[key] = {
+                q: tail_threshold(values, 1 - (1 - q) / n_rules) for q in quantiles
+            }
+
     calibration = Calibration(
         search.criterion_name,
         improvements,
@@ -2174,6 +2363,8 @@ def calibrate_threshold(
         intervals,
         noise=noise,
         n_fits=search.n_fits,
+        rule_improvements=rule_improvements,
+        by_rule=by_rule,
     )
     logger.info(str(calibration))
     return calibration

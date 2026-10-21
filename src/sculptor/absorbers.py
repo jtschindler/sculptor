@@ -14,7 +14,11 @@ false feature per spectrum.
 Features are then grouped into systems: transitions of one species
 (doublets, multiplets, `ABSORPTION_LINES`) matched at a common redshift,
 and species at the same redshift (within `system_dv`) joined into one
-system. A system needs at least two matched transitions, and a species
+system. A doublet whose lines are each below the threshold may still be
+significant together: a second pass combines each pixel with its doublet
+partner (MgII, CIV, SiIV, NV, AlIII, CaII; `doublet_map`), with its own
+calibrated threshold, and adds both lines of a significant pair. The
+quantile is split between the two passes. A system needs at least two matched transitions, and a species
 counts only if its transitions stronger than the weakest matched one are
 matched too where the spectrum covers them (e.g. FeII 2587 and 2600
 without 2383 are a coincidence); single features stay unidentified. Every feature is masked (`FitModel.absorber_mask`) over
@@ -73,22 +77,29 @@ class AbsorberInventory:
     :param features: One row per feature, from the detection: `wave`
         (observed, Angstrom), `significance`, `fwhm_km_s` and `amplitude`
         (of the best matched filter: FWHM, absorbed flux density at the
-        center), `system` (index into `systems`, -1 if unidentified),
-        `transition`
+        center), `found_by` ("single" or "doublet": as part of a doublet
+        significant together), `system` (index into `systems`, -1 if
+        unidentified), `transition`
     :type features: astropy.table.Table
     :param systems: The inventory, one row per system: `absorber_id`
         ("<name> z=<z_abs>"), `z_abs`, `species` (identified), `transitions`
         (the matched lines), `n_lines`, `max_significance` (of its lines)
         and `associated` (within `associated_dv` of the quasar's redshift)
     :type systems: astropy.table.Table
-    :param threshold: Significance threshold
+    :param threshold: Significance threshold of single features
     :type threshold: float
-    :param quantile: Its quantile of the noise-only maxima
+    :param quantile: Quantile of the noise-only maxima (split between the
+        single and the doublet pass)
     :type quantile: float
     :param null_maxima: Largest significance in each simulation
     :type null_maxima: np.ndarray
     :param mask: False on the masked pixels (`FitModel.absorber_mask`)
     :type mask: np.ndarray
+    :param pair_threshold: Threshold of the joint doublet significance
+    :type pair_threshold: float
+    :param pair_maxima: Largest joint doublet significance in each
+        simulation
+    :type pair_maxima: np.ndarray
     """
 
     features: Table
@@ -97,12 +108,15 @@ class AbsorberInventory:
     quantile: float
     null_maxima: np.ndarray = field(default_factory=lambda: np.array([]))
     mask: np.ndarray | None = None
+    pair_threshold: float = np.nan
+    pair_maxima: np.ndarray = field(default_factory=lambda: np.array([]))
 
     def __str__(self):
         lines = [
             (
-                f"Absorbers: {len(self.features)} feature(s) above significance "
-                f"{self.threshold:.2f} ({self.quantile:.0%} of noise-only maxima), "
+                f"Absorbers: {len(self.features)} feature(s) (significance above "
+                f"{self.threshold:.2f}, or doublets above {self.pair_threshold:.2f}; "
+                f"{self.quantile:.0%} of noise-only maxima), "
                 f"{len(self.systems)} system(s)"
             )
         ]
@@ -171,6 +185,77 @@ def significance_map(model, values, flux, region, widths=None):
         best_amp[better] = amp[better]
     best[~region] = 0.0
     return best, best_fwhm, best_amp
+
+
+def _doublets(lines):
+    """Species whose two strongest transitions are a close doublet (within
+    1% in wavelength, e.g. MgII, CIV): species -> (rest wavelength of the
+    strongest, ratio of the second's to it).
+
+    :rtype: dict
+    """
+    found = {}
+    for species, transitions in lines.items():
+        rests = list(transitions.values())
+        if len(rests) >= 2 and abs(rests[1] / rests[0] - 1) < 0.01:
+            found[species] = (rests[0], rests[1] / rests[0])
+    return found
+
+
+def _doublet_partners(x, region, doublets, z_max):
+    """Per doublet species: the pixel of the partner of each pixel (taken as
+    the strongest line) and where both are searched (and the redshift is in
+    range).
+
+    :rtype: dict(str, tuple(np.ndarray, np.ndarray))
+    """
+    partners = {}
+    for species, (rest, ratio) in doublets.items():
+        target = x * ratio
+        j = np.clip(np.searchsorted(x, target), 1, x.size - 1)
+        j = np.where(np.abs(x[j - 1] - target) < np.abs(x[j] - target), j - 1, j)
+        z = x / rest - 1
+        valid = region & region[j] & (target <= x[-1]) & (z >= 0)
+        if z_max is not None:
+            valid &= z <= z_max
+        partners[species] = (j, valid)
+    return partners
+
+
+# Allowed ratio of the significances of a doublet's second line to its
+# first (strongest) one: 1/2 unsaturated to 1 saturated, with room for noise
+DOUBLET_RATIO = (1 / 3, 2.0)
+
+
+def doublet_map(signif, partners):
+    """Joint significance of the doublets, (s_1 + s_2) / sqrt(2) with the
+    second line's significance within `DOUBLET_RATIO` of the first's (a
+    strong single line next to noise is not a doublet), the largest over
+    the species, and its species.
+
+    :param signif: Absorption significance per pixel (`significance_map`)
+    :type signif: np.ndarray
+    :param partners: From `_doublet_partners`
+    :type partners: dict
+    :return: joint significance, species (one per pixel; "" where none)
+    :rtype: (np.ndarray, np.ndarray)
+    """
+    best = np.zeros_like(signif)
+    species = np.full(signif.shape, "", dtype=object)
+    for name, (j, valid) in partners.items():
+        partner = signif[j]
+        low, high = DOUBLET_RATIO
+        pair = (
+            valid
+            & (signif > 0)
+            & (partner >= low * signif)
+            & (partner <= high * signif)
+        )
+        joint = np.where(pair, (signif + partner) / np.sqrt(2), 0.0)
+        better = joint > best
+        best[better] = joint[better]
+        species[better] = name
+    return best, species
 
 
 def _peaks(x, signif, fwhm, threshold):
@@ -370,6 +455,38 @@ def find_absorbers(
 
     signif, fwhm, amp = significance_map(model, values, spec.fluxden, region, widths)
     best = model.eval(x, values)
+    z_max = None
+    if redshift is not None:
+        z_max = (1 + redshift) * (1 + associated_dv / scut.c_km_s) - 1
+    partners = _doublet_partners(
+        x, region, _doublets(ABSORPTION_LINES if lines is None else lines), z_max
+    )
+    joint, joint_species = doublet_map(signif, partners)
+    # Two passes (single lines, doublets): each at half the false rate
+    each = 1 - (1 - quantile) / 2
+
+    def features_above(single_threshold, pair_threshold):
+        """Single features, plus both lines of significant doublets
+        (sorted pixel indices, and how each was found)."""
+        found = {i: "single" for i in _peaks(x, signif, fwhm, single_threshold)}
+
+        def near(k, others):
+            """Pixel k within one FWHM of one of `others`."""
+            width = fwhm[k] / scut.c_km_s * x[k]
+            return any(abs(x[k] - x[m]) <= width for m in others)
+
+        # Strongest pairs first; a line belongs to one pair only
+        paired = []
+        pair_peaks = _peaks(x, joint, fwhm, pair_threshold)
+        for i in sorted(pair_peaks, key=lambda i: -joint[i]):
+            members = (i, partners[joint_species[i]][0][i])
+            if any(near(k, paired) for k in members):
+                continue
+            paired.extend(members)
+            for k in members:
+                if not near(k, found):
+                    found[k] = "doublet"
+        return sorted(found), found
 
     def mask_of(peaks):
         """False within +-mask_fwhm FWHM of the features at `peaks`."""
@@ -381,29 +498,28 @@ def find_absorbers(
 
     # The simulated noise follows the residuals: the absorbers found so far
     # are masked from them (else they inflate it), until nothing changes
-    peaks, mask = [], np.ones(x.size, dtype=bool)
+    peaks, how, mask = [], {}, np.ones(x.size, dtype=bool)
     for _ in range(max_iterations):
         model.absorber_mask = mask
         try:
             rng = np.random.default_rng(seed)
             maxima = np.empty(n_sims)
+            pair_maxima = np.empty(n_sims)
             for k in range(n_sims):
                 sim = best + correlated_noise(model, result, rng)
-                maxima[k] = significance_map(model, values, sim, region, widths)[
-                    0
-                ].max()
+                sim_signif = significance_map(model, values, sim, region, widths)[0]
+                maxima[k] = sim_signif.max()
+                pair_maxima[k] = doublet_map(sim_signif, partners)[0].max()
         finally:
             model.absorber_mask = saved
-        threshold = float(np.quantile(maxima, quantile))
-        new = _peaks(x, signif, fwhm, threshold)
+        threshold = float(np.quantile(maxima, each))
+        pair_threshold = float(np.quantile(pair_maxima, each))
+        new, new_how = features_above(threshold, pair_threshold)
         if new == peaks:
             break
-        peaks, mask = new, mask_of(new)
+        peaks, how, mask = new, new_how, mask_of(new)
 
     waves = x[peaks]
-    z_max = None
-    if redshift is not None:
-        z_max = (1 + redshift) * (1 + associated_dv / scut.c_km_s) - 1
 
     def covered(wave):
         """Inside the searched pixels."""
@@ -426,6 +542,7 @@ def find_absorbers(
             "significance": signif[peaks],
             "fwhm_km_s": fwhm[peaks],
             "amplitude": amp[peaks],
+            "found_by": [how[i] for i in peaks],
             "system": np.array([s for s, _ in per_feature], dtype=int),
             "transition": [t for _, t in per_feature],
         }
@@ -462,4 +579,13 @@ def find_absorbers(
         ),
         dtype=(str, float, str, str, int, float, bool),
     )
-    return AbsorberInventory(features, systems_table, threshold, quantile, maxima, mask)
+    return AbsorberInventory(
+        features,
+        systems_table,
+        threshold,
+        quantile,
+        maxima,
+        mask,
+        pair_threshold=pair_threshold,
+        pair_maxima=pair_maxima,
+    )

@@ -192,6 +192,27 @@ def test_resolution_on_grid_stitches_curves():
         scres.resolution_on_grid(np.array([500.0]), [blue, red], boundaries=[1850.0])
 
 
+def test_resolution_on_grid_blends_an_overlap():
+    blue = (np.array([1000.0, 3000.0]), np.array([2000.0, 2000.0]))
+    red = (np.array([1500.0, 4000.0]), np.array([1000.0, 1000.0]))
+    x = np.array([1200.0, 1800.0, 2500.0])
+    res = scres.resolution_on_grid(
+        x, [blue, red], boundaries=[1900.0], blends=[(1700.0, 2000.0, 0.25)]
+    )
+    # FWHM^2 = 0.25 (x / 2000)^2 + 0.75 (x / 1000)^2 inside the blend
+    expected = 1800.0 / np.sqrt(0.25 * 0.9**2 + 0.75 * 1.8**2)
+    assert res == pytest.approx([2000.0, expected, 1000.0])
+
+
+def test_overlap_weight_from_the_errors():
+    x = np.linspace(1000, 4000, 301)
+    err = np.where(x < 2000, 2.0, 1.0)
+    # Inverse variances 1/4 and 1: the first grating weighs 0.2
+    assert scres.overlap_weight(x, err, 2000.0, 2500.0, width=500.0) == pytest.approx(
+        0.2
+    )
+
+
 def test_big_endian_input_gives_the_same_result(line):
     """FITS data (e.g. read with astropy) is often big-endian, which numba
     cannot type; `broaden_spectrum` casts its inputs itself."""

@@ -340,6 +340,61 @@ def test_absorbers_are_reported_and_masked(threshold):
     assert fit.base is base and base.absorber_mask is None
 
 
+def test_tail_threshold_and_rule_keys():
+    rng = np.random.default_rng(3)
+    values = rng.exponential(10.0, 400)
+    # Beyond the sample: exponential extrapolation, P(> t) = exp(-t / 10)
+    assert autofit.tail_threshold(values, 0.999) == pytest.approx(69.1, rel=0.2)
+    assert autofit.tail_threshold(values, 0.5) == pytest.approx(np.median(values))
+    rules = [_rule(), _rule(), GaussianLineRule("other", redshift=Z)]
+    assert autofit.rule_keys(rules) == ["line#0", "line#1", "other"]
+    # A tie shares its name with the group it tests; it gets its own key
+    tie = autofit.Tie("other", ["line"])
+    assert autofit.rule_keys([rules[2], tie]) == ["other", "tie other"]
+
+
+def test_search_uses_the_rule_thresholds():
+    """A huge global threshold, but the rule's own lets its lines in (and
+    keeps them in the backward steps)."""
+    fit = AutoFit(_model(), [_rule()])
+    found = fit._search(1e9, 20, rule_thresholds={"line": 10.0})
+    assert len(found.model.components) == 4
+    assert found.rule_thresholds == {"line": 10.0}
+    assert len(fit._search(1e9, 20).model.components) == 1
+
+
+def test_calibration_per_rule():
+    # min_significance 0: the rules propose candidates on noise too
+    narrow = GaussianLineRule(
+        "narrow",
+        redshift=Z,
+        lines=[CIV],
+        fwhm_range=(300, 1500),
+        max_components=4,
+        min_significance=0.0,
+    )
+    free = _rule(max_components=5, min_significance=0.0)
+    found = AutoFit(_model(), [_rule()]).run()
+    # Chi-square: no penalty, so every candidate's improvement shows
+    cal = autofit.calibrate_threshold(
+        found.model,
+        [free, narrow],
+        criterion=lambda result, model: result.chi_sq,
+        n_sims=25,
+        quantiles=[0.9],
+        min_rule_sims=10,
+    )
+    assert set(cal.by_rule) == {"line", "narrow"}
+    # The free Gaussian fits noise better than the one at a fixed line
+    assert cal.by_rule["narrow"][0.9] < cal.by_rule["line"][0.9]
+    for values in cal.by_rule.values():
+        assert np.isfinite(values[0.9]) and values[0.9] >= 0
+    assert "per rule" in str(cal)
+    assert cal.rule_thresholds(0.9) == {k: v[0.9] for k, v in cal.by_rule.items()}
+    plain = autofit.calibrate_threshold(found.model, [free], n_sims=5, per_rule=False)
+    assert plain.by_rule == {}
+
+
 def _clip_with(monkeypatch, masks):
     """A clip whose sigma_clip sets the given masks in turn (always
     "changed"); returns the warnings and the number of calls."""

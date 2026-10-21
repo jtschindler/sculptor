@@ -361,6 +361,22 @@ def test_group_removed_as_a_whole():
     assert [tied[0]] not in fit._removal_units(result.model)
 
 
+def test_group_rule_calibrated_without_its_group():
+    """The null model already has the narrow group: its rule is calibrated
+    on simulations without it, and gets its own threshold."""
+    model, lines, z = _weak_narrow_model(1.0)
+    group = qr.narrow_line_group(lines, z)
+    rules = [*lines, group]
+    found = AutoFit(model, rules).run()
+    assert "narrow_redsh" in found.model.parameters
+    cal = autofit.calibrate_threshold(
+        found.model, rules, n_sims=12, quantiles=[0.9], min_rule_sims=10
+    )
+    assert "narrow" in cal.by_rule
+    assert cal.by_rule["narrow"][0.9] <= cal.thresholds[0.9]
+    assert cal.rule_improvements["narrow"].size >= 10
+
+
 def test_group_rejected_when_not_systemic():
     """Cores 600 km/s from the systemic redshift are outside the default
     window: the group would end at its redshift bound."""
