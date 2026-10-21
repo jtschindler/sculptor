@@ -788,6 +788,21 @@ class FitModel(PickleMixin):
             return self.gpm_fit
         return self.gpm_fit & spec_mask
 
+    def _shown_pixels(self, xlim=None):
+        """Pixels that set a plot's y-axis limits: the fitted pixels within
+        `xlim`, else the unmasked ones there, else all fitted pixels."""
+
+        x = self.spec.dispersion
+        inside = np.ones_like(x, dtype=bool)
+        if xlim is not None:
+            inside = (x >= min(xlim)) & (x <= max(xlim))
+        spec_mask = getattr(self.spec, "mask", None)
+        good = np.ones_like(inside) if spec_mask is None else spec_mask
+        for pixels in (self.get_fit_mask() & inside, good & inside):
+            if np.any(pixels):
+                return pixels
+        return self.get_fit_mask()
+
     def sigma_clip(
         self,
         low=3.0,
@@ -1561,14 +1576,15 @@ class FitModel(PickleMixin):
             fontsize=14,
         )
 
-        # Get the y-axis limits
+        # The y-axis limits follow the pixels shown: the fitted pixels in
+        # `xlim` (else the unmasked ones there, else all fitted pixels)
+        shown = self._shown_pixels(xlim)
         if ylim is None:
-            y_max = 1.1 * np.max(self.spec.fluxden[self.get_fit_mask()])
+            flux = self.spec.fluxden[shown]
+            y_max = 1.1 * max(np.max(flux), np.max(model_flux[shown]))
+            y_min = min(np.min(flux), 0)
             if self.spec.fluxden_err is not None:
-                y_min = -np.max(self.spec.fluxden_err[self.get_fit_mask()])
-            else:
-                y_min = 0
-
+                y_min = min(y_min, -np.max(self.spec.fluxden_err[shown]))
             ylim = [y_min, y_max]
 
         # Set the axis limits
@@ -1577,12 +1593,25 @@ class FitModel(PickleMixin):
             ax_main.set_xlim(xlim)
 
         if resid_ylim is None:
-            yerr_lim = 2 * np.max(self.spec.fluxden_err[self.get_fit_mask()])
+            resid_shown = np.abs(self.spec.fluxden - model_flux)[shown]
+            yerr_lim = 1.1 * np.max(resid_shown)
+            if self.spec.fluxden_err is not None:
+                yerr_lim = max(yerr_lim, 2 * np.max(self.spec.fluxden_err[shown]))
             ax_resid.set_ylim([-yerr_lim, yerr_lim])
         else:
             ax_resid.set_ylim(resid_ylim)
 
-        ax_main.legend(handles=handles, labels=labels, fontsize=12)
+        if len(handles) > 8:
+            # Many components: next to the panel, not over the spectrum
+            ax_main.legend(
+                handles=handles,
+                labels=labels,
+                fontsize=10,
+                loc="upper left",
+                bbox_to_anchor=(1.01, 1),
+            )
+        else:
+            ax_main.legend(handles=handles, labels=labels, fontsize=12)
         ax_resid.legend(ncol=2)
 
         if save:

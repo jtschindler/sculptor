@@ -303,6 +303,30 @@ def test_plot_quick_fit_result(fit_model, tmp_path):
     assert dispersion.size == residuals.size
 
 
+def test_plot_y_limits_follow_the_shown_pixels(fit_model, tmp_path):
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    result = fit_model.run_quick_fit()
+    x = fit_model.spec.dispersion
+    fitted = fit_model.get_fit_mask()
+    xlim = [x[fitted][0], x[fitted][fitted.sum() // 10]]
+    fit_model.plot_quick_fit_result(save=True, save_dir=tmp_path, xlim=xlim)
+    ax_main, ax_resid = plt.gcf().axes[:2]
+
+    shown = fitted & (x >= xlim[0]) & (x <= xlim[1])
+    best = fit_model.eval(x, result.values)
+    y_max = 1.1 * max(fit_model.spec.fluxden[shown].max(), best[shown].max())
+    assert ax_main.get_ylim()[1] == pytest.approx(y_max)
+    assert y_max < 1.1 * fit_model.spec.fluxden[fitted].max()
+    resid_lim = ax_resid.get_ylim()[1]
+    assert resid_lim >= 2 * fit_model.spec.fluxden_err[shown].max()
+    assert resid_lim >= np.abs(fit_model.spec.fluxden - best)[shown].max()
+    plt.close("all")
+
+
 @pytest.mark.parametrize("suffix", [".ecsv", ".json"])
 def test_export_round_trip(fit_model, tmp_path, suffix):
     fit_model.parameters["pl_slope"].vary = False
