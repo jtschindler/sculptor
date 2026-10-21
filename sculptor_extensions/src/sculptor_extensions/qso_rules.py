@@ -3,8 +3,12 @@
 
 `qso_rules(redshift)` returns a default set: Gaussians at the strong
 broad and narrow lines in the fit regions, the UV iron template and the
-Balmer continuum. Narrow Hbeta and the [OIII] core share their redshift
-and width (`DEFAULT_SHARED`). Start `AutoFit` from a power-law continuum::
+Balmer continuum, and the hypothesis that the narrow components of Hbeta,
+Halpha and [OIII] share redshift and width (`narrow_line_tie`), which
+AutoFit keeps only if the data accept it. Components narrower than
+`NARROW_FWHM_MAX` count as narrow; change it before building the rules::
+
+    qso_rules.NARROW_FWHM_MAX = 1000.0 Start `AutoFit` from a power-law continuum::
 
     from sculptor.autofit import AutoFit
     from sculptor_extensions import qso_rules
@@ -19,7 +23,7 @@ Each rule can also be built on its own (`line_rules`, `iron_template_rule`,
 import copy
 import string
 
-from sculptor.autofit import ComponentRule, GaussianLineRule
+from sculptor.autofit import ComponentRule, GaussianLineRule, Tie
 from sculptor.prior import UniformPrior
 from sculptor_extensions import qso, qso_presets
 from sculptor_extensions import qso_autofit as qa
@@ -35,7 +39,6 @@ QSO_LINES = {
     "MgII": 2798.75,
     "Hgamma": 4341.68,
     "Hbeta": 4862.68,
-    "Hbeta_narrow": 4862.68,  # narrow component, see NARROW_LINES
     "OIII_4960": 4960.30,
     "OIII_5008": 5008.24,
     "Halpha": 6564.61,
@@ -50,28 +53,21 @@ DOUBLETS = {
 
 # Lines fitted by default: Lya and NV need absorption modeling and are left
 # out
-DEFAULT_LINES = (
-    "SiIV",
-    "CIV",
-    "CIII",
-    "MgII",
-    "Hbeta",
-    "Hbeta_narrow",
-    "OIII",
-    "Halpha",
-)
+DEFAULT_LINES = ("SiIV", "CIV", "CIII", "MgII", "Hbeta", "OIII", "Halpha")
 
-# Narrow lines get a narrow FWHM range
-NARROW_LINES = ("Hbeta_narrow", "OIII", "OIII_4960", "OIII_5008")
+# Forbidden lines get the narrow FWHM range
+NARROW_LINES = ("OIII", "OIII_4960", "OIII_5008")
 
-# Lines with at most one component (further Gaussians belong to the broad
-# line)
-SINGLE_COMPONENT_LINES = ("Hbeta_narrow",)
+# Permitted lines with a narrow component: their Gaussians may be narrow or
+# broad (FWHM from the narrow range's minimum to the broad range's maximum)
+LINES_WITH_NARROW = ("Hbeta", "Halpha")
 
-# Narrow-line region: the first component of each line (the core; further
-# ones, e.g. [OIII] outflows, are free) uses these shared parameters
-NARROW_TIES = {"redsh": "narrow_redsh", "fwhm_km_s": "narrow_fwhm_km_s"}
-DEFAULT_SHARED = {"Hbeta_narrow": NARROW_TIES, "OIII": NARROW_TIES}
+# Components with a FWHM up to this (km/s) count as narrow, e.g. for
+# `narrow_line_tie`; change it before building the rules
+NARROW_FWHM_MAX = 1200.0
+
+# Lines whose narrow components `narrow_line_tie` ties by default
+NARROW_TIE_LINES = ("Hbeta", "Halpha", "OIII")
 
 
 def _fixed(value):
@@ -85,23 +81,21 @@ def line_rules(
     narrow_fwhm=(100.0, 2500.0),
     velocity_range=5000.0,
     max_components=3,
-    shared=DEFAULT_SHARED,
+    shared=None,
     **kwargs,
 ):
     """One `GaussianLineRule` per line, at the line's rest wavelength
     (fixed center, redshift free within +-`velocity_range`), with up to
-    `max_components` Gaussians each (one for `SINGLE_COMPONENT_LINES`).
-    Doublets in `DOUBLETS` (e.g. "OIII") are one component per pair, with
-    one redshift and width and a fixed flux ratio.
-
-    By default the cores of narrow Hbeta and [OIII] share redshift and
-    width (`DEFAULT_SHARED`).
+    `max_components` Gaussians each. Doublets in `DOUBLETS` (e.g. "OIII")
+    are one component per pair, with one redshift and width and a fixed
+    flux ratio. Lines in `LINES_WITH_NARROW` cover both FWHM ranges; tie
+    their narrow components with `narrow_line_tie`.
 
     :param redshift: Systemic redshift
     :type redshift: float
     :param lines: Names in `QSO_LINES`, or name -> rest wavelength
     :type lines: list(str) or dict
-    :param broad_fwhm: FWHM range of the permitted lines, km/s
+    :param broad_fwhm: FWHM range of the broad permitted lines, km/s
     :type broad_fwhm: (float, float)
     :param narrow_fwhm: FWHM range of the forbidden lines ([OIII]), km/s
     :type narrow_fwhm: (float, float)
@@ -112,8 +106,8 @@ def line_rules(
     :type max_components: int
     :param shared: Line name -> {argument: parameter name}: the first
         component of the line uses these parameters, shared with the lines
-        that name the same ones; further components get their own. {} for
-        no ties.
+        that name the same ones; further components get their own. A fixed
+        tie, unlike `narrow_line_tie`, which the data may reject.
     :type shared: dict
     :param kwargs: Passed on to `GaussianLineRule`
     :return: The rules
@@ -130,16 +124,20 @@ def line_rules(
         function, fixed = None, None
         if name in DOUBLETS:
             function, _, fixed = DOUBLETS[name]
+        if name in NARROW_LINES:
+            fwhm_range = narrow_fwhm
+        elif name in LINES_WITH_NARROW:
+            fwhm_range = (narrow_fwhm[0], broad_fwhm[1])
+        else:
+            fwhm_range = broad_fwhm
         rules.append(
             GaussianLineRule(
                 name,
                 redshift=redshift,
                 lines=[rest],
-                fwhm_range=narrow_fwhm if name in NARROW_LINES else broad_fwhm,
+                fwhm_range=fwhm_range,
                 velocity_range=velocity_range,
-                max_components=(
-                    1 if name in SINGLE_COMPONENT_LINES else max_components
-                ),
+                max_components=max_components,
                 function=function,
                 fixed=fixed,
                 shared=shared.get(name),
@@ -148,6 +146,32 @@ def line_rules(
             )
         )
     return rules
+
+
+def narrow_line_tie(lines=NARROW_TIE_LINES, max_fwhm=None, args=None):
+    """Hypothesis that the narrow components of `lines` (the narrowest
+    Gaussian of each with FWHM <= `max_fwhm`) share redshift and FWHM, in
+    parameters `narrow_redsh` and `narrow_fwhm_km_s`. AutoFit tests it once
+    its search converges and keeps it unless the untied model earns the
+    threshold; `AutoFitResult.ties["narrow"]` reports the outcome (e.g.
+    rejected when [OIII] is dominated by a shifted outflow).
+
+    :param lines: Line names (rule prefixes of `line_rules`)
+    :type lines: list(str)
+    :param max_fwhm: Largest narrow FWHM, km/s (default `NARROW_FWHM_MAX`,
+        read when called)
+    :type max_fwhm: float
+    :param args: Shared arguments (default redshift and FWHM)
+    :type args: list(str)
+    :return: The tie (pass it among the rules)
+    :rtype: sculptor.autofit.Tie
+    """
+    return Tie(
+        "narrow",
+        lines,
+        args=("redsh", "fwhm_km_s") if args is None else args,
+        max_width=NARROW_FWHM_MAX if max_fwhm is None else max_fwhm,
+    )
 
 
 def iron_template_rule(
@@ -301,10 +325,11 @@ def qso_rules(
     lines=DEFAULT_LINES,
     iron="VW01_UV",
     balmer=True,
+    narrow_tie=True,
     **line_kwargs,
 ):
     """Default rules for a quasar spectrum: Gaussians at `lines`, an iron
-    template and a Balmer continuum.
+    template, a Balmer continuum and the narrow-line tie.
 
     :param redshift: Systemic redshift
     :type redshift: float
@@ -314,6 +339,9 @@ def qso_rules(
     :type iron: str
     :param balmer: Include the Balmer continuum rule
     :type balmer: bool
+    :param narrow_tie: Include `narrow_line_tie` (for the tied lines among
+        `lines`)
+    :type narrow_tie: bool
     :param line_kwargs: Passed on to `line_rules`
     :return: The rules
     :rtype: list
@@ -323,4 +351,8 @@ def qso_rules(
         rules.append(iron_template_rule(redshift, preset=iron))
     if balmer:
         rules.append(balmer_continuum_rule(redshift))
+    if narrow_tie:
+        tied = [name for name in NARROW_TIE_LINES if name in lines]
+        if len(tied) >= 2:
+            rules.append(narrow_line_tie(tied))
     return rules

@@ -635,3 +635,23 @@ def test_calibrated_threshold_is_the_default():
 
     with pytest.raises(ValueError, match="threshold must be"):
         autofit.AutoFit(base, [_rule()], threshold="auto")
+
+
+# -- prior bounds ---------------------------------------------------------------
+
+
+def test_parameters_at_a_prior_bound_are_flagged_or_rejected():
+    """A 4000 km/s line with widths limited to 1500 km/s."""
+    base = _model(lines=[(20.0, CIII, 4000.0)])
+    narrow = GaussianLineRule(
+        "line", redshift=Z, lines=[CIII], fwhm_range=(300, 1500), max_components=1
+    )
+    flagged = AutoFit(base, [narrow]).run()
+    assert "line_0_fwhm_km_s" in flagged.at_bound
+    assert "at a prior bound: " in str(flagged)
+
+    rejected = AutoFit(base, [narrow], at_bound="reject").run()
+    assert rejected.components() == ["PL"]
+
+    with pytest.raises(ValueError, match="at_bound"):
+        AutoFit(base, [narrow], at_bound="drop")

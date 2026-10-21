@@ -20,6 +20,13 @@ fitted from each and the best fit counts. This matters for degenerate
 components, e.g. a second broad Gaussian of a line, whose fit depends on
 where it starts.
 
+Ties (`Tie`, passed among the rules) are hypotheses that components share
+parameters, e.g. the narrow cores of Hbeta and [OIII] their redshift and
+width. When the search converges, each applicable tie is tested like a
+removal: it is kept unless the untied model earns `threshold`, and the
+search resumes from the tied model. `AutoFitResult.ties` reports each
+outcome, e.g. a tie the data reject.
+
 The threshold is calibrated by default (`threshold="calibrate"`): a
 preliminary search with a fixed threshold gives a model of the real
 features; `calibrate_threshold` simulates it with noise like its residuals
@@ -705,6 +712,185 @@ class ComponentRule(Rule):
         return True
 
 
+@dataclass
+class TieTest:
+    """Outcome of the last test of a `Tie`.
+
+    :param status: "tied" (accepted now or earlier), "rejected" (the untied
+        model earns the threshold) or "not applicable" (see `reason`)
+    :type status: str
+    :param components: Names of the components it applies to
+    :type components: list(str)
+    :param delta: Criterion of the tied minus the untied model (NaN if not
+        tested)
+    :type delta: float
+    :param reason: Why it was not applicable
+    :type reason: str
+    """
+
+    status: str
+    components: list = field(default_factory=list)
+    delta: float = np.nan
+    reason: str = ""
+
+    def __str__(self):
+        if self.status == "not applicable":
+            return f"not applicable: {self.reason}"
+        text = f"{self.status} ({', '.join(self.components)}"
+        if np.isfinite(self.delta):
+            text += f", tied - untied {self.delta:+.2f}"
+        return text + ")"
+
+
+class Tie(Rule):
+    """Hypothesis that components of several rules share parameters, e.g.
+    the narrow cores of Hbeta and [OIII] share redshift and width.
+
+    It applies to the narrowest component of each rule `<prefix>_<n>` in
+    `prefixes` whose `width_arg` is at most `max_width`, if at least
+    `min_components` rules have one. `AutoFit` tests it when its search
+    converges, like a removal: the tied model is kept unless the untied one
+    earns the threshold (see the module docstring). The shared parameters
+    are `<name>_<arg>`, with the intersection of the components' uniform
+    priors, fitted from each component's values (multi-start). A tie is
+    not undone later.
+
+    Pass ties among the rules of `AutoFit`; they propose no components.
+
+    :param name: Name of the tie and prefix of the shared parameters
+    :type name: str
+    :param prefixes: Prefixes of the rules whose components are tied (e.g.
+        `GaussianLineRule` prefixes)
+    :type prefixes: list(str)
+    :param args: Arguments to share
+    :type args: list(str)
+    :param max_width: Largest `width_arg` of a tied component (e.g. the
+        narrow-line FWHM limit), or None for any
+    :type max_width: float
+    :param width_arg: Argument that measures the width
+    :type width_arg: str
+    :param min_components: Smallest number of components to tie
+    :type min_components: int
+    """
+
+    def __init__(
+        self,
+        name,
+        prefixes,
+        args=("redsh", "fwhm_km_s"),
+        max_width=None,
+        width_arg="fwhm_km_s",
+        min_components=2,
+    ):
+        self.name = name
+        self.prefixes = list(prefixes)
+        self.args = list(args)
+        self.max_width = max_width
+        self.width_arg = width_arg
+        self.min_components = min_components
+
+    def propose(self, model, result):
+        """Ties propose no components.
+
+        :rtype: list
+        """
+        return []
+
+    def owned(self, model):
+        """Ties own no components.
+
+        :rtype: list
+        """
+        return []
+
+    def shared_name(self, arg):
+        """Name of the shared parameter of `arg`."""
+        return f"{self.name}_{arg}"
+
+    def select(self, model):
+        """The components to tie, one per prefix.
+
+        :param model: The model (with its best-fit values)
+        :type model: sculptor.model.FitModel
+        :return: component names, or None and the reason
+        :rtype: (list(str) or None, str)
+        """
+        chosen, missing = [], []
+        for prefix in self.prefixes:
+            head = prefix + "_"
+            widths = {}
+            for comp in model.components:
+                if not (
+                    comp.name.startswith(head) and comp.name[len(head) :].isdigit()
+                ):
+                    continue
+                key = comp.param_mapping.get(self.width_arg)
+                if key is None:
+                    continue
+                width = model.parameters[key].value
+                if self.max_width is None or width <= self.max_width:
+                    widths[comp.name] = width
+            if widths:
+                chosen.append(min(widths, key=widths.get))
+            else:
+                missing.append(prefix)
+        if len(chosen) < self.min_components:
+            limit = "" if self.max_width is None else f" <= {self.max_width:g}"
+            return None, (
+                f"no component with {self.width_arg}{limit} for {', '.join(missing)}"
+            )
+        for name in chosen:
+            comp = next(c for c in model.components if c.name == name)
+            for arg in self.args:
+                key = comp.param_mapping.get(arg)
+                if key is None or not model.parameters[key].vary:
+                    return None, f"{name} has no variable {arg}"
+        return chosen, ""
+
+    def is_tied(self, model, names):
+        """Whether the components already share all the parameters."""
+        comps = [c for c in model.components if c.name in names]
+        return all(len({c.param_mapping[arg] for c in comps}) == 1 for arg in self.args)
+
+    def apply(self, model, names):
+        """Copy of `model` with the components `names` tied.
+
+        :return: the tied model and alternative starts (the values of each
+            further component)
+        :rtype: (sculptor.model.FitModel, list(dict))
+        """
+        new = copy.deepcopy(model)
+        comps = [c for c in new.components if c.name in names]
+        starts = [{} for _ in comps[1:]]
+        for arg in self.args:
+            keys = [c.param_mapping[arg] for c in comps]
+            shared = self.shared_name(arg)
+            param = copy.deepcopy(new.parameters[keys[0]])
+            param.name = shared
+            priors = [new.parameters[k].prior for k in keys]
+            if all(isinstance(p, UniformPrior) for p in priors):
+                low = max(p.low for p in priors)
+                upp = min(p.upp for p in priors)
+                if low < upp:
+                    param.prior = UniformPrior(shared, low, upp)
+            elif param.prior is not None:
+                param.prior.name = shared
+            values = [new.parameters[k].value for k in keys]
+            if isinstance(param.prior, UniformPrior):
+                values = [
+                    float(np.clip(v, param.prior.low, param.prior.upp)) for v in values
+                ]
+            param.value = values[0]
+            for start, value in zip(starts, values[1:], strict=True):
+                start[shared] = value
+            for comp in comps:
+                comp.param_mapping[arg] = shared
+            new.parameters[shared] = param
+        used = {key for c in new.components for key in c.get_arg_keys()}
+        new.parameters = {k: p for k, p in new.parameters.items() if k in used}
+        return new, starts
+
+
 def _local_maxima(values, minimum):
     """Indices of local maxima of `values` above `minimum`."""
     inner = (values[1:-1] > values[:-2]) & (values[1:-1] >= values[2:])
@@ -716,7 +902,7 @@ def _local_maxima(values, minimum):
 class AutoFitStep:
     """One accepted change of the model.
 
-    :param action: "start", "add", "remove" or "clip" (the fit mask
+    :param action: "start", "add", "remove", "tie" or "clip" (the fit mask
         changed; later scores are on the new mask, `delta` is not an
         improvement)
     :type action: str
@@ -765,6 +951,8 @@ class AutoFitResult:
     :param preliminary: With a calibrated threshold: the preliminary search
         the calibration simulated
     :type preliminary: AutoFitResult
+    :param ties: Tie name -> outcome of its last test
+    :type ties: dict(str, TieTest)
     """
 
     model: object
@@ -777,6 +965,16 @@ class AutoFitResult:
     calibration: object = None
     by_quantile: dict = field(default_factory=dict)
     preliminary: object = None
+    ties: dict = field(default_factory=dict)
+
+    @property
+    def at_bound(self):
+        """Parameters of the selected model at a uniform prior's bound (the
+        data may want a value the prior excludes).
+
+        :rtype: list(str)
+        """
+        return list(self.result.at_bound)
 
     def components(self):
         """Names of the selected components.
@@ -800,6 +998,10 @@ class AutoFitResult:
                 f"  {step.action:6s} {self.criterion} = {step.score:.2f} "
                 f"(delta {step.delta:+.2f}): {step.description}"
             )
+        for name, test in self.ties.items():
+            lines.append(f"  tie {name}: {test}")
+        if self.at_bound:
+            lines.append(f"  at a prior bound: {', '.join(self.at_bound)}")
         if self.calibration is not None:
             lines += ["", str(self.calibration), "", "Models by quantile:"]
             mine = set(self.components())
@@ -862,6 +1064,10 @@ class AutoFit:
     :param preliminary_threshold: With `threshold="calibrate"`: fixed
         threshold of the preliminary search
     :type preliminary_threshold: float
+    :param at_bound: "flag" (default): parameters at a prior bound are
+        listed in `AutoFitResult.at_bound`; "reject": in addition, a
+        candidate whose own parameters end at a bound is not added
+    :type at_bound: str
     """
 
     def __init__(
@@ -877,11 +1083,14 @@ class AutoFit:
         multistart=True,
         calibration=None,
         preliminary_threshold=10.0,
+        at_bound="flag",
     ):
         if isinstance(threshold, str) and threshold != "calibrate":
             raise ValueError(
                 f"threshold must be a number or 'calibrate', not {threshold!r}"
             )
+        if at_bound not in ("flag", "reject"):
+            raise ValueError(f"at_bound must be 'flag' or 'reject', not {at_bound!r}")
         if callable(criterion):
             self.criterion_name = getattr(criterion, "__name__", "criterion")
             self.criterion = criterion
@@ -896,6 +1105,7 @@ class AutoFit:
         self.criterion_arg = criterion
         self.base = model
         self.rules = list(rules)
+        self.ties = [rule for rule in self.rules if isinstance(rule, Tie)]
         self.threshold = threshold
         self.removable = set(removable)
         self.quick_fit_kwargs = dict(quick_fit_kwargs or {})
@@ -904,6 +1114,7 @@ class AutoFit:
         self.multistart = multistart
         self.calibration = dict(calibration or {})
         self.preliminary_threshold = preliminary_threshold
+        self.at_bound = at_bound
         self.n_fits = 0
 
     def _fit(self, model):
@@ -1035,6 +1246,7 @@ class AutoFit:
             )
         ]
         seen = {_signature(model)}
+        ties = {}
 
         for _ in range(max_iterations):
             best = None
@@ -1047,12 +1259,27 @@ class AutoFit:
                         f"AutoFit: {cand.description}: "
                         f"{self.criterion_name} {trial_score - score:+.2f}"
                     )
-                    if trial_result is not None and (
-                        best is None or trial_score < best[2]
-                    ):
+                    if trial_result is None:
+                        continue
+                    if self.at_bound == "reject":
+                        own = set(cand.parameters) & set(trial_result.at_bound)
+                        if own:
+                            logger.debug(
+                                f"AutoFit: {cand.description}: rejected, "
+                                f"{', '.join(sorted(own))} at a prior bound"
+                            )
+                            continue
+                    if best is None or trial_score < best[2]:
                         best = (trial, trial_result, trial_score, cand)
 
             if best is None or score - best[2] <= threshold:
+                # Converged: a tie the data accept simplifies the model, and
+                # the search goes on from there
+                model, result, score, tied = self._test_ties(
+                    model, result, score, history, seen, threshold, ties
+                )
+                if tied:
+                    continue
                 break
 
             model, result, new_score, cand = best
@@ -1089,7 +1316,53 @@ class AutoFit:
             history,
             self.n_fits - n_fits_before,
             threshold=threshold,
+            ties=ties,
         )
+
+    def _test_ties(self, model, result, score, history, seen, threshold, ties):
+        """Test the applicable ties (see `Tie`); apply the first one the data
+        accept. Outcomes are written into `ties`.
+
+        :return: model, result, score, and whether a tie was applied
+        """
+        for tie in self.ties:
+            names, reason = tie.select(model)
+            if names is None:
+                ties[tie.name] = TieTest("not applicable", reason=reason)
+                continue
+            if tie.is_tied(model, names):
+                if ties.get(tie.name) is None or ties[tie.name].status != "tied":
+                    ties[tie.name] = TieTest("tied", names)
+                continue
+            tied, starts = tie.apply(model, names)
+            best = (None, None, np.inf)
+            for start in [{}, *(starts if self.multistart else [])]:
+                trial = copy.deepcopy(tied)
+                for key, value in start.items():
+                    trial.parameters[key].value = value
+                trial_result, trial_score = self._fit(trial)
+                if trial_result is not None and trial_score < best[2]:
+                    best = (trial, trial_result, trial_score)
+            trial, trial_result, trial_score = best
+            delta = trial_score - score
+            if trial_result is None or delta >= threshold:
+                ties[tie.name] = TieTest("rejected", names, delta)
+                logger.info(f"AutoFit: tie {tie.name} rejected: {delta:+.2f}")
+                continue
+            ties[tie.name] = TieTest("tied", names, delta)
+            history.append(
+                AutoFitStep(
+                    "tie",
+                    f"tie {', '.join(names)} ({', '.join(tie.args)})",
+                    trial_score,
+                    delta,
+                    [c.name for c in trial.components],
+                )
+            )
+            logger.info(f"AutoFit: tie {tie.name} ({', '.join(names)}): {delta:+.2f}")
+            seen.add(_signature(trial))
+            return trial, trial_result, trial_score, True
+        return model, result, score, False
 
     def _clip(self, model, result, score, history):
         """Sigma-clip with the current model and refit, until the mask no

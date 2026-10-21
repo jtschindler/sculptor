@@ -150,7 +150,11 @@ def test_qso_rules_bundle():
     kinds = [type(r).__name__ for r in rules]
     assert kinds.count("GaussianLineRule") == len(qr.DEFAULT_LINES)
     assert kinds.count("ComponentRule") == 2
-    assert len(qr.qso_rules(Z, iron=None, balmer=False)) == len(qr.DEFAULT_LINES)
+    assert kinds.count("Tie") == 1
+    assert rules[-1].prefixes == ["Hbeta", "Halpha", "OIII"]
+    bare = qr.qso_rules(Z, iron=None, balmer=False, narrow_tie=False)
+    assert len(bare) == len(qr.DEFAULT_LINES)
+    assert len(qr.qso_rules(Z, lines=["CIV", "Hbeta"])) == 4  # nothing to tie
 
 
 def test_oiii_doublet_rule():
@@ -177,34 +181,71 @@ def test_oiii_doublet_rule():
     assert result.model.parameters["OIII_0_flux"].value == pytest.approx(5.0, rel=0.1)
 
 
-def test_narrow_hbeta_and_oiii_are_tied_by_default():
-    rules = {r.prefix: r for r in qr.line_rules(Z, qr.DEFAULT_LINES)}
-    assert rules["Hbeta_narrow"].shared == qr.NARROW_TIES
-    assert rules["OIII"].shared == qr.NARROW_TIES
-    assert rules["Hbeta"].shared == {}
-    assert rules["Hbeta_narrow"].max_components == 1
-    assert rules["Hbeta_narrow"].fwhm_range == (100.0, 2500.0)
-
-    # Narrow Hbeta and the [OIII] doublet at one redshift and width
-    z, fwhm = 0.2, 500.0
+def _narrow_lines_model(hbeta_dv=0.0, oiii_fwhm=500.0, hbeta_fwhm=500.0):
+    """Narrow Hbeta (offset by `hbeta_dv` km/s) and the [OIII] doublet at
+    z = 0.2."""
+    z = 0.2
     x = np.geomspace(4750 * (1 + z), 5100 * (1 + z), 900)
     model = _model(x=x)
     model.parameters["PL_redsh"].value = z
+    z_hb = z + hbeta_dv / 2.998e5 * (1 + z)
+    model.spec.fluxden = (
+        model.spec.fluxden
+        + qso_presets.qso.line_model_gaussian_oiii_doublet(x, z, 5.0, oiii_fwhm, 2.98)
+        + ana.line_model_gaussian(x, z_hb, 4.0, 4862.68, hbeta_fwhm)
+    )
+    rules = [
+        *qr.line_rules(z, ["Hbeta", "OIII"]),
+        qr.narrow_line_tie(["Hbeta", "OIII"]),
+    ]
+    return model, rules, z
 
-    def lines(x):
-        oiii = qso_presets.qso.line_model_gaussian_oiii_doublet(x, z, 5.0, fwhm, 2.98)
-        hbeta = ana.line_model_gaussian(x, z, 4.0, 4862.68, fwhm)
-        return oiii + hbeta
 
-    model.spec.fluxden = model.spec.fluxden + lines(x)
-    result = AutoFit(model, qr.line_rules(z, ["Hbeta_narrow", "OIII"])).run()
+def test_narrow_line_tie_accepted():
+    model, rules, z = _narrow_lines_model()
+    result = AutoFit(model, rules).run()
 
     comps = {c.name: c for c in result.model.components}
-    assert sorted(comps) == ["Hbeta_narrow_0", "OIII_0", "PL"]
-    for name in ("Hbeta_narrow_0", "OIII_0"):
+    assert sorted(comps) == ["Hbeta_0", "OIII_0", "PL"]
+    for name in ("Hbeta_0", "OIII_0"):
         assert comps[name].param_mapping["redsh"] == "narrow_redsh"
         assert comps[name].param_mapping["fwhm_km_s"] == "narrow_fwhm_km_s"
     par = result.model.parameters
+    assert "Hbeta_0_redsh" not in par and "OIII_0_fwhm_km_s" not in par
     assert par["narrow_redsh"].value == pytest.approx(z, abs=1e-4)
-    assert par["narrow_fwhm_km_s"].value == pytest.approx(fwhm, rel=0.05)
-    assert par["Hbeta_narrow_0_flux"].value == pytest.approx(4.0, rel=0.05)
+    assert par["narrow_fwhm_km_s"].value == pytest.approx(500, rel=0.05)
+    assert par["Hbeta_0_flux"].value == pytest.approx(4.0, rel=0.05)
+    assert "tie" in [step.action for step in result.history]
+    test = result.ties["narrow"]
+    assert test.status == "tied"
+    assert sorted(test.components) == ["Hbeta_0", "OIII_0"]
+    assert test.delta < 0  # two parameters fewer, same fit
+    assert "tie narrow: tied" in str(result)
+
+
+def test_narrow_line_tie_rejected_for_an_offset():
+    model, rules, _ = _narrow_lines_model(hbeta_dv=600.0)
+    result = AutoFit(model, rules).run()
+    test = result.ties["narrow"]
+    assert test.status == "rejected"
+    assert test.delta > 10
+    assert "narrow_redsh" not in result.model.parameters
+
+
+def test_narrow_line_tie_needs_narrow_components():
+    model, rules, _ = _narrow_lines_model(oiii_fwhm=2000.0)
+    result = AutoFit(model, rules).run()
+    test = result.ties["narrow"]
+    assert test.status == "not applicable"
+    assert "OIII" in test.reason and "1200" in test.reason
+
+
+def test_narrow_fwhm_limit_is_a_module_setting(monkeypatch):
+    assert qr.narrow_line_tie().max_width == 1200.0
+    monkeypatch.setattr(qr, "NARROW_FWHM_MAX", 300.0)
+    assert qr.narrow_line_tie().max_width == 300.0
+    assert qr.narrow_line_tie(max_fwhm=800.0).max_width == 800.0
+    rules = {r.prefix: r for r in qr.line_rules(Z, ["Hbeta", "CIV", "OIII"])}
+    assert rules["Hbeta"].fwhm_range == (100.0, 15000.0)
+    assert rules["CIV"].fwhm_range == (1000.0, 15000.0)
+    assert rules["OIII"].fwhm_range == (100.0, 2500.0)

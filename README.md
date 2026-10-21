@@ -28,8 +28,11 @@ The core package (`sculptor`):
   residuals' noise correlations (`calibrate_threshold`; the models for
   several quantiles, 95% and 99% by default, are reported); each candidate is fitted from several starting widths
   (multi-start) and the best fit counts; optional sigma clipping between
-  steps. Quasar rules (lines, iron templates, Balmer continuum; narrow
-  Hbeta and the [OIII] core share redshift and width by default) are in
+  steps; ties (`Tie`, e.g. narrow lines sharing redshift and width) are
+  hypotheses tested once the search converges and kept only if the data
+  accept them; parameters at a prior bound are flagged. Quasar rules (lines,
+  iron templates, Balmer continuum, the narrow Hbeta / Halpha / [OIII] tie
+  with the narrow limit `qso_rules.NARROW_FWHM_MAX = 1200` km/s) are in
   `sculptor_extensions.qso_rules`. See the example below.
 - `sculptor.component.FitComponent`: one model function and the mapping of
   its arguments onto parameters (e.g. a redshift shared by several lines).
