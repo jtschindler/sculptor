@@ -393,6 +393,44 @@ def calc_eddington_ratio(lbol, bh_mass):
     return (lbol / edd_lum).to(u.dimensionless_unscaled)
 
 
+def correct_feii_mgii_for_eddington_s17(
+    feii_mgii, edd_ratio, edd_ref=10**-0.55, slope=0.30
+):
+    """Correct an FeII/MgII ratio (flux or EW) for its dependence on the
+    Eddington ratio, following Sameshima et al. (2017, ApJ, 834, 203).
+
+    Their Eq. 7 corrects EW(MgII) to the median Eddington ratio of their
+    sample, EW(MgII)_c = EW(MgII) (<L/L_Edd> / L/L_Edd)^-0.30 with
+    <L/L_Edd> = 10^-0.55, while EW(FeII) barely depends on it (Table 2). The
+    same factor on the MgII strength gives
+
+        (FeII/MgII)_c = FeII/MgII * (edd_ref / edd_ratio)^slope.
+
+    Apply it per posterior sample (the correction is nonlinear in the
+    Eddington ratio). The calibration holds for Eddington ratios measured as
+    in S17: MgII FWHM of the full profile, Vestergaard & Osmer (2009) masses
+    (`se_bhmass_mgii_vo09_fwhm`) and L_bol = 5.15 L3000; the iron flux from
+    the Tsuzuki et al. (2006) template over `FEII_UV_RANGE`. Their sample
+    is SDSS quasars at 0.72 < z < 1.63.
+
+    :param feii_mgii: FeII/MgII flux or equivalent-width ratio
+    :type feii_mgii: float or np.ndarray
+    :param edd_ratio: Eddington ratio (`calc_eddington_ratio`)
+    :type edd_ratio: float, np.ndarray or u.Quantity
+    :param edd_ref: Reference Eddington ratio (S17: 10^-0.55)
+    :type edd_ref: float
+    :param slope: Exponent of the correction (S17: 0.30)
+    :type slope: float
+    :return: Corrected ratio; NaN where the Eddington ratio is not positive
+    :rtype: np.ndarray
+    """
+    edd_ratio = u.Quantity(edd_ratio, u.dimensionless_unscaled).value
+    feii_mgii = np.asarray(feii_mgii, dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        factor = np.where(edd_ratio > 0, (edd_ref / edd_ratio) ** slope, np.nan)
+    return feii_mgii * factor
+
+
 def se_bhmass_hbeta_vp06(hbeta_fwhm, cont_lwav, cont_wav=5100 * u.AA):
     """Calculate the single-epoch virial BH mass based on the Hbeta FWHM and
     monochromatic continuum luminosity at 5100A.

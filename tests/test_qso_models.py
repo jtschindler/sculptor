@@ -279,6 +279,23 @@ def test_feii_over_mgii_ratio(tmp_path):
     assert qso.FEII_UV_RANGE == (2200.0, 3090.0)
 
 
+def test_feii_mgii_eddington_correction_s17():
+    """Sameshima+17 Eq. 7: at the reference Eddington ratio nothing changes;
+    a higher ratio (weaker MgII) lowers the corrected FeII/MgII."""
+    ratio = np.array([5.0, 5.0, 5.0, 5.0])
+    edd = np.array([10**-0.55, 10**0.45, 0.0, np.nan]) * u.dimensionless_unscaled
+    corrected = qso.correct_feii_mgii_for_eddington_s17(ratio, edd)
+    np.testing.assert_allclose(corrected[:2], [5.0, 5.0 * 10**-0.30])
+    assert np.isnan(corrected[2:]).all()
+    # Other calibrations through the parameters
+    np.testing.assert_allclose(
+        qso.correct_feii_mgii_for_eddington_s17(
+            2.0, 10**-0.62 / 10, edd_ref=10**-0.62, slope=0.24
+        ),
+        2.0 * 10**0.24,
+    )
+
+
 def test_line_properties_per_sample_and_summary(caplog):
     """BH masses and Eddington ratios are computed per posterior sample and
     then summarized; combining the inputs' percentiles does not give the
