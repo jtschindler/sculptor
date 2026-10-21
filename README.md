@@ -25,9 +25,11 @@ The core package (`sculptor`):
   kept while they lower the BIC (or AICc, or SpIC, the spectral information
   criterion of Webb et al. 2021) by more than a threshold
   (`calibrate_threshold` sets it from simulations with the residuals' noise
-  correlations); optional sigma clipping between steps. Quasar rules (lines,
-  iron templates, Balmer continuum) are in `sculptor_extensions.qso_rules`.
-  See the example below.
+  correlations); each candidate is fitted from several starting widths
+  (multi-start) and the best fit counts; optional sigma clipping between
+  steps. Quasar rules (lines, iron templates, Balmer continuum; narrow
+  Hbeta and the [OIII] core share redshift and width by default) are in
+  `sculptor_extensions.qso_rules`. See the example below.
 - `sculptor.component.FitComponent`: one model function and the mapping of
   its arguments onto parameters (e.g. a redshift shared by several lines).
 - `sculptor.parameter.FitParameter` and `sculptor.prior` (`UniformPrior`,

@@ -14,6 +14,12 @@ a base model (e.g. a power-law continuum), each iteration
 
 and stops when no candidate improves the model.
 
+A candidate can carry alternative starting values (`Candidate.starts`,
+e.g. several widths of a new Gaussian, see `GaussianLineRule`): it is
+fitted from each and the best fit counts. This matters for degenerate
+components, e.g. a second broad Gaussian of a line, whose fit depends on
+where it starts.
+
 With `clip`, the fit mask is sigma-clipped (`FitModel.sigma_clip`) after
 every accepted change once `clip_after` components were added, and the
 current model is refitted and re-scored on the new mask. Candidates are
@@ -138,6 +144,10 @@ class Candidate:
     :param remove: Names of components to remove first (e.g. a continuum
         model the candidate replaces)
     :type remove: list(str)
+    :param starts: Alternative starting values, each a dict parameter name
+        -> value applied on top of `parameters`; the candidate is fitted
+        from `parameters` and from each of these, and the best fit counts
+    :type starts: list(dict)
     """
 
     description: str
@@ -145,6 +155,7 @@ class Candidate:
     parameters: dict
     significance: float = np.nan
     remove: list = field(default_factory=list)
+    starts: list = field(default_factory=list)
 
 
 class Rule:
@@ -225,11 +236,20 @@ class GaussianLineRule(Rule):
     :param fixed: Fixed values of further arguments, e.g.
         `{"fluxratio": 2.98}` for the [OIII] doublet
     :type fixed: dict
-    :param shared: Argument -> name of a parameter shared by all the
-        components this rule adds, e.g. `{"redsh": "redsh_narrow"}`; created
-        with the first component (its starting value and prior), dropped
-        with the last
+    :param shared: Argument -> name of a parameter shared by the
+        components this rule adds (and by other rules naming the same
+        parameter), e.g. `{"redsh": "redsh_narrow"}`; created with the first
+        component that uses it (its starting value and prior), dropped with
+        the last
     :type shared: dict
+    :param n_shared: How many of the rule's components use the `shared`
+        parameters (None: all); further ones get their own, e.g. 1 to tie
+        only a line's core and leave an outflow component free
+    :type n_shared: int
+    :param start_fwhm_factors: Extra starting widths of a candidate,
+        relative to the detection width (clipped to `fwhm_range`), with the
+        flux re-estimated for each; the best fit counts. () for one start.
+    :type start_fwhm_factors: tuple(float)
     """
 
     def __init__(
@@ -248,6 +268,8 @@ class GaussianLineRule(Rule):
         function=None,
         fixed=None,
         shared=None,
+        n_shared=None,
+        start_fwhm_factors=(1 / 3, 3.0),
     ):
         if kind not in ("emission", "absorption"):
             raise ValueError(f"kind must be 'emission' or 'absorption', not {kind!r}")
@@ -266,6 +288,8 @@ class GaussianLineRule(Rule):
         self.function = ana.line_model_gaussian if function is None else function
         self.fixed = dict(fixed or {})
         self.shared = dict(shared or {})
+        self.n_shared = n_shared
+        self.start_fwhm_factors = tuple(start_fwhm_factors)
         args = FitComponent("check", self.function).function_args
         missing = {"redsh", "flux", "fwhm_km_s"} - set(args)
         if missing:
@@ -280,8 +304,11 @@ class GaussianLineRule(Rule):
         :type model: sculptor.model.FitModel
         :rtype: list(str)
         """
+        head = self.prefix + "_"
         return [
-            c.name for c in model.components if c.name.startswith(self.prefix + "_")
+            c.name
+            for c in model.components
+            if c.name.startswith(head) and c.name[len(head) :].isdigit()
         ]
 
     def _new_name(self, model):
@@ -376,16 +403,27 @@ class GaussianLineRule(Rule):
             if len(chosen) == self.n_candidates:
                 break
 
+        # With `lines`, the detections near one line are starts of one
+        # candidate, not separate candidates
+        groups = {}
+        for det in chosen:
+            key = det[1] if self.lines is None else self._nearest_line(det[1])
+            groups.setdefault(key, []).append(det)
         candidates = [
-            self._candidate(model, result, sig, obs, fwhm)
-            for sig, obs, fwhm, _ in chosen
+            self._candidate(model, result, dets[0][0], dets[0][1], dets[0][2], dets[1:])
+            for dets in groups.values()
         ]
         return [cand for cand in candidates if cand is not None]
 
-    def _candidate(self, model, result, signif, obs, fwhm):
-        """A line at observed wavelength `obs` with width `fwhm`, or None if
-        the residuals do not ask for it (least-squares flux of the wrong
-        sign)."""
+    def _nearest_line(self, obs):
+        """The line in `lines` closest to observed wavelength `obs`."""
+        return min(self.lines, key=lambda line: abs(line * (1 + self.redshift) - obs))
+
+    def _candidate(self, model, result, signif, obs, fwhm, others=()):
+        """A line at observed wavelength `obs` with width `fwhm` (and
+        further detections `others` of the same line as alternative
+        starts), or None if the residuals do not ask for it (least-squares
+        flux of the wrong sign)."""
         name = self._new_name(model)
         comp = FitComponent(name, self.function)
         pars = comp.create_params()
@@ -402,9 +440,7 @@ class GaussianLineRule(Rule):
             )
             where = f"{rest:.1f} A rest"
         else:
-            rest = min(
-                self.lines, key=lambda line: abs(line * (1 + self.redshift) - obs)
-            )
+            rest = self._nearest_line(obs)
             dz = self.velocity_range / scut.c_km_s * (1 + self.redshift)
             if "cen" in args:
                 pars[f"{name}_cen"].value = rest
@@ -423,9 +459,17 @@ class GaussianLineRule(Rule):
             pars[f"{name}_{arg}"].value = value
             pars[f"{name}_{arg}"].vary = False
 
-        # Shared parameters: map the argument onto one parameter for all the
-        # rule's components, created with the first one
+        # Shared parameters: map the argument onto one parameter for the
+        # first `n_shared` of the rule's components, created with the first
+        # component (of any rule) that uses it
+        owned = set(self.owned(model))
         for arg, shared in self.shared.items():
+            users = sum(
+                c.name in owned and c.param_mapping.get(arg) == shared
+                for c in model.components
+            )
+            if self.n_shared is not None and users >= self.n_shared:
+                continue
             own = pars.pop(f"{name}_{arg}")
             comp.param_mapping[arg] = shared
             if shared not in model.parameters:
@@ -434,20 +478,60 @@ class GaussianLineRule(Rule):
                     own.prior.name = shared
                 pars[shared] = own
 
-        pars[f"{name}_flux"].value = self.sign
-        amp = _linear_amplitude(model, result, comp, pars, f"{name}_flux")
+        flux_key = f"{name}_flux"
+        pars[flux_key].value = self.sign
+        amp = _linear_amplitude(model, result, comp, pars, flux_key)
         if amp is None or self.sign * amp <= 0:
             return None
-        pars[f"{name}_flux"].value = amp
+        pars[flux_key].value = amp
         bounds = sorted([0.0, 100 * amp])
-        pars[f"{name}_flux"].prior = UniformPrior(f"{name}_flux", *bounds)
+        pars[flux_key].prior = UniformPrior(flux_key, *bounds)
         return Candidate(
             description=f"add {self.kind} {name} at {where}, FWHM {fwhm:.0f} km/s "
             f"({signif:.1f} sigma)",
             components=[comp],
             parameters=pars,
             significance=float(signif),
+            starts=self._starts(model, result, comp, pars, rest, obs, fwhm, others),
         )
+
+    def _starts(self, model, result, comp, pars, rest, obs, fwhm, others):
+        """Alternative starts: the other detections (`others`, with
+        `lines`: their redshift and width) and `start_fwhm_factors` times
+        the width, each with its least-squares flux. Parameters shared with
+        components already in the model are not the candidate's to choose
+        and keep their values; near-duplicate starts are dropped."""
+        keys = {arg: comp.param_mapping[arg] for arg in ("redsh", "fwhm_km_s", "flux")}
+        free = {arg: key in pars and pars[key].vary for arg, key in keys.items()}
+        prior = pars[keys["flux"]].prior
+        variants = [(o, w) for _, o, w, _ in others]
+        variants += [(obs, factor * fwhm) for factor in self.start_fwhm_factors]
+
+        starts, tried = [], [(obs, fwhm)]
+        for at, width in variants:
+            start = {}
+            if free["fwhm_km_s"]:
+                width = float(np.clip(width, *self.fwhm_range))
+                start[keys["fwhm_km_s"]] = width
+            if free["redsh"] and self.lines is not None:
+                start[keys["redsh"]] = float(at / rest - 1)
+            if not start or any(
+                abs(np.log(width / w)) < 0.1
+                and abs(at - o) / o * scut.c_km_s < width / 4
+                for o, w in tried
+            ):
+                continue
+            trial = copy.deepcopy(pars)
+            for key, value in start.items():
+                trial[key].value = value
+            trial[keys["flux"]].value = self.sign
+            amp = _linear_amplitude(model, result, comp, trial, keys["flux"])
+            if amp is None or self.sign * amp <= 0:
+                continue
+            tried.append((at, width))
+            start[keys["flux"]] = float(np.clip(amp, prior.low, prior.upp))
+            starts.append(start)
+        return starts
 
 
 def _linear_amplitude(model, result, comp, params, key):
@@ -503,6 +587,10 @@ class ComponentRule(Rule):
     :param prior_factor: Upper prior bound in units of the estimated
         amplitude, with `linear_param`
     :type prior_factor: float
+    :param starts: Alternative starting values, each a dict parameter name
+        -> value (see `Candidate.starts`); with `linear_param`, its value is
+        re-estimated for each
+    :type starts: list(dict)
     """
 
     def __init__(
@@ -513,6 +601,7 @@ class ComponentRule(Rule):
         max_uses=1,
         linear_param=None,
         prior_factor=100.0,
+        starts=(),
     ):
         self.name = name
         self.factory = factory
@@ -520,6 +609,7 @@ class ComponentRule(Rule):
         self.max_uses = max_uses
         self.linear_param = linear_param
         self.prior_factor = prior_factor
+        self.starts = [dict(start) for start in starts]
         self._produced = set()
 
     def owned(self, model):
@@ -569,8 +659,28 @@ class ComponentRule(Rule):
                 components=list(comps),
                 parameters=dict(params),
                 remove=[n for n in self.replaces if n in names],
+                starts=self._starts(model, result, comps, params),
             )
         ]
+
+    def _starts(self, model, result, comps, params):
+        """`starts`, with `linear_param` re-estimated for each; starts the
+        residuals do not ask for are dropped."""
+        if self.linear_param is None:
+            return [dict(start) for start in self.starts]
+        key = comps[0].param_mapping[self.linear_param]
+        prior = params[key].prior
+        starts = []
+        for start in self.starts:
+            trial = copy.deepcopy(params)
+            for name, value in start.items():
+                trial[name].value = value
+            trial[key].value = 1.0
+            amp = _linear_amplitude(model, result, comps[0], trial, key)
+            if amp is None or not amp > 0:
+                continue
+            starts.append({**start, key: float(np.clip(amp, prior.low, prior.upp))})
+        return starts
 
     def _scale(self, model, result, comps, params):
         """Least-squares starting value for `linear_param`; False if the
@@ -686,6 +796,9 @@ class AutoFit:
     :param clip_after: Start clipping once this many components were added
         (before, the model is too far off and would clip real features)
     :type clip_after: int
+    :param multistart: Fit candidates from their alternative starting values
+        too (`Candidate.starts`); False for one start (faster)
+    :type multistart: bool
     """
 
     def __init__(
@@ -698,6 +811,7 @@ class AutoFit:
         quick_fit_kwargs=None,
         clip=None,
         clip_after=2,
+        multistart=True,
     ):
         if callable(criterion):
             self.criterion_name = getattr(criterion, "__name__", "criterion")
@@ -717,6 +831,7 @@ class AutoFit:
         self.quick_fit_kwargs = dict(quick_fit_kwargs or {})
         self.clip = None if clip is None else dict(clip)
         self.clip_after = clip_after
+        self.multistart = multistart
         self.n_fits = 0
 
     def _fit(self, model):
@@ -733,6 +848,31 @@ class AutoFit:
             return None, np.inf
         score = self.criterion(result, model)
         return result, score if np.isfinite(score) else np.inf
+
+    def _fit_candidate(self, model, candidate):
+        """Fit `model` with the candidate from each of its starts.
+
+        :return: trial model, its quick fit and score, of the best start
+            (quick fit None and score inf if all fits failed)
+        """
+        starts = [{}] + (candidate.starts if self.multistart else [])
+        best = (None, None, np.inf)
+        for idx, start in enumerate(starts):
+            trial = self._with(model, candidate)
+            for name, value in start.items():
+                trial.parameters[name].value = value
+            trial_result, trial_score = self._fit(trial)
+            if best[0] is None:
+                best = (trial, trial_result, trial_score)
+            elif trial_result is not None and (
+                best[1] is None or trial_score < best[2]
+            ):
+                best = (trial, trial_result, trial_score)
+                logger.debug(
+                    f"AutoFit: {candidate.description}: start {idx} {start} "
+                    f"is better ({trial_score:.2f})"
+                )
+        return best
 
     def _removable(self, model):
         """Components that may be removed."""
@@ -794,10 +934,9 @@ class AutoFit:
             best = None
             for rule in self.rules:
                 for cand in rule.propose(model, result):
-                    trial = self._with(model, cand)
-                    if _signature(trial) in seen:
+                    if _signature(self._with(model, cand)) in seen:
                         continue
-                    trial_result, trial_score = self._fit(trial)
+                    trial, trial_result, trial_score = self._fit_candidate(model, cand)
                     logger.debug(
                         f"AutoFit: {cand.description}: "
                         f"{self.criterion_name} {trial_score - score:+.2f}"
@@ -969,6 +1108,7 @@ def calibrate_threshold(
     noise="residuals",
     seed=0,
     quick_fit_kwargs=None,
+    multistart=True,
 ):
     """Threshold for `AutoFit` from simulations without extra components.
 
@@ -1000,6 +1140,9 @@ def calibrate_threshold(
     :type seed: int
     :param quick_fit_kwargs: Passed on to `FitModel.run_quick_fit`
     :type quick_fit_kwargs: dict
+    :param multistart: As for `AutoFit` (use the same setting as the
+        search)
+    :type multistart: bool
     :return: threshold, and the improvement of every simulation
     :rtype: (float, np.ndarray)
     :raises ValueError: for an unknown `noise`
@@ -1008,7 +1151,11 @@ def calibrate_threshold(
         raise ValueError(f"Unknown noise {noise!r}; use 'residuals' or 'white'.")
     rng = np.random.default_rng(seed)
     search = AutoFit(
-        model, rules, criterion=criterion, quick_fit_kwargs=quick_fit_kwargs
+        model,
+        rules,
+        criterion=criterion,
+        quick_fit_kwargs=quick_fit_kwargs,
+        multistart=multistart,
     )
 
     null = copy.deepcopy(model)
@@ -1030,7 +1177,7 @@ def calibrate_threshold(
         best = sim_score
         for rule in search.rules:
             for cand in rule.propose(sim, sim_result):
-                _, score = search._fit(search._with(sim, cand))
+                _, _, score = search._fit_candidate(sim, cand)
                 best = min(best, score)
         improvements[idx] = sim_score - best
 

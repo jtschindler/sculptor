@@ -145,11 +145,14 @@ def test_qso_rules_bundle():
 
 
 def test_oiii_doublet_rule():
-    (rule,) = qr.line_rules(Z, ["OIII"], shared_redshift={"OIII": "redsh_nl"})
+    (rule,) = qr.line_rules(Z, ["OIII"], shared={"OIII": {"redsh": "redsh_nl"}})
     assert rule.lines == [5008.24]
     assert rule.fixed == {"fluxratio": 2.98}
     assert rule.shared == {"redsh": "redsh_nl"}
+    assert rule.n_shared == 1
     assert rule.fwhm_range == (100.0, 2500.0)
+    (rule,) = qr.line_rules(Z, ["OIII"], shared={})
+    assert rule.shared == {}
 
     # Found in a spectrum at the right rest frame
     z = 0.2
@@ -163,3 +166,36 @@ def test_oiii_doublet_rule():
     names = [c.name for c in result.model.components]
     assert names[:2] == ["PL", "OIII_0"]
     assert result.model.parameters["OIII_0_flux"].value == pytest.approx(5.0, rel=0.1)
+
+
+def test_narrow_hbeta_and_oiii_are_tied_by_default():
+    rules = {r.prefix: r for r in qr.line_rules(Z, qr.DEFAULT_LINES)}
+    assert rules["Hbeta_narrow"].shared == qr.NARROW_TIES
+    assert rules["OIII"].shared == qr.NARROW_TIES
+    assert rules["Hbeta"].shared == {}
+    assert rules["Hbeta_narrow"].max_components == 1
+    assert rules["Hbeta_narrow"].fwhm_range == (100.0, 2500.0)
+
+    # Narrow Hbeta and the [OIII] doublet at one redshift and width
+    z, fwhm = 0.2, 500.0
+    x = np.geomspace(4750 * (1 + z), 5100 * (1 + z), 900)
+    model = _model(x=x)
+    model.parameters["PL_redsh"].value = z
+
+    def lines(x):
+        oiii = qso_presets.qso.line_model_gaussian_oiii_doublet(x, z, 5.0, fwhm, 2.98)
+        hbeta = ana.line_model_gaussian(x, z, 4.0, 4862.68, fwhm)
+        return oiii + hbeta
+
+    model.spec.fluxden = model.spec.fluxden + lines(x)
+    result = AutoFit(model, qr.line_rules(z, ["Hbeta_narrow", "OIII"])).run()
+
+    comps = {c.name: c for c in result.model.components}
+    assert sorted(comps) == ["Hbeta_narrow_0", "OIII_0", "PL"]
+    for name in ("Hbeta_narrow_0", "OIII_0"):
+        assert comps[name].param_mapping["redsh"] == "narrow_redsh"
+        assert comps[name].param_mapping["fwhm_km_s"] == "narrow_fwhm_km_s"
+    par = result.model.parameters
+    assert par["narrow_redsh"].value == pytest.approx(z, abs=1e-4)
+    assert par["narrow_fwhm_km_s"].value == pytest.approx(fwhm, rel=0.05)
+    assert par["Hbeta_narrow_0_flux"].value == pytest.approx(4.0, rel=0.05)

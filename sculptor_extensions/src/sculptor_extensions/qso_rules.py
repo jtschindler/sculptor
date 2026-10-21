@@ -3,7 +3,8 @@
 
 `qso_rules(redshift)` returns a default set: Gaussians at the strong
 broad and narrow lines in the fit regions, the UV iron template and the
-Balmer continuum. Start `AutoFit` from a power-law continuum::
+Balmer continuum. Narrow Hbeta and the [OIII] core share their redshift
+and width (`DEFAULT_SHARED`). Start `AutoFit` from a power-law continuum::
 
     from sculptor.autofit import AutoFit
     from sculptor_extensions import qso_rules
@@ -34,6 +35,7 @@ QSO_LINES = {
     "MgII": 2798.75,
     "Hgamma": 4341.68,
     "Hbeta": 4862.68,
+    "Hbeta_narrow": 4862.68,  # narrow component, see NARROW_LINES
     "OIII_4960": 4960.30,
     "OIII_5008": 5008.24,
     "Halpha": 6564.61,
@@ -48,10 +50,28 @@ DOUBLETS = {
 
 # Lines fitted by default: Lya and NV need absorption modeling and are left
 # out
-DEFAULT_LINES = ("SiIV", "CIV", "CIII", "MgII", "Hbeta", "OIII", "Halpha")
+DEFAULT_LINES = (
+    "SiIV",
+    "CIV",
+    "CIII",
+    "MgII",
+    "Hbeta",
+    "Hbeta_narrow",
+    "OIII",
+    "Halpha",
+)
 
 # Narrow lines get a narrow FWHM range
-NARROW_LINES = ("OIII", "OIII_4960", "OIII_5008")
+NARROW_LINES = ("Hbeta_narrow", "OIII", "OIII_4960", "OIII_5008")
+
+# Lines with at most one component (further Gaussians belong to the broad
+# line)
+SINGLE_COMPONENT_LINES = ("Hbeta_narrow",)
+
+# Narrow-line region: the first component of each line (the core; further
+# ones, e.g. [OIII] outflows, are free) uses these shared parameters
+NARROW_TIES = {"redsh": "narrow_redsh", "fwhm_km_s": "narrow_fwhm_km_s"}
+DEFAULT_SHARED = {"Hbeta_narrow": NARROW_TIES, "OIII": NARROW_TIES}
 
 
 def _fixed(value):
@@ -65,14 +85,17 @@ def line_rules(
     narrow_fwhm=(100.0, 2500.0),
     velocity_range=5000.0,
     max_components=3,
-    shared_redshift=None,
+    shared=DEFAULT_SHARED,
     **kwargs,
 ):
     """One `GaussianLineRule` per line, at the line's rest wavelength
     (fixed center, redshift free within +-`velocity_range`), with up to
-    `max_components` Gaussians each. Doublets in `DOUBLETS` (e.g. "OIII")
-    are one component per pair, with one redshift and width and a fixed
-    flux ratio.
+    `max_components` Gaussians each (one for `SINGLE_COMPONENT_LINES`).
+    Doublets in `DOUBLETS` (e.g. "OIII") are one component per pair, with
+    one redshift and width and a fixed flux ratio.
+
+    By default the cores of narrow Hbeta and [OIII] share redshift and
+    width (`DEFAULT_SHARED`).
 
     :param redshift: Systemic redshift
     :type redshift: float
@@ -87,15 +110,16 @@ def line_rules(
     :type velocity_range: float
     :param max_components: Maximum Gaussians per line
     :type max_components: int
-    :param shared_redshift: Line name -> name of a redshift parameter its
-        components share (lines with the same name share one), e.g.
-        `{"OIII": "redsh_narrow"}`; by default each component has its own
-    :type shared_redshift: dict
+    :param shared: Line name -> {argument: parameter name}: the first
+        component of the line uses these parameters, shared with the lines
+        that name the same ones; further components get their own. {} for
+        no ties.
+    :type shared: dict
     :param kwargs: Passed on to `GaussianLineRule`
     :return: The rules
     :rtype: list(sculptor.autofit.GaussianLineRule)
     """
-    shared_redshift = shared_redshift or {}
+    shared = shared or {}
     if not isinstance(lines, dict):
         lines = {
             name: (DOUBLETS[name][1] if name in DOUBLETS else QSO_LINES[name])
@@ -106,7 +130,6 @@ def line_rules(
         function, fixed = None, None
         if name in DOUBLETS:
             function, _, fixed = DOUBLETS[name]
-        shared = {"redsh": shared_redshift[name]} if name in shared_redshift else None
         rules.append(
             GaussianLineRule(
                 name,
@@ -114,10 +137,13 @@ def line_rules(
                 lines=[rest],
                 fwhm_range=narrow_fwhm if name in NARROW_LINES else broad_fwhm,
                 velocity_range=velocity_range,
-                max_components=max_components,
+                max_components=(
+                    1 if name in SINGLE_COMPONENT_LINES else max_components
+                ),
                 function=function,
                 fixed=fixed,
-                shared=shared,
+                shared=shared.get(name),
+                n_shared=1,
                 **kwargs,
             )
         )

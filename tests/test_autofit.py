@@ -460,3 +460,124 @@ def test_shared_redshift():
     assert "z_lines" in one.parameters
     none = AutoFit._without(one, "CIII_0")
     assert "z_lines" not in none.parameters
+
+
+def test_rule_owns_only_its_numbered_components():
+    model = _model(lines=[])
+    for name in ("Hbeta_0", "Hbeta_narrow_0", "Hbeta_x"):
+        model.components.append(sccomp.FitComponent(name, ana.line_model_gaussian))
+    assert GaussianLineRule("Hbeta", redshift=Z).owned(model) == ["Hbeta_0"]
+
+
+def test_n_shared_ties_only_the_first_components():
+    """A core and a shifted wing of one line: with n_shared=1 only the
+    core uses the shared redshift."""
+
+    z_wing = Z - 3000 / 3e5 * (1 + Z)
+    base = _model(lines=[])
+    x = base.spec.dispersion
+    base.spec.fluxden = (
+        base.spec.fluxden
+        + ana.line_model_gaussian(x, Z, 20.0, CIII, 1500.0)
+        + ana.line_model_gaussian(x, z_wing, 10.0, CIII, 4000.0)
+    )
+    rule = GaussianLineRule(
+        "CIII",
+        redshift=Z,
+        lines=[CIII],
+        fwhm_range=(300, 8000),
+        velocity_range=5000,
+        shared={"redsh": "z_core"},
+        n_shared=1,
+    )
+    result = AutoFit(base, [rule]).run()
+
+    par = result.model.parameters
+    comps = {c.name: c for c in result.model.components}
+    assert sorted(comps) == ["CIII_0", "CIII_1", "PL"]
+    shared = [n for n, c in comps.items() if c.param_mapping.get("redsh") == "z_core"]
+    assert len(shared) == 1
+    (own,) = {"CIII_0", "CIII_1"} - set(shared)
+    assert par["z_core"].value == pytest.approx(Z, abs=3e-4)
+    assert par[f"{own}_redsh"].value == pytest.approx(z_wing, abs=3e-3)
+    assert par[f"{own}_redsh"].value < par["z_core"].value - 3e-3
+
+
+# -- multi-start ----------------------------------------------------------------
+
+
+def test_line_candidates_carry_alternative_widths():
+    base = _model(lines=[(20.0, CIV, 3000.0)])
+    result = base.run_quick_fit()
+    rule = GaussianLineRule("line", redshift=Z, lines=[CIV], fwhm_range=(500, 15000))
+    (cand,) = rule.propose(base, result)  # one candidate per line
+
+    fwhm0 = cand.parameters["line_0_fwhm_km_s"].value
+    widths = [start["line_0_fwhm_km_s"] for start in cand.starts]
+    assert widths  # other detections and fwhm0 / 3, 3 fwhm0
+    for start in cand.starts:
+        assert set(start) == {"line_0_fwhm_km_s", "line_0_flux", "line_0_redsh"}
+        assert 500 <= start["line_0_fwhm_km_s"] <= 15000
+        assert start["line_0_flux"] > 0
+    for factor in (1 / 3, 3):
+        width = np.clip(factor * fwhm0, 500, 15000)
+        assert any(w == pytest.approx(width) for w in widths)
+
+    single = GaussianLineRule(
+        "line", redshift=Z, lines=[CIV], fwhm_range=(500, 15000), start_fwhm_factors=()
+    )
+    (cand,) = single.propose(base, result)
+    assert all(abs(np.log(s["line_0_fwhm_km_s"] / fwhm0)) > 0.1 for s in cand.starts)
+
+
+def test_fit_candidate_keeps_the_best_start():
+    base = _model(lines=[(20.0, CIV, 3000.0)])
+    search = AutoFit(base, [_rule()])
+    result = base.run_quick_fit()
+    (cand, *_) = _rule(lines=[CIV]).propose(base, result)
+    assert cand.starts
+
+    scores = []
+    for start in [{}, *cand.starts]:
+        trial = AutoFit._with(base, cand)
+        for name, value in start.items():
+            trial.parameters[name].value = value
+        scores.append(search._fit(trial)[1])
+
+    trial, trial_result, score = search._fit_candidate(base, cand)
+    assert score == pytest.approx(min(scores))
+    assert trial_result is not None
+    assert (
+        trial.parameters["line_0_flux"].value
+        == trial_result.values[trial_result.param_names.index("line_0_flux")]
+    )
+
+    one = AutoFit(base, [_rule()], multistart=False)
+    assert one._fit_candidate(base, cand)[2] == pytest.approx(scores[0])
+
+
+def test_component_rule_starts_rescale_the_amplitude():
+    base = _model(lines=[(20.0, CIII, 3000.0)])
+    result = base.run_quick_fit()
+
+    def factory(model):
+        comp = sccomp.FitComponent("G", ana.line_model_gaussian)
+        pars = comp.create_params()
+        pars["G_redsh"].value, pars["G_redsh"].vary = Z, False
+        pars["G_cen"].value, pars["G_cen"].vary = CIII, False
+        pars["G_fwhm_km_s"].value = 1000.0
+        pars["G_fwhm_km_s"].prior = scpri.UniformPrior("G_fwhm_km_s", 300, 9000)
+        return comp, pars
+
+    rule = ComponentRule(
+        "G",
+        factory,
+        linear_param="flux",
+        starts=[{"G_fwhm_km_s": 3000.0}, {"G_fwhm_km_s": 9000.0}],
+    )
+    (cand,) = rule.propose(base, result)
+    assert [s["G_fwhm_km_s"] for s in cand.starts] == [3000.0, 9000.0]
+    assert cand.starts[0]["G_flux"] == pytest.approx(20.0, rel=0.1)
+
+    trial, _, _ = AutoFit(base, [rule])._fit_candidate(base, cand)
+    assert trial.parameters["G_fwhm_km_s"].value == pytest.approx(3000, rel=0.1)
