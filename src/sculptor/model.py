@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 import numpy as np
 import pandas as pd
+from astropy import units as u
+from astropy.table import Table
 from matplotlib import gridspec
 from matplotlib.lines import Line2D
 from scipy.ndimage import median_filter
@@ -813,6 +815,7 @@ class FitModel(PickleMixin):
         scale="local",
         window=101,
         high_max_width=None,
+        protect=None,
     ):
         """Clip outlying pixels from the fit, given a model fit.
 
@@ -857,6 +860,10 @@ class FitModel(PickleMixin):
             an emission line the model does not explain yet is not clipped;
             None clips all of them
         :type high_max_width: int
+        :param protect: Dispersion ranges (lo, hi) that are never clipped,
+            e.g. around unresolved narrow lines, whose core is as narrow as
+            a cosmic ray and whose wings an unfinished model misses
+        :type protect: list(tuple(float, float))
         :return: Whether the clip mask changed
         :rtype: bool
         :raises ValueError: if no spectrum is set, there are no values or
@@ -904,6 +911,8 @@ class FitModel(PickleMixin):
         bad &= region
         if grow > 0:
             bad = np.convolve(bad, np.ones(2 * grow + 1), mode="same") > 0
+        for lo, hi in protect or []:
+            bad &= (spec.dispersion < lo) | (spec.dispersion > hi)
         new = ~bad
 
         n_region = int(region.sum())
@@ -922,6 +931,50 @@ class FitModel(PickleMixin):
         if changed:
             logger.info(f"Sigma clipping: {n_clipped} of {n_region} pixels clipped")
         return changed
+
+    def save_spectrum_fits(self, filename, overwrite=False):
+        """Write the spectrum with its masks as a FITS table, one row per
+        pixel: `wave`, `flux`, `flux_err` (with units), and the boolean
+        masks `good` (the spectrum's mask), `fit_region` (`gpm_fit`),
+        `not_clipped` (`clip_mask`; all True without clipping) and `fitted`
+        (`get_fit_mask`: the pixels the fit used). Read it back with
+        `astropy.table.Table.read`.
+
+        :param filename: Output file
+        :type filename: str or pathlib.Path
+        :param overwrite: Overwrite an existing file
+        :type overwrite: bool
+        """
+
+        self._require_spectrum("save the spectrum")
+        spec = self.spec
+        n = len(spec.dispersion)
+
+        def as_mask(value):
+            """Boolean mask, all True if `value` is None."""
+            if value is None:
+                return np.ones(n, dtype=bool)
+            return np.asarray(value, dtype=bool)
+
+        err = spec.fluxden_err
+        table = Table(
+            {
+                "wave": np.asarray(spec.dispersion, dtype=float),
+                "flux": np.asarray(spec.fluxden, dtype=float),
+                "flux_err": np.full(n, np.nan)
+                if err is None
+                else np.asarray(err, dtype=float),
+                "good": as_mask(getattr(spec, "mask", None)),
+                "fit_region": as_mask(self.gpm_fit),
+                "not_clipped": as_mask(getattr(self, "clip_mask", None)),
+                "fitted": self.get_fit_mask(),
+            }
+        )
+        # Units may be quantities, e.g. 1e-17 erg / (s cm2 Angstrom)
+        table["wave"].unit = u.Unit(spec.dispersion_unit)
+        table["flux"].unit = table["flux_err"].unit = u.Unit(spec.fluxden_unit)
+        table.meta["NCLIPPED"] = int((self._fit_region_mask() & ~table["fitted"]).sum())
+        table.write(filename, format="fits", overwrite=overwrite)
 
     def reset_clip_mask(self):
         """Undo the sigma clipping (all fit-region pixels are fitted again)."""

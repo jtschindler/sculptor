@@ -1,5 +1,7 @@
 """Tests for the automatic model building (`sculptor.autofit`)."""
 
+import logging
+
 import numpy as np
 import pytest
 from astropy import units as u
@@ -249,6 +251,33 @@ def test_clip_after_delays_clipping():
     result = AutoFit(base, [_rule()], clip={"low": 3, "grow": 2}, clip_after=3).run()
     actions = [s.action for s in result.history]
     assert actions.index("clip") > 3
+
+
+def test_final_clip_matches_the_final_model(caplog):
+    """The search ends with a clip against the final model, even when the
+    clipping during the search never started."""
+    base = _with_absorbers(_model())
+    result = AutoFit(base, [_rule()], clip={"low": 3, "grow": 2}, clip_after=99).run()
+    last = result.history[-1]
+    assert last.action == "clip"
+    assert last.description.startswith("final sigma clipping")
+    assert [s.action for s in result.history].count("clip") == 1
+    x = result.model.spec.dispersion
+    fitted = result.model.get_fit_mask()
+    for cen, _ in ABSORBERS:
+        assert not fitted[np.argmin(np.abs(x - cen))]
+
+    # Clipping again against the final model changes nothing, and says so
+    fit = AutoFit(base, [_rule()], clip={"low": 3, "grow": 2})
+    found = fit.run()
+    history = []
+    with caplog.at_level(logging.INFO, logger="sculptor.autofit"):
+        fit._clip(found.model, found.result, 0.0, history, final=True)
+    assert history == []
+    assert "final sigma clipping: mask unchanged" in caplog.text
+
+    unclipped = AutoFit(base, [_rule()]).run()
+    assert all(s.action != "clip" for s in unclipped.history)
 
 
 # -- rules: components, swaps, absorption; SpIC -------------------------------

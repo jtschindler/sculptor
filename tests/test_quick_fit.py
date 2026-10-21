@@ -6,6 +6,7 @@ import logging
 import numpy as np
 import pytest
 from astropy import units as u
+from astropy.table import Table
 from speconed import speconed as sod
 
 from sculptor import analysis as ana
@@ -427,6 +428,45 @@ def test_sigma_clip_upper_and_max_fraction(fit_model, caplog):
         assert not fit_model.sigma_clip(low=0, values=result.values)
     assert "keeping the previous" in caplog.text
     np.testing.assert_array_equal(fit_model.clip_mask, before)
+
+
+def test_sigma_clip_protect(fit_model):
+    """Pixels in a protected range are never clipped, grown ones included."""
+    dip = _absorbed(fit_model)
+    x = fit_model.spec.dispersion
+    values = fit_model.run_quick_fit().values
+    lo, hi = x[dip].min() - 1, x[dip].max() + 1
+    fit_model.sigma_clip(low=3, grow=2, values=values, protect=[(lo, hi)])
+    mask = fit_model.get_fit_mask()
+    assert mask[(x >= lo) & (x <= hi)].all()
+    fit_model.sigma_clip(low=3, grow=2, values=values)
+    assert not fit_model.get_fit_mask()[dip].any()
+
+
+def test_save_spectrum_fits(fit_model, tmp_path):
+    dip = _absorbed(fit_model)
+    fit_model.run_quick_fit()
+    fit_model.sigma_clip(low=3, grow=1)
+    path = tmp_path / "spec.fits"
+    fit_model.save_spectrum_fits(path)
+
+    table = Table.read(path)
+    spec = fit_model.spec
+    np.testing.assert_allclose(table["wave"], spec.dispersion)
+    np.testing.assert_allclose(table["flux"], spec.fluxden)
+    np.testing.assert_allclose(table["flux_err"], spec.fluxden_err)
+    np.testing.assert_array_equal(table["fitted"], fit_model.get_fit_mask())
+    np.testing.assert_array_equal(table["fit_region"], fit_model.gpm_fit)
+    assert not table["not_clipped"][dip].any()
+    assert table["flux"].unit == u.Unit(spec.fluxden_unit)
+    assert table.meta["NCLIPPED"] == int(
+        (fit_model._fit_region_mask() & ~fit_model.get_fit_mask()).sum()
+    )
+    with pytest.raises(OSError):
+        fit_model.save_spectrum_fits(path)
+    fit_model.reset_clip_mask()
+    fit_model.save_spectrum_fits(path, overwrite=True)
+    assert Table.read(path)["not_clipped"].all()
 
 
 def test_quick_fit_with_clipping(fit_model):

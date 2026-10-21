@@ -244,6 +244,34 @@ def narrow_line_group(
     )
 
 
+def narrow_line_windows(
+    redshift, lines=("Hbeta", "OIII_4960", "OIII_5008", "Halpha"), velocity=1000.0
+):
+    """Observed-frame ranges of +-`velocity` around the narrow lines at the
+    systemic redshift, to keep out of sigma clipping
+    (`FitModel.sigma_clip(protect=...)`, e.g. in `AutoFit(clip=...)`): an
+    unresolved narrow core is as narrow as a cosmic ray, and the clipping
+    against an unfinished model would remove it.
+
+    :param redshift: Systemic redshift
+    :type redshift: float
+    :param lines: Names in `QSO_LINES`
+    :type lines: list(str)
+    :param velocity: Half-width, km/s
+    :type velocity: float
+    :return: (lo, hi) ranges, Angstrom
+    :rtype: list(tuple(float, float))
+    """
+    factor = velocity / scut.c_km_s
+    return [
+        (
+            QSO_LINES[name] * (1 + redshift) * (1 - factor),
+            QSO_LINES[name] * (1 + redshift) * (1 + factor),
+        )
+        for name in lines
+    ]
+
+
 def ciii_complex_rule(
     redshift,
     prefix="CIIIc",

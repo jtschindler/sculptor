@@ -391,6 +391,13 @@ def test_group_that_drifts_to_a_bound_is_removed_at_convergence():
     assert "narrow_redsh" in removal.description
 
 
+def test_narrow_line_windows():
+    (window,) = qr.narrow_line_windows(7.0, lines=["OIII_5008"], velocity=300.0)
+    centre = 5008.24 * 8.0
+    assert sum(window) / 2 == pytest.approx(centre)
+    assert (window[1] - window[0]) / centre == pytest.approx(600.0 / 2.998e5, rel=1e-3)
+
+
 def test_ciii_complex_rule():
     def complex_(x):
         return qso_presets.qso.CIII_complex_model_func(

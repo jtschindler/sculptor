@@ -51,7 +51,9 @@ others in `by_quantile`, and the calibration.
 
 With `clip`, the fit mask is sigma-clipped (`FitModel.sigma_clip`) after
 every accepted change once `clip_after` components were added, and the
-current model is refitted and re-scored on the new mask. Candidates are
+current model is refitted and re-scored on the new mask; once more at the
+end of the search, so that the mask matches the final model (after late
+removals and ties). Candidates are
 always compared on the same pixels: criteria from different masks are not
 comparable. Run an MCMC on the result
 (`model.fit("quick+mcmc", ...)`) for the posterior.
@@ -1665,6 +1667,8 @@ class AutoFit:
             if self.clip is not None and n_added >= self.clip_after:
                 model, result, score = self._clip(model, result, score, history)
 
+        if self.clip is not None:
+            model, result, score = self._clip(model, result, score, history, final=True)
         model.quick_fit_result = result
         logger.info(
             f"AutoFit done: {[c.name for c in model.components]}, "
@@ -1761,9 +1765,11 @@ class AutoFit:
             return trial, trial_result, trial_score, True
         return model, result, score, False
 
-    def _clip(self, model, result, score, history):
+    def _clip(self, model, result, score, history, final=False):
         """Sigma-clip with the current model and refit, until the mask no
-        longer changes; record a "clip" step if it changed."""
+        longer changes; record a "clip" step if it changed. The `final` clip
+        (end of the search) is logged even if it changed nothing."""
+        label = "final sigma clipping" if final else "sigma clipping"
         clip = dict(self.clip)
         max_iterations = clip.pop("max_iterations", 5)
         changed = False
@@ -1780,18 +1786,22 @@ class AutoFit:
                 break
             changed = True
             result, score = new_result, new_score
+        n_clipped = int((model._fit_region_mask() & ~model.get_fit_mask()).sum())
+        if final and not changed:
+            logger.info(
+                f"AutoFit: {label}: mask unchanged ({n_clipped} pixels clipped)"
+            )
         if changed:
-            n_clipped = int((model._fit_region_mask() & ~model.get_fit_mask()).sum())
             history.append(
                 AutoFitStep(
                     "clip",
-                    f"sigma clipping: {n_clipped} pixels clipped",
+                    f"{label}: {n_clipped} pixels clipped",
                     score,
                     score - before,
                     [c.name for c in model.components],
                 )
             )
-            logger.info(f"AutoFit: {n_clipped} pixels clipped, re-scored")
+            logger.info(f"AutoFit: {label}: {n_clipped} pixels clipped, re-scored")
         return model, result, score
 
     def _backward(self, model, result, score, history, seen, threshold):
