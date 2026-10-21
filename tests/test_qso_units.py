@@ -156,6 +156,20 @@ def test_get_fwhm_int_flux_does_not_depend_on_the_flux_unit():
     assert isinstance(fwhm_17, float)
 
 
+def test_get_fwhm_int_flux_subtracts_the_continuum():
+    """Flux and FWHM are the line's, not line plus continuum: a sloped
+    continuum under the line is subtracted first."""
+    cgs = 1e-17 * u.erg / u.s / u.cm**2 / u.AA
+    spec = _line_spec(cgs, 10.0)
+    line_only = qa.get_fwhm_int_flux(spec, 5800, 6200, 0.0)
+    spec.fluxden = spec.fluxden + 5.0 + 0.01 * (spec.dispersion - 6000)
+    fwhm, flux = qa.get_fwhm_int_flux(spec, 5800, 6200, 0.0)
+    assert flux == pytest.approx(line_only[1], rel=1e-3)
+    assert fwhm == pytest.approx(line_only[0], rel=1e-2)
+    _, raw_flux = qa.get_fwhm_int_flux(spec, 5800, 6200, 0.0, subtract_continuum=False)
+    assert raw_flux > 2 * flux  # continuum x 400 A
+
+
 def test_get_fwhm_returns_nan_in_km_s():
     disp = np.linspace(5800, 6200, 4001)
     two_peaks = np.exp(-0.5 * ((disp - 5900) / 5) ** 2) + np.exp(

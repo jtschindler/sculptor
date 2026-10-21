@@ -480,23 +480,29 @@ def setup_OI_lines(spec, line_dict, OI_broad=1, model=None):
 def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name):
     """
     Calculate AGN properties from the MgII line measurements of a fit (see
-    `qso_autofit.get_line_properties` for the columns), with the
-    continuum luminosity at 3000 Å. The BH-mass relation depends on the
-    iron template used: Shen et al. 2011 ("_s11") for the Tsuzuki 2006 or
-    Vestergaard & Wilkes 2001 template, and Vestergaard & Osmer 2009
-    ("_vo09") for the latter. Additionally adds "FeII_over_MgII", the iron
-    template amplitude over the MgII flux, and writes
-    `<save_dir>/<source>_results_MgII.csv`.
+    `qso_autofit.get_line_properties` for the columns; preferably one
+    posterior sample per row), with the continuum luminosity at 3000 Å. The
+    BH-mass relation depends on the iron template used: Shen et al. 2011
+    ("_s11") for the Tsuzuki 2006 or Vestergaard & Wilkes 2001 template, and
+    Vestergaard & Osmer 2009 ("_vo09") for the latter. Additionally adds
+    "FeII_over_MgII", the ratio of the integrated iron flux (rest frame
+    `qso.FEII_UV_RANGE`, 2200 - 3090 Å) to the integrated MgII flux, and
+    writes `<save_dir>/<source>_results_MgII.csv`.
+
+    Measure both fluxes with `sculptor.analysis.analyze_mcmc_results`:
+    the iron components as a feature with ``"disp_range": np.array(
+    qso.FEII_UV_RANGE) * (1 + redshift)``, and the MgII components; their
+    "_flux" columns are integrals over wavelength, in the same unit.
 
     :param df: input dataframe containing extracted emission line parameters
     :type df: pd.DataFrame
     :param redshift: redshift of the source
     :type redshift: float
-    :param param_name_dict: column name prefixes in `df`, as for
-        `qso_autofit.get_line_properties` ("fwhm": "MgII_fwhm",
-        "luminosity": "L3000", "redshift": "MgII_redsh"), plus
-        "fe_amp" ("FeII_amp") and "peak_flux" ("MgII_broad_flux") for the
-        FeII/MgII ratio
+    :param param_name_dict: column names (prefixes for summary columns) in
+        `df`, as for `qso_autofit.get_line_properties` ("fwhm": "MgII_fwhm",
+        "luminosity": "L3000", "redshift": "MgII_redsh"), plus "fe_flux"
+        (integrated iron flux, e.g. "FeII_flux") and "line_flux" (integrated
+        MgII flux, e.g. "MgII_flux") for the FeII/MgII ratio
     :type param_name_dict: dict
     :param save_dir: path to save the output
     :type save_dir: str
@@ -507,7 +513,16 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
     :type fit_name: str
     :return df: output dataframe
     :rtype: pd.DataFrame
+    :raises ValueError: for the former "fe_amp" / "peak_flux" columns (the
+        iron template amplitude is not a flux)
     """
+    if "fe_amp" in param_name_dict or "peak_flux" in param_name_dict:
+        raise ValueError(
+            "FeII/MgII now needs integrated fluxes: pass 'fe_flux' (iron flux "
+            "over qso.FEII_UV_RANGE) and 'line_flux' (MgII flux) instead of "
+            "'fe_amp' / 'peak_flux'. The template amplitude is a scale factor, "
+            "not a flux."
+        )
     relations = {}
     if "Tsuzuki" in fit_name or fit_name == "Vest":
         relations["_s11"] = qso.se_bhmass_mgii_s11_fwhm
@@ -521,21 +536,22 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
     )
 
     # FeII/MgII flux ratio
-    fe_amp_col = param_name_dict.get("fe_amp")
-    peak_flux_col = param_name_dict.get("peak_flux")
-    if fe_amp_col and peak_flux_col:
-        for key in ["_median", "_low", "_upp"]:
-            fe_key = fe_amp_col + key
-            flux_key = peak_flux_col + key
-            if fe_key in df.columns and flux_key in df.columns:
-                df["FeII_over_MgII" + key] = df[fe_key] * 1e-17 / df[flux_key]
-            else:
-                logger.info(
-                    f"Missing columns '{fe_key}' or '{flux_key}' — skipping FeII/MgII."
+    fe_col = param_name_dict.get("fe_flux")
+    line_col = param_name_dict.get("line_flux")
+    if fe_col and line_col:
+        keys = qa._property_keys(df, [fe_col, line_col])
+        if not keys:
+            logger.info(
+                f"Missing columns '{fe_col}' / '{line_col}' — skipping FeII/MgII."
+            )
+        for key in keys:
+            with np.errstate(divide="ignore", invalid="ignore"):
+                df["FeII_over_MgII" + key] = qa._column(df, fe_col + key) / qa._column(
+                    df, line_col + key
                 )
     else:
         logger.info(
-            "'fe_amp' or 'peak_flux' not in param_name_dict — skipping FeII/MgII."
+            "'fe_flux' or 'line_flux' not in param_name_dict — skipping FeII/MgII."
         )
 
     df_path = os.path.join(save_dir, f"{source}_results_MgII.csv")

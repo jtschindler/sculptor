@@ -660,7 +660,7 @@ def line_model_gaussian_NII_doublet(x, redsh, flux, fwhm_km_s, fluxratio=2.96):
     :type x: np.ndarray
     :param redsh: Redshift
     :type redsh: float
-    :param flux: Amplitude of the [NII] Gaussian component at 6549.85
+    :param flux: Integrated flux of the [NII] Gaussian component at 6549.85
     :type flux: float
     :param fwhm_km_s: FWHM of both the components in km/s
     :type fwhm_km_s: float
@@ -688,7 +688,7 @@ def line_model_gaussian_SII_doublet(x, redsh, flux, fwhm_km_s, fluxratio=1.0):
     :type x: np.ndarray
     :param redsh: Redshift
     :type redsh: float
-    :param flux: Amplitude of the [SII] Gaussian component at 6718.29
+    :param flux: Integrated flux of the [SII] Gaussian component at 6718.29
     :type flux: float
     :param fwhm_km_s: FWHM of both the components in km/s
     :type fwhm_km_s: float
@@ -814,41 +814,61 @@ def setup_iron_template(
 # ------------------------------------------------------------------------------
 
 
-def get_fwhm_int_flux(input_spec, low, upp, redsh, **kwargs):
+def _without_linear_continuum(spec, edge=0.05):
+    """Copy of `spec` minus a straight line through the median flux
+    densities of its first and last `edge` fraction of pixels (at least 3
+    each): a local continuum under a line in a window around it."""
+    out = spec.copy()
+    n = max(3, int(edge * spec.dispersion.size))
+    x, y = spec.dispersion, spec.fluxden
+    x0, y0 = np.median(x[:n]), np.median(y[:n])
+    x1, y1 = np.median(x[-n:]), np.median(y[-n:])
+    out.fluxden = y - (y0 + (y1 - y0) * (x - x0) / (x1 - x0))
+    return out
+
+
+def get_fwhm_int_flux(input_spec, low, upp, redsh, subtract_continuum=True, **kwargs):
     """
     Calculate the FWHM (in km/s) and integrated flux (1e-17 erg/s/cm^2) for
-    a given emission line from the spectrum over a specified dispersion range.
-    The FWHM is measured on a smoothing spline of the spectrum (smoothing
-    from the flux density errors) with a root finding algorithm
-    (`sculptor.measurements.get_fwhm`, method "spline").
+    a given emission line from the spectrum over a specified rest-frame
+    range. With `subtract_continuum`, a straight line through the median
+    flux densities at both ends of the range (5% of its pixels each) is
+    subtracted first, so the flux and the half maximum are the line's, not
+    line plus continuum. The FWHM is measured on a smoothing spline of the
+    spectrum (smoothing from the flux density errors) with a root finding
+    algorithm (`sculptor.measurements.get_fwhm`, method "spline"); the flux
+    is the trapezoidal integral over the range.
 
-    To calculate integrated flux over a dispersion range, the standard
-    numpy.trapz function is used for the integration.
+    These are estimates (e.g. starting values, `create_emission_line_dict`),
+    not measurements of a blended line.
 
     :param input_spec: input spectrum
     :type input_spec: speconed.speconed.SpecOneD
-    :param low: lower limit of the dispersion range
-    :param upp: upper limit of the dispersion range
+    :param low: lower limit of the rest-frame range
+    :param upp: upper limit of the rest-frame range
     :param redsh: redshift of the source
+    :param subtract_continuum: subtract a linear continuum first
+    :type subtract_continuum: bool
     :return: FWHM (km/s, NaN if it cannot be measured) and integrated flux
         (1e-17 erg/s/cm^2) of the spectral feature, as plain floats for the
         fit parameters
     :rtype: float, float
     """
     disp_range = [low * (1 + redsh), upp * (1 + redsh)]
+    spec = input_spec.trim_dispersion(disp_range, inplace=False)
+    if subtract_continuum:
+        spec = _without_linear_continuum(spec)
     # Spline smoothing from the noise (scipy: s ~ number of points x error
     # variance), so the FWHM does not depend on the flux scale; s=0 (an
     # interpolating spline) for a spectrum without errors. A fixed s=100 used
     # to broaden lines with fluxes of order unity (+25% FWHM) and smooth away
     # lines in plain cgs units.
-    err = input_spec.trim_dispersion(disp_range, inplace=False).fluxden_err
+    err = spec.fluxden_err
     s = float(np.nansum(err**2)) if err is not None else 0.0
-    fwhm = meas.get_fwhm(input_spec, disp_range, s=s, method="spline")
+    fwhm = meas.get_fwhm(spec, s=s, method="spline")
     fwhm = fwhm.to_value(qso.KM_S)
 
-    int_flux = meas.get_integrated_flux(input_spec, disp_range).to_value(
-        1e-17 * u.erg / u.s / u.cm**2
-    )
+    int_flux = meas.get_integrated_flux(spec).to_value(1e-17 * u.erg / u.s / u.cm**2)
 
     return fwhm, int_flux
 
@@ -911,6 +931,35 @@ def create_emission_line_dict(input_spec, redsh, line_dict):
 # ------------------------------------------------------------------------------
 
 
+# Column suffixes of `get_line_properties`: "" for one posterior sample per
+# row, then the summary statistics
+SAMPLE_KEY = ""
+SUMMARY_KEYS = ("_median", "_low", "_upp")
+
+
+def _property_keys(df, columns):
+    """Suffixes for which `df` has all of `columns`; warns when the derived
+    quantities come from the "_low" / "_upp" summary columns."""
+    keys = [
+        key
+        for key in (SAMPLE_KEY, *SUMMARY_KEYS)
+        if all(col + key in df.columns for col in columns)
+    ]
+    if any(key in ("_low", "_upp") for key in keys):
+        logger.warning(
+            "Derived quantities from the '_low' / '_upp' columns combine the "
+            "percentiles of each input; they are not the percentiles of the "
+            "derived quantity. Pass one posterior sample per row (columns "
+            "without suffix) and use `summarize_samples`."
+        )
+    return keys
+
+
+def _column(df, name):
+    """Column `name` of `df` as a float array."""
+    return pd.to_numeric(df[name], errors="coerce").to_numpy(dtype=float)
+
+
 def get_line_properties(
     df, redshift, param_name_dict, line, cont_wav, bh_mass_relations
 ):
@@ -921,24 +970,35 @@ def get_line_properties(
     to `redshift`. This is the base of the `get_line_prop_<line>` functions
     in `sculptor_extensions.qso_presets`.
 
-    The columns of `df` are plain numbers in fixed units (below); they are
-    turned into astropy Quantities for the calculations. For every row and
-    each of the "_median", "_low", "_upp" columns, these columns are added
-    (`<wav>` is `cont_wav` in Å, `<tag>` a key of `bh_mass_relations`):
+    Give one posterior sample per row (e.g. `sculptor.analysis.
+    analyze_mcmc_results` as a DataFrame), with the columns named as in
+    `param_name_dict` (no suffix): the properties are computed for every
+    sample, and `summarize_samples` gives their median and 1-sigma range.
+    The properties are nonlinear in the measurements, so they must be
+    computed per sample. Columns with the suffixes "_median", "_low" and
+    "_upp" (summary statistics) are also accepted, as before, with a
+    warning: the "_low" / "_upp" results combine the inputs' percentiles
+    and are not the percentiles of the derived quantity.
 
-    - "<line>_BH_mass_<wav><tag>" (M_sun)
-    - "L_bol_<wav>" (erg/s, Shen et al. 2011 bolometric correction)
-    - "Eddington_ratio_<wav><tag>", "Edd_lum_<line>_<wav><tag>" (erg/s)
-    - "delta_v_<line>" (km/s)
+    The columns are plain numbers in fixed units (below); they are turned
+    into astropy Quantities for the calculations. For each suffix `<key>`
+    present, these columns are added (`<wav>` is `cont_wav` in Å, `<tag>` a
+    key of `bh_mass_relations`):
 
-    Rows with a missing or NaN FWHM or luminosity are skipped for the BH
-    mass and luminosities; a missing redshift skips the velocity shift.
+    - "<line>_BH_mass_<wav><tag><key>" (M_sun)
+    - "L_bol_<wav><key>" (erg/s, Shen et al. 2011 bolometric correction)
+    - "Eddington_ratio_<wav><tag><key>", "Edd_lum_<line>_<wav><tag><key>"
+      (erg/s)
+    - "delta_v_<line><key>" (km/s)
+
+    Rows with a NaN FWHM or luminosity get NaN BH masses and luminosities.
 
     :param df: input dataframe containing extracted emission line parameters
     :type df: pd.DataFrame
     :param redshift: reference (systemic) redshift of the source
     :type redshift: float
-    :param param_name_dict: column name prefixes in `df`:
+    :param param_name_dict: column names (prefixes for the summary
+        columns) in `df`:
         - "fwhm": line FWHM in km/s (e.g. "MgII_fwhm")
         - "luminosity": continuum luminosity at `cont_wav` in erg/s/Å
           (e.g. "L3000")
@@ -961,75 +1021,90 @@ def get_line_properties(
     z_col = param_name_dict.get("redshift")
     wav = f"{cont_wav.to_value(u.AA):.0f}"
 
-    for idx, row in df.iterrows():
-        for key in ["_median", "_low", "_upp"]:
-            # BH masses, bolometric luminosity and Eddington ratios
-            if fwhm_col and lum_col:
-                fwhm_key = fwhm_col + key
-                lum_key = lum_col + key
-
-                if fwhm_key in df.columns and lum_key in df.columns:
-                    fwhm = np.float64(row[fwhm_key])
-                    lum = np.float64(row[lum_key])
-
-                    if not (np.isnan(fwhm) or np.isnan(lum)):
-                        fwhm = fwhm * qso.KM_S
-                        cont_lwav = lum * qso.LWAV_UNIT
-                        l_bol = qso.calc_bolometric_luminosity(
-                            cont_lwav=cont_lwav, cont_wav=cont_wav
-                        )[0]
-                        df.at[idx, f"L_bol_{wav}{key}"] = l_bol.to_value(qso.LUM_UNIT)
-
-                        for tag, relation in bh_mass_relations.items():
-                            bh_mass = relation(
-                                fwhm, cont_lwav=cont_lwav, cont_wav=cont_wav
-                            )[0]
-                            edd_lum = qso.calc_eddington_luminosity(bh_mass)
-                            edd_ratio = qso.calc_eddington_ratio(l_bol, bh_mass)
-                            df.at[idx, f"{line}_BH_mass_{wav}{tag}{key}"] = (
-                                bh_mass.to_value(u.Msun)
-                            )
-                            df.at[idx, f"Eddington_ratio_{wav}{tag}{key}"] = (
-                                edd_ratio.to_value(u.dimensionless_unscaled)
-                            )
-                            df.at[idx, f"Edd_lum_{line}_{wav}{tag}{key}"] = (
-                                edd_lum.to_value(qso.LUM_UNIT)
-                            )
-                    else:
-                        logger.info(
-                            f"NaN in '{fwhm_key}' or '{lum_key}' at row {idx} — "
-                            "skipping BH mass & L_bol."
-                        )
-                else:
-                    logger.info(
-                        f"Missing columns '{fwhm_key}' or '{lum_key}' — "
-                        "skipping BH mass & L_bol."
+    # BH masses, bolometric luminosity and Eddington ratios
+    if fwhm_col and lum_col:
+        keys = _property_keys(df, [fwhm_col, lum_col])
+        if not keys:
+            logger.info(
+                f"Missing columns '{fwhm_col}' / '{lum_col}' — skipping BH mass "
+                "& L_bol."
+            )
+        for key in keys:
+            fwhm = _column(df, fwhm_col + key)
+            lum = _column(df, lum_col + key)
+            ok = np.isfinite(fwhm) & np.isfinite(lum)
+            if not ok.all():
+                logger.info(
+                    f"NaN in '{fwhm_col}{key}' or '{lum_col}{key}' in "
+                    f"{(~ok).sum()} row(s) — no BH mass & L_bol there."
+                )
+            cont_lwav = lum[ok] * qso.LWAV_UNIT
+            l_bol = qso.calc_bolometric_luminosity(
+                cont_lwav=cont_lwav, cont_wav=cont_wav
+            )[0]
+            out = np.full(len(df), np.nan)
+            out[ok] = l_bol.to_value(qso.LUM_UNIT)
+            df[f"L_bol_{wav}{key}"] = out
+            for tag, relation in bh_mass_relations.items():
+                masses, ratios, edd_lums = (np.full(len(df), np.nan) for _ in range(3))
+                if ok.any():
+                    bh_mass = relation(
+                        fwhm[ok] * qso.KM_S, cont_lwav=cont_lwav, cont_wav=cont_wav
+                    )[0]
+                    masses[ok] = bh_mass.to_value(u.Msun)
+                    edd_lums[ok] = qso.calc_eddington_luminosity(bh_mass).to_value(
+                        qso.LUM_UNIT
                     )
-            else:
-                logger.info(
-                    "'fwhm' or 'luminosity' not in param_name_dict — "
-                    "skipping BH mass & L_bol."
-                )
+                    ratios[ok] = qso.calc_eddington_ratio(l_bol, bh_mass).to_value(
+                        u.dimensionless_unscaled
+                    )
+                df[f"{line}_BH_mass_{wav}{tag}{key}"] = masses
+                df[f"Eddington_ratio_{wav}{tag}{key}"] = ratios
+                df[f"Edd_lum_{line}_{wav}{tag}{key}"] = edd_lums
+    else:
+        logger.info(
+            "'fwhm' or 'luminosity' not in param_name_dict — skipping BH mass & L_bol."
+        )
 
-            # Velocity shift
-            if z_col:
-                z_key = z_col + key
-                if z_key in df.columns:
-                    try:
-                        delta_v = qso.calc_velocity_shifts(
-                            row[z_key], z_sys=redshift, relativistic=True
-                        )
-                        df.at[idx, f"delta_v_{line}{key}"] = delta_v.to_value(qso.KM_S)
-                    except Exception as e:  # noqa: BLE001 -- best-effort per-row batch calc, log & continue
-                        logger.warning(f"Velocity shift calc failed at row {idx}: {e}")
-                else:
-                    logger.info(f"Column '{z_key}' missing — skipping velocity shift.")
-            else:
-                logger.info(
-                    "'redshift' not in param_name_dict — skipping velocity shift."
-                )
+    # Velocity shift (linear in the redshift: its percentiles carry over)
+    if z_col:
+        keys = [k for k in (SAMPLE_KEY, *SUMMARY_KEYS) if z_col + k in df.columns]
+        if not keys:
+            logger.info(f"Column '{z_col}' missing — skipping velocity shift.")
+        for key in keys:
+            delta_v = qso.calc_velocity_shifts(
+                _column(df, z_col + key), z_sys=redshift, relativistic=True
+            )
+            df[f"delta_v_{line}{key}"] = delta_v.to_value(qso.KM_S)
+    else:
+        logger.info("'redshift' not in param_name_dict — skipping velocity shift.")
 
     return df
+
+
+def summarize_samples(df, columns=None):
+    """Median and 1-sigma range (16th and 84th percentiles) of per-sample
+    columns, e.g. after `get_line_properties` on one posterior sample per
+    row.
+
+    :param df: one posterior sample per row
+    :type df: pd.DataFrame
+    :param columns: columns to summarize (default: all numeric ones)
+    :type columns: list(str)
+    :return: one row with "<column>_median", "<column>_low", "<column>_upp"
+    :rtype: pd.DataFrame
+    """
+    if columns is None:
+        columns = list(df.select_dtypes(include="number").columns)
+    summary = {}
+    for col in columns:
+        values = _column(df, col)
+        if np.isfinite(values).any():
+            med, low, upp = get_1sigma_range(values)
+        else:
+            med = low = upp = np.nan
+        summary.update({f"{col}_median": med, f"{col}_low": low, f"{col}_upp": upp})
+    return pd.DataFrame([summary])
 
 
 def add_line_snr_stats(

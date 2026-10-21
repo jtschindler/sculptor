@@ -28,6 +28,11 @@ KM_S = u.km / u.s
 LWAV_UNIT = u.erg / u.s / u.AA
 LUM_UNIT = u.erg / u.s
 
+# Rest-frame window (Angstrom) of the UV iron flux for FeII/MgII ratios
+# (e.g. Dietrich et al. 2003, Kurk et al. 2007, De Rosa et al. 2011,
+# Mazzucchelli et al. 2017, Schindler et al. 2020)
+FEII_UV_RANGE = (2200.0, 3090.0)
+
 
 def _quantity(value, unit, name):
     """Return `value` converted to `unit`, requiring an astropy Quantity.
@@ -167,19 +172,21 @@ def power_law_at_2500_plus_bc(x, amp, slope, redsh, amp_be, Te, tau_be, lambda_b
 def line_model_gaussian_oiii_doublet(x, redsh, flux, fwhm_km_s, fluxratio):
     """Doublet line model for the [OIII] lines at 4960.30 A and 5008.24 A.
 
-    This model ties the redshift, the FWHM and the fluxes (ratio 1:3) of the
-    forbidden transitions of [OIII] at 4960.30 A and 5008.24 A together.
+    This model ties the redshift, the FWHM and the fluxes (5008 / 4960 =
+    `fluxratio`, ~2.98) of the forbidden transitions of [OIII] at 4960.30 A
+    and 5008.24 A together.
 
     :param x: Dispersion of the continuum model
     :type x: np.ndarray
     :param redsh: Redshift
     :type redsh: float
-    :param flux: Amplitude of the Gaussian
+    :param flux: Integrated flux of the 4960 A line (the doublet's is
+        (1 + fluxratio) * flux)
     :type flux: float
-    :param cen: Central wavelength
-    :type cen: float
-    :param fwhm_km_s: FWHM of the Gaussian in km/s
+    :param fwhm_km_s: FWHM of both Gaussians in km/s
     :type fwhm_km_s: float
+    :param fluxratio: Flux ratio of the 5008 A to the 4960 A line
+    :type fluxratio: float
     :return: Gaussian doublet line model
     :rtype: np.ndarray
     """
@@ -200,9 +207,9 @@ def line_model_gaussian_nii_doublet(x, redsh, flux_a, flux_b, fwhm_km_s_a, fwhm_
     :type x: np.ndarray
     :param redsh: Redshift
     :type redsh: float
-    :param flux_a: Amplitude of the 1st Gaussian component
+    :param flux_a: Integrated flux of the 1st Gaussian component
     :type flux_a: float
-    :param flux_b: Amplitude of the 2nd Gaussian component
+    :param flux_b: Integrated flux of the 2nd Gaussian component
     :type flux_b: float
     :param fwhm_km_s_a: FWHM of the 1st Gaussian component in km/s
     :type fwhm_km_s_a: float
@@ -228,9 +235,9 @@ def line_model_gaussian_sii_doublet(x, redsh, flux_a, flux_b, fwhm_km_s_a, fwhm_
     :type x: np.ndarray
     :param redsh: Redshift
     :type redsh: float
-    :param flux_a: Amplitude of the 1st Gaussian component
+    :param flux_a: Integrated flux of the 1st Gaussian component
     :type flux_a: float
-    :param flux_b: Amplitude of the 2nd Gaussian component
+    :param flux_b: Integrated flux of the 2nd Gaussian component
     :type flux_b: float
     :param fwhm_km_s_a: FWHM of the 1st Gaussian component in km/s
     :type fwhm_km_s_a: float
@@ -795,7 +802,7 @@ def se_bhmass_mgii_vo09_fwhm(mgii_fwhm, cont_lwav, cont_wav):
     """Calculate the single-epoch virial BH mass based on the MgII FWHM
     and monochromatic continuum luminosity at 1350A, 2100A, 3000A, or 5100A.
 
-    This relationship is taken from Vestergaard & Osmer 2009, ApJ 641, 689
+    This relationship is taken from Vestergaard & Osmer 2009, ApJ 699, 800
 
     To determine the FWHM of the MgII line, the authors modeled the FeII
     emission beneath the MgII line with the Vestergaard & Wilkes 2001 and the

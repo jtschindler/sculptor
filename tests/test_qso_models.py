@@ -13,6 +13,7 @@ from astropy import units as u
 from sculptor import analysis as ana
 from sculptor.component import FitComponent
 from sculptor.model import FitModel
+from sculptor.utils import SIGMA_PERCENTILES
 from sculptor_extensions import qso, qso_presets
 from sculptor_extensions import qso_advanced_models as qam
 from sculptor_extensions import qso_autofit as qa
@@ -251,29 +252,65 @@ def test_get_civ_line_prop_writes_csv_only_with_save_dir(tmp_path):
 
 
 def test_feii_over_mgii_ratio(tmp_path):
-    names = {"fe_amp": "FeII_amp", "peak_flux": "MgII_peak_flux"}
-    df = pd.DataFrame(
-        {
-            "FeII_amp_median": [3.0e17],
-            "MgII_peak_flux_median": [5.0],
-            "FeII_amp_low": [2.9e17],
-            "MgII_peak_flux_low": [4.9],
-            "FeII_amp_upp": [3.1e17],
-            "MgII_peak_flux_upp": [5.1],
-        }
-    )
+    """FeII/MgII is the ratio of integrated fluxes (per sample, or per
+    summary column); the template amplitude is not a flux."""
+    names = {"fe_flux": "FeII_flux", "line_flux": "MgII_flux"}
+    df = pd.DataFrame({"FeII_flux": [30.0, 36.0], "MgII_flux": [5.0, 6.0]})
     result = qso_presets.get_line_prop_MgII(
         df.copy(), 2.0, names, str(tmp_path), "src", "Vest"
     )
-    for key in ["_median", "_low", "_upp"]:
-        expected = df[f"FeII_amp{key}"] * 1e-17 / df[f"MgII_peak_flux{key}"]
-        np.testing.assert_allclose(result[f"FeII_over_MgII{key}"], expected)
+    np.testing.assert_allclose(result["FeII_over_MgII"], [6.0, 6.0])
+
+    with pytest.raises(ValueError, match="integrated fluxes"):
+        qso_presets.get_line_prop_MgII(
+            df.copy(),
+            2.0,
+            {"fe_amp": "FeII_amp", "peak_flux": "MgII_flux"},
+            str(tmp_path),
+            "src",
+            "Vest",
+        )
 
     # Without the columns in param_name_dict the ratio is skipped.
     result = qso_presets.get_line_prop_MgII(
         pd.DataFrame({"a": [1.0]}), 2.0, {}, str(tmp_path), "src", "Vest"
     )
-    assert "FeII_over_MgII_median" not in result.columns
+    assert "FeII_over_MgII" not in result.columns
+    assert qso.FEII_UV_RANGE == (2200.0, 3090.0)
+
+
+def test_line_properties_per_sample_and_summary(caplog):
+    """BH masses and Eddington ratios are computed per posterior sample and
+    then summarized; combining the inputs' percentiles does not give the
+    percentiles of the derived quantity."""
+    rng = np.random.default_rng(1)
+    n = 4000
+    samples = pd.DataFrame(
+        {
+            "CIV_fwhm": rng.normal(4000.0, 400.0, n),
+            "L1350": rng.lognormal(np.log(1e45), 0.2, n),
+            "CIV_redsh": rng.normal(2.98, 0.001, n),
+        }
+    )
+    df = qso_presets.get_line_prop_CIV(samples.copy(), 3.0, CIV_COLUMNS)
+    mass = qso.se_bhmass_civ_vp06_fwhm(
+        samples["CIV_fwhm"].to_numpy() * KM_S,
+        samples["L1350"].to_numpy() * qso.LWAV_UNIT,
+        1350 * u.AA,
+    )[0].to_value(u.Msun)
+    np.testing.assert_allclose(df["CIV_BH_mass_1350_vp06"], mass)
+
+    summary = qa.summarize_samples(df, ["CIV_BH_mass_1350_vp06", "delta_v_CIV"])
+    low, upp = np.percentile(mass, SIGMA_PERCENTILES)
+    assert summary["CIV_BH_mass_1350_vp06_low"][0] == pytest.approx(low, rel=1e-6)
+    assert summary["CIV_BH_mass_1350_vp06_upp"][0] == pytest.approx(upp, rel=1e-6)
+
+    # The summary-column route combines the percentiles (and warns)
+    table = qa.summarize_samples(samples)
+    with caplog.at_level("WARNING"):
+        combined = qso_presets.get_line_prop_CIV(table, 3.0, CIV_COLUMNS)
+    assert "not the percentiles" in caplog.text
+    assert combined["CIV_BH_mass_1350_vp06_low"][0] < 0.97 * low
 
 
 def test_get_line_prop_hbeta_preset():
