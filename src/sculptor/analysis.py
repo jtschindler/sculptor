@@ -492,6 +492,9 @@ def analyze_continuum(model, components, params_values, rest_frame_wavelengths,
 def get_line_snr(model, flat_chain, cont_component, redshift, line_dict,
                  sigma=2):
 
+    # TODO: this will not correctly handle cases where the line flux
+    #  is affected by overlapping lines or complex continuum shapes.
+
     dispersion = model.spec.dispersion
     resid_spec = model.spec.copy()
 
