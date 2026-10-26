@@ -460,7 +460,57 @@ def test_ciii_complex_rule():
     assert "CIIIc_fwhm_km_s_alIII" in cand.parameters
 
 
+def _ciii_complex(x, fwhm=3000.0):
+    return qso_presets.qso.CIII_complex_model_func(
+        x, Z, 1908.73, 1857.40, 1892.03, 30.0, fwhm, 0.0, 6.0, fwhm, 0.0, 8.0,
+        fwhm, 0.0,
+    )  # fmt: skip
+
+
+def test_ciii_second_component_rule():
+    rules = [qr.ciii_complex_rule(Z), qr.ciii_second_component_rule()]
+    second = rules[1]
+    # Not without the complex
+    plain = _model(_ciii_complex)
+    assert second.propose(plain, plain.run_quick_fit()) == []
+
+    # A sharper CIII] core on top of the complex: a second CIII] Gaussian at
+    # the complex's redshift
+    def cored(x):
+        return _ciii_complex(x, fwhm=4000.0) + ana.line_model_gaussian(
+            x, Z, 20.0, 1908.73, 1500.0
+        )
+
+    model = _model(cored)
+    only = AutoFit(model, rules[:1], threshold=10.0).run().model
+    (cand,) = second.propose(only, only.run_quick_fit())
+    assert cand.reject_at_bound == ["CIIIc_b_fwhm_km_s"]
+    assert "CIIIc_redsh" not in cand.parameters
+
+    result = AutoFit(model, rules, threshold=10.0).run()
+    names = [c.name for c in result.model.components]
+    assert names == ["PL", "CIIIc", "CIIIc_b"]
+    comp = result.model.components[2]
+    assert comp.param_mapping["redsh"] == "CIIIc_redsh"
+    assert "CIIIc_b_redsh" not in result.model.parameters
+    widths = sorted(
+        result.model.parameters[k].value
+        for k in ("CIIIc_fwhm_km_s", "CIIIc_b_fwhm_km_s")
+    )
+    assert widths[0] == pytest.approx(1500.0, rel=0.2)
+    assert result.model.parameters["CIIIc_redsh"].value == pytest.approx(Z, abs=1e-3)
+
+    # One width is enough for a plain complex
+    result = AutoFit(_model(_ciii_complex), rules, threshold=10.0).run()
+    assert [c.name for c in result.model.components] == ["PL", "CIIIc"]
+
+
 def test_qso_rules_ciii_complex_option():
+    names = [
+        getattr(r, "name", "")
+        for r in qr.qso_rules(Z, ciii_complex=True, ciii_second=True)
+    ]
+    assert "CIII] second component" in names
     names = [getattr(r, "name", "") for r in qr.qso_rules(Z, ciii_complex=True)]
     assert "CIII] complex" in names
     names = [getattr(r, "name", "") for r in qr.qso_rules(Z)]

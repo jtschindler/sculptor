@@ -29,6 +29,7 @@ Each rule can also be built on its own (`line_rules`, `iron_template_rule`,
 import copy
 import string
 
+from sculptor import analysis as ana
 from sculptor import utils as scut
 from sculptor.autofit import ComponentRule, GaussianLineRule, LineGroupRule, Tie
 from sculptor.component import FitComponent
@@ -341,6 +342,60 @@ def ciii_complex_rule(
     )
 
 
+def ciii_second_component_rule(
+    complex_prefix="CIIIc",
+    prefix="CIIIc_b",
+    fwhm_range=(1000.0, 15000.0),
+    start_fwhm=(1200.0, 3000.0, 8000.0),
+):
+    """Rule that adds a second broad CIII] Gaussian to the CIII] complex
+    (`ciii_complex_rule`): a broad-line profile sharper or wider than one
+    Gaussian (core and wings), not a narrow-line-region line. It shares the
+    complex's redshift and has its own flux and FWHM, a constrained
+    hypothesis that the calibration gives its own threshold. Proposed only
+    while the complex is in the model; a width that ends at a bound of
+    `fwhm_range` is rejected (at the lower one it is not broad).
+
+    :param complex_prefix: Name of the complex component
+    :type complex_prefix: str
+    :param prefix: Name of the new component
+    :type prefix: str
+    :param fwhm_range: FWHM prior range, km/s
+    :type fwhm_range: (float, float)
+    :param start_fwhm: Starting FWHMs, km/s (the first is the default
+        start)
+    :type start_fwhm: list(float)
+    :return: The rule
+    :rtype: sculptor.autofit.ComponentRule
+    """
+    redsh = f"{complex_prefix}_redsh"
+    width = f"{prefix}_fwhm_km_s"
+
+    def factory(model):
+        """A CIII] Gaussian at the complex's redshift, if it is there."""
+        if redsh not in model.parameters or not any(
+            c.name == complex_prefix for c in model.components
+        ):
+            return None
+        comp = FitComponent(prefix, ana.line_model_gaussian)
+        pars = comp.create_params()
+        del pars[f"{prefix}_redsh"]
+        comp.param_mapping["redsh"] = redsh
+        pars[f"{prefix}_cen"].value = CIII_COMPLEX["cen"]
+        pars[f"{prefix}_cen"].vary = False
+        pars[width].value = start_fwhm[0]
+        pars[width].prior = UniformPrior(width, *fwhm_range)
+        return comp, pars
+
+    return ComponentRule(
+        "CIII] second component",
+        factory,
+        linear_param="flux",
+        starts=[{width: w} for w in start_fwhm[1:]],
+        reject_at_bound=[width],
+    )
+
+
 def iron_template_rule(
     redshift,
     preset="VW01_UV",
@@ -495,6 +550,7 @@ def qso_rules(
     narrow_tie=True,
     narrow_group=True,
     ciii_complex=False,
+    ciii_second=False,
     **line_kwargs,
 ):
     """Default rules for a quasar spectrum: Gaussians at `lines`, an iron
@@ -517,6 +573,9 @@ def qso_rules(
     :param ciii_complex: Include `ciii_complex_rule` (with "CIII" in
         `lines`)
     :type ciii_complex: bool
+    :param ciii_second: With `ciii_complex`, also include
+        `ciii_second_component_rule`
+    :type ciii_second: bool
     :param line_kwargs: Passed on to `line_rules`
     :return: The rules
     :rtype: list
@@ -528,6 +587,8 @@ def qso_rules(
             rules.append(group)
     if ciii_complex and "CIII" in lines:
         rules.append(ciii_complex_rule(redshift))
+        if ciii_second:
+            rules.append(ciii_second_component_rule())
     if iron is not None:
         rules.append(iron_template_rule(redshift, preset=iron))
     if balmer:

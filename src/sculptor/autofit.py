@@ -700,6 +700,10 @@ class ComponentRule(Rule):
         -> value (see `Candidate.starts`); with `linear_param`, its value is
         re-estimated for each
     :type starts: list(dict)
+    :param reject_at_bound: Parameter names (see
+        `Candidate.reject_at_bound`): the candidate is rejected if one ends
+        at a prior bound
+    :type reject_at_bound: list(str)
     """
 
     def __init__(
@@ -711,6 +715,7 @@ class ComponentRule(Rule):
         linear_param=None,
         prior_factor=100.0,
         starts=(),
+        reject_at_bound=(),
     ):
         self.name = name
         self.factory = factory
@@ -725,6 +730,7 @@ class ComponentRule(Rule):
         )
         self.prior_factor = prior_factor
         self.starts = [dict(start) for start in starts]
+        self.reject_at_bound = list(reject_at_bound)
         self._produced = set()
 
     def owned(self, model):
@@ -773,6 +779,7 @@ class ComponentRule(Rule):
                 parameters=dict(params),
                 remove=[n for n in self.replaces if n in names],
                 starts=self._starts(model, result, comps, params),
+                reject_at_bound=list(self.reject_at_bound),
             )
         ]
 
