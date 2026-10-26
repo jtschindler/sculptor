@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from astropy import units as u
+from astropy.table import QTable
 
 from sculptor import analysis as ana
 from sculptor.component import FitComponent
@@ -219,26 +220,60 @@ CIV_COLUMNS = {"fwhm": "CIV_fwhm", "luminosity": "L1350", "redshift": "CIV_redsh
 
 def test_get_civ_line_prop_values():
     df = qso_presets.get_line_prop_CIV(_civ_table(), 3.0, CIV_COLUMNS)
+    assert isinstance(df, QTable)
+    assert df["CIV_BH_mass_1350_vp06_median"].unit == u.Msun
+    assert df["delta_v_CIV_median"].unit == KM_S
 
     cont_lwav = 1e45 * u.erg / u.s / u.AA
     mass = qso.se_bhmass_civ_vp06_fwhm(4000 * KM_S, cont_lwav, 1350 * u.AA)[0]
     lbol = qso.calc_bolometric_luminosity(cont_lwav, 1350 * u.AA)[0]
     edd = qso.calc_eddington_luminosity(mass)
-    row = df.iloc[0]
-    assert row["CIV_BH_mass_1350_vp06_median"] == pytest.approx(mass.to_value(u.Msun))
-    assert row["L_bol_1350_median"] == pytest.approx(lbol.to_value(u.erg / u.s))
-    assert row["Edd_lum_CIV_1350_vp06_median"] == pytest.approx(
+    row = df[0]
+    assert row["CIV_BH_mass_1350_vp06_median"].to_value(u.Msun) == pytest.approx(
+        mass.to_value(u.Msun)
+    )
+    assert row["L_bol_1350_median"].to_value(u.erg / u.s) == pytest.approx(
+        lbol.to_value(u.erg / u.s)
+    )
+    assert row["Edd_lum_CIV_1350_vp06_median"].to_value(u.erg / u.s) == pytest.approx(
         edd.to_value(u.erg / u.s)
     )
-    assert row["Eddington_ratio_1350_vp06_median"] == pytest.approx(
-        (lbol / edd).decompose().value
-    )
-    assert row["delta_v_CIV_median"] == pytest.approx(
+    assert row["Eddington_ratio_1350_vp06_median"].to_value(
+        u.dimensionless_unscaled
+    ) == pytest.approx((lbol / edd).decompose().value)
+    assert row["delta_v_CIV_median"].to_value(KM_S) == pytest.approx(
         qso.calc_velocity_shifts(2.98, z_sys=3.0).to_value(KM_S)
     )
     # The NaN FWHM row is skipped for the BH mass, but gets a velocity shift.
-    assert np.isnan(df.iloc[1]["CIV_BH_mass_1350_vp06_median"])
-    assert np.isfinite(df.iloc[1]["delta_v_CIV_median"])
+    assert np.isnan(df[1]["CIV_BH_mass_1350_vp06_median"])
+    assert np.isfinite(df[1]["delta_v_CIV_median"])
+
+
+def test_line_properties_units(caplog):
+    """A QTable's units are converted (an incompatible one raises); a
+    DataFrame's are assumed, with a warning."""
+    with caplog.at_level("WARNING"):
+        plain = qso_presets.get_line_prop_CIV(_civ_table(), 3.0, CIV_COLUMNS)
+    assert "without units: assumed" in caplog.text
+
+    table = QTable.from_pandas(_civ_table())
+    for key in ("_median", "_low", "_upp"):
+        table[f"CIV_fwhm{key}"] = table[f"CIV_fwhm{key}"] * 1e3 * u.m / u.s
+        table[f"L1350{key}"] = table[f"L1350{key}"] * 1e-7 * u.W / u.AA
+        table[f"CIV_redsh{key}"] = table[f"CIV_redsh{key}"] * u.one
+    caplog.clear()
+    with caplog.at_level("WARNING"):
+        converted = qso_presets.get_line_prop_CIV(table, 3.0, CIV_COLUMNS)
+    assert "without units" not in caplog.text
+    assert converted["CIV_fwhm_median"].unit == KM_S
+    np.testing.assert_allclose(
+        converted["CIV_BH_mass_1350_vp06_median"].value,
+        plain["CIV_BH_mass_1350_vp06_median"].value,
+    )
+
+    table["CIV_fwhm_median"] = table["CIV_fwhm_median"].value * u.AA
+    with pytest.raises(u.UnitConversionError):
+        qso_presets.get_line_prop_CIV(table, 3.0, CIV_COLUMNS)
 
 
 def test_get_civ_line_prop_writes_csv_only_with_save_dir(tmp_path):
@@ -248,18 +283,35 @@ def test_get_civ_line_prop_writes_csv_only_with_save_dir(tmp_path):
     qso_presets.get_line_prop_CIV(
         _civ_table(), 3.0, CIV_COLUMNS, save_dir=tmp_path, source="J0001"
     )
-    assert (tmp_path / "J0001_results_CIV.csv").exists()
+    written = QTable.read(tmp_path / "J0001_results_CIV.ecsv")
+    assert written["CIV_BH_mass_1350_vp06_median"].unit == u.Msun
 
 
 def test_feii_over_mgii_ratio(tmp_path):
     """FeII/MgII is the ratio of integrated fluxes (per sample, or per
     summary column); the template amplitude is not a flux."""
     names = {"fe_flux": "FeII_flux", "line_flux": "MgII_flux"}
-    df = pd.DataFrame({"FeII_flux": [30.0, 36.0], "MgII_flux": [5.0, 6.0]})
+    df = pd.DataFrame({"FeII_flux": [30.0, 36.0, 1.0], "MgII_flux": [5.0, 6.0, 0.0]})
     result = qso_presets.get_line_prop_MgII(
         df.copy(), 2.0, names, str(tmp_path), "src", "Vest"
     )
-    np.testing.assert_allclose(result["FeII_over_MgII"], [6.0, 6.0])
+    # NaN where the ratio is undefined (zero MgII flux), not inf
+    np.testing.assert_allclose(result["FeII_over_MgII"][:2], [6.0, 6.0])
+    assert np.isnan(result["FeII_over_MgII"][2])
+    assert (tmp_path / "src_results_MgII.ecsv").exists()
+
+    # Fluxes in convertible units
+    fluxes = QTable(
+        {
+            "FeII_flux": [30.0] * u.erg / u.s / u.cm**2,
+            "MgII_flux": [5e-3] * u.J / u.s / u.m**2,
+        }
+    )
+    result = qso_presets.get_line_prop_MgII(
+        fluxes, 2.0, names, str(tmp_path), "src", "Vest"
+    )
+    assert result["FeII_over_MgII"].unit == u.dimensionless_unscaled
+    np.testing.assert_allclose(result["FeII_over_MgII"].value, [6.0])
 
     with pytest.raises(ValueError, match="integrated fluxes"):
         qso_presets.get_line_prop_MgII(
@@ -275,8 +327,23 @@ def test_feii_over_mgii_ratio(tmp_path):
     result = qso_presets.get_line_prop_MgII(
         pd.DataFrame({"a": [1.0]}), 2.0, {}, str(tmp_path), "src", "Vest"
     )
-    assert "FeII_over_MgII" not in result.columns
+    assert "FeII_over_MgII" not in result.colnames
     assert qso.FEII_UV_RANGE == (2200.0, 3090.0)
+
+
+def test_safe_ratio():
+    """NaN wherever the ratio is not finite; units are kept."""
+    ratio = qso.safe_ratio(
+        np.array([6.0, 1.0, 0.0, np.inf, np.nan]), np.array([2.0, 0.0, 0.0, 1.0, 1.0])
+    )
+    np.testing.assert_allclose(ratio[0], 3.0)
+    assert np.isnan(ratio[1:]).all()
+    assert type(ratio) is np.ndarray
+    quantity = qso.safe_ratio([1.0, 2.0] * u.erg, [2.0, 0.0] * u.s)
+    assert quantity.unit == u.erg / u.s
+    assert quantity[0].value == 0.5 and np.isnan(quantity[1].value)
+    edd = qso.calc_eddington_ratio(1e46 * u.erg / u.s, [1e9, 0.0] * u.Msun)
+    assert np.isfinite(edd[0]) and np.isnan(edd[1])
 
 
 def test_feii_mgii_eddington_correction_s17():
@@ -315,19 +382,23 @@ def test_line_properties_per_sample_and_summary(caplog):
         samples["L1350"].to_numpy() * qso.LWAV_UNIT,
         1350 * u.AA,
     )[0].to_value(u.Msun)
-    np.testing.assert_allclose(df["CIV_BH_mass_1350_vp06"], mass)
+    np.testing.assert_allclose(df["CIV_BH_mass_1350_vp06"].to_value(u.Msun), mass)
 
     summary = qa.summarize_samples(df, ["CIV_BH_mass_1350_vp06", "delta_v_CIV"])
     low, upp = np.percentile(mass, SIGMA_PERCENTILES)
-    assert summary["CIV_BH_mass_1350_vp06_low"][0] == pytest.approx(low, rel=1e-6)
-    assert summary["CIV_BH_mass_1350_vp06_upp"][0] == pytest.approx(upp, rel=1e-6)
+    assert summary["CIV_BH_mass_1350_vp06_low"].unit == u.Msun
+    assert summary["CIV_BH_mass_1350_vp06_low"][0].value == pytest.approx(low, rel=1e-6)
+    assert summary["CIV_BH_mass_1350_vp06_upp"][0].value == pytest.approx(upp, rel=1e-6)
+    assert summary["delta_v_CIV_median"].unit == KM_S
 
     # The summary-column route combines the percentiles (and warns)
-    table = qa.summarize_samples(samples)
+    with caplog.at_level("WARNING"):
+        table = qa.summarize_samples(samples)
+    assert "without units (a DataFrame)" in caplog.text
     with caplog.at_level("WARNING"):
         combined = qso_presets.get_line_prop_CIV(table, 3.0, CIV_COLUMNS)
     assert "not the percentiles" in caplog.text
-    assert combined["CIV_BH_mass_1350_vp06_low"][0] < 0.97 * low
+    assert combined["CIV_BH_mass_1350_vp06_low"][0].value < 0.97 * low
 
 
 def test_get_line_prop_hbeta_preset():
@@ -340,11 +411,13 @@ def test_get_line_prop_hbeta_preset():
     df = qso_presets.get_line_prop_Hbeta_OIII(pd.DataFrame(cols), 0.5, names)
 
     mass = qso.se_bhmass_hbeta_vp06(3000 * KM_S, 1e44 * qso.LWAV_UNIT)[0]
-    row = df.iloc[0]
-    assert row["Hbeta_BH_mass_5100_median"] == pytest.approx(mass.to_value(u.Msun))
-    assert "L_bol_5100_upp" in df.columns
-    assert "Edd_lum_Hbeta_5100_low" in df.columns
-    assert row["delta_v_Hbeta_median"] == pytest.approx(0.0, abs=1e-9)
+    row = df[0]
+    assert row["Hbeta_BH_mass_5100_median"].to_value(u.Msun) == pytest.approx(
+        mass.to_value(u.Msun)
+    )
+    assert "L_bol_5100_upp" in df.colnames
+    assert "Edd_lum_Hbeta_5100_low" in df.colnames
+    assert row["delta_v_Hbeta_median"].to_value(KM_S) == pytest.approx(0.0, abs=1e-9)
 
 
 def _mgii_table(fwhm=3000.0, lum=1e44, z=2.99):
@@ -360,7 +433,7 @@ def test_get_line_prop_mgii_values(tmp_path):
     df = qso_presets.get_line_prop_MgII(
         _mgii_table(), 3.0, MGII_COLUMNS, str(tmp_path), "J0001", "Vest"
     )
-    row = df.iloc[0]
+    row = {name: df[name][0].value for name in df.colnames}
 
     cont_lwav, cont_wav = 1e44 * qso.LWAV_UNIT, 3000 * u.AA
     s11 = qso.se_bhmass_mgii_s11_fwhm(3000 * KM_S, cont_lwav, cont_wav)[0]

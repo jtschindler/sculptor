@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from astropy import units as u
+from astropy.table import QTable
 
 from sculptor import analysis as ana
 from sculptor import measurements as meas
@@ -937,13 +938,14 @@ SAMPLE_KEY = ""
 SUMMARY_KEYS = ("_median", "_low", "_upp")
 
 
-def _property_keys(df, columns):
-    """Suffixes for which `df` has all of `columns`; warns when the derived
-    quantities come from the "_low" / "_upp" summary columns."""
+def _property_keys(table, columns):
+    """Suffixes for which `table` has all of `columns`; warns when the
+    derived quantities come from the "_low" / "_upp" summary columns."""
+    names = table.colnames
     keys = [
         key
         for key in (SAMPLE_KEY, *SUMMARY_KEYS)
-        if all(col + key in df.columns for col in columns)
+        if all(col + key in names for col in columns)
     ]
     if any(key in ("_low", "_upp") for key in keys):
         logger.warning(
@@ -955,13 +957,61 @@ def _property_keys(df, columns):
     return keys
 
 
-def _column(df, name):
-    """Column `name` of `df` as a float array."""
-    return pd.to_numeric(df[name], errors="coerce").to_numpy(dtype=float)
+def _column(table, name, unit=None):
+    """Column `name` of `table` as a float array (in `unit` for a Quantity
+    column)."""
+    col = table[name]
+    if isinstance(col, u.Quantity):
+        return np.asarray(col.to_value(unit) if unit is not None else col.value)
+    return pd.to_numeric(np.asarray(col), errors="coerce").astype(float)
+
+
+def as_qtable(table, units=None, name="table"):
+    """`table` as a QTable whose columns in `units` carry them.
+
+    A QTable or Table keeps its columns' units, converted to `units` (an
+    incompatible unit raises `astropy.units.UnitConversionError`). A
+    pandas DataFrame, or a column without a unit, has no units to check:
+    `units` are assumed, with a warning. The input is not modified.
+
+    :param table: Input table
+    :type table: astropy.table.QTable, astropy.table.Table or pd.DataFrame
+    :param units: Column name -> unit (columns not in `table` are skipped)
+    :type units: dict
+    :param name: What the table is, for the warning
+    :type name: str
+    :return: The table with units
+    :rtype: astropy.table.QTable
+    """
+    units = dict(units or {})
+    if isinstance(table, pd.DataFrame):
+        out = QTable.from_pandas(table)
+        assumed = [col for col in units if col in out.colnames]
+    else:
+        out = QTable(table, copy=True)
+        assumed = [
+            col
+            for col in units
+            if col in out.colnames and not isinstance(out[col], u.Quantity)
+        ]
+    for col, unit in units.items():
+        if col not in out.colnames:
+            continue
+        if col in assumed:
+            out[col] = u.Quantity(_column(out, col), unit)
+        else:
+            out[col] = out[col].to(unit)
+    if assumed:
+        logger.warning(
+            f"{name} without units: assumed "
+            + ", ".join(f"{col} [{units[col]}]" for col in assumed)
+            + ". Pass an astropy QTable with units to have them checked."
+        )
+    return out
 
 
 def get_line_properties(
-    df, redshift, param_name_dict, line, cont_wav, bh_mass_relations
+    table, redshift, param_name_dict, line, cont_wav, bh_mass_relations
 ):
     """
     Calculate AGN properties from the measurements of one broad emission
@@ -971,7 +1021,7 @@ def get_line_properties(
     in `sculptor_extensions.qso_presets`.
 
     Give one posterior sample per row (e.g. `sculptor.analysis.
-    analyze_mcmc_results` as a DataFrame), with the columns named as in
+    analyze_mcmc_results` as a table), with the columns named as in
     `param_name_dict` (no suffix): the properties are computed for every
     sample, and `summarize_samples` gives their median and 1-sigma range.
     The properties are nonlinear in the measurements, so they must be
@@ -980,27 +1030,28 @@ def get_line_properties(
     warning: the "_low" / "_upp" results combine the inputs' percentiles
     and are not the percentiles of the derived quantity.
 
-    The columns are plain numbers in fixed units (below); they are turned
-    into astropy Quantities for the calculations. For each suffix `<key>`
-    present, these columns are added (`<wav>` is `cont_wav` in Å, `<tag>` a
-    key of `bh_mass_relations`):
+    The input columns have units (an astropy QTable; converted, an
+    incompatible unit raises `astropy.units.UnitConversionError`) or are
+    plain numbers in the units below (a pandas DataFrame, with a warning).
+    For each suffix `<key>` present, these columns are added (`<wav>` is
+    `cont_wav` in Å, `<tag>` a key of `bh_mass_relations`):
 
     - "<line>_BH_mass_<wav><tag><key>" (M_sun)
     - "L_bol_<wav><key>" (erg/s, Shen et al. 2011 bolometric correction)
-    - "Eddington_ratio_<wav><tag><key>", "Edd_lum_<line>_<wav><tag><key>"
-      (erg/s)
+    - "Eddington_ratio_<wav><tag><key>" (dimensionless),
+      "Edd_lum_<line>_<wav><tag><key>" (erg/s)
     - "delta_v_<line><key>" (km/s)
 
     Rows with a NaN FWHM or luminosity get NaN BH masses and luminosities.
 
-    :param df: input dataframe containing extracted emission line parameters
-    :type df: pd.DataFrame
+    :param table: emission line measurements
+    :type table: astropy.table.QTable or pd.DataFrame
     :param redshift: reference (systemic) redshift of the source
     :type redshift: float
     :param param_name_dict: column names (prefixes for the summary
-        columns) in `df`:
-        - "fwhm": line FWHM in km/s (e.g. "MgII_fwhm")
-        - "luminosity": continuum luminosity at `cont_wav` in erg/s/Å
+        columns) in `table`:
+        - "fwhm": line FWHM, km/s (e.g. "MgII_fwhm")
+        - "luminosity": continuum luminosity at `cont_wav`, erg/s/Å
           (e.g. "L3000")
         - "redshift": line redshift (e.g. "MgII_redsh")
     :type param_name_dict: dict
@@ -1013,25 +1064,35 @@ def get_line_properties(
         ``relation(fwhm, cont_lwav=..., cont_wav=...)``; e.g.
         ``{"_s11": qso.se_bhmass_mgii_s11_fwhm}``. May be empty.
     :type bh_mass_relations: dict
-    :return: `df` with the added columns
-    :rtype: pd.DataFrame
+    :return: the input columns (with units) and the added ones
+    :rtype: astropy.table.QTable
     """
     fwhm_col = param_name_dict.get("fwhm")
     lum_col = param_name_dict.get("luminosity")
     z_col = param_name_dict.get("redshift")
     wav = f"{cont_wav.to_value(u.AA):.0f}"
+    units = {}
+    for col, unit in (
+        (fwhm_col, qso.KM_S),
+        (lum_col, qso.LWAV_UNIT),
+        (z_col, u.dimensionless_unscaled),
+    ):
+        if col:
+            units.update({col + key: unit for key in (SAMPLE_KEY, *SUMMARY_KEYS)})
+    table = as_qtable(table, units, name="get_line_properties input")
+    n_rows = len(table)
 
     # BH masses, bolometric luminosity and Eddington ratios
     if fwhm_col and lum_col:
-        keys = _property_keys(df, [fwhm_col, lum_col])
+        keys = _property_keys(table, [fwhm_col, lum_col])
         if not keys:
             logger.info(
                 f"Missing columns '{fwhm_col}' / '{lum_col}' — skipping BH mass "
                 "& L_bol."
             )
         for key in keys:
-            fwhm = _column(df, fwhm_col + key)
-            lum = _column(df, lum_col + key)
+            fwhm = _column(table, fwhm_col + key, qso.KM_S)
+            lum = _column(table, lum_col + key, qso.LWAV_UNIT)
             ok = np.isfinite(fwhm) & np.isfinite(lum)
             if not ok.all():
                 logger.info(
@@ -1042,11 +1103,11 @@ def get_line_properties(
             l_bol = qso.calc_bolometric_luminosity(
                 cont_lwav=cont_lwav, cont_wav=cont_wav
             )[0]
-            out = np.full(len(df), np.nan)
+            out = np.full(n_rows, np.nan)
             out[ok] = l_bol.to_value(qso.LUM_UNIT)
-            df[f"L_bol_{wav}{key}"] = out
+            table[f"L_bol_{wav}{key}"] = out * qso.LUM_UNIT
             for tag, relation in bh_mass_relations.items():
-                masses, ratios, edd_lums = (np.full(len(df), np.nan) for _ in range(3))
+                masses, ratios, edd_lums = (np.full(n_rows, np.nan) for _ in range(3))
                 if ok.any():
                     bh_mass = relation(
                         fwhm[ok] * qso.KM_S, cont_lwav=cont_lwav, cont_wav=cont_wav
@@ -1058,9 +1119,11 @@ def get_line_properties(
                     ratios[ok] = qso.calc_eddington_ratio(l_bol, bh_mass).to_value(
                         u.dimensionless_unscaled
                     )
-                df[f"{line}_BH_mass_{wav}{tag}{key}"] = masses
-                df[f"Eddington_ratio_{wav}{tag}{key}"] = ratios
-                df[f"Edd_lum_{line}_{wav}{tag}{key}"] = edd_lums
+                table[f"{line}_BH_mass_{wav}{tag}{key}"] = masses * u.Msun
+                table[f"Eddington_ratio_{wav}{tag}{key}"] = (
+                    ratios * u.dimensionless_unscaled
+                )
+                table[f"Edd_lum_{line}_{wav}{tag}{key}"] = edd_lums * qso.LUM_UNIT
     else:
         logger.info(
             "'fwhm' or 'luminosity' not in param_name_dict — skipping BH mass & L_bol."
@@ -1068,43 +1131,64 @@ def get_line_properties(
 
     # Velocity shift (linear in the redshift: its percentiles carry over)
     if z_col:
-        keys = [k for k in (SAMPLE_KEY, *SUMMARY_KEYS) if z_col + k in df.columns]
+        keys = [k for k in (SAMPLE_KEY, *SUMMARY_KEYS) if z_col + k in table.colnames]
         if not keys:
             logger.info(f"Column '{z_col}' missing — skipping velocity shift.")
         for key in keys:
             delta_v = qso.calc_velocity_shifts(
-                _column(df, z_col + key), z_sys=redshift, relativistic=True
+                _column(table, z_col + key, u.dimensionless_unscaled),
+                z_sys=redshift,
+                relativistic=True,
             )
-            df[f"delta_v_{line}{key}"] = delta_v.to_value(qso.KM_S)
+            table[f"delta_v_{line}{key}"] = delta_v.to(qso.KM_S)
     else:
         logger.info("'redshift' not in param_name_dict — skipping velocity shift.")
 
-    return df
+    return table
 
 
-def summarize_samples(df, columns=None):
+def summarize_samples(table, columns=None):
     """Median and 1-sigma range (16th and 84th percentiles) of per-sample
     columns, e.g. after `get_line_properties` on one posterior sample per
-    row.
+    row. Units are kept; a DataFrame has none (with a warning).
 
-    :param df: one posterior sample per row
-    :type df: pd.DataFrame
+    :param table: one posterior sample per row
+    :type table: astropy.table.QTable or pd.DataFrame
     :param columns: columns to summarize (default: all numeric ones)
     :type columns: list(str)
     :return: one row with "<column>_median", "<column>_low", "<column>_upp"
-    :rtype: pd.DataFrame
+    :rtype: astropy.table.QTable
     """
+    if isinstance(table, pd.DataFrame):
+        logger.warning(
+            "summarize_samples input without units (a DataFrame): the summary "
+            "has none. Pass an astropy QTable with units to keep them."
+        )
+    table = as_qtable(table)
     if columns is None:
-        columns = list(df.select_dtypes(include="number").columns)
-    summary = {}
+        columns = [
+            name
+            for name in table.colnames
+            if np.issubdtype(np.asarray(_value(table[name])).dtype, np.number)
+        ]
+    summary = QTable()
     for col in columns:
-        values = _column(df, col)
+        unit = getattr(table[col], "unit", None)
+        values = _column(table, col)
         if np.isfinite(values).any():
-            med, low, upp = get_1sigma_range(values)
+            stats = get_1sigma_range(values)
         else:
-            med = low = upp = np.nan
-        summary.update({f"{col}_median": med, f"{col}_low": low, f"{col}_upp": upp})
-    return pd.DataFrame([summary])
+            stats = (np.nan,) * 3
+        for suffix, value in zip(SUMMARY_KEYS, stats, strict=True):
+            summary[col + suffix] = (
+                [value] * unit if isinstance(table[col], u.Quantity) else [value]
+            )
+    return summary
+
+
+def _value(col):
+    """The numbers of a column (without unit)."""
+    return col.value if isinstance(col, u.Quantity) else col
 
 
 def add_line_snr_stats(

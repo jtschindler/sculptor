@@ -486,23 +486,26 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
     ("_s11") for the Tsuzuki 2006 or Vestergaard & Wilkes 2001 template, and
     Vestergaard & Osmer 2009 ("_vo09") for the latter. Additionally adds
     "FeII_over_MgII", the ratio of the integrated iron flux (rest frame
-    `qso.FEII_UV_RANGE`, 2200 - 3090 Å) to the integrated MgII flux, and
-    writes `<save_dir>/<source>_results_MgII.csv`.
+    `qso.FEII_UV_RANGE`, 2200 - 3090 Å) to the integrated MgII flux
+    (dimensionless; NaN where undefined, `qso.safe_ratio`), and writes
+    `<save_dir>/<source>_results_MgII.ecsv` (with the units).
 
     Measure both fluxes with `sculptor.analysis.analyze_mcmc_results`:
     the iron components as a feature with ``"disp_range": np.array(
     qso.FEII_UV_RANGE) * (1 + redshift)``, and the MgII components; their
     "_flux" columns are integrals over wavelength, in the same unit.
 
-    :param df: input dataframe containing extracted emission line parameters
-    :type df: pd.DataFrame
+    :param df: emission line measurements (see
+        `qso_autofit.get_line_properties`)
+    :type df: astropy.table.QTable or pd.DataFrame
     :param redshift: redshift of the source
     :type redshift: float
     :param param_name_dict: column names (prefixes for summary columns) in
         `df`, as for `qso_autofit.get_line_properties` ("fwhm": "MgII_fwhm",
         "luminosity": "L3000", "redshift": "MgII_redsh"), plus "fe_flux"
         (integrated iron flux, e.g. "FeII_flux") and "line_flux" (integrated
-        MgII flux, e.g. "MgII_flux") for the FeII/MgII ratio
+        MgII flux, e.g. "MgII_flux") for the FeII/MgII ratio, in the same
+        (or convertible) units
     :type param_name_dict: dict
     :param save_dir: path to save the output
     :type save_dir: str
@@ -511,8 +514,8 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
     :param fit_name: iron template used in the fit: "Vest" (Vestergaard &
         Wilkes 2001; S11 and VO09 masses) or containing "Tsuzuki" (S11 mass)
     :type fit_name: str
-    :return df: output dataframe
-    :rtype: pd.DataFrame
+    :return: the input columns (with units) and the added ones
+    :rtype: astropy.table.QTable
     :raises ValueError: for the former "fe_amp" / "peak_flux" columns (the
         iron template amplitude is not a flux)
     """
@@ -545,17 +548,16 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
                 f"Missing columns '{fe_col}' / '{line_col}' — skipping FeII/MgII."
             )
         for key in keys:
-            with np.errstate(divide="ignore", invalid="ignore"):
-                df["FeII_over_MgII" + key] = qa._column(df, fe_col + key) / qa._column(
-                    df, line_col + key
-                )
+            ratio = qso.safe_ratio(
+                u.Quantity(df[fe_col + key]), u.Quantity(df[line_col + key])
+            )
+            df["FeII_over_MgII" + key] = ratio.to(u.dimensionless_unscaled)
     else:
         logger.info(
             "'fe_flux' or 'line_flux' not in param_name_dict — skipping FeII/MgII."
         )
 
-    df_path = os.path.join(save_dir, f"{source}_results_MgII.csv")
-    df.to_csv(df_path, index=False, float_format="%.4e")
+    df.write(os.path.join(save_dir, f"{source}_results_MgII.ecsv"), overwrite=True)
     return df
 
 
@@ -572,20 +574,22 @@ def get_line_prop_CIV(df, redshift, param_name_dict, save_dir=None, source=None)
     "L_bol_1350", "Eddington_ratio_1350", "Edd_lum_civ_1350" and
     "delta_v_civ". Its unused `model` / `flat_samples` arguments are gone.
 
-    :param df: input dataframe containing extracted emission line parameters
-    :type df: pd.DataFrame
+    :param df: emission line measurements (see
+        `qso_autofit.get_line_properties`)
+    :type df: astropy.table.QTable or pd.DataFrame
     :param redshift: reference (systemic) redshift of the source
     :type redshift: float
     :param param_name_dict: column name prefixes in `df`, as for
         `qso_autofit.get_line_properties` (e.g. "CIV_fwhm", "L1350",
         "CIV_redsh")
     :type param_name_dict: dict
-    :param save_dir: if given, also write `<save_dir>/<source>_results_CIV.csv`
+    :param save_dir: if given, also write `<save_dir>/<source>_results_CIV.ecsv`
+        (with the units)
     :type save_dir: str
     :param source: name of the source, used in the file name
     :type source: str
-    :return: `df` with the added columns
-    :rtype: pd.DataFrame
+    :return: the input columns (with units) and the added ones
+    :rtype: astropy.table.QTable
     """
     df = qa.get_line_properties(
         df,
@@ -597,8 +601,7 @@ def get_line_prop_CIV(df, redshift, param_name_dict, save_dir=None, source=None)
     )
 
     if save_dir is not None:
-        df_path = os.path.join(save_dir, f"{source}_results_CIV.csv")
-        df.to_csv(df_path, index=False, float_format="%.4e")
+        df.write(os.path.join(save_dir, f"{source}_results_CIV.ecsv"), overwrite=True)
     return df
 
 
@@ -617,8 +620,9 @@ def get_line_prop_Hbeta_OIII(
     continuum luminosity at 5100 Å and the Vestergaard & Peterson 2006
     BH-mass relation (no column tag, e.g. "Hbeta_BH_mass_5100").
 
-    :param df: input dataframe containing extracted emission line parameters
-    :type df: pd.DataFrame
+    :param df: emission line measurements (see
+        `qso_autofit.get_line_properties`)
+    :type df: astropy.table.QTable or pd.DataFrame
     :param redshift: redshift of the source
     :type redshift: float
     :param param_name_dict: column name prefixes in `df`, as for
@@ -633,8 +637,8 @@ def get_line_prop_Hbeta_OIII(
     :type model: sculptor.model.FitModel
     :param flat_samples: unused; kept so existing calls keep working
     :type flat_samples: np.ndarray
-    :return: `df` with the added columns
-    :rtype: pd.DataFrame
+    :return: the input columns (with units) and the added ones
+    :rtype: astropy.table.QTable
     """
     return qa.get_line_properties(
         df,

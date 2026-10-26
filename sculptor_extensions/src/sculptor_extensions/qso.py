@@ -357,6 +357,27 @@ def calc_velocity_shifts(z, z_sys, relativistic=True):
     return dv * const.c.to(KM_S)
 
 
+def safe_ratio(num, den):
+    """`num / den` with NaN wherever the ratio is not finite (zero or
+    non-finite denominator, non-finite numerator): the convention for every
+    ratio of the line-property helpers.
+
+    :param num: Numerator
+    :type num: float, np.ndarray or u.Quantity
+    :param den: Denominator
+    :type den: float, np.ndarray or u.Quantity
+    :return: The ratio (a Quantity if either input is one)
+    :rtype: np.ndarray or u.Quantity
+    """
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ratio = num / den
+    if isinstance(ratio, u.Quantity):
+        value = ratio.value
+        return u.Quantity(np.where(np.isfinite(value), value, np.nan), ratio.unit)
+    ratio = np.asarray(ratio, dtype=float)
+    return np.where(np.isfinite(ratio), ratio, np.nan)
+
+
 def calc_eddington_luminosity(bh_mass):
     """Calculate the Eddington luminosity for a given black hole mass.
 
@@ -383,14 +404,14 @@ def calc_eddington_ratio(lbol, bh_mass):
     :type lbol: u.Quantity
     :param bh_mass: Black hole mass
     :type bh_mass: u.Quantity
-    :return: Eddington ratio
+    :return: Eddington ratio (NaN where undefined, `safe_ratio`)
     :rtype: astropy.units.Quantity (dimensionless)
 
     """
 
     lbol = _quantity(lbol, LUM_UNIT, "lbol")
     edd_lum = calc_eddington_luminosity(bh_mass)
-    return (lbol / edd_lum).to(u.dimensionless_unscaled)
+    return safe_ratio(lbol, edd_lum).to(u.dimensionless_unscaled)
 
 
 def correct_feii_mgii_for_eddington_s17(
@@ -425,10 +446,9 @@ def correct_feii_mgii_for_eddington_s17(
     :rtype: np.ndarray
     """
     edd_ratio = u.Quantity(edd_ratio, u.dimensionless_unscaled).value
-    feii_mgii = np.asarray(feii_mgii, dtype=float)
-    with np.errstate(divide="ignore", invalid="ignore"):
-        factor = np.where(edd_ratio > 0, (edd_ref / edd_ratio) ** slope, np.nan)
-    return feii_mgii * factor
+    feii_mgii = u.Quantity(feii_mgii, u.dimensionless_unscaled).value
+    edd_ratio = np.where(edd_ratio > 0, edd_ratio, np.nan)
+    return feii_mgii * safe_ratio(edd_ref, edd_ratio) ** slope
 
 
 def se_bhmass_hbeta_vp06(hbeta_fwhm, cont_lwav, cont_wav=5100 * u.AA):
