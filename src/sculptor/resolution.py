@@ -221,7 +221,9 @@ def overlap_weight(dispersion, error, lo, hi, width=1000.0, mask=None):
     """Weight of the first of two gratings in an inverse-variance weighted
     mean over [lo, hi], from the errors just outside the overlap, where
     each grating is alone (median error over `width` below lo and above
-    hi).
+    hi). The variances are per unit wavelength (error^2 times the median
+    pixel width on each side), so a coadd whose grid changes in the overlap
+    (e.g. finer pixels below it) does not favour the coarser side.
 
     :param dispersion: Pixel centers
     :type dispersion: np.ndarray
@@ -244,6 +246,7 @@ def overlap_weight(dispersion, error, lo, hi, width=1000.0, mask=None):
     above = good & (x > hi) & (x <= hi + width)
     if not below.any() or not above.any():
         raise ValueError("No good pixels next to the overlap.")
-    inv1 = np.median(error[below]) ** -2.0
-    inv2 = np.median(error[above]) ** -2.0
+    width = np.gradient(x)
+    inv1 = 1 / (np.median(error[below]) ** 2 * np.median(width[below]))
+    inv2 = 1 / (np.median(error[above]) ** 2 * np.median(width[above]))
     return float(inv1 / (inv1 + inv2))

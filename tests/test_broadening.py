@@ -211,6 +211,13 @@ def test_overlap_weight_from_the_errors():
     assert scres.overlap_weight(x, err, 2000.0, 2500.0, width=500.0) == pytest.approx(
         0.2
     )
+    # Pixels twice as wide above: the same variance per unit wavelength
+    # with an error sqrt(2) smaller there
+    x = np.concatenate([np.arange(1000.0, 2500.0, 10.0), np.arange(2500, 4000, 20.0)])
+    err = np.where(x < 2500, 1.0, 1 / np.sqrt(2))
+    assert scres.overlap_weight(x, err, 2000.0, 3000.0, width=500.0) == pytest.approx(
+        0.5
+    )
 
 
 def test_big_endian_input_gives_the_same_result(line):
