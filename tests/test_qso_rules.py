@@ -484,7 +484,7 @@ def test_ciii_second_component_rule():
     model = _model(cored)
     only = AutoFit(model, rules[:1], threshold=10.0).run().model
     (cand,) = second.propose(only, only.run_quick_fit())
-    assert cand.reject_at_bound == ["CIIIc_b_fwhm_km_s"]
+    assert cand.reject_at_bound == ["CIIIc_b_fwhm_km_s", "CIIIc_fwhm_km_s"]
     assert "CIIIc_redsh" not in cand.parameters
 
     result = AutoFit(model, rules, threshold=10.0).run()

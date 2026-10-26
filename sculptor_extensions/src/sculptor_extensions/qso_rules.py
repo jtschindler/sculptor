@@ -353,8 +353,9 @@ def ciii_second_component_rule(
     Gaussian (core and wings), not a narrow-line-region line. It shares the
     complex's redshift and has its own flux and FWHM, a constrained
     hypothesis that the calibration gives its own threshold. Proposed only
-    while the complex is in the model; a width that ends at a bound of
-    `fwhm_range` is rejected (at the lower one it is not broad).
+    while the complex is in the model; the candidate is rejected if its
+    width or the complex's ends at a bound of `fwhm_range` (at the lower one
+    it is not broad; the two Gaussians may swap roles).
 
     :param complex_prefix: Name of the complex component
     :type complex_prefix: str
@@ -392,7 +393,7 @@ def ciii_second_component_rule(
         factory,
         linear_param="flux",
         starts=[{width: w} for w in start_fwhm[1:]],
-        reject_at_bound=[width],
+        reject_at_bound=[width, f"{complex_prefix}_fwhm_km_s"],
     )
 
 
