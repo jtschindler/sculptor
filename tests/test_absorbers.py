@@ -158,9 +158,29 @@ def test_predicted_transitions_are_masked():
     assert not inv.mask[mgi]
     assert "predicted transition(s) masked" in str(inv)
 
+    # A MgII system predicts low-ionization lines only: no CIV / SiIV / NV
+    assert not names & {"CIV 1548", "CIV 1551", "SiIV 1394", "NV 1239"}
+
     plain = scabs.find_absorbers(model, n_sims=30, predict=False)
     assert not (plain.features["found_by"] == "predicted").any()
     assert plain.mask[mgi]
+
+
+def test_high_ionization_system_predicts_no_mgii():
+    """A CIV-only system masks its own class (SiIV, NV), not MgII."""
+    z = 2.6
+    model = _absorbed_model(
+        [(_obs("CIV 1548", z), 150.0, 0.6), (_obs("CIV 1551", z), 150.0, 0.4)]
+    )
+    inv = scabs.find_absorbers(model, n_sims=30)
+    assert list(inv.systems["species"]) == ["CIV"]
+    predicted = set(inv.features[inv.features["found_by"] == "predicted"]["transition"])
+    # Covered at z = 2.6 (4250 - 6150 A): SiIV 1394 / 1403, NV out of range
+    assert {"SiIV 1394", "SiIV 1403"} <= predicted
+    assert not any(
+        t.startswith(("MgII", "FeII", "AlIII", "CII", "SiII", "OI", "AlII"))
+        for t in predicted
+    )
 
 
 def test_multiplet_found_together():

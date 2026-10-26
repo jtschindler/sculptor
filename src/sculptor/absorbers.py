@@ -28,9 +28,12 @@ counts only if its transitions stronger than the weakest matched one are
 matched too where the spectrum covers them (e.g. FeII 2587 and 2600
 without 2383 are a coincidence); single features stay unidentified. Every feature is masked (`FitModel.absorber_mask`) over
 +-`mask_fwhm` times its matched-filter FWHM, and so is every listed
-transition at the redshift of an identified system where the spectrum
+transition of the ionization classes the system was detected in
+(`ION_CLASSES`) at the redshift of an identified system where the spectrum
 covers it (`predict`), detected or not: at a known redshift a line too weak
-to detect may still bias e.g. an emission-line fit.
+to detect may still bias e.g. an emission-line fit. A system seen only in
+CIV is not evidence for MgII (which would mask e.g. the MgII emission peak
+for an associated CIV absorber).
 
 TODO: broad absorption (BAL troughs, several 1000 km/s) is not searched for
 yet; it needs masking of whole regions rather than of features.
@@ -70,6 +73,14 @@ ABSORPTION_LINES = {
     "CII": {"CII 1335": 1334.532},
     "OI": {"OI 1302": 1302.168},
     "CaII": {"CaII 3935": 3934.777, "CaII 3970": 3969.591},
+}
+
+# Species that trace the same gas: a system detected in one species of a
+# class predicts the transitions of the whole class (`find_absorbers(
+# predict=True)`); species in no class predict only themselves
+ION_CLASSES = {
+    "low": ["MgII", "FeII", "MgI", "CaII", "AlII", "SiII", "CII", "OI", "AlIII"],
+    "high": ["CIV", "SiIV", "NV"],
 }
 
 # Transitions searched together at one redshift (`multiplet_map`), the
@@ -544,9 +555,10 @@ def find_absorbers(
     :param multiplets: Name -> transition names, searched together (default
         `MULTIPLETS`; {} for none)
     :type multiplets: dict
-    :param predict: Also mask every transition of `lines` at the redshift of
-        each identified system, where covered (rows with `found_by`
-        "predicted" in the features)
+    :param predict: Also mask the transitions of `lines` of the ionization
+        classes (`ION_CLASSES`) each identified system was detected in, at
+        its redshift, where covered (rows with `found_by` "predicted" in the
+        features)
     :type predict: bool
     :return: The inventory (with the mask)
     :rtype: AbsorberInventory
@@ -689,11 +701,18 @@ def find_absorbers(
         }
     )
     if predict:
-        # The other transitions of each system, at its redshift, over the
-        # system's median matched-filter FWHM
+        # The other transitions of each system's ionization classes, at its
+        # redshift, over the system's median matched-filter FWHM
         for s_idx, (z, found) in enumerate(systems):
             width = float(np.median(fwhm[peaks][list(found.values())]))
-            for transitions in all_lines.values():
+            seen = {transition.split()[0] for transition in found}
+            species = set(seen)
+            for members in ION_CLASSES.values():
+                if seen & set(members):
+                    species.update(members)
+            for kind, transitions in all_lines.items():
+                if kind not in species:
+                    continue
                 for transition, rest in transitions.items():
                     wave = rest * (1 + z)
                     if transition in found or not covered(wave):
