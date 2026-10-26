@@ -172,15 +172,12 @@ class Candidate:
     :type parameters: dict
     :param significance: Detection significance used to rank candidates
     :type significance: float
-    :param remove: Names of components to remove first (e.g. a continuum
-        model the candidate replaces)
-    :type remove: list(str)
     :param starts: Alternative starting values, each a dict parameter name
         -> value applied on top of `parameters`; the candidate is fitted
         from `parameters` and from each of these, and the best fit counts
     :type starts: list(dict)
     :param reject_at_bound: Parameters that must not end at a prior bound:
-        the candidate is rejected if one does (whatever `AutoFit.at_bound`)
+        the candidate is rejected if one does
     :type reject_at_bound: list(str)
     """
 
@@ -188,7 +185,6 @@ class Candidate:
     components: list
     parameters: dict
     significance: float = np.nan
-    remove: list = field(default_factory=list)
     starts: list = field(default_factory=list)
     reject_at_bound: list = field(default_factory=list)
 
@@ -227,8 +223,11 @@ def matched_filter(x, resid, weight, fwhm_km_s):
         half = int(np.ceil(4 * sigma_pix))
         offsets = np.arange(-half, half + 1)
         kernel = np.exp(-0.5 * (offsets / sigma_pix) ** 2)
-        num[sel] = np.convolve(weight * resid, kernel, mode="same")[sel]
-        den[sel] = np.convolve(weight, kernel**2, mode="same")[sel]
+        # The central part of the full convolution ("same" returns the
+        # kernel's length when the kernel is the longer)
+        centre = slice(half, half + x.size)
+        num[sel] = np.convolve(weight * resid, kernel)[centre][sel]
+        den[sel] = np.convolve(weight, kernel**2)[centre][sel]
     with np.errstate(divide="ignore", invalid="ignore"):
         amp = np.where(den > 0, num / den, 0.0)
         signif = np.where(den > 0, num / np.sqrt(den), 0.0)
@@ -290,13 +289,11 @@ class Rule:
 
 
 class GaussianLineRule(Rule):
-    """Rule: Gaussian emission (or absorption) lines
-    (`analysis.line_model_gaussian`).
+    """Rule: Gaussian emission lines (`analysis.line_model_gaussian`).
+    Absorbers are handled by `sculptor.absorbers` (masked, not modeled).
 
     Candidates are placed where a matched filter on the residuals of the
-    current fit finds the most significant unmodeled emission (absorption
-    with `kind="absorption"`: a Gaussian with negative flux, an additive
-    approximation valid for weak, resolved absorbers), for a few
+    current fit finds the most significant unmodeled emission, for a few
     trial widths within `fwhm_range`. With `lines` (rest-frame centers),
     only those lines are considered: the center is fixed and the redshift
     may vary by +-`velocity_range`; without, the center is free (+-1 FWHM
@@ -326,10 +323,6 @@ class GaussianLineRule(Rule):
     :type min_significance: float
     :param n_candidates: Candidates proposed per iteration
     :type n_candidates: int
-    :param kind: "emission" or "absorption". Do not combine absorption
-        lines with sigma clipping of negative outliers (`clip` with `low`),
-        which removes the absorbers before they can be modeled.
-    :type kind: str
     :param function: Line profile (default `analysis.line_model_gaussian`)
         with the arguments `redsh`, `flux`, `fwhm_km_s` and optionally `cen`
         (fixed at the line in `lines`; a function without `cen`, e.g. a
@@ -338,16 +331,6 @@ class GaussianLineRule(Rule):
     :param fixed: Fixed values of further arguments, e.g.
         `{"fluxratio": 2.98}` for the [OIII] doublet
     :type fixed: dict
-    :param shared: Argument -> name of a parameter shared by the
-        components this rule adds (and by other rules naming the same
-        parameter), e.g. `{"redsh": "redsh_narrow"}`; created with the first
-        component that uses it (its starting value and prior), dropped with
-        the last
-    :type shared: dict
-    :param n_shared: How many of the rule's components use the `shared`
-        parameters (None: all); further ones get their own, e.g. 1 to tie
-        only a line's core and leave an outflow component free
-    :type n_shared: int
     :param start_fwhm_factors: Extra starting widths of a candidate,
         relative to the detection width (clipped to `fwhm_range`), with the
         flux re-estimated for each; the best fit counts. () for one start.
@@ -366,17 +349,10 @@ class GaussianLineRule(Rule):
         n_trial_fwhm=4,
         min_significance=3.0,
         n_candidates=4,
-        kind="emission",
         function=None,
         fixed=None,
-        shared=None,
-        n_shared=None,
         start_fwhm_factors=(1 / 3, 3.0),
     ):
-        if kind not in ("emission", "absorption"):
-            raise ValueError(f"kind must be 'emission' or 'absorption', not {kind!r}")
-        self.kind = kind
-        self.sign = 1.0 if kind == "emission" else -1.0
         self.prefix = prefix
         self.redshift = redshift
         self.fwhm_range = tuple(fwhm_range)
@@ -389,8 +365,6 @@ class GaussianLineRule(Rule):
         self.n_candidates = n_candidates
         self.function = ana.line_model_gaussian if function is None else function
         self.fixed = dict(fixed or {})
-        self.shared = dict(shared or {})
-        self.n_shared = n_shared
         self.start_fwhm_factors = tuple(start_fwhm_factors)
         args = FitComponent("check", self.function).function_args
         missing = {"redsh", "flux", "fwhm_km_s"} - set(args)
@@ -439,7 +413,7 @@ class GaussianLineRule(Rule):
         """
         spec = model.spec
         x = spec.dispersion
-        resid = self.sign * (spec.fluxden - model.eval(x, result.values))
+        resid = spec.fluxden - model.eval(x, result.values)
         weight = np.where(self._search_mask(model), 1 / spec.fluxden_err**2, 0.0)
         return matched_filter(x, resid, weight, fwhm_km_s)
 
@@ -546,35 +520,15 @@ class GaussianLineRule(Rule):
             pars[f"{name}_{arg}"].value = value
             pars[f"{name}_{arg}"].vary = False
 
-        # Shared parameters: map the argument onto one parameter for the
-        # first `n_shared` of the rule's components, created with the first
-        # component (of any rule) that uses it
-        owned = set(self.owned(model))
-        for arg, shared in self.shared.items():
-            users = sum(
-                c.name in owned and c.param_mapping.get(arg) == shared
-                for c in model.components
-            )
-            if self.n_shared is not None and users >= self.n_shared:
-                continue
-            own = pars.pop(f"{name}_{arg}")
-            comp.param_mapping[arg] = shared
-            if shared not in model.parameters:
-                own.name = shared
-                if own.prior is not None:
-                    own.prior.name = shared
-                pars[shared] = own
-
         flux_key = f"{name}_flux"
-        pars[flux_key].value = self.sign
+        pars[flux_key].value = 1.0
         amp = _linear_amplitude(model, result, comp, pars, flux_key)
-        if amp is None or self.sign * amp <= 0:
+        if amp is None or amp <= 0:
             return None
         pars[flux_key].value = amp
-        bounds = sorted([0.0, 100 * amp])
-        pars[flux_key].prior = UniformPrior(flux_key, *bounds)
+        pars[flux_key].prior = UniformPrior(flux_key, 0.0, 100 * amp)
         return Candidate(
-            description=f"add {self.kind} {name} at {where}, FWHM {fwhm:.0f} km/s "
+            description=f"add emission {name} at {where}, FWHM {fwhm:.0f} km/s "
             f"({signif:.1f} sigma)",
             components=[comp],
             parameters=pars,
@@ -585,24 +539,20 @@ class GaussianLineRule(Rule):
     def _starts(self, model, result, comp, pars, rest, obs, fwhm, others):
         """Alternative starts: the other detections (`others`, with
         `lines`: their redshift and width) and `start_fwhm_factors` times
-        the width, each with its least-squares flux. Parameters shared with
-        components already in the model are not the candidate's to choose
-        and keep their values; near-duplicate starts are dropped."""
+        the width, each with its least-squares flux; near-duplicate starts
+        are dropped."""
         keys = {arg: comp.param_mapping[arg] for arg in ("redsh", "fwhm_km_s", "flux")}
-        free = {arg: key in pars and pars[key].vary for arg, key in keys.items()}
         prior = pars[keys["flux"]].prior
         variants = [(o, w) for _, o, w, _ in others]
         variants += [(obs, factor * fwhm) for factor in self.start_fwhm_factors]
 
         starts, tried = [], [(obs, fwhm)]
         for at, width in variants:
-            start = {}
-            if free["fwhm_km_s"]:
-                width = float(np.clip(width, *self.fwhm_range))
-                start[keys["fwhm_km_s"]] = width
-            if free["redsh"] and self.lines is not None:
+            width = float(np.clip(width, *self.fwhm_range))
+            start = {keys["fwhm_km_s"]: width}
+            if self.lines is not None:
                 start[keys["redsh"]] = float(at / rest - 1)
-            if not start or any(
+            if any(
                 abs(np.log(width / w)) < 0.1
                 and abs(at - o) / o * scut.c_km_s < width / 4
                 for o, w in tried
@@ -611,9 +561,9 @@ class GaussianLineRule(Rule):
             trial = copy.deepcopy(pars)
             for key, value in start.items():
                 trial[key].value = value
-            trial[keys["flux"]].value = self.sign
+            trial[keys["flux"]].value = 1.0
             amp = _linear_amplitude(model, result, comp, trial, keys["flux"])
-            if amp is None or self.sign * amp <= 0:
+            if amp is None or amp <= 0:
                 continue
             tried.append((at, width))
             start[keys["flux"]] = float(np.clip(amp, prior.low, prior.upp))
@@ -673,9 +623,8 @@ def _scaled_fluxes(amps, signs, prior_factor):
 
 
 class ComponentRule(Rule):
-    """Rule: add a predefined component (or several), or swap one for
-    another, e.g. an iron template, a Balmer continuum, the next Gaussian of
-    an emission line, or a different continuum model.
+    """Rule: add a predefined component (or several), e.g. an iron
+    template, a Balmer continuum or a line complex.
 
     `factory(model)` builds the components and parameters for the current
     model and returns `(component, parameters)`, `(components,
@@ -697,9 +646,6 @@ class ComponentRule(Rule):
     :type name: str
     :param factory: Builds the components, see above
     :type factory: callable
-    :param replaces: Names of components the new ones replace (removed in
-        the same step, e.g. the old continuum)
-    :type replaces: list(str)
     :param max_uses: How many components the rule may add (one per use)
     :type max_uses: int
     :param linear_param: Parameter (without the component prefix) that
@@ -722,7 +668,6 @@ class ComponentRule(Rule):
         self,
         name,
         factory,
-        replaces=(),
         max_uses=1,
         linear_param=None,
         prior_factor=100.0,
@@ -731,7 +676,6 @@ class ComponentRule(Rule):
     ):
         self.name = name
         self.factory = factory
-        self.replaces = list(replaces)
         self.max_uses = max_uses
         self.linear_params = (
             []
@@ -766,8 +710,6 @@ class ComponentRule(Rule):
         """
         if len(self.owned(model)) >= self.max_uses:
             return []
-        if self.replaces and not any(c.name in self.replaces for c in model.components):
-            return []
         built = self.factory(model)
         if built is None:
             return []
@@ -780,8 +722,6 @@ class ComponentRule(Rule):
         self._produced.update(c.name for c in comps)
 
         description = f"{self.name}: add {', '.join(c.name for c in comps)}"
-        if self.replaces:
-            description += f" (replacing {', '.join(self.replaces)})"
         if self.linear_params and not self._scale(model, result, comps, params):
             return []
         return [
@@ -789,7 +729,6 @@ class ComponentRule(Rule):
                 description=description,
                 components=list(comps),
                 parameters=dict(params),
-                remove=[n for n in self.replaces if n in names],
                 starts=self._starts(model, result, comps, params),
                 reject_at_bound=list(self.reject_at_bound),
             )
@@ -856,7 +795,9 @@ class LineGroupRule(Rule):
     With `after_members` (default), the group is proposed only once every
     member rule has a component (e.g. the broad Hbeta and the [OIII]
     doublet): it then tests narrow cores on top of the lines' fits instead
-    of standing in for the lines while they are unmodeled. A list of member
+    of standing in for the lines while they are unmodeled. Members whose
+    line the fit does not cover are left out (at least two must remain). A
+    list of member
     prefixes waits for those members only (e.g. the broad Hbeta, not an
     [OIII] that is narrow only and may be too weak to be added alone). It is proposed
     while no component uses its shared parameters (`<name>_<arg>`) and
@@ -984,15 +925,19 @@ class LineGroupRule(Rule):
         """
         if any(self.shared_name(arg) in model.parameters for arg in self.args):
             return []
-        owned = [len(m.owned(model)) for m in self.members]
-        if any(n >= m.max_components for n, m in zip(owned, self.members, strict=True)):
+        # Members whose line the fit covers (e.g. not Halpha at z ~ 7)
+        members = [m for m in self.members if m._search_mask(model).any()]
+        if len(members) < 2:
+            return []
+        owned = [len(m.owned(model)) for m in members]
+        if any(n >= m.max_components for n, m in zip(owned, members, strict=True)):
             return []
         if self.after_members is True:
             waits = owned
         else:
             waits = [
                 n
-                for n, m in zip(owned, self.members, strict=True)
+                for n, m in zip(owned, members, strict=True)
                 if m.prefix in (self.after_members or ())
             ]
         if not all(waits):
@@ -1004,7 +949,7 @@ class LineGroupRule(Rule):
             "fwhm_km_s": (self.start_fwhm[0], self.fwhm_range),
         }
         comps, pars = [], {}
-        for member in self.members:
+        for member in members:
             cname = member._new_name(model)
             comp = FitComponent(cname, member.function)
             own = comp.create_params()
@@ -1030,7 +975,7 @@ class LineGroupRule(Rule):
             pars.update(own)
 
         keys = [comp.param_mapping["flux"] for comp in comps]
-        signs = [member.sign for member in self.members]
+        signs = [1.0] * len(members)
         valid = []
         for variant in self._variants(model, result, pars):
             trial = copy.deepcopy(pars)
@@ -1494,10 +1439,6 @@ class AutoFit:
     :param preliminary_threshold: With `threshold="calibrate"`: fixed
         threshold of the preliminary search
     :type preliminary_threshold: float
-    :param at_bound: "flag" (default): parameters at a prior bound are
-        listed in `AutoFitResult.at_bound`; "reject": in addition, a
-        candidate whose own parameters end at a bound is not added
-    :type at_bound: str
     :param absorbers: Keyword arguments of
         `sculptor.absorbers.find_absorbers` (e.g. `{"redshift": 7.18,
         "name": "J0412"}`) to search the preliminary model's residuals (a
@@ -1524,7 +1465,6 @@ class AutoFit:
         multistart=True,
         calibration=None,
         preliminary_threshold=10.0,
-        at_bound="flag",
         absorbers=None,
         per_rule=True,
     ):
@@ -1532,8 +1472,6 @@ class AutoFit:
             raise ValueError(
                 f"threshold must be a number or 'calibrate', not {threshold!r}"
             )
-        if at_bound not in ("flag", "reject"):
-            raise ValueError(f"at_bound must be 'flag' or 'reject', not {at_bound!r}")
         if callable(criterion):
             self.criterion_name = getattr(criterion, "__name__", "criterion")
             self.criterion = criterion
@@ -1557,7 +1495,6 @@ class AutoFit:
         self.multistart = multistart
         self.calibration = dict(calibration or {})
         self.preliminary_threshold = preliminary_threshold
-        self.at_bound = at_bound
         self.absorbers = None if absorbers is None else dict(absorbers)
         self.per_rule = per_rule
         self.rule_keys = rule_keys(self.rules)
@@ -1607,12 +1544,8 @@ class AutoFit:
 
     def _rejected_at_bound(self, candidate, result):
         """Whether the candidate's fit is rejected for parameters at a prior
-        bound (its `reject_at_bound` ones; all its own with `at_bound=
-        "reject"`)."""
-        own = set(candidate.reject_at_bound)
-        if self.at_bound == "reject":
-            own |= set(candidate.parameters)
-        own &= set(result.at_bound)
+        bound (its `reject_at_bound` ones)."""
+        own = set(candidate.reject_at_bound) & set(result.at_bound)
         if own:
             logger.debug(
                 f"AutoFit: {candidate.description}: rejected, "
@@ -1660,10 +1593,8 @@ class AutoFit:
 
     @staticmethod
     def _with(model, candidate):
-        """Copy of `model` with the candidate's removals and additions."""
+        """Copy of `model` with the candidate's components added."""
         new = copy.deepcopy(model)
-        for name in candidate.remove:
-            new = AutoFit._without(new, name, copy_model=False)
         new.components.extend(copy.deepcopy(candidate.components))
         new.add_parameters(copy.deepcopy(candidate.parameters))
         return new
@@ -1731,7 +1662,6 @@ class AutoFit:
             criterion=self.criterion_arg,
             quick_fit_kwargs=self.quick_fit_kwargs,
             multistart=self.multistart,
-            at_bound=self.at_bound,
             **kwargs,
         )
         self.n_fits += calibration.n_fits
@@ -2246,7 +2176,6 @@ def calibrate_threshold(
     n_bootstrap=1000,
     per_rule=True,
     min_rule_sims=20,
-    at_bound="flag",
     min_rule_threshold=10.0,
 ):
     """Thresholds for `AutoFit` from simulations without extra components.
@@ -2284,7 +2213,7 @@ def calibrate_threshold(
     reach its tail.
 
     Candidates are judged as in the search: a fit rejected for parameters
-    at a prior bound (`Candidate.reject_at_bound`, `at_bound`) improves
+    at a prior bound (`Candidate.reject_at_bound`) improves
     nothing (the search would not add it), and neither does a failed fit.
 
     :param model: The null model (spectrum, fit mask, starting values)
@@ -2313,8 +2242,6 @@ def calibrate_threshold(
     :param min_rule_sims: Simulations a rule needs candidates in to get its
         own threshold
     :type min_rule_sims: int
-    :param at_bound: As for `AutoFit` (use the same setting as the search)
-    :type at_bound: str
     :param min_rule_threshold: Floor of the per-rule thresholds (capped at
         the global threshold)
     :type min_rule_threshold: float
@@ -2336,7 +2263,6 @@ def calibrate_threshold(
         threshold=0.0,
         quick_fit_kwargs=quick_fit_kwargs,
         multistart=multistart,
-        at_bound=at_bound,
     )
 
     def best_score(sim, sim_result, sim_score, rule):

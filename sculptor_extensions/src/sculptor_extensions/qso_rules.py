@@ -1,15 +1,15 @@
 """Rules for automatic model building of type-I quasar spectra
 (`sculptor.autofit`), built on the `qso_presets` / `qso_autofit` setups.
 
-`qso_rules(redshift)` returns a default set: Gaussians at the strong
-broad and narrow lines in the fit regions, the UV iron template and the
-Balmer continuum, the narrow components of Hbeta, Halpha and [OIII]
-proposed together at the systemic redshift (`narrow_line_group`), and the
-hypothesis that they share redshift and width (`narrow_line_tie`), which
-AutoFit keeps only if the data accept it. The CIII] complex with SiIII]
-and AlIII (`ciii_complex_rule`, `qso_rules(ciii_complex=True)`) and the
-weaker lines in `QSO_LINES` (e.g. "HeII") are optional. Components
-narrower than
+`qso_rules(redshift)` returns the default set (the one validated on the
+development spectra): broad Gaussians at the strong lines in the fit
+regions (`DEFAULT_LINES`, including the broad "HeII" red shelf), the CIII]
+complex with SiIII] and AlIII (`ciii_complex_rule`) and its optional
+second broad CIII] (`ciii_second_component_rule`), the UV and optical iron
+templates (`IRON_TEMPLATES`), the Balmer continuum, and the narrow
+components of Hbeta, Halpha and [OIII] proposed together at the systemic
+redshift (`narrow_line_group`, the only route for a narrow Hbeta /
+Halpha). `narrow_line_tie` is optional. Components narrower than
 `NARROW_FWHM_MAX` count as narrow; change it before building the rules::
 
     qso_rules.NARROW_FWHM_MAX = 1000.0
@@ -23,11 +23,8 @@ Start `AutoFit` from a power-law continuum::
     result = AutoFit(base_model, rules, criterion="bic").run()
 
 Each rule can also be built on its own (`line_rules`, `iron_template_rule`,
-`balmer_continuum_rule`, `line_dict_rule`).
+`balmer_continuum_rule`, ...).
 """
-
-import copy
-import string
 
 from sculptor import analysis as ana
 from sculptor import utils as scut
@@ -64,20 +61,32 @@ DOUBLETS = {
 }
 
 # Lines fitted by default: Lya and NV need absorption modeling and are left
-# out
-DEFAULT_LINES = ("SiIV", "CIV", "CIII", "MgII", "Hbeta", "OIII", "Halpha")
+# out. In JWST spectra of z ~ 7 quasars a single broad (~10000 km/s)
+# "HeII" Gaussian takes up the excess between CIV and CIII] (the red shelf:
+# HeII, OIII] 1663, iron) rather than HeII alone. "CIII" is fitted as the
+# CIII] complex by `qso_rules` (AlIII and SiIII] as separate Gaussians trade
+# places with CIII] in broad blends).
+DEFAULT_LINES = (
+    "SiIV",
+    "CIV",
+    "HeII",
+    "CIII",
+    "MgII",
+    "Hgamma",
+    "Hbeta",
+    "OIII",
+    "Halpha",
+)
 
-# Weaker lines, not fitted by default. In JWST spectra of z ~ 7 quasars a
-# single broad (~10000 km/s) "HeII" Gaussian takes up the excess between
-# CIV and CIII] (the red shelf: HeII, OIII] 1663, iron) rather than HeII
-# alone. AlIII and SiIII] are best fitted with CIII] as one complex
-# (`ciii_complex_rule`): as separate Gaussians they trade places with
-# CIII] in broad blends.
+# Iron templates of `qso_rules`: component name -> `iron_template_rule`
+# preset
+IRON_TEMPLATES = {"FeII_UV": "VW01_UV", "FeII_opt": "BG92_OPT"}
 # Forbidden lines get the narrow FWHM range
 NARROW_LINES = ("OIII", "OIII_4960", "OIII_5008")
 
-# Permitted lines with a narrow component: their Gaussians may be narrow or
-# broad (FWHM from the narrow range's minimum to the broad range's maximum)
+# Permitted lines with a narrow component: their own rule is broad only
+# (FWHM above `NARROW_FWHM_MAX`); the narrow component comes from
+# `narrow_line_group` alone (one hypothesis, one route)
 LINES_WITH_NARROW = ("Hbeta", "Halpha")
 
 # Components with a FWHM up to this (km/s) count as narrow, e.g. for
@@ -94,7 +103,11 @@ NARROW_TIE_LINES = ("Hbeta", "Halpha", "OIII")
 NARROW_VELOCITY_RANGE = 300.0
 
 # Rest-frame wavelengths of the CIII] complex (`qso.CIII_complex_model_func`)
-CIII_COMPLEX = {"cen": 1908.73, "cen_alIII": 1857.40, "cen_siIII": 1892.03}
+CIII_COMPLEX = {
+    "cen": QSO_LINES["CIII"],
+    "cen_alIII": QSO_LINES["AlIII"],
+    "cen_siIII": QSO_LINES["SiIII"],
+}
 
 
 def _fixed(value):
@@ -108,15 +121,15 @@ def line_rules(
     narrow_fwhm=(100.0, 2500.0),
     velocity_range=5000.0,
     max_components=3,
-    shared=None,
     **kwargs,
 ):
     """One `GaussianLineRule` per line, at the line's rest wavelength
     (fixed center, redshift free within +-`velocity_range`), with up to
     `max_components` Gaussians each. Doublets in `DOUBLETS` (e.g. "OIII")
     are one component per pair, with one redshift and width and a fixed
-    flux ratio. Lines in `LINES_WITH_NARROW` cover both FWHM ranges; tie
-    their narrow components with `narrow_line_tie`.
+    flux ratio. Lines in `LINES_WITH_NARROW` are broad only (above
+    `NARROW_FWHM_MAX`): their narrow components come from
+    `narrow_line_group`.
 
     :param redshift: Systemic redshift
     :type redshift: float
@@ -131,16 +144,10 @@ def line_rules(
     :type velocity_range: float
     :param max_components: Maximum Gaussians per line
     :type max_components: int
-    :param shared: Line name -> {argument: parameter name}: the first
-        component of the line uses these parameters, shared with the lines
-        that name the same ones; further components get their own. A fixed
-        tie, unlike `narrow_line_tie`, which the data may reject.
-    :type shared: dict
     :param kwargs: Passed on to `GaussianLineRule`
     :return: The rules
     :rtype: list(sculptor.autofit.GaussianLineRule)
     """
-    shared = shared or {}
     if not isinstance(lines, dict):
         lines = {
             name: (DOUBLETS[name][1] if name in DOUBLETS else QSO_LINES[name])
@@ -154,7 +161,7 @@ def line_rules(
         if name in NARROW_LINES:
             fwhm_range = narrow_fwhm
         elif name in LINES_WITH_NARROW:
-            fwhm_range = (narrow_fwhm[0], broad_fwhm[1])
+            fwhm_range = (max(broad_fwhm[0], NARROW_FWHM_MAX), broad_fwhm[1])
         else:
             fwhm_range = broad_fwhm
         rules.append(
@@ -167,8 +174,6 @@ def line_rules(
                 max_components=max_components,
                 function=function,
                 fixed=fixed,
-                shared=shared.get(name),
-                n_shared=1,
                 **kwargs,
             )
         )
@@ -509,77 +514,37 @@ def balmer_continuum_rule(
     return ComponentRule("Balmer continuum", factory, linear_param="amp_be")
 
 
-def line_dict_rule(line_dict, line, kind, max_components=3):
-    """Rule that adds Gaussians of one kind of a line from an emission
-    line dictionary, as `qso_autofit.add_line_components` does, one per
-    use: `<line>_<kind>_a`, `<line>_<kind>_b`, ... The flux starts at the
-    least-squares amplitude on the residuals.
-
-    Use it to let the criterion choose the number of components of a
-    `setup_<line>_lines` setup, e.g. `line_dict_rule(line_dict, "CIV",
-    "broad")`.
-
-    :param line_dict: Emission line dictionary (see
-        `qso_autofit.initialize_gaussian_line_model`)
-    :type line_dict: dict
-    :param line: Line name, e.g. "CIV"
-    :type line: str
-    :param kind: Component kind, e.g. "broad", "broadshifted", "narrow"
-    :type kind: str
-    :param max_components: Maximum components of this kind
-    :type max_components: int
-    :return: The rule
-    :rtype: sculptor.autofit.ComponentRule
-    """
-    settings = line_dict[line][kind]["params"]
-
-    def factory(model):
-        """The next lettered component."""
-        names = {c.name for c in model.components}
-        for letter in string.ascii_lowercase[:max_components]:
-            name = f"{line}_{kind}_{letter}"
-            if name not in names:
-                return qa.initialize_gaussian_line_model(name, copy.deepcopy(settings))
-        return None
-
-    return ComponentRule(
-        f"{line} {kind}",
-        factory,
-        max_uses=max_components,
-        linear_param="flux",
-    )
-
-
 def qso_rules(
     redshift,
     lines=DEFAULT_LINES,
-    iron="VW01_UV",
+    iron=IRON_TEMPLATES,
     balmer=True,
-    narrow_tie=True,
     narrow_group=True,
-    ciii_complex=False,
-    ciii_second=False,
+    narrow_tie=False,
+    ciii_complex=True,
+    ciii_second=True,
     **line_kwargs,
 ):
-    """Default rules for a quasar spectrum: Gaussians at `lines`, an iron
-    template, a Balmer continuum, the narrow lines proposed together at
-    the systemic redshift and the narrow-line tie.
+    """The default rules for a quasar spectrum (see the module docstring).
 
     :param redshift: Systemic redshift
     :type redshift: float
-    :param lines: See `line_rules`
+    :param lines: See `line_rules`; with `ciii_complex`, "CIII" stands for
+        the complex instead of free Gaussians
     :type lines: list(str) or dict
-    :param iron: Iron template preset (see `iron_template_rule`), or None
-    :type iron: str
+    :param iron: Component name -> iron template preset (see
+        `iron_template_rule`); None or {} for none
+    :type iron: dict
     :param balmer: Include the Balmer continuum rule
     :type balmer: bool
-    :param narrow_tie: Include `narrow_line_tie` (for the tied lines among
-        `lines`)
-    :type narrow_tie: bool
-    :param narrow_group: Include `narrow_line_group` (same lines)
+    :param narrow_group: Include `narrow_line_group` (`NARROW_TIE_LINES`
+        among `lines`)
     :type narrow_group: bool
-    :param ciii_complex: Include `ciii_complex_rule` (with "CIII" in
-        `lines`)
+    :param narrow_tie: Include `narrow_line_tie` (same lines): it ties
+        narrow components added separately, which with the default rules
+        only the group adds
+    :type narrow_tie: bool
+    :param ciii_complex: Fit "CIII" as `ciii_complex_rule`
     :type ciii_complex: bool
     :param ciii_second: With `ciii_complex`, also include
         `ciii_second_component_rule`
@@ -588,17 +553,21 @@ def qso_rules(
     :return: The rules
     :rtype: list
     """
-    rules = line_rules(redshift, lines, **line_kwargs)
+    complex_ = ciii_complex and "CIII" in lines
+    gaussian = [name for name in lines if not (complex_ and name == "CIII")]
+    if isinstance(lines, dict):
+        gaussian = {name: lines[name] for name in gaussian}
+    rules = line_rules(redshift, gaussian, **line_kwargs)
     if narrow_group:
         group = narrow_line_group(rules, redshift)
         if group is not None:
             rules.append(group)
-    if ciii_complex and "CIII" in lines:
+    if complex_:
         rules.append(ciii_complex_rule(redshift))
         if ciii_second:
             rules.append(ciii_second_component_rule())
-    if iron is not None:
-        rules.append(iron_template_rule(redshift, preset=iron))
+    for prefix, preset in (iron or {}).items():
+        rules.append(iron_template_rule(redshift, preset=preset, prefix=prefix))
     if balmer:
         rules.append(balmer_continuum_rule(redshift))
     if narrow_tie:

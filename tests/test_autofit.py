@@ -544,56 +544,21 @@ def curved_power_law(x, redsh, amp, slope, curv):
     return amp * np.exp((slope + curv * logx) * logx)
 
 
-def test_component_rule_swaps_the_continuum():
-    """A curved continuum: swapping the power law for a curved one is
-    accepted, and the old power law and its parameters are gone."""
-
-    model = _model(lines=[], noise=np.zeros(800))
-    x = model.spec.dispersion
-    model.spec.fluxden = curved_power_law(x, Z, 2.0, -1.5, -3.0) + (
-        np.random.default_rng(3).normal(0, ERR, x.size)
-    )
-
-    def factory(model):
-        comp = sccomp.FitComponent("curvedPL", curved_power_law)
-        pars = comp.create_params()
-        pars["curvedPL_redsh"].value, pars["curvedPL_redsh"].vary = Z, False
-        pars["curvedPL_amp"].value = 1.0
-        pars["curvedPL_amp"].prior = scpri.UniformPrior("curvedPL_amp", 0, 10)
-        pars["curvedPL_slope"].value = -1.0
-        pars["curvedPL_slope"].prior = scpri.UniformPrior("curvedPL_slope", -4, 2)
-        pars["curvedPL_curv"].value = 0.0
-        pars["curvedPL_curv"].prior = scpri.UniformPrior("curvedPL_curv", -10, 10)
-        return comp, pars
-
-    rule = ComponentRule("curvature", factory, replaces=["PL"])
-    result = AutoFit(model, [rule]).run()
-
-    assert [c.name for c in result.model.components] == ["curvedPL"]
-    assert not any(k.startswith("PL_") for k in result.model.parameters)
-    assert "replacing PL" in result.history[1].description
-    values = dict(zip(result.result.param_names, result.result.values, strict=True))
-    assert values["curvedPL_curv"] == pytest.approx(-3.0, abs=0.3)
-
-    # Nothing left to replace: no proposal
-    assert rule.propose(result.model, result.result) == []
-
-
-def test_absorption_rule():
-    base = _model(lines=[(-8.0, 1800.0, 400.0)])
-    rule = GaussianLineRule(
-        "abs", redshift=Z, fwhm_range=(100, 2000), kind="absorption"
-    )
-    result = AutoFit(base, [rule]).run()
-
-    assert len(result.model.components) == 2
-    par = result.model.parameters
-    assert par["abs_0_flux"].value == pytest.approx(-8.0, rel=0.15)
-    assert par["abs_0_flux"].prior.upp == 0
-    assert par["abs_0_cen"].value == pytest.approx(1800.0, abs=1)
-
-    with pytest.raises(ValueError, match="kind"):
-        GaussianLineRule("x", redshift=Z, kind="both")
+def test_matched_filter_kernel_longer_than_the_data():
+    """A kernel wider than the spectrum gives one value per pixel, the
+    same as the direct sum (np.convolve "same" would return the kernel's
+    length)."""
+    x = np.geomspace(5000.0, 5100.0, 50)
+    resid = np.zeros(x.size)
+    resid[25] = 1.0
+    weight = np.ones(x.size)
+    signif, amp = autofit.matched_filter(x, resid, weight, 20000.0)
+    assert signif.shape == amp.shape == x.shape
+    # Direct sum at the spike: amp = K(0) / sum K^2 over the pixels
+    fwhm_pix = 20000.0 / 2.998e5 / np.log(x[1] / x[0])
+    sigma = fwhm_pix * autofit._FWHM_TO_SIGMA
+    kernel = np.exp(-0.5 * ((np.arange(x.size) - 25) / sigma) ** 2)
+    assert amp[25] == pytest.approx(1.0 / np.sum(kernel**2), rel=1e-3)
 
 
 def test_spic():
@@ -661,85 +626,11 @@ def test_doublet_function_with_fixed_ratio():
         GaussianLineRule("D", redshift=Z, lines=[1850.0], function=_no_flux)
 
 
-def test_shared_redshift():
-    """Two lines at the same velocity offset: one shared redshift."""
-
-    z_true = Z * 1.0005
-    lines = [(15.0, CIII, 2000.0), (20.0, CIV, 2000.0)]
-    base = _model(lines=[])
-    x = base.spec.dispersion
-    for flux, cen, fwhm in lines:
-        base.spec.fluxden = base.spec.fluxden + ana.line_model_gaussian(
-            x, z_true, flux, cen, fwhm
-        )
-    rules = [
-        GaussianLineRule(
-            name,
-            redshift=Z,
-            lines=[cen],
-            fwhm_range=(300, 5000),
-            max_components=1,
-            shared={"redsh": "z_lines"},
-        )
-        for name, cen in (("CIII", CIII), ("CIV", CIV))
-    ]
-    result = AutoFit(base, rules).run()
-
-    names = sorted(c.name for c in result.model.components)
-    assert names == ["CIII_0", "CIV_0", "PL"]
-    par = result.model.parameters
-    assert "CIII_0_redsh" not in par and "CIV_0_redsh" not in par
-    assert par["z_lines"].vary
-    assert par["z_lines"].value == pytest.approx(z_true, abs=2e-4)
-    for comp in result.model.components[1:]:
-        assert comp.param_mapping["redsh"] == "z_lines"
-
-    # Removing one user keeps the shared parameter; removing both drops it
-    one = AutoFit._without(result.model, "CIV_0")
-    assert "z_lines" in one.parameters
-    none = AutoFit._without(one, "CIII_0")
-    assert "z_lines" not in none.parameters
-
-
 def test_rule_owns_only_its_numbered_components():
     model = _model(lines=[])
     for name in ("Hbeta_0", "Hbeta_narrow_0", "Hbeta_x"):
         model.components.append(sccomp.FitComponent(name, ana.line_model_gaussian))
     assert GaussianLineRule("Hbeta", redshift=Z).owned(model) == ["Hbeta_0"]
-
-
-def test_n_shared_ties_only_the_first_components():
-    """A core and a shifted wing of one line: with n_shared=1 only the
-    core uses the shared redshift."""
-
-    z_wing = Z - 3000 / 3e5 * (1 + Z)
-    base = _model(lines=[])
-    x = base.spec.dispersion
-    base.spec.fluxden = (
-        base.spec.fluxden
-        + ana.line_model_gaussian(x, Z, 20.0, CIII, 1500.0)
-        + ana.line_model_gaussian(x, z_wing, 10.0, CIII, 4000.0)
-    )
-    rule = GaussianLineRule(
-        "CIII",
-        redshift=Z,
-        lines=[CIII],
-        fwhm_range=(300, 8000),
-        velocity_range=5000,
-        shared={"redsh": "z_core"},
-        n_shared=1,
-    )
-    result = AutoFit(base, [rule]).run()
-
-    par = result.model.parameters
-    comps = {c.name: c for c in result.model.components}
-    assert sorted(comps) == ["CIII_0", "CIII_1", "PL"]
-    shared = [n for n, c in comps.items() if c.param_mapping.get("redsh") == "z_core"]
-    assert len(shared) == 1
-    (own,) = {"CIII_0", "CIII_1"} - set(shared)
-    assert par["z_core"].value == pytest.approx(Z, abs=3e-4)
-    assert par[f"{own}_redsh"].value == pytest.approx(z_wing, abs=3e-3)
-    assert par[f"{own}_redsh"].value < par["z_core"].value - 3e-3
 
 
 # -- multi-start ----------------------------------------------------------------
@@ -869,7 +760,7 @@ def test_calibrated_threshold_is_the_default():
 # -- prior bounds ---------------------------------------------------------------
 
 
-def test_parameters_at_a_prior_bound_are_flagged_or_rejected():
+def test_parameters_at_a_prior_bound_are_flagged():
     """A 4000 km/s line with widths limited to 1500 km/s."""
     base = _model(lines=[(20.0, CIII, 4000.0)])
     narrow = GaussianLineRule(
@@ -878,9 +769,3 @@ def test_parameters_at_a_prior_bound_are_flagged_or_rejected():
     flagged = AutoFit(base, [narrow]).run()
     assert "line_0_fwhm_km_s" in flagged.at_bound
     assert "at a prior bound: " in str(flagged)
-
-    rejected = AutoFit(base, [narrow], at_bound="reject").run()
-    assert rejected.components() == ["PL"]
-
-    with pytest.raises(ValueError, match="at_bound"):
-        AutoFit(base, [narrow], at_bound="drop")

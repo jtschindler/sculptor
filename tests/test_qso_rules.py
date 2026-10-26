@@ -1,8 +1,6 @@
 """Tests for the quasar rules of the automatic model building
 (`sculptor_extensions.qso_rules`)."""
 
-import copy
-
 import numpy as np
 import pytest
 from astropy import units as u
@@ -110,69 +108,35 @@ def test_balmer_rule_only_below_the_edge():
     assert rule.propose(red, red.run_quick_fit()) == []
 
 
-def test_line_dict_rule_adds_lettered_components():
-    line_dict = {
-        "CIII": {
-            "broad": {
-                "params": {
-                    "redsh": {"value": Z, "vary": False},
-                    "flux": {
-                        "value": 1.0,
-                        "vary": True,
-                        "prior": scpri.UniformPrior("flux", 0, 1000),
-                    },
-                    "cen": {"value": qr.QSO_LINES["CIII"], "vary": False},
-                    "fwhm_km_s": {
-                        "value": 3000.0,
-                        "vary": True,
-                        "prior": scpri.UniformPrior("fwhm", 500, 15000),
-                    },
-                }
-            }
-        }
-    }
-    original = copy.deepcopy(line_dict)
-    model = _model(extra=lambda x: ana.line_model_gaussian(x, Z, 15.0, 1908.73, 3000.0))
-    rule = qr.line_dict_rule(line_dict, "CIII", "broad", max_components=2)
-    result = AutoFit(model, [rule]).run()
-
-    names = [c.name for c in result.model.components]
-    assert names[:2] == ["PL", "CIII_broad_a"]
-    assert result.model.parameters["CIII_broad_a_flux"].value == pytest.approx(
-        15.0, rel=0.1
-    )
-    assert line_dict["CIII"]["broad"]["params"]["flux"]["value"] == 1.0
-    assert line_dict.keys() == original.keys()
-
-
 def test_qso_rules_bundle():
     rules = qr.qso_rules(Z)
+    names = [getattr(r, "prefix", None) or r.name for r in rules]
     kinds = [type(r).__name__ for r in rules]
-    assert kinds.count("GaussianLineRule") == len(qr.DEFAULT_LINES)
-    assert kinds.count("ComponentRule") == 2
-    assert kinds.count("Tie") == 1
-    assert kinds.count("LineGroupRule") == 1
-    assert rules[-1].prefixes == ["Hbeta", "Halpha", "OIII"]
+    # "CIII" is the complex (and its second component), not free Gaussians
+    assert "CIII" not in names
+    assert kinds.count("GaussianLineRule") == len(qr.DEFAULT_LINES) - 1
+    assert "CIII] complex" in names and "CIII] second component" in names
+    assert "iron (VW01_UV)" in names and "iron (BG92_OPT)" in names
+    assert "Balmer continuum" in names
+    assert kinds.count("Tie") == 0  # optional: the group is the only route
     group = next(r for r in rules if isinstance(r, LineGroupRule))
     assert [m.prefix for m in group.members] == ["Hbeta", "Halpha", "OIII"]
     assert group.fwhm_range == (100.0, qr.NARROW_FWHM_MAX)
     assert group.velocity_range == qr.NARROW_VELOCITY_RANGE
     bare = qr.qso_rules(
-        Z, iron=None, balmer=False, narrow_tie=False, narrow_group=False
+        Z, iron=None, balmer=False, narrow_group=False, ciii_complex=False
     )
     assert len(bare) == len(qr.DEFAULT_LINES)
-    assert len(qr.qso_rules(Z, lines=["CIV", "Hbeta"])) == 4  # nothing to tie
+    tie = qr.qso_rules(Z, narrow_tie=True)[-1]
+    assert tie.prefixes == ["Hbeta", "Halpha", "OIII"]
+    assert len(qr.qso_rules(Z, lines=["CIV", "Hbeta"], iron=None)) == 3
 
 
 def test_oiii_doublet_rule():
-    (rule,) = qr.line_rules(Z, ["OIII"], shared={"OIII": {"redsh": "redsh_nl"}})
+    (rule,) = qr.line_rules(Z, ["OIII"])
     assert rule.lines == [5008.24]
     assert rule.fixed == {"fluxratio": 2.98}
-    assert rule.shared == {"redsh": "redsh_nl"}
-    assert rule.n_shared == 1
     assert rule.fwhm_range == (100.0, 2500.0)
-    (rule,) = qr.line_rules(Z, ["OIII"], shared={})
-    assert rule.shared == {}
 
     # Found in a spectrum at the right rest frame
     z = 0.2
@@ -202,10 +166,24 @@ def _narrow_lines_model(hbeta_dv=0.0, oiii_fwhm=500.0, hbeta_fwhm=500.0):
         + ana.line_model_gaussian(x, z_hb, 4.0, 4862.68, hbeta_fwhm)
     )
     rules = [
-        *qr.line_rules(z, ["Hbeta", "OIII"]),
+        _narrow_capable_hbeta(z),
+        *qr.line_rules(z, ["OIII"]),
         qr.narrow_line_tie(["Hbeta", "OIII"]),
     ]
     return model, rules, z
+
+
+def _narrow_capable_hbeta(z):
+    """An Hbeta rule that may add narrow Gaussians too (the default one is
+    broad only): a custom rule set for `Tie` and `null_removals`."""
+    return GaussianLineRule(
+        "Hbeta",
+        redshift=z,
+        lines=[qr.QSO_LINES["Hbeta"]],
+        fwhm_range=(100.0, 15000.0),
+        velocity_range=5000.0,
+        max_components=3,
+    )
 
 
 def test_narrow_line_tie_accepted():
@@ -253,7 +231,8 @@ def test_narrow_fwhm_limit_is_a_module_setting(monkeypatch):
     assert qr.narrow_line_tie().max_width == 300.0
     assert qr.narrow_line_tie(max_fwhm=800.0).max_width == 800.0
     rules = {r.prefix: r for r in qr.line_rules(Z, ["Hbeta", "CIV", "OIII"])}
-    assert rules["Hbeta"].fwhm_range == (100.0, 15000.0)
+    # Broad only: above NARROW_FWHM_MAX, at least the broad minimum
+    assert rules["Hbeta"].fwhm_range == (1000.0, 15000.0)
     assert rules["CIV"].fwhm_range == (1000.0, 15000.0)
     assert rules["OIII"].fwhm_range == (100.0, 2500.0)
 
@@ -396,6 +375,7 @@ def test_group_calibrated_without_narrow_lines_added_alone(monkeypatch):
     hypothesis too: the group is calibrated on simulations without it, not
     on adding a second narrow Hbeta."""
     model, lines, z = _weak_narrow_model(1.5)
+    lines = [_narrow_capable_hbeta(z), *(r for r in lines if r.prefix != "Hbeta")]
     found = AutoFit(model, lines, threshold=10.0).run().model
     group = qr.narrow_line_group(lines, z)
     assert group.guarded(found) == []  # not the group's own components
@@ -545,12 +525,8 @@ def test_ciii_second_component_rule():
 
 
 def test_qso_rules_ciii_complex_option():
-    names = [
-        getattr(r, "name", "")
-        for r in qr.qso_rules(Z, ciii_complex=True, ciii_second=True)
-    ]
-    assert "CIII] second component" in names
-    names = [getattr(r, "name", "") for r in qr.qso_rules(Z, ciii_complex=True)]
-    assert "CIII] complex" in names
-    names = [getattr(r, "name", "") for r in qr.qso_rules(Z)]
-    assert "CIII] complex" not in names
+    names = [getattr(r, "name", "") for r in qr.qso_rules(Z, ciii_second=False)]
+    assert "CIII] complex" in names and "CIII] second component" not in names
+    plain = qr.qso_rules(Z, ciii_complex=False)
+    assert "CIII" in [getattr(r, "prefix", "") for r in plain]
+    assert "CIII] complex" not in [getattr(r, "name", "") for r in plain]

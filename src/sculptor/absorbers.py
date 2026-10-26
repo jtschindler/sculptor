@@ -90,7 +90,9 @@ ION_CLASSES = {
 }
 
 # Broad absorption (`find_bal_troughs`): high-ionization lines (rest
-# wavelength of the blend), the velocity ranges, minimum trough widths and
+# wavelength of the absorbing doublet: SiIV 1393.76 / 1402.77, not the
+# 1399.8 A SiIV + OIV] emission blend of `qso_rules.QSO_LINES`), the
+# velocity ranges, minimum trough widths and
 # flux level of the balnicity index (Weymann et al. 1991) and of the
 # absorption index (Hall et al. 2002), km/s
 BAL_LINES = {"CIV": 1549.06, "SiIV": 1396.76, "NV": 1240.14}
