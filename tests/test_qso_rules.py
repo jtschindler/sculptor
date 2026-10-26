@@ -391,6 +391,31 @@ def test_group_rule_calibrated_without_its_group():
     assert cal.rule_improvements["narrow"].size >= 10
 
 
+def test_group_calibrated_without_narrow_lines_added_alone(monkeypatch):
+    """A narrow Hbeta the Hbeta rule added on its own is the group's
+    hypothesis too: the group is calibrated on simulations without it, not
+    on adding a second narrow Hbeta."""
+    model, lines, z = _weak_narrow_model(1.5)
+    found = AutoFit(model, lines, threshold=10.0).run().model
+    group = qr.narrow_line_group(lines, z)
+    assert group.guarded(found) == []  # not the group's own components
+    assert sorted(group.null_removals(found)) == ["Hbeta_1", "OIII_1"]
+
+    removed = []
+    without = autofit.AutoFit._without
+
+    def spy(model, name, copy_model=True):
+        removed.append(name)
+        return without(model, name, copy_model)
+
+    monkeypatch.setattr(autofit.AutoFit, "_without", staticmethod(spy))
+    cal = autofit.calibrate_threshold(
+        found, [*lines, group], n_sims=12, quantiles=[0.9], min_rule_sims=10
+    )
+    assert {"Hbeta_1", "OIII_1"} <= set(removed)
+    assert "narrow" in cal.rule_improvements
+
+
 def test_group_rejected_when_not_systemic():
     """Cores 600 km/s from the systemic redshift are outside the default
     window: the group would end at its redshift bound."""

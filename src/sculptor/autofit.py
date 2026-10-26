@@ -276,6 +276,18 @@ class Rule:
         """
         return []
 
+    def null_removals(self, model):
+        """Components of `model` that represent this rule's hypothesis:
+        `calibrate_threshold` calibrates the rule on simulations of `model`
+        without them (else it measures adding the hypothesis twice). Default:
+        the guarded components.
+
+        :param model: The model
+        :type model: sculptor.model.FitModel
+        :rtype: list(str)
+        """
+        return [name for _, comps in self.guarded(model) for name in comps]
+
 
 class GaussianLineRule(Rule):
     """Rule: Gaussian emission (or absorption) lines
@@ -936,6 +948,29 @@ class LineGroupRule(Rule):
             if set(c.param_mapping.values()) & set(shared)
         ]
         return [(shared, comps)] if comps else []
+
+    def null_removals(self, model):
+        """The group's components and the members' components within the
+        group's width range (e.g. a narrow Hbeta added on its own by the
+        Hbeta rule): the same hypothesis.
+
+        :param model: The model
+        :type model: sculptor.model.FitModel
+        :rtype: list(str)
+        """
+        names = super().null_removals(model)
+        for member in self.members:
+            for name in member.owned(model):
+                comp = next(c for c in model.components if c.name == name)
+                key = comp.param_mapping.get("fwhm_km_s", f"{name}_fwhm_km_s")
+                par = model.parameters.get(key)
+                if (
+                    par is not None
+                    and par.value <= self.fwhm_range[1]
+                    and name not in names
+                ):
+                    names.append(name)
+        return names
 
     def propose(self, model, result):
         """The group as one candidate (see the class).
@@ -2239,9 +2274,9 @@ def calibrate_threshold(
     (1 - q) / k, so that the chance that any rule fits noise stays about 1
     - q; such quantiles lie in the tail of a few hundred simulations and are
     extrapolated with an exponential fit to it (`tail_threshold`). A rule
-    whose components are in `model` (`Rule.guarded`, e.g. the narrow group
-    found by the preliminary search) is calibrated on simulations of
-    `model` without them. Rules that propose nothing in at least
+    whose hypothesis is in `model` (`Rule.null_removals`: e.g. the narrow
+    group found by the preliminary search, or a narrow Hbeta its member
+    rule added alone) is calibrated on simulations of `model` without it. Rules that propose nothing in at least
     `min_rule_sims` simulations keep the global threshold. A rule's
     threshold is at least `min_rule_threshold` (or the global threshold, if
     that is lower): a hypothesis that never improves the criterion on noise
@@ -2328,7 +2363,7 @@ def calibrate_threshold(
     without = {}
     if per_rule:
         for key, rule in zip(keys, search.rules, strict=True):
-            names = [name for _, comps in rule.guarded(null) for name in comps]
+            names = rule.null_removals(null)
             if not names:
                 continue
             reduced = null
