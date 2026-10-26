@@ -844,7 +844,9 @@ class LineGroupRule(Rule):
     With `after_members` (default), the group is proposed only once every
     member rule has a component (e.g. the broad Hbeta and the [OIII]
     doublet): it then tests narrow cores on top of the lines' fits instead
-    of standing in for the lines while they are unmodeled. It is proposed
+    of standing in for the lines while they are unmodeled. A list of member
+    prefixes waits for those members only (e.g. the broad Hbeta, not an
+    [OIII] that is narrow only and may be too weak to be added alone). It is proposed
     while no component uses its shared parameters (`<name>_<arg>`) and
     every member rule has room. The shared parameters are guarded
     (`guarded`): the group is rejected if one ends at a prior bound (a
@@ -873,8 +875,9 @@ class LineGroupRule(Rule):
         estimated flux
     :type prior_factor: float
     :param after_members: Propose the group only once every member rule
-        has a component
-    :type after_members: bool
+        has a component (True), the members with these prefixes (a list),
+        or at once (False)
+    :type after_members: bool or list(str)
     """
 
     def __init__(
@@ -949,7 +952,15 @@ class LineGroupRule(Rule):
         owned = [len(m.owned(model)) for m in self.members]
         if any(n >= m.max_components for n, m in zip(owned, self.members, strict=True)):
             return []
-        if self.after_members and not all(owned):
+        if self.after_members is True:
+            waits = owned
+        else:
+            waits = [
+                n
+                for n, m in zip(owned, self.members, strict=True)
+                if m.prefix in (self.after_members or ())
+            ]
+        if not all(waits):
             return []
 
         dz = self.velocity_range / scut.c_km_s * (1 + self.redshift)

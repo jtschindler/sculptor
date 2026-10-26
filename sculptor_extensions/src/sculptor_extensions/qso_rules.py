@@ -208,7 +208,10 @@ def narrow_line_group(
     systemic redshift, sharing redshift and FWHM (`narrow_redsh`,
     `narrow_fwhm_km_s`, the names `narrow_line_tie` uses): weak narrow
     lines that would not earn the threshold one at a time may earn it
-    together. See `sculptor.autofit.LineGroupRule`.
+    together. See `sculptor.autofit.LineGroupRule`. By default it waits
+    for the members with broad components (e.g. Hbeta), not for those that
+    are narrow only (`NARROW_LINES`, [OIII]): a weak [OIII] may never be
+    added alone, and the narrow Hbeta would then never be tested.
 
     :param rules: The line rules (from `line_rules`)
     :type rules: list
@@ -223,7 +226,8 @@ def narrow_line_group(
     :param min_fwhm: Smallest FWHM, km/s
     :type min_fwhm: float
     :param kwargs: Passed on to `LineGroupRule` (default `velocity_range`:
-        `NARROW_VELOCITY_RANGE`)
+        `NARROW_VELOCITY_RANGE`; `after_members`: the members not in
+        `NARROW_LINES`)
     :return: The rule, or None with fewer than two of the lines
     :rtype: sculptor.autofit.LineGroupRule
     """
@@ -236,6 +240,9 @@ def narrow_line_group(
     if len(members) < 2:
         return None
     kwargs.setdefault("velocity_range", NARROW_VELOCITY_RANGE)
+    kwargs.setdefault(
+        "after_members", [m.prefix for m in members if m.prefix not in NARROW_LINES]
+    )
     return LineGroupRule(
         "narrow",
         members,

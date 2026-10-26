@@ -339,6 +339,20 @@ def test_narrow_line_group_waits_for_the_members_and_proposes_once():
     assert group.propose(grouped.model, grouped.result) == []
 
 
+def test_narrow_line_group_waits_for_hbeta_not_oiii():
+    """[OIII] is narrow only and may be too weak to be added alone: the
+    group waits for the broad Hbeta only."""
+    model, lines, z = _weak_narrow_model(1.0)
+    group = qr.narrow_line_group(lines, z)
+    assert group.after_members == ["Hbeta"]
+    hbeta = next(r for r in lines if r.prefix == "Hbeta")
+    only_hbeta = AutoFit(model, [hbeta]).run()  # broad Hbeta, no [OIII]
+    assert not any(c.name.startswith("OIII") for c in only_hbeta.model.components)
+    assert len(group.propose(only_hbeta.model, only_hbeta.result)) == 1
+    both = qr.narrow_line_group(lines, z, after_members=True)
+    assert both.propose(only_hbeta.model, only_hbeta.result) == []
+
+
 def test_group_rejected_when_not_narrow():
     """A group whose width ends at the narrow limit is rejected: here the
     only narrow-ish emission is 1500 km/s wide."""
