@@ -232,3 +232,59 @@ def test_widths_follow_the_resolution():
     widths = scabs._trial_widths(model, x, None)
     assert widths[0] == pytest.approx(np.full(x.size, 2.998e5 / 2000.0), rel=1e-3)
     assert len(widths) == len(scabs.WIDTH_FACTORS)
+
+
+def test_balnicity_and_absorption_index_values():
+    """A box trough at 0.6 from -10000 to -5000 km/s: BI counts from 2000
+    km/s into it, 3000 km/s x (1 - 0.6 / 0.9); AI all of it, 5000 x 0.4."""
+    v = np.arange(-30000.0, 1.0, 10.0)
+    norm = np.where((v >= -10000) & (v <= -5000), 0.6, 1.0)
+    bi, bi_runs = scabs.balnicity_index(v, norm)
+    ai, ai_runs = scabs.absorption_index(v, norm)
+    assert bi == pytest.approx(3000 * (1 - 0.6 / 0.9), rel=0.01)
+    assert ai == pytest.approx(5000 * 0.4, rel=0.01)
+    assert len(bi_runs) == len(ai_runs) == 1
+    # Too narrow for BI (1500 km/s), wide enough for AI
+    narrow = np.where((v >= -6500) & (v <= -5000), 0.6, 1.0)
+    assert scabs.balnicity_index(v, narrow)[0] == 0
+    assert scabs.absorption_index(v, narrow)[0] > 0
+
+
+def _civ_obs(v):
+    """Observed wavelength of CIV at velocity v (km/s) at z = 2."""
+    return scabs._wavelength(v, scabs.BAL_LINES["CIV"], Z)
+
+
+def test_bal_trough_found_masked_and_kept_out_of_the_narrow_search():
+    centre = _civ_obs(-11000.0)
+    model = _absorbed_model([(centre, 6000.0, 0.4)])
+    troughs = scabs.find_bal_troughs(model, model.quick_fit_result.values, Z, n_sims=30)
+    assert troughs.is_bal
+    assert set(troughs.lines()) == {"CIV"}
+    assert troughs.balnicity["CIV"] > 0 and troughs.absorption["CIV"] > 0
+    row = troughs.troughs[0]
+    assert row["v_min"] < -11000 < row["v_max"]
+    x = model.spec.dispersion
+    assert not troughs.mask[np.argmin(np.abs(x - centre))]
+    assert "BAL troughs: 1" in str(troughs)
+
+    inv = scabs.find_absorbers(model, redshift=Z, n_sims=30)
+    assert inv.bal is not None and inv.bal.is_bal
+    assert not inv.mask[np.argmin(np.abs(x - centre))]
+    # No narrow features inside the trough
+    inside = (inv.features["wave"] > row["wave_min"]) & (
+        inv.features["wave"] < row["wave_max"]
+    )
+    assert not inside.any()
+    assert "BAL troughs" in str(inv)
+    assert scabs.find_absorbers(model, redshift=Z, n_sims=10, bal=False).bal is None
+
+
+def test_narrow_line_cluster_is_not_a_bal_trough():
+    """Strong narrow lines 300 km/s apart look like a trough once
+    smoothed, but the flux returns to the continuum between them."""
+    cluster = [(_civ_obs(-12000.0 + 300.0 * k), 120.0, 0.9) for k in range(6)]
+    model = _absorbed_model(cluster)
+    troughs = scabs.find_bal_troughs(model, model.quick_fit_result.values, Z, n_sims=30)
+    assert len(troughs.troughs) == 0
+    assert not troughs.is_bal

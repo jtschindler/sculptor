@@ -561,7 +561,9 @@ def get_line_prop_MgII(df, redshift, param_name_dict, save_dir, source, fit_name
     return df
 
 
-def get_line_prop_CIV(df, redshift, param_name_dict, save_dir=None, source=None):
+def get_line_prop_CIV(
+    df, redshift, param_name_dict, save_dir=None, source=None, bal=False
+):
     """
     Calculate AGN properties from the CIV line measurements of a fit (see
     `qso_autofit.get_line_properties` for the columns), with the
@@ -588,9 +590,19 @@ def get_line_prop_CIV(df, redshift, param_name_dict, save_dir=None, source=None)
     :type save_dir: str
     :param source: name of the source, used in the file name
     :type source: str
+    :param bal: whether CIV has broad absorption troughs: a bool, or the
+        `sculptor.absorbers.BALTroughs` / `AbsorberInventory` of the fit
+        (any significant CIV trough, BAL or mini-BAL). Adds the column
+        "CIV_BAL" and a warning when true: the trough masks the blue wing,
+        so the FWHM, the blueshift and the BH mass are unreliable.
+    :type bal: bool or sculptor.absorbers.BALTroughs
     :return: the input columns (with units) and the added ones
     :rtype: astropy.table.QTable
     """
+    bal = getattr(bal, "bal", bal)  # an AbsorberInventory's troughs
+    if hasattr(bal, "lines"):
+        bal = "CIV" in bal.lines()
+    bal = bool(bal)
     df = qa.get_line_properties(
         df,
         redshift,
@@ -599,6 +611,12 @@ def get_line_prop_CIV(df, redshift, param_name_dict, save_dir=None, source=None)
         1350 * u.AA,
         {"_vp06": qso.se_bhmass_civ_vp06_fwhm},
     )
+    df["CIV_BAL"] = np.full(len(df), bal)
+    if bal:
+        logger.warning(
+            "CIV has broad absorption troughs: its FWHM, blueshift and BH mass "
+            "are unreliable (flagged in 'CIV_BAL')."
+        )
 
     if save_dir is not None:
         df.write(os.path.join(save_dir, f"{source}_results_CIV.ecsv"), overwrite=True)

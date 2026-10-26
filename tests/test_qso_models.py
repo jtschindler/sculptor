@@ -249,6 +249,28 @@ def test_get_civ_line_prop_values():
     assert np.isfinite(df[1]["delta_v_CIV_median"])
 
 
+def test_get_civ_line_prop_bal_flag(caplog):
+    plain = qso_presets.get_line_prop_CIV(_civ_table(), 3.0, CIV_COLUMNS)
+    assert not plain["CIV_BAL"].any()
+
+    class Troughs:  # stands in for sculptor.absorbers.BALTroughs
+        def lines(self):
+            return ["CIV"]
+
+    class Inventory:
+        bal = Troughs()
+
+    with caplog.at_level("WARNING"):
+        flagged = qso_presets.get_line_prop_CIV(
+            _civ_table(), 3.0, CIV_COLUMNS, bal=Inventory()
+        )
+    assert flagged["CIV_BAL"].all()
+    assert "unreliable" in caplog.text
+    assert qso_presets.get_line_prop_CIV(_civ_table(), 3.0, CIV_COLUMNS, bal=True)[
+        "CIV_BAL"
+    ].all()
+
+
 def test_line_properties_units(caplog):
     """A QTable's units are converted (an incompatible one raises); a
     DataFrame's are assumed, with a warning."""
