@@ -395,6 +395,48 @@ def test_calibration_per_rule():
     assert plain.by_rule == {}
 
 
+def test_calibration_rule_floor_and_bound_rejection(monkeypatch):
+    free = _rule(max_components=2, min_significance=0.0)
+    narrow = GaussianLineRule(
+        "narrow", redshift=Z, lines=[CIV], fwhm_range=(300, 1500), min_significance=0.0
+    )
+
+    def calibrate(**kwargs):
+        # Chi-square: no penalty, every accepted candidate improves
+        return autofit.calibrate_threshold(
+            _model(lines=[]),
+            [free, narrow],
+            criterion=lambda result, model: result.chi_sq,
+            n_sims=4,
+            quantiles=[0.9],
+            min_rule_sims=2,
+            **kwargs,
+        )
+
+    assert calibrate().rule_improvements["narrow"].min() > 0
+    # The search would reject every narrow candidate: they improve nothing,
+    # but the simulations still count
+    original = autofit.AutoFit._rejected_at_bound
+    monkeypatch.setattr(
+        autofit.AutoFit,
+        "_rejected_at_bound",
+        lambda self, cand, result: (
+            "narrow" in cand.description or original(self, cand, result)
+        ),
+    )
+    cal = calibrate()
+    assert np.all(cal.rule_improvements["narrow"] == 0)
+    assert cal.rule_improvements["narrow"].size == 4
+    # A threshold of 0, raised to the floor (capped at the global one)
+    assert cal.thresholds[0.9] > 10.0
+    assert cal.by_rule["narrow"][0.9] == 10.0
+    assert calibrate(min_rule_threshold=0.0).by_rule["narrow"][0.9] == 0.0
+    assert (
+        calibrate(min_rule_threshold=1e9).by_rule["narrow"][0.9]
+        == (cal.thresholds[0.9])
+    )
+
+
 def _clip_with(monkeypatch, masks):
     """A clip whose sigma_clip sets the given masks in turn (always
     "changed"); returns the warnings and the number of calls."""

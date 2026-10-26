@@ -1552,6 +1552,21 @@ class AutoFit:
                 )
         return best
 
+    def _rejected_at_bound(self, candidate, result):
+        """Whether the candidate's fit is rejected for parameters at a prior
+        bound (its `reject_at_bound` ones; all its own with `at_bound=
+        "reject"`)."""
+        own = set(candidate.reject_at_bound)
+        if self.at_bound == "reject":
+            own |= set(candidate.parameters)
+        own &= set(result.at_bound)
+        if own:
+            logger.debug(
+                f"AutoFit: {candidate.description}: rejected, "
+                f"{', '.join(sorted(own))} at a prior bound"
+            )
+        return bool(own)
+
     def _removable(self, model):
         """Components that may be removed."""
         added = set()
@@ -1663,6 +1678,7 @@ class AutoFit:
             criterion=self.criterion_arg,
             quick_fit_kwargs=self.quick_fit_kwargs,
             multistart=self.multistart,
+            at_bound=self.at_bound,
             **kwargs,
         )
         self.n_fits += calibration.n_fits
@@ -1742,17 +1758,9 @@ class AutoFit:
                         f"AutoFit: {cand.description}: "
                         f"{self.criterion_name} {trial_score - score:+.2f}"
                     )
-                    if trial_result is None:
-                        continue
-                    own = set(cand.reject_at_bound)
-                    if self.at_bound == "reject":
-                        own |= set(cand.parameters)
-                    own &= set(trial_result.at_bound)
-                    if own:
-                        logger.debug(
-                            f"AutoFit: {cand.description}: rejected, "
-                            f"{', '.join(sorted(own))} at a prior bound"
-                        )
+                    if trial_result is None or self._rejected_at_bound(
+                        cand, trial_result
+                    ):
                         continue
                     if score - trial_score <= rule_threshold:
                         continue
@@ -2185,6 +2193,8 @@ def calibrate_threshold(
     n_bootstrap=1000,
     per_rule=True,
     min_rule_sims=20,
+    at_bound="flag",
+    min_rule_threshold=10.0,
 ):
     """Thresholds for `AutoFit` from simulations without extra components.
 
@@ -2214,7 +2224,15 @@ def calibrate_threshold(
     whose components are in `model` (`Rule.guarded`, e.g. the narrow group
     found by the preliminary search) is calibrated on simulations of
     `model` without them. Rules that propose nothing in at least
-    `min_rule_sims` simulations keep the global threshold.
+    `min_rule_sims` simulations keep the global threshold. A rule's
+    threshold is at least `min_rule_threshold` (or the global threshold, if
+    that is lower): a hypothesis that never improves the criterion on noise
+    gives a threshold of 0, which says only that the simulations do not
+    reach its tail.
+
+    Candidates are judged as in the search: a fit rejected for parameters
+    at a prior bound (`Candidate.reject_at_bound`, `at_bound`) improves
+    nothing (the search would not add it), and neither does a failed fit.
 
     :param model: The null model (spectrum, fit mask, starting values)
     :type model: sculptor.model.FitModel
@@ -2242,6 +2260,11 @@ def calibrate_threshold(
     :param min_rule_sims: Simulations a rule needs candidates in to get its
         own threshold
     :type min_rule_sims: int
+    :param at_bound: As for `AutoFit` (use the same setting as the search)
+    :type at_bound: str
+    :param min_rule_threshold: Floor of the per-rule thresholds (capped at
+        the global threshold)
+    :type min_rule_threshold: float
     :return: The improvements and the thresholds
     :rtype: Calibration
     :raises ValueError: for an unknown `noise`, quantiles outside (0, 1), or
@@ -2260,7 +2283,20 @@ def calibrate_threshold(
         threshold=0.0,
         quick_fit_kwargs=quick_fit_kwargs,
         multistart=multistart,
+        at_bound=at_bound,
     )
+
+    def best_score(sim, sim_result, sim_score, rule):
+        """Best score of the rule's candidates on `sim`; `sim_score` if all
+        are rejected (the search would add none), None if it proposes none.
+        """
+        best = None
+        for cand in rule.propose(sim, sim_result):
+            _, result, score = search._fit_candidate(sim, cand)
+            if result is None or search._rejected_at_bound(cand, result):
+                score = sim_score
+            best = score if best is None else min(best, score)
+        return best
 
     null = copy.deepcopy(model)
     null_result, _ = search._fit(null)
@@ -2299,12 +2335,9 @@ def calibrate_threshold(
             continue
         best = sim_score
         for key, rule in zip(keys, search.rules, strict=True):
-            rule_best = None
-            for cand in rule.propose(sim, sim_result):
-                _, _, score = search._fit_candidate(sim, cand)
-                best = min(best, score)
-                rule_best = score if rule_best is None else min(rule_best, score)
+            rule_best = best_score(sim, sim_result, sim_score, rule)
             if rule_best is not None:
+                best = min(best, rule_best)
                 by_key[key][idx] = max(sim_score - rule_best, 0.0)
         improvements[idx] = sim_score - best
 
@@ -2315,12 +2348,9 @@ def calibrate_threshold(
             red_result, red_score = search._fit(red)
             if red_result is None:
                 continue
-            scores = [
-                search._fit_candidate(red, cand)[2]
-                for cand in rule.propose(red, red_result)
-            ]
-            if scores:
-                by_key[key][idx] = max(red_score - min(scores), 0.0)
+            rule_best = best_score(red, red_result, red_score, rule)
+            if rule_best is not None:
+                by_key[key][idx] = max(red_score - rule_best, 0.0)
     improvements = improvements[np.isfinite(improvements)]
     if improvements.size == 0:
         raise ValueError("calibrate_threshold: all simulations failed.")
@@ -2352,9 +2382,17 @@ def calibrate_threshold(
     if per_rule and rule_improvements:
         n_rules = len(rule_improvements)
         for key, values in rule_improvements.items():
-            by_rule[key] = {
-                q: tail_threshold(values, 1 - (1 - q) / n_rules) for q in quantiles
-            }
+            by_rule[key] = {}
+            for q in quantiles:
+                value = tail_threshold(values, 1 - (1 - q) / n_rules)
+                floor = min(min_rule_threshold, thresholds[q])
+                if value < floor:
+                    logger.info(
+                        f"calibrate_threshold: {key}: {q:.1%} threshold "
+                        f"{value:.1f} raised to the floor {floor:.1f}"
+                    )
+                    value = floor
+                by_rule[key][q] = value
 
     calibration = Calibration(
         search.criterion_name,
