@@ -132,10 +132,62 @@ def test_weak_doublet_found_together():
     inv = scabs.find_absorbers(model, n_sims=100)
     assert list(inv.systems["species"]) == ["MgII"]
     assert inv.systems["z_abs"][0] == pytest.approx(0.8, abs=3e-4)
-    assert len(inv.features) == 2
+    detected = inv.features[inv.features["found_by"] != "predicted"]
+    assert len(detected) == 2
     weak = inv.features[inv.features["transition"] == "MgII 2803"][0]
     assert weak["found_by"] == "doublet"
     assert weak["significance"] < inv.threshold
+
+
+def test_predicted_transitions_are_masked():
+    """The other covered transitions at an identified system's redshift
+    are masked, detected or not."""
+    model = _absorbed_model(
+        [(_obs("MgII 2796", 0.8), 150.0, 0.6), (_obs("MgII 2803", 0.8), 150.0, 0.4)]
+    )
+    x = model.spec.dispersion
+    z = 0.8
+    inv = scabs.find_absorbers(model, n_sims=30)
+    predicted = inv.features[inv.features["found_by"] == "predicted"]
+    names = set(predicted["transition"])
+    # Covered (4250 - 6150 A at z = 0.8): FeII 2383, 2600, 2587, 2374, MgI
+    assert {"FeII 2600", "MgI 2853", "FeII 2383"} <= names
+    assert "FeII 2344" not in names  # 4220 A, outside the fit region
+    assert set(predicted["system"]) == {0}
+    mgi = np.argmin(np.abs(x - _obs("MgI 2853", z)))
+    assert not inv.mask[mgi]
+    assert "predicted transition(s) masked" in str(inv)
+
+    plain = scabs.find_absorbers(model, n_sims=30, predict=False)
+    assert not (plain.features["found_by"] == "predicted").any()
+    assert plain.mask[mgi]
+
+
+def test_multiplet_found_together():
+    """MgII + FeII lines at one redshift, too weak for the single and
+    doublet passes to identify, are found together; without the multiplet
+    pass the same lines are misidentified."""
+    z = 1.0
+    depths = {
+        "MgII 2796": 1.0,
+        "MgII 2803": 0.8,
+        "FeII 2600": 0.9,
+        "FeII 2383": 0.9,
+        "FeII 2587": 0.6,
+        "FeII 2344": 0.7,
+    }
+    model = _absorbed_model(
+        [(_obs(name, z), 150.0, 0.026 * f) for name, f in depths.items()]
+    )
+    inv = scabs.find_absorbers(model, n_sims=50)
+    assert list(inv.systems["species"]) == ["FeII, MgII"]
+    assert inv.systems["z_abs"][0] == pytest.approx(z, abs=3e-4)
+    assert (inv.features["found_by"] == "multiplet").any()
+    assert np.isfinite(inv.multiplet_threshold)
+
+    without = scabs.find_absorbers(model, n_sims=50, multiplets={})
+    assert np.isnan(without.multiplet_threshold)
+    assert not any("FeII" in species for species in without.systems["species"])
 
 
 def test_find_absorbers_clean_spectrum_and_mask_in_fit():

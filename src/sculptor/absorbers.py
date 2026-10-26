@@ -17,12 +17,20 @@ and species at the same redshift (within `system_dv`) joined into one
 system. A doublet whose lines are each below the threshold may still be
 significant together: a second pass combines each pixel with its doublet
 partner (MgII, CIV, SiIV, NV, AlIII, CaII; `doublet_map`), with its own
-calibrated threshold, and adds both lines of a significant pair. The
-quantile is split between the two passes. A system needs at least two matched transitions, and a species
+calibrated threshold, and adds both lines of a significant pair. A third
+pass does the same for multiplets (`MULTIPLETS`, e.g. MgII + FeII at one
+redshift; `multiplet_map`), whose lines may each be too weak for the other
+passes (without its strongest lines: in a crowded spectrum, strong lines of
+other systems fall on some of its transitions); there, a line counts
+if its own significance exceeds a quantile of the pixel significances in
+noise (the redshift is fixed). The quantile is split between the passes. A system needs at least two matched transitions, and a species
 counts only if its transitions stronger than the weakest matched one are
 matched too where the spectrum covers them (e.g. FeII 2587 and 2600
 without 2383 are a coincidence); single features stay unidentified. Every feature is masked (`FitModel.absorber_mask`) over
-+-`mask_fwhm` times its matched-filter FWHM.
++-`mask_fwhm` times its matched-filter FWHM, and so is every listed
+transition at the redshift of an identified system where the spectrum
+covers it (`predict`), detected or not: at a known redshift a line too weak
+to detect may still bias e.g. an emission-line fit.
 
 TODO: broad absorption (BAL troughs, several 1000 km/s) is not searched for
 yet; it needs masking of whole regions rather than of features.
@@ -64,6 +72,25 @@ ABSORPTION_LINES = {
     "CaII": {"CaII 3935": 3934.777, "CaII 3970": 3969.591},
 }
 
+# Transitions searched together at one redshift (`multiplet_map`), the
+# first the reference (its strongest line): name -> transition names of
+# `ABSORPTION_LINES`
+MULTIPLETS = {
+    "MgII+FeII": [
+        "MgII 2796",
+        "MgII 2803",
+        "FeII 2600",
+        "FeII 2383",
+        "FeII 2587",
+        "FeII 2344",
+    ],
+}
+# Covered transitions a multiplet needs at a pixel, and how many of the
+# strongest are left out of its joint significance (in a crowded spectrum,
+# strong lines of other systems fall on some of its transitions)
+MIN_MULTIPLET_LINES = 4
+MULTIPLET_DROP = 2
+
 # Matched-filter FWHMs in units of the instrumental FWHM (c / R) with a
 # resolution, else in km/s
 WIDTH_FACTORS = (1.0, 1.5, 2.5)
@@ -100,6 +127,12 @@ class AbsorberInventory:
     :param pair_maxima: Largest joint doublet significance in each
         simulation
     :type pair_maxima: np.ndarray
+    :param multiplet_threshold: Threshold of the joint multiplet
+        significance (NaN without multiplets)
+    :type multiplet_threshold: float
+    :param multiplet_maxima: Largest joint multiplet significance in each
+        simulation
+    :type multiplet_maxima: np.ndarray
     """
 
     features: Table
@@ -110,14 +143,23 @@ class AbsorberInventory:
     mask: np.ndarray | None = None
     pair_threshold: float = np.nan
     pair_maxima: np.ndarray = field(default_factory=lambda: np.array([]))
+    multiplet_threshold: float = np.nan
+    multiplet_maxima: np.ndarray = field(default_factory=lambda: np.array([]))
 
     def __str__(self):
+        detected = self.features[self.features["found_by"] != "predicted"]
+        multiplets = (
+            ""
+            if np.isnan(self.multiplet_threshold)
+            else f", multiplets above {self.multiplet_threshold:.2f}"
+        )
         lines = [
             (
-                f"Absorbers: {len(self.features)} feature(s) (significance above "
-                f"{self.threshold:.2f}, or doublets above {self.pair_threshold:.2f}; "
-                f"{self.quantile:.0%} of noise-only maxima), "
-                f"{len(self.systems)} system(s)"
+                f"Absorbers: {len(detected)} feature(s) (significance above "
+                f"{self.threshold:.2f}, or doublets above {self.pair_threshold:.2f}"
+                f"{multiplets}; {self.quantile:.0%} of noise-only maxima), "
+                f"{len(self.systems)} system(s), "
+                f"{len(self.features) - len(detected)} predicted transition(s) masked"
             )
         ]
         for idx in range(len(self.systems)):
@@ -126,7 +168,7 @@ class AbsorberInventory:
             lines.append(
                 f"  {row['absorber_id']}{tag}: {row['species']} ({row['transitions']})"
             )
-        unidentified = self.features[self.features["system"] < 0]
+        unidentified = detected[detected["system"] < 0]
         if len(unidentified):
             waves = ", ".join(
                 f"{w:.0f} A ({s:.1f})"
@@ -256,6 +298,68 @@ def doublet_map(signif, partners):
         best[better] = joint[better]
         species[better] = name
     return best, species
+
+
+def _multiplet_partners(x, region, multiplets, lines, z_max):
+    """Per multiplet: the pixel of each transition for each pixel (taken
+    as the reference, the first transition), where each is searched, and
+    where the multiplet can be tested (reference searched, redshift in
+    range, at least `MIN_MULTIPLET_LINES` transitions searched).
+
+    :rtype: dict(str, tuple(np.ndarray, np.ndarray, np.ndarray))
+    """
+    rests = {n: r for transitions in lines.values() for n, r in transitions.items()}
+    partners = {}
+    for name, members in multiplets.items():
+        members = [m for m in members if m in rests]
+        if len(members) < MIN_MULTIPLET_LINES:
+            continue
+        ref = rests[members[0]]
+        z = x / ref - 1
+        js, covered = [], []
+        for member in members:
+            target = x * rests[member] / ref
+            j = np.clip(np.searchsorted(x, target), 1, x.size - 1)
+            j = np.where(np.abs(x[j - 1] - target) < np.abs(x[j] - target), j - 1, j)
+            js.append(j)
+            covered.append(region[j] & (target >= x[0]) & (target <= x[-1]))
+        js, covered = np.array(js), np.array(covered)
+        valid = region & (z >= 0) & (covered.sum(axis=0) >= MIN_MULTIPLET_LINES)
+        if z_max is not None:
+            valid &= z <= z_max
+        partners[name] = (js, covered, valid)
+    return partners
+
+
+def multiplet_map(signif, partners):
+    """Joint significance of the multiplets: the sum of the significances
+    of the searched transitions without the `MULTIPLET_DROP` largest, over
+    sqrt(n - MULTIPLET_DROP) (strong lines of other systems on some of its
+    transitions, or a strong line next to noise, are not a multiplet), with
+    the reference line in absorption; the largest over the multiplets, and
+    its name.
+
+    :param signif: Absorption significance per pixel (`significance_map`)
+    :type signif: np.ndarray
+    :param partners: From `_multiplet_partners`
+    :type partners: dict
+    :return: joint significance, multiplet (one per pixel; "" where none)
+    :rtype: (np.ndarray, np.ndarray)
+    """
+    best = np.zeros_like(signif)
+    names = np.full(signif.shape, "", dtype=object)
+    for name, (js, covered, valid) in partners.items():
+        values = np.where(covered, signif[js], 0.0)
+        n = covered.sum(axis=0)
+        ranked = np.sort(np.where(covered, signif[js], -np.inf), axis=0)
+        top = ranked[ranked.shape[0] - MULTIPLET_DROP :].sum(axis=0)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            joint = (values.sum(axis=0) - top) / np.sqrt(n - MULTIPLET_DROP)
+        joint = np.where(valid & (signif > 0), joint, 0.0)
+        better = joint > best
+        best[better] = joint[better]
+        names[better] = name
+    return best, names
 
 
 def _peaks(x, signif, fwhm, threshold):
@@ -400,6 +504,8 @@ def find_absorbers(
     associated_dv=5000.0,
     lines=None,
     max_iterations=5,
+    multiplets=None,
+    predict=True,
 ):
     """Find, identify and mask narrow absorbers (see the module docstring).
 
@@ -435,6 +541,13 @@ def find_absorbers(
         this many times (the noise-only simulations follow the residuals
         without the absorbers found)
     :type max_iterations: int
+    :param multiplets: Name -> transition names, searched together (default
+        `MULTIPLETS`; {} for none)
+    :type multiplets: dict
+    :param predict: Also mask every transition of `lines` at the redshift of
+        each identified system, where covered (rows with `found_by`
+        "predicted" in the features)
+    :type predict: bool
     :return: The inventory (with the mask)
     :rtype: AbsorberInventory
     """
@@ -458,16 +571,29 @@ def find_absorbers(
     z_max = None
     if redshift is not None:
         z_max = (1 + redshift) * (1 + associated_dv / scut.c_km_s) - 1
-    partners = _doublet_partners(
-        x, region, _doublets(ABSORPTION_LINES if lines is None else lines), z_max
-    )
+    all_lines = ABSORPTION_LINES if lines is None else lines
+    partners = _doublet_partners(x, region, _doublets(all_lines), z_max)
     joint, joint_species = doublet_map(signif, partners)
-    # Two passes (single lines, doublets): each at half the false rate
-    each = 1 - (1 - quantile) / 2
+    multi_partners = _multiplet_partners(
+        x, region, MULTIPLETS if multiplets is None else multiplets, all_lines, z_max
+    )
+    if not any(valid.any() for _, _, valid in multi_partners.values()):
+        multi_partners = {}
+    multi, multi_names = multiplet_map(signif, multi_partners)
+    # One pass each (single lines, doublets, multiplets) at an equal share
+    # of the false rate
+    each = 1 - (1 - quantile) / (3 if multi_partners else 2)
 
-    def features_above(single_threshold, pair_threshold):
-        """Single features, plus both lines of significant doublets
-        (sorted pixel indices, and how each was found)."""
+    def covered(wave):
+        """Inside the searched pixels."""
+        if wave < x[0] or wave > x[-1]:
+            return False
+        return bool(region[np.argmin(np.abs(x - wave))])
+
+    def features_above(single_threshold, pair_threshold, multi_threshold):
+        """Single features, plus both lines of significant doublets and the
+        lines of significant multiplets above `member_threshold` (sorted
+        pixel indices, and how each was found)."""
         found = {i: "single" for i in _peaks(x, signif, fwhm, single_threshold)}
 
         def near(k, others):
@@ -486,6 +612,12 @@ def find_absorbers(
             for k in members:
                 if not near(k, found):
                     found[k] = "doublet"
+        if multi_partners:
+            for i in _peaks(x, multi, fwhm, multi_threshold):
+                js, searched, _ = multi_partners[multi_names[i]]
+                for k, cov in zip(js[:, i], searched[:, i], strict=True):
+                    if cov and signif[k] >= member_threshold and not near(k, found):
+                        found[k] = "multiplet"
         return sorted(found), found
 
     def mask_of(peaks):
@@ -505,27 +637,36 @@ def find_absorbers(
             rng = np.random.default_rng(seed)
             maxima = np.empty(n_sims)
             pair_maxima = np.empty(n_sims)
+            multi_maxima = np.zeros(n_sims)
+            pixels = []
             for k in range(n_sims):
                 sim = best + correlated_noise(model, result, rng)
                 sim_signif = significance_map(model, values, sim, region, widths)[0]
                 maxima[k] = sim_signif.max()
                 pair_maxima[k] = doublet_map(sim_signif, partners)[0].max()
+                if multi_partners:
+                    multi_maxima[k] = multiplet_map(sim_signif, multi_partners)[0].max()
+                    pixels.append(sim_signif[region])
         finally:
             model.absorber_mask = saved
         threshold = float(np.quantile(maxima, each))
         pair_threshold = float(np.quantile(pair_maxima, each))
-        new, new_how = features_above(threshold, pair_threshold)
+        multi_threshold, member_threshold = np.inf, np.inf
+        if multi_partners:
+            multi_threshold = float(np.quantile(multi_maxima, each))
+            # At the redshift of a significant multiplet a line is tested on
+            # its own pixel (no search over wavelength): the quantile of the
+            # pixel significances, corrected for the number of lines
+            n_members = max(len(js) for js, _, _ in multi_partners.values())
+            member_threshold = float(
+                np.quantile(np.concatenate(pixels), 1 - (1 - each) / n_members)
+            )
+        new, new_how = features_above(threshold, pair_threshold, multi_threshold)
         if new == peaks:
             break
         peaks, how, mask = new, new_how, mask_of(new)
 
     waves = x[peaks]
-
-    def covered(wave):
-        """Inside the searched pixels."""
-        if wave < x[0] or wave > x[-1]:
-            return False
-        return bool(region[np.argmin(np.abs(x - wave))])
 
     per_feature, systems = identify_systems(
         waves,
@@ -547,6 +688,29 @@ def find_absorbers(
             "transition": [t for _, t in per_feature],
         }
     )
+    if predict:
+        # The other transitions of each system, at its redshift, over the
+        # system's median matched-filter FWHM
+        for s_idx, (z, found) in enumerate(systems):
+            width = float(np.median(fwhm[peaks][list(found.values())]))
+            for transitions in all_lines.values():
+                for transition, rest in transitions.items():
+                    wave = rest * (1 + z)
+                    if transition in found or not covered(wave):
+                        continue
+                    k = int(np.argmin(np.abs(x - wave)))
+                    mask &= np.abs(x - wave) > mask_fwhm * width / scut.c_km_s * wave
+                    features.add_row(
+                        (
+                            wave,
+                            signif[k],
+                            width,
+                            amp[k],
+                            "predicted",
+                            s_idx,
+                            transition,
+                        )
+                    )
     rows = []
     for z, found in systems:
         associated = redshift is not None and (
@@ -588,4 +752,6 @@ def find_absorbers(
         mask,
         pair_threshold=pair_threshold,
         pair_maxima=pair_maxima,
+        multiplet_threshold=multi_threshold if multi_partners else np.nan,
+        multiplet_maxima=multi_maxima if multi_partners else np.array([]),
     )
