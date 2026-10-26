@@ -39,8 +39,10 @@ Broad absorption (BAL troughs, several 1000 km/s) of the high-ionization
 lines (`BAL_LINES`: CIV, SiIV, NV) is searched for first
 (`find_bal_troughs`): the spectrum over the emission model, smoothed, with
 the balnicity index (Weymann et al. 1991) and the absorption index (Hall et
-al. 2002) per line; significant troughs are masked as whole regions and the
-model refitted until the troughs stop changing. The narrow absorbers are
+al. 2002) per line; significant BI troughs are masked as whole regions and
+the model refitted until the troughs stop changing. AI-only troughs
+(mini-BALs) are reported, not masked, and dropped if lines of an identified
+narrow system explain them. The narrow absorbers are
 then searched in the refitted model's residuals, outside the troughs.
 
 `AutoFit(absorbers={...})` runs the search on its preliminary model and
@@ -737,6 +739,9 @@ def find_absorbers(
         lines=lines,
         covered=covered,
     )
+    if troughs is not None:
+        identified = waves[[s >= 0 for s, _ in per_feature]]
+        troughs.drop_explained(identified)
 
     features = Table(
         {
@@ -925,10 +930,13 @@ class BALTroughs:
     :param threshold: Absorption index that noise alone exceeds in a
         fraction 1 - quantile of the simulations (largest over the lines)
     :type threshold: float
-    :param mask: False on the masked troughs
+    :param mask: False on the masked (BI) troughs
     :type mask: np.ndarray
     :param model: Copy of the model refitted with the troughs masked
     :type model: sculptor.model.FitModel
+    :param dropped: Troughs dropped as narrow-line clusters
+        (`drop_explained`), "line v_min..v_max"
+    :type dropped: list(str)
     """
 
     troughs: Table
@@ -937,6 +945,32 @@ class BALTroughs:
     threshold: float
     mask: np.ndarray
     model: object = None
+    dropped: list = field(default_factory=list)
+
+    def drop_explained(self, waves):
+        """Drop the troughs that contribute only to the absorption index
+        (not to the balnicity index, so not masked) and contain one of
+        `waves` (lines of identified narrow systems): a cluster of strong
+        narrow lines looks like a trough once smoothed. The absorption
+        indices are reduced by theirs.
+
+        :param waves: Observed wavelengths of identified narrow lines
+        :type waves: np.ndarray
+        """
+        waves = np.asarray(waves, dtype=float)
+        drop = [
+            i
+            for i, row in enumerate(self.troughs)
+            if not row["bal"]
+            and np.any((waves >= row["wave_min"]) & (waves <= row["wave_max"]))
+        ]
+        for i in drop:
+            row = self.troughs[i]
+            remaining = self.absorption[row["line"]] - row["ai"]
+            self.absorption[row["line"]] = max(remaining, 0.0)
+            self.dropped.append(f"{row['line']} {row['v_min']:.0f}..{row['v_max']:.0f}")
+        if drop:
+            self.troughs.remove_rows(drop)
 
     @property
     def is_bal(self):
@@ -970,6 +1004,10 @@ class BALTroughs:
             + (f", also in {r['also_in']}" if r["also_in"] else "")
             for r in self.troughs
         ]
+        if self.dropped:
+            rows.append(
+                "    dropped as narrow-line clusters: " + ", ".join(self.dropped)
+            )
         return "\n".join([head, *rows])
 
 
@@ -1022,8 +1060,9 @@ def find_bal_troughs(
     largest AI in noise-only simulations (the model plus correlated
     noise). A trough counts only if the flux stays depressed throughout
     (`BAL_ENVELOPE`): not a cluster of narrow lines, which the narrow
-    search handles; the indices are over the troughs that count. Their
-    troughs are masked, the model is refitted without them and the troughs
+    search handles; the indices are over the troughs that count. Their BI
+    troughs (>= 2000 km/s) are masked, the model is refitted without them
+    and the troughs
     measured again, until they stop changing: the trough biases the
     emission model it is measured against.
 
@@ -1126,6 +1165,10 @@ def find_bal_troughs(
 
         new_mask = np.ones(x.size, dtype=bool)
         for row in rows:
+            # BI troughs only (>= 2000 km/s); AI-only ones are left to the
+            # narrow search (`find_absorbers` drops those it explains)
+            if not row[7]:
+                continue
             # Plus the smoothing width on each side
             pad = smooth_km_s
             lo = _wavelength(row[1] - pad, lines[row[0]], redshift)

@@ -288,3 +288,32 @@ def test_narrow_line_cluster_is_not_a_bal_trough():
     troughs = scabs.find_bal_troughs(model, model.quick_fit_result.values, Z, n_sims=30)
     assert len(troughs.troughs) == 0
     assert not troughs.is_bal
+
+
+def test_ai_only_trough_reported_not_masked_and_dropped_when_explained():
+    """A 1500 km/s trough counts for AI, not BI: reported, not masked; a
+    narrow system's line inside it explains it away (narrow-line cluster)."""
+    centre = _civ_obs(-11000.0)
+    model = _absorbed_model([(centre, 900.0, 0.5)])
+    troughs = scabs.find_bal_troughs(model, model.quick_fit_result.values, Z, n_sims=30)
+    assert len(troughs.troughs) == 1 and not troughs.troughs["bal"][0]
+    assert not troughs.is_bal
+    assert troughs.mask.all()  # AI-only: not masked
+    ai = troughs.absorption["CIV"]
+    assert ai > 0
+
+    troughs.drop_explained([1.0])  # nothing inside
+    assert len(troughs.troughs) == 1
+    troughs.drop_explained([centre])
+    assert len(troughs.troughs) == 0
+    assert troughs.absorption["CIV"] == pytest.approx(0.0, abs=1e-6)
+    assert troughs.dropped and "dropped as narrow-line clusters" in str(troughs)
+
+
+def test_bi_trough_is_never_dropped_as_explained():
+    centre = _civ_obs(-11000.0)
+    model = _absorbed_model([(centre, 6000.0, 0.4)])
+    troughs = scabs.find_bal_troughs(model, model.quick_fit_result.values, Z, n_sims=30)
+    assert troughs.troughs["bal"][0]
+    troughs.drop_explained([centre])
+    assert len(troughs.troughs) == 1
