@@ -757,6 +757,63 @@ def test_calibrated_threshold_is_the_default():
         autofit.AutoFit(base, [_rule()], threshold="auto")
 
 
+def _record_nulls(monkeypatch):
+    """Component names of every null model `calibrate_threshold` gets."""
+    nulls, original = [], autofit.calibrate_threshold
+
+    def recording(model, *args, **kwargs):
+        nulls.append(autofit._component_names(model))
+        return original(model, *args, **kwargs)
+
+    monkeypatch.setattr(autofit, "calibrate_threshold", recording)
+    return nulls
+
+
+def test_recalibration_on_the_selected_model(monkeypatch):
+    """A preliminary search that takes everything (threshold -inf) overfits;
+    the calibration is repeated on the model the first quantile selects."""
+    nulls = _record_nulls(monkeypatch)
+    calibration = {"n_sims": 10, "quantiles": (0.9,)}
+    result = autofit.AutoFit(
+        _model(),
+        [_rule(max_components=6, min_significance=0.0)],
+        calibration=calibration,
+        preliminary_threshold=-np.inf,
+    ).run()
+    preliminary = autofit._component_names(result.preliminary.model)
+    assert len(preliminary) > len(result.model.components)
+    assert len(result.calibrations) == 2 == len(nulls)
+    assert nulls[0] == preliminary
+    assert result.calibration is result.calibrations[-1]
+    assert "recalibrated 1 time(s)" in str(result)
+
+    # recalibrate=0: the preliminary model only
+    nulls.clear()
+    once = autofit.AutoFit(
+        _model(),
+        [_rule(max_components=6, min_significance=0.0)],
+        calibration=calibration,
+        preliminary_threshold=-np.inf,
+        recalibrate=0,
+    ).run()
+    assert len(once.calibrations) == 1 == len(nulls)
+    assert "recalibrated" not in str(once)
+
+
+def test_recalibration_stops_when_the_model_does_not_change(monkeypatch):
+    """The preliminary search already finds the selected model: no second
+    calibration, however many are allowed."""
+    nulls = _record_nulls(monkeypatch)
+    result = autofit.AutoFit(
+        _model(),
+        [_rule()],
+        calibration={"n_sims": 10, "quantiles": (0.9,)},
+        recalibrate=3,
+    ).run()
+    assert nulls == [autofit._component_names(result.model)]
+    assert len(result.calibrations) == 1
+
+
 # -- prior bounds ---------------------------------------------------------------
 
 

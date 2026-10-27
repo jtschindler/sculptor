@@ -46,8 +46,11 @@ preliminary search with a fixed threshold gives a model of the real
 features; `calibrate_threshold` simulates it with noise like its residuals
 and takes quantiles of the criterion improvements that noise alone
 achieves (95% and 99% by default); the search is then rerun for each
-quantile. `AutoFitResult` holds the model of the first quantile, the
-others in `by_quantile`, and the calibration.
+quantile. The preliminary model overfits (its threshold is low), so its
+residuals understate the noise; with `recalibrate` the calibration is
+repeated on the model the first quantile selects, and the searches rerun,
+until that model no longer changes. `AutoFitResult` holds the model of the
+first quantile, the others in `by_quantile`, and the calibrations.
 
 With `clip`, the fit mask is sigma-clipped (`FitModel.sigma_clip`) after
 every accepted change once `clip_after` components were added, and the
@@ -1312,8 +1315,12 @@ class AutoFitResult:
         the search with that quantile's threshold (this one included)
     :type by_quantile: dict
     :param preliminary: With a calibrated threshold: the preliminary search
-        the calibration simulated
+        the first calibration simulated
     :type preliminary: AutoFitResult
+    :param calibrations: With a calibrated threshold: every calibration, in
+        order (the first on the preliminary model, each later one on the
+        model selected with the one before; the last is `calibration`)
+    :type calibrations: list(Calibration)
     :param absorbers: The absorber inventory, if `AutoFit(absorbers=...)`
         searched for them (`sculptor.absorbers.AbsorberInventory`)
     :type absorbers: sculptor.absorbers.AbsorberInventory
@@ -1334,6 +1341,7 @@ class AutoFitResult:
     calibration: object = None
     by_quantile: dict = field(default_factory=dict)
     preliminary: object = None
+    calibrations: list = field(default_factory=list)
     ties: dict = field(default_factory=dict)
     absorbers: object = None
     rule_thresholds: dict = field(default_factory=dict)
@@ -1376,7 +1384,17 @@ class AutoFitResult:
         if self.absorbers is not None:
             lines += ["", str(self.absorbers)]
         if self.calibration is not None:
-            lines += ["", str(self.calibration), "", "Models by quantile:"]
+            lines += ["", str(self.calibration)]
+            if len(self.calibrations) > 1:
+                first = self.calibrations[0]
+                lines.append(
+                    f"  recalibrated {len(self.calibrations) - 1} time(s) on the "
+                    f"selected model; on the preliminary model: "
+                    + ", ".join(
+                        f"{q:.1%}: {t:.1f}" for q, t in first.thresholds.items()
+                    )
+                )
+            lines += ["", "Models by quantile:"]
             mine = set(self.components())
             for quantile, other in self.by_quantile.items():
                 names = other.components()
@@ -1393,6 +1411,11 @@ class AutoFitResult:
                     text += f"; without {', '.join(missing)}"
                 lines.append(text)
         return "\n".join(lines)
+
+
+def _component_names(model):
+    """The model's component names, sorted (to compare models)."""
+    return tuple(sorted(c.name for c in model.components))
 
 
 class AutoFit:
@@ -1450,6 +1473,13 @@ class AutoFit:
         must also earn the rule's own calibrated threshold, where it has one
         (`calibrate_threshold(per_rule=True)`), instead of the global one
     :type per_rule: bool
+    :param recalibrate: With `threshold="calibrate"`: at most this many
+        further calibrations, each on the model the first quantile selected
+        with the previous one (then the searches are rerun); stops early
+        when the selected model has the components of the model calibrated
+        on (or of an earlier one). 0 calibrates on the preliminary model
+        only
+    :type recalibrate: int
     """
 
     def __init__(
@@ -1467,6 +1497,7 @@ class AutoFit:
         preliminary_threshold=10.0,
         absorbers=None,
         per_rule=True,
+        recalibrate=1,
     ):
         if isinstance(threshold, str) and threshold != "calibrate":
             raise ValueError(
@@ -1497,6 +1528,7 @@ class AutoFit:
         self.preliminary_threshold = preliminary_threshold
         self.absorbers = None if absorbers is None else dict(absorbers)
         self.per_rule = per_rule
+        self.recalibrate = int(recalibrate)
         self.rule_keys = rule_keys(self.rules)
         # Rule key -> threshold of the running search (per-rule thresholds)
         self._rule_thresholds = {}
@@ -1656,15 +1688,43 @@ class AutoFit:
                 if refit is not None:
                     preliminary.model.quick_fit_result = refit
         kwargs = {"per_rule": self.per_rule, **self.calibration}
-        calibration = calibrate_threshold(
-            preliminary.model,
-            self.rules,
-            criterion=self.criterion_arg,
-            quick_fit_kwargs=self.quick_fit_kwargs,
-            multistart=self.multistart,
-            **kwargs,
-        )
-        self.n_fits += calibration.n_fits
+        null, calibrations, seen = preliminary.model, [], set()
+        for _ in range(self.recalibrate + 1):
+            seen.add(_component_names(null))
+            calibration = calibrate_threshold(
+                null,
+                self.rules,
+                criterion=self.criterion_arg,
+                quick_fit_kwargs=self.quick_fit_kwargs,
+                multistart=self.multistart,
+                **kwargs,
+            )
+            self.n_fits += calibration.n_fits
+            calibrations.append(calibration)
+            by_quantile = self._quantile_searches(calibration, max_iterations)
+            selected = next(iter(by_quantile.values()))
+            if _component_names(selected.model) in seen:
+                break
+            logger.info(
+                "AutoFit: recalibrating on the selected model "
+                f"({', '.join(selected.components())})"
+            )
+            null = copy.deepcopy(selected.model)
+        for found in by_quantile.values():
+            found.calibration = calibration
+            found.calibrations = calibrations
+            found.preliminary = preliminary
+            found.absorbers = inventory
+        selected.n_fits = self.n_fits
+        return selected
+
+    def _quantile_searches(self, calibration, max_iterations):
+        """A search per quantile of `calibration` (shared where the
+        thresholds are the same).
+
+        :return: Quantile -> its search, in the calibration's order
+        :rtype: dict
+        """
         by_quantile, by_threshold = {}, {}
         for quantile, threshold in calibration.thresholds.items():
             rule_thresholds = calibration.rule_thresholds(quantile)
@@ -1675,14 +1735,9 @@ class AutoFit:
                 )
             found = copy.copy(by_threshold[cache])
             found.quantile = quantile
-            found.calibration = calibration
-            found.preliminary = preliminary
             found.by_quantile = by_quantile
-            found.absorbers = inventory
             by_quantile[quantile] = found
-        selected = next(iter(by_quantile.values()))
-        selected.n_fits = self.n_fits
-        return selected
+        return by_quantile
 
     def _mask_absorbers(self, model):
         """Absorber inventory from `model`'s residuals; the absorbers are
