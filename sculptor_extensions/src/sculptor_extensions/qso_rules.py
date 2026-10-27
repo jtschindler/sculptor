@@ -79,9 +79,8 @@ DEFAULT_LINES = (
 )
 
 # Iron templates of `qso_rules`: component name -> `iron_template_rule`
-# preset. UV: Tsuzuki et al. 2006, 2200 - 3500 A (iron also under the
-# Balmer continuum, where VW01 stops at 3090 A; none below 2200 A)
-IRON_TEMPLATES = {"FeII_UV": "Tsuz_UV", "FeII_opt": "BG92_OPT"}
+# preset
+IRON_TEMPLATES = {"FeII_UV": "VW01_UV", "FeII_opt": "BG92_OPT"}
 # Forbidden lines get the narrow FWHM range
 NARROW_LINES = ("OIII", "OIII_4960", "OIII_5008")
 
@@ -412,7 +411,7 @@ def ciii_second_component_rule(
 
 def iron_template_rule(
     redshift,
-    preset="Tsuz_UV",
+    preset="VW01_UV",
     prefix="FeII",
     fwhm=2500.0,
     fwhm_range=(1000.0, 10000.0),
@@ -426,8 +425,7 @@ def iron_template_rule(
     :param redshift: Systemic redshift (fixed)
     :type redshift: float
     :param preset: Template name after `setup_iron_template_`, e.g.
-        "Tsuz_UV" (Tsuzuki et al. 2006), "VW01_UV" (Vestergaard & Wilkes
-        2001), "BG92_OPT"
+        "VW01_UV" (Vestergaard & Wilkes 2001), "Tsuz_UV", "BG92_OPT"
     :type preset: str
     :param prefix: Component name
     :type prefix: str
