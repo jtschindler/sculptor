@@ -117,19 +117,19 @@ def test_qso_rules_bundle():
     assert kinds.count("GaussianLineRule") == len(qr.DEFAULT_LINES) - 1
     assert "CIII] complex" in names and "CIII] second component" in names
     assert "iron (VW01_UV)" in names and "iron (BG92_OPT)" in names
-    assert "Balmer continuum" not in names  # simple power-law continuum
-    with_balmer = qr.qso_rules(Z, balmer=True)
-    assert "Balmer continuum" in [getattr(r, "name", None) for r in with_balmer]
+    assert "Balmer continuum" in names
     assert kinds.count("Tie") == 0  # optional: the group is the only route
     group = next(r for r in rules if isinstance(r, LineGroupRule))
     assert [m.prefix for m in group.members] == ["Hbeta", "Halpha", "OIII"]
     assert group.fwhm_range == (100.0, qr.NARROW_FWHM_MAX)
     assert group.velocity_range == qr.NARROW_VELOCITY_RANGE
-    bare = qr.qso_rules(Z, iron=None, narrow_group=False, ciii_complex=False)
+    bare = qr.qso_rules(
+        Z, iron=None, balmer=False, narrow_group=False, ciii_complex=False
+    )
     assert len(bare) == len(qr.DEFAULT_LINES)
     tie = qr.qso_rules(Z, narrow_tie=True)[-1]
     assert tie.prefixes == ["Hbeta", "Halpha", "OIII"]
-    assert len(qr.qso_rules(Z, lines=["CIV", "Hbeta"], iron=None)) == 2
+    assert len(qr.qso_rules(Z, lines=["CIV", "Hbeta"], iron=None)) == 3
 
 
 def test_oiii_doublet_rule():

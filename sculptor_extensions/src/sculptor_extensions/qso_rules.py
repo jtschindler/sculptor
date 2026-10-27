@@ -6,11 +6,10 @@ development spectra): broad Gaussians at the strong lines in the fit
 regions (`DEFAULT_LINES`, including the broad "HeII" red shelf), the CIII]
 complex with SiIII] and AlIII (`ciii_complex_rule`) and its optional
 second broad CIII] (`ciii_second_component_rule`), the UV and optical iron
-templates (`IRON_TEMPLATES`), and the narrow components of Hbeta, Halpha
-and [OIII] proposed together at the systemic redshift
-(`narrow_line_group`, the only route for a narrow Hbeta / Halpha). The
-continuum is the base model's power law; the Balmer continuum
-(`balmer=True`) and `narrow_line_tie` are optional. Components narrower than
+templates (`IRON_TEMPLATES`), the Balmer continuum, and the narrow
+components of Hbeta, Halpha and [OIII] proposed together at the systemic
+redshift (`narrow_line_group`, the only route for a narrow Hbeta /
+Halpha). `narrow_line_tie` is optional. Components narrower than
 `NARROW_FWHM_MAX` count as narrow; change it before building the rules::
 
     qso_rules.NARROW_FWHM_MAX = 1000.0
@@ -519,7 +518,7 @@ def qso_rules(
     redshift,
     lines=DEFAULT_LINES,
     iron=IRON_TEMPLATES,
-    balmer=False,
+    balmer=True,
     narrow_group=True,
     narrow_tie=False,
     ciii_complex=True,
@@ -536,8 +535,7 @@ def qso_rules(
     :param iron: Component name -> iron template preset (see
         `iron_template_rule`); None or {} for none
     :type iron: dict
-    :param balmer: Include the Balmer continuum rule (off by default: a
-        simple power-law continuum)
+    :param balmer: Include the Balmer continuum rule
     :type balmer: bool
     :param narrow_group: Include `narrow_line_group` (`NARROW_TIE_LINES`
         among `lines`)
