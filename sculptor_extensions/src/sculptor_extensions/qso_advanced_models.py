@@ -69,13 +69,22 @@ def _require_hol_data():
         )
 
 
-def _hol_shape(x_rest, diff2, fwhm, lambda_be, continuum_shape):
-    """High-order Balmer lines: Gaussians at `_HOL_TRANSITIONS` weighted by
-    `_HOL_EMISS`, scaled to 0.3 times the continuum at the Balmer edge.
-    `diff2` is ``(x_rest[:, None] - _HOL_TRANSITIONS[None, :]) ** 2``."""
+def _hol_lines(diff2, fwhm):
+    """Sum of the high-order Balmer lines (Gaussians at `_HOL_TRANSITIONS`
+    weighted by `_HOL_EMISS`), unnormalized. `diff2` is ``(x_rest[:, None]
+    - _HOL_TRANSITIONS[None, :]) ** 2``."""
     sigma = (fwhm / c_km_s) * _HOL_TRANSITIONS / _SIGMA_TO_FWHM
     profile = np.exp(-0.5 * diff2 / sigma[None, :] ** 2)
-    flux_density = np.sum(_HOL_EMISS[None, :] * profile / sigma[None, :], axis=1)
+    return np.sum(_HOL_EMISS[None, :] * profile / sigma[None, :], axis=1)
+
+
+def _hol_shape(x_rest, diff2, fwhm, lambda_be, continuum_shape):
+    """High-order Balmer lines: `_hol_lines` scaled to 0.3 times the
+    continuum at the Balmer edge, both interpolated on the pixel grid (as
+    in the original model; the continuum is zero from the edge on, so the
+    scale depends on where the pixels fall: see
+    `BalmerContinuumHOLRatio`)."""
+    flux_density = _hol_lines(diff2, fwhm)
     edge_hol = np.interp(lambda_be, x_rest, flux_density)
     edge_continuum = np.interp(lambda_be, x_rest, continuum_shape)
     flux_density *= 0.3 * edge_continuum / edge_hol
@@ -171,6 +180,55 @@ class CachedBalmerContinuumWithHOL(BalmerContinuumWithHOL):
             self._x_rest, self._diff2 = super()._rest_frame(x, redsh)
             self._cache_key = cache_key
         return self._x_rest, self._diff2
+
+
+class BalmerContinuumHOLRatio:
+    """Balmer continuum + high-order lines with their relative strength as
+    a parameter: `hol_ratio` is the lines' flux density at the Balmer edge
+    over the continuum's just below it. Both are evaluated at the edge
+    itself, not on the pixel grid, so the ratio means the same for any
+    grid (`BalmerContinuumWithHOL` fixes 0.3 on grid-interpolated values).
+    Caches the wavelength grid like `CachedBalmerContinuumWithHOL`: give
+    each component its own instance."""
+
+    def __init__(self):
+        self._grid = CachedBalmerContinuumWithHOL()
+        self.__code__ = sccomp.FakeCode(
+            co_argcount=8,
+            co_varnames=(
+                "x",
+                "redsh",
+                "amp_be",
+                "Te",
+                "tau_be",
+                "lambda_be",
+                "fwhm",
+                "hol_ratio",
+            ),
+        )
+        self.__name__ = "balmer_continuum_hol_ratio"
+
+    def __call__(self, x, redsh, amp_be, Te, tau_be, lambda_be, fwhm, hol_ratio):
+        """Evaluate the model (arguments as `BalmerContinuumWithHOL`, plus
+        `hol_ratio`, the lines over the continuum at the edge)."""
+        x_rest, diff2 = self._grid._rest_frame(x, redsh)
+        continuum = balmer_continuum_shape(x_rest, Te, tau_be, lambda_be)
+        lines = _hol_lines(diff2, fwhm)
+        edge_lines = _hol_lines((lambda_be - _HOL_TRANSITIONS[None, :]) ** 2, fwhm)[0]
+        edge_continuum = balmer_continuum_at_edge(Te, tau_be, lambda_be)
+        lines *= hol_ratio * edge_continuum / edge_lines
+        return amp_be * (continuum + lines) * 1e-8
+
+
+def initialize_balmer_hol_ratio(prefix, balmer_dict=None):
+    """Initialize a `BalmerContinuumHOLRatio` component; `balmer_dict` as
+    for `initialize_balmer_with_hol`, plus "hol_ratio".
+
+    :return: Component and parameters
+    """
+    return initialize_component(
+        prefix, BalmerContinuumHOLRatio(), balmer_dict, dict_name="balmer_dict"
+    )
 
 
 def initialize_balmer_with_hol(prefix, balmer_dict=None):

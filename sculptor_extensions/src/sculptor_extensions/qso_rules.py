@@ -32,6 +32,7 @@ from sculptor.autofit import ComponentRule, GaussianLineRule, LineGroupRule, Tie
 from sculptor.component import FitComponent
 from sculptor.prior import UniformPrior
 from sculptor_extensions import qso, qso_presets
+from sculptor_extensions import qso_advanced_models as qam
 from sculptor_extensions import qso_autofit as qa
 
 # Rest-frame vacuum wavelengths (Angstrom) of the strong quasar lines
@@ -484,6 +485,8 @@ def balmer_continuum_rule(
     hol=False,
     fwhm=3000.0,
     fwhm_range=(1000.0, 10000.0),
+    hol_ratio=0.5,
+    hol_ratio_range=(0.0, 2.0),
 ):
     """Rule that adds a Balmer continuum (Dietrich et al. 2003), with its
     amplitude estimated from the residuals. Only proposed if the fit
@@ -492,10 +495,12 @@ def balmer_continuum_rule(
     Without `hol` the continuum drops to zero at the edge
     (`qso_advanced_models.fast_balmer_continuum_model`). With `hol` the
     high-order Balmer lines (n = 7 - 50, Storey & Hummer 1995) are added,
-    broadened by a free FWHM and scaled to 0.3 times the continuum at the
-    edge (`qso_advanced_models.BalmerContinuumWithHOL`): they fill the
-    region just above the edge, which the sharp edge leaves to the other
-    components.
+    broadened by a free FWHM, with a free strength relative to the
+    continuum (`qso_advanced_models.BalmerContinuumHOLRatio`: `hol_ratio`
+    is the lines' flux density at the edge over the continuum's just below
+    it): they fill the region just above the edge, which the sharp edge
+    leaves to the other components. The candidate also starts from the
+    ends of `hol_ratio_range` (inside it).
 
     :param redshift: Systemic redshift (fixed)
     :type redshift: float
@@ -513,6 +518,12 @@ def balmer_continuum_rule(
     :type fwhm: float
     :param fwhm_range: With `hol`: their FWHM prior range, km/s
     :type fwhm_range: (float, float)
+    :param hol_ratio: With `hol`: starting ratio of the lines to the
+        continuum at the edge
+    :type hol_ratio: float
+    :param hol_ratio_range: With `hol`: its prior range (provisional: the
+        dev objects want about 0.3 - 1)
+    :type hol_ratio_range: (float, float)
     :return: The rule
     :rtype: sculptor.autofit.ComponentRule
     """
@@ -540,10 +551,24 @@ def balmer_continuum_rule(
             "vary": True,
             "prior": UniformPrior(f"{prefix}_fwhm", *fwhm_range),
         }
-        return qa.initialize_balmer(prefix, balmer_dict=balmer_dict)
+        balmer_dict["hol_ratio"] = {
+            "value": hol_ratio,
+            "vary": True,
+            "prior": UniformPrior(f"{prefix}_hol_ratio", *hol_ratio_range),
+        }
+        return qam.initialize_balmer_hol_ratio(prefix, balmer_dict=balmer_dict)
 
-    name = "Balmer continuum + HOL" if hol else "Balmer continuum"
-    return ComponentRule(name, factory, linear_param="amp_be")
+    if not hol:
+        return ComponentRule("Balmer continuum", factory, linear_param="amp_be")
+    low, upp = hol_ratio_range
+    span = upp - low
+    starts = [
+        {f"{prefix}_hol_ratio": low + 0.1 * span},
+        {f"{prefix}_hol_ratio": upp - 0.1 * span},
+    ]
+    return ComponentRule(
+        "Balmer continuum + HOL", factory, linear_param="amp_be", starts=starts
+    )
 
 
 def qso_rules(
