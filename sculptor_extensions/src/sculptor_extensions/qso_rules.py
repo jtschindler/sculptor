@@ -84,8 +84,21 @@ DEFAULT_LINES = (
 )
 
 # Iron templates of `qso_rules`: component name -> `iron_template_rule`
-# preset
+# preset, or (preset, rest-frame range in A)
 IRON_TEMPLATES = {"FeII_UV": "VW01_UV", "FeII_opt": "BG92_OPT"}
+# Alternatives (round 27). VW01_UV ends at 3089 A and BG92_OPT starts at
+# 3685 A, leaving no iron in between. TS06 (Tsuzuki et al. 2006) reaches
+# 3500 A: either in place of VW01 above 2200 A, or only in the gap.
+IRON_TEMPLATES_TS06 = {
+    "FeII_UV": "VW01_FUV",
+    "FeII_TS": "Tsuz_UV",
+    "FeII_opt": "BG92_OPT",
+}
+IRON_TEMPLATES_GAP = {
+    "FeII_UV": "VW01_UV",
+    "FeII_gap": ("Tsuz_UV", (3089.0, 3500.0)),
+    "FeII_opt": "BG92_OPT",
+}
 # Forbidden lines get the narrow FWHM range
 NARROW_LINES = ("OIII", "OIII_4960", "OIII_5008")
 
@@ -422,6 +435,7 @@ def iron_template_rule(
     fwhm_range=(1000.0, 10000.0),
     intr_fwhm=900.0,
     vary_fwhm=True,
+    disp_range=None,
 ):
     """Rule that adds an iron template from `qso_presets`
     (`setup_iron_template_<preset>`), at the systemic redshift, with its
@@ -443,6 +457,9 @@ def iron_template_rule(
     :type intr_fwhm: float
     :param vary_fwhm: Fit the FWHM (slower) or keep it at `fwhm`
     :type vary_fwhm: bool
+    :param disp_range: Rest-frame range (A) to restrict the template to;
+        None for the preset's default
+    :type disp_range: (float, float)
     :return: The rule
     :rtype: sculptor.autofit.ComponentRule
     :raises ValueError: for an unknown preset
@@ -471,9 +488,14 @@ def iron_template_rule(
             ),
             "intr_fwhm": _fixed(intr_fwhm),
         }
-        return setup(prefix, fe_dict=fe_dict, fast=True)
+        if disp_range is None:
+            return setup(prefix, fe_dict=fe_dict, fast=True)
+        return setup(prefix, disp_range=list(disp_range), fe_dict=fe_dict, fast=True)
 
-    return ComponentRule(f"iron ({preset})", factory, linear_param="amp")
+    name = preset
+    if disp_range is not None:
+        name += f" {disp_range[0]:.0f}-{disp_range[1]:.0f}"
+    return ComponentRule(f"iron ({name})", factory, linear_param="amp")
 
 
 def balmer_continuum_rule(
@@ -589,8 +611,9 @@ def qso_rules(
     :param lines: See `line_rules`; with `ciii_complex`, "CIII" stands for
         the complex instead of free Gaussians
     :type lines: list(str) or dict
-    :param iron: Component name -> iron template preset (see
-        `iron_template_rule`); None or {} for none
+    :param iron: Component name -> iron template preset, or (preset,
+        rest-frame range) (see `iron_template_rule`); None or {} for none.
+        E.g. `IRON_TEMPLATES_TS06`, `IRON_TEMPLATES_GAP`
     :type iron: dict
     :param balmer: Include the Balmer continuum rule: "hol" (default; with
         the high-order Balmer lines, their ratio to the continuum free),
@@ -626,7 +649,12 @@ def qso_rules(
         if ciii_second:
             rules.append(ciii_second_component_rule())
     for prefix, preset in (iron or {}).items():
-        rules.append(iron_template_rule(redshift, preset=preset, prefix=prefix))
+        preset, disp_range = (preset, None) if isinstance(preset, str) else preset
+        rules.append(
+            iron_template_rule(
+                redshift, preset=preset, prefix=prefix, disp_range=disp_range
+            )
+        )
     if balmer not in (True, False, "hol"):
         raise ValueError(f"balmer must be True, False or 'hol', not {balmer!r}")
     if balmer:

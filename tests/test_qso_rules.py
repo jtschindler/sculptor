@@ -99,6 +99,31 @@ def test_iron_template_rule_finds_the_template():
         qr.iron_template_rule(Z, preset="nope")
 
 
+def test_iron_template_schemes():
+    def names(iron):
+        rules = qr.qso_rules(Z, iron=iron)
+        return [r.name for r in rules if getattr(r, "name", "").startswith("iron")]
+
+    assert names(qr.IRON_TEMPLATES_TS06) == [
+        "iron (VW01_FUV)",
+        "iron (Tsuz_UV)",
+        "iron (BG92_OPT)",
+    ]
+    assert names(qr.IRON_TEMPLATES_GAP) == [
+        "iron (VW01_UV)",
+        "iron (Tsuz_UV 3089-3500)",
+        "iron (BG92_OPT)",
+    ]
+
+    # The range restricts the template
+    rule = qr.iron_template_rule(Z, preset="Tsuz_UV", disp_range=(3089.0, 3500.0))
+    comp, pars = rule.factory(_model())
+    rest = np.arange(2500.0, 4000.0, 1.0)
+    flux = comp.eval(rest * (1 + Z), [pars[k].value for k in comp.get_arg_keys()])
+    assert np.all(flux[(rest < 3000) | (rest > 3600)] == 0)
+    assert np.any(flux[(rest > 3100) & (rest < 3490)] > 0)
+
+
 def test_balmer_rule_only_below_the_edge():
     rule = qr.balmer_continuum_rule(Z)
     model = _model()  # rest frame 1400 - 2067 A, below the 3646 A edge
