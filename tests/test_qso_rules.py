@@ -118,6 +118,12 @@ def test_qso_rules_bundle():
     assert "CIII] complex" in names and "CIII] second component" in names
     assert "iron (VW01_UV)" in names and "iron (BG92_OPT)" in names
     assert "Balmer continuum" in names
+    assert "OI" in names  # OI 1304 / SiII 1306 blend
+    oi = next(r for r in rules if getattr(r, "prefix", None) == "OI")
+    model = _model()
+    for name in ("OIII_0", "OI_0"):
+        model.components.append(sccomp.FitComponent(name, ana.line_model_gaussian))
+    assert oi.owned(model) == ["OI_0"]  # not [OIII]
     assert kinds.count("Tie") == 0  # optional: the group is the only route
     group = next(r for r in rules if isinstance(r, LineGroupRule))
     assert [m.prefix for m in group.members] == ["Hbeta", "Halpha", "OIII"]

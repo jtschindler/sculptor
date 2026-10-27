@@ -38,6 +38,7 @@ from sculptor_extensions import qso_autofit as qa
 QSO_LINES = {
     "Lya": 1215.67,
     "NV": 1240.14,
+    "OI": 1305.42,  # OI 1304 + SiII 1306 blend (Vanden Berk et al. 2001)
     "SiIV": 1399.80,
     "CIV": 1549.06,
     "HeII": 1640.42,
@@ -67,6 +68,7 @@ DOUBLETS = {
 # CIII] complex by `qso_rules` (AlIII and SiIII] as separate Gaussians trade
 # places with CIII] in broad blends).
 DEFAULT_LINES = (
+    "OI",
     "SiIV",
     "CIV",
     "HeII",
