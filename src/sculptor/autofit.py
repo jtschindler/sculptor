@@ -46,11 +46,11 @@ preliminary search with a fixed threshold gives a model of the real
 features; `calibrate_threshold` simulates it with noise like its residuals
 and takes quantiles of the criterion improvements that noise alone
 achieves (95% and 99% by default); the search is then rerun for each
-quantile. The preliminary model overfits (its threshold is low), so its
-residuals understate the noise; with `recalibrate` the calibration is
-repeated on the model the first quantile selects, and the searches rerun,
-until that model no longer changes. `AutoFitResult` holds the model of the
-first quantile, the others in `by_quantile`, and the calibrations.
+quantile. With `recalibrate` the calibration is repeated with the model the
+first quantile selects as the null (the noise still from the preliminary
+model's residuals), and the searches rerun, until that model no longer
+changes. `AutoFitResult` holds the model of the first quantile, the others
+in `by_quantile`, and the calibrations.
 
 With `clip`, the fit mask is sigma-clipped (`FitModel.sigma_clip`) after
 every accepted change once `clip_after` components were added, and the
@@ -1477,8 +1477,9 @@ class AutoFit:
         further calibrations, each on the model the first quantile selected
         with the previous one (then the searches are rerun); stops early
         when the selected model has the components of the model calibrated
-        on (or of an earlier one). 0 calibrates on the preliminary model
-        only
+        on (or of an earlier one). The noise of every calibration comes
+        from the preliminary model's residuals. 0 (default) calibrates on
+        the preliminary model only
     :type recalibrate: int
     """
 
@@ -1497,7 +1498,7 @@ class AutoFit:
         preliminary_threshold=10.0,
         absorbers=None,
         per_rule=True,
-        recalibrate=1,
+        recalibrate=0,
     ):
         if isinstance(threshold, str) and threshold != "calibrate":
             raise ValueError(
@@ -1687,9 +1688,16 @@ class AutoFit:
                 refit, _ = self._fit(preliminary.model)
                 if refit is not None:
                     preliminary.model.quick_fit_result = refit
-        kwargs = {"per_rule": self.per_rule, **self.calibration}
+        # The noise always comes from the preliminary model's residuals: a
+        # simpler null would count its misfit as noise, raise the thresholds
+        # and select a still simpler model
+        kwargs = {
+            "per_rule": self.per_rule,
+            "noise_model": preliminary.model,
+            **self.calibration,
+        }
         null, calibrations, seen = preliminary.model, [], set()
-        for _ in range(self.recalibrate + 1):
+        for round_ in range(self.recalibrate + 1):
             seen.add(_component_names(null))
             calibration = calibrate_threshold(
                 null,
@@ -1703,7 +1711,7 @@ class AutoFit:
             calibrations.append(calibration)
             by_quantile = self._quantile_searches(calibration, max_iterations)
             selected = next(iter(by_quantile.values()))
-            if _component_names(selected.model) in seen:
+            if _component_names(selected.model) in seen or round_ == self.recalibrate:
                 break
             logger.info(
                 "AutoFit: recalibrating on the selected model "
@@ -2232,6 +2240,7 @@ def calibrate_threshold(
     per_rule=True,
     min_rule_sims=20,
     min_rule_threshold=10.0,
+    noise_model=None,
 ):
     """Thresholds for `AutoFit` from simulations without extra components.
 
@@ -2300,10 +2309,16 @@ def calibrate_threshold(
     :param min_rule_threshold: Floor of the per-rule thresholds (capped at
         the global threshold)
     :type min_rule_threshold: float
+    :param noise_model: With `noise="residuals"`: the model whose residuals
+        give the noise (same spectrum as `model`), None (default) for
+        `model`. A null model without some real features counts their
+        misfit as noise; the residuals of a richer model (e.g. `AutoFit`'s
+        preliminary one) do not
+    :type noise_model: sculptor.model.FitModel
     :return: The improvements and the thresholds
     :rtype: Calibration
     :raises ValueError: for an unknown `noise`, quantiles outside (0, 1), or
-        a model that cannot be fitted
+        a model (or noise model) that cannot be fitted
     """
     if noise not in ("residuals", "white"):
         raise ValueError(f"Unknown noise {noise!r}; use 'residuals' or 'white'.")
@@ -2337,6 +2352,12 @@ def calibrate_threshold(
     if null_result is None:
         raise ValueError("calibrate_threshold: the model cannot be fitted.")
     best_flux = null.eval(null.spec.dispersion, null_result.values)
+    source, source_result = null, null_result
+    if noise == "residuals" and noise_model is not None and noise_model is not model:
+        source = copy.deepcopy(noise_model)
+        source_result, _ = search._fit(source)
+        if source_result is None:
+            raise ValueError("calibrate_threshold: the noise model cannot be fitted.")
     keys = rule_keys(search.rules)
 
     # Rules whose components are in the null model: their own null model
@@ -2359,7 +2380,7 @@ def calibrate_threshold(
     by_key = {key: np.full(n_sims, np.nan) for key in keys}
     for idx in range(n_sims):
         if noise == "residuals":
-            realization = correlated_noise(null, null_result, rng)
+            realization = correlated_noise(source, source_result, rng)
         else:
             realization = rng.normal(0, null.spec.fluxden_err)
         sim = copy.deepcopy(null)

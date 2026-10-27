@@ -757,47 +757,71 @@ def test_calibrated_threshold_is_the_default():
         autofit.AutoFit(base, [_rule()], threshold="auto")
 
 
-def _record_nulls(monkeypatch):
-    """Component names of every null model `calibrate_threshold` gets."""
+def _record_nulls(monkeypatch, noise_models=None):
+    """Component names of every null model `calibrate_threshold` gets (and
+    of its noise models, into `noise_models`)."""
     nulls, original = [], autofit.calibrate_threshold
 
     def recording(model, *args, **kwargs):
         nulls.append(autofit._component_names(model))
+        if noise_models is not None:
+            noise_models.append(autofit._component_names(kwargs["noise_model"]))
         return original(model, *args, **kwargs)
 
     monkeypatch.setattr(autofit, "calibrate_threshold", recording)
     return nulls
 
 
-def test_recalibration_on_the_selected_model(monkeypatch):
+def test_recalibration_on_the_selected_model(monkeypatch, caplog):
     """A preliminary search that takes everything (threshold -inf) overfits;
-    the calibration is repeated on the model the first quantile selects."""
-    nulls = _record_nulls(monkeypatch)
+    the calibration is repeated with the model the first quantile selects
+    as the null, and the noise of the preliminary model."""
+    noise_models = []
+    nulls = _record_nulls(monkeypatch, noise_models)
     calibration = {"n_sims": 10, "quantiles": (0.9,)}
-    result = autofit.AutoFit(
-        _model(),
-        [_rule(max_components=6, min_significance=0.0)],
-        calibration=calibration,
-        preliminary_threshold=-np.inf,
-    ).run()
+    with caplog.at_level(logging.INFO, logger=autofit.logger.name):
+        result = autofit.AutoFit(
+            _model(),
+            [_rule(max_components=6, min_significance=0.0)],
+            calibration=calibration,
+            preliminary_threshold=-np.inf,
+            recalibrate=1,
+        ).run()
     preliminary = autofit._component_names(result.preliminary.model)
     assert len(preliminary) > len(result.model.components)
     assert len(result.calibrations) == 2 == len(nulls)
-    assert nulls[0] == preliminary
+    assert nulls[0] == preliminary != nulls[1]
+    assert noise_models == [preliminary, preliminary]
     assert result.calibration is result.calibrations[-1]
     assert "recalibrated 1 time(s)" in str(result)
+    # Announced once: no round after the last allowed one
+    assert caplog.text.count("recalibrating on") == 1
 
-    # recalibrate=0: the preliminary model only
+    # recalibrate=0 (default): the preliminary model only
     nulls.clear()
     once = autofit.AutoFit(
         _model(),
         [_rule(max_components=6, min_significance=0.0)],
         calibration=calibration,
         preliminary_threshold=-np.inf,
-        recalibrate=0,
     ).run()
     assert len(once.calibrations) == 1 == len(nulls)
     assert "recalibrated" not in str(once)
+
+
+def test_calibration_noise_from_another_model():
+    """A null without the lines counts their misfit as noise; the residuals
+    of the model with the lines give the noise of the data."""
+    data = _model(lines=[(15.0, CIII, 3000.0)])
+    rich = AutoFit(data, [_rule(lines=[CIII])]).run().model
+    assert len(rich.components) == 2
+    kwargs = {"n_sims": 20, "quantiles": (0.9,), "per_rule": False}
+
+    own = calibrate_threshold(data, [_rule()], **kwargs)
+    cleaner = calibrate_threshold(data, [_rule()], noise_model=rich, **kwargs)
+    assert cleaner.thresholds[0.9] < own.thresholds[0.9]
+    same = calibrate_threshold(data, [_rule()], noise_model=data, **kwargs)
+    assert same.thresholds == own.thresholds
 
 
 def test_recalibration_stops_when_the_model_does_not_change(monkeypatch):
