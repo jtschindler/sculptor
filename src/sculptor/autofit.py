@@ -1688,9 +1688,11 @@ class AutoFit:
                 refit, _ = self._fit(preliminary.model)
                 if refit is not None:
                     preliminary.model.quick_fit_result = refit
-        # The noise always comes from the preliminary model's residuals: a
-        # simpler null would count its misfit as noise, raise the thresholds
-        # and select a still simpler model
+        # The noise always comes from the preliminary model's residuals, so
+        # that it does not depend on the null. Recalibrating still changes
+        # the thresholds: they depend on the null's components (J1504: 44 on
+        # the preliminary model, 87 on the selected one, about the same as
+        # with the selected model's residuals as the noise)
         kwargs = {
             "per_rule": self.per_rule,
             "noise_model": preliminary.model,
