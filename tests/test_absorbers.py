@@ -297,6 +297,7 @@ def test_ai_only_trough_reported_not_masked_and_dropped_when_explained():
     model = _absorbed_model([(centre, 900.0, 0.5)])
     troughs = scabs.find_bal_troughs(model, model.quick_fit_result.values, Z, n_sims=30)
     assert len(troughs.troughs) == 1 and not troughs.troughs["bal"][0]
+    assert not troughs.troughs["masked"][0]
     assert not troughs.is_bal
     assert troughs.mask.all()  # AI-only: not masked
     ai = troughs.absorption["CIV"]
@@ -317,3 +318,19 @@ def test_bi_trough_is_never_dropped_as_explained():
     assert troughs.troughs["bal"][0]
     troughs.drop_explained([centre])
     assert len(troughs.troughs) == 1
+
+
+def test_ai_only_trough_of_a_bal_line_is_masked_and_kept():
+    """In a line with a BI trough, an AI-only trough (e.g. a piece of a
+    shallow BAL trough split where the flux crosses 0.9) is masked too and
+    never dropped as a narrow-line cluster."""
+    bi_centre, ai_centre = _civ_obs(-20000.0), _civ_obs(-9000.0)
+    model = _absorbed_model([(bi_centre, 6000.0, 0.4), (ai_centre, 900.0, 0.5)])
+    troughs = scabs.find_bal_troughs(model, model.quick_fit_result.values, Z, n_sims=30)
+    assert len(troughs.troughs) == 2
+    assert list(troughs.troughs["bal"]) == [True, False]
+    assert troughs.troughs["masked"].all()
+    x = model.spec.dispersion
+    assert not troughs.mask[np.argmin(np.abs(x - ai_centre))]
+    troughs.drop_explained([ai_centre])
+    assert len(troughs.troughs) == 2
