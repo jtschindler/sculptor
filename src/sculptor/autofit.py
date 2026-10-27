@@ -1329,6 +1329,9 @@ class AutoFitResult:
         (per-rule calibration); the others used `threshold`
     :type rule_thresholds: dict
     :type ties: dict(str, TieTest)
+    :param converged: False if the search stopped at `max_iterations`
+        (the model is the last state, not a converged one)
+    :type converged: bool
     """
 
     model: object
@@ -1345,6 +1348,7 @@ class AutoFitResult:
     ties: dict = field(default_factory=dict)
     absorbers: object = None
     rule_thresholds: dict = field(default_factory=dict)
+    converged: bool = True
 
     @property
     def at_bound(self):
@@ -1381,6 +1385,8 @@ class AutoFitResult:
             lines.append(f"  tie {name}: {test}")
         if self.at_bound:
             lines.append(f"  at a prior bound: {', '.join(self.at_bound)}")
+        if not self.converged:
+            lines.append("  not converged: stopped at max_iterations")
         if self.absorbers is not None:
             lines += ["", str(self.absorbers)]
         if self.calibration is not None:
@@ -1409,6 +1415,8 @@ class AutoFitResult:
                     text += f"; also {', '.join(extra)}"
                 if missing:
                     text += f"; without {', '.join(missing)}"
+                if not other.converged:
+                    text += "; not converged"
                 lines.append(text)
         return "\n".join(lines)
 
@@ -1794,6 +1802,7 @@ class AutoFit:
         seen = {_signature(model)}
         ties = {}
 
+        converged = False
         for _ in range(max_iterations):
             best = None
             for key, rule in zip(self.rule_keys, self.rules, strict=True):
@@ -1829,6 +1838,7 @@ class AutoFit:
                 )
                 if tied:
                     continue
+                converged = True
                 break
 
             model, result, new_score, cand = best
@@ -1853,6 +1863,11 @@ class AutoFit:
             if self.clip is not None and n_added >= self.clip_after:
                 model, result, score = self._clip(model, result, score, history)
 
+        if not converged:
+            logger.warning(
+                f"AutoFit: not converged after {max_iterations} iterations; "
+                "the model is the last state of the search"
+            )
         if self.clip is not None:
             model, result, score = self._clip(model, result, score, history, final=True)
         model.quick_fit_result = result
@@ -1869,6 +1884,7 @@ class AutoFit:
             threshold=threshold,
             ties=ties,
             rule_thresholds=dict(self._rule_thresholds),
+            converged=converged,
         )
 
     def _remove_at_bound(self, model, result, score, history, seen):
@@ -2067,15 +2083,21 @@ class AutoFit:
 
 def _signature(model):
     """Hashable description of a model's structure (component functions and
-    rounded fixed values / prior ranges), to avoid revisiting a model."""
+    rounded fixed values / prior ranges), to avoid revisiting a model.
+
+    The prior ranges of free amplitudes (arguments named "flux..." or
+    "amp...") are left out: rules set them from the residuals, so the same
+    component proposed again after a different history would look new."""
     parts = []
     for comp in model.components:
         func = getattr(comp.function, "__name__", str(comp.function))
         keys = []
-        for key in comp.get_arg_keys():
+        for arg, key in zip(comp.function_args, comp.get_arg_keys(), strict=True):
             p = model.parameters[key]
             if not p.vary:
                 keys.append(("fixed", round(float(p.value), 3)))
+            elif arg.startswith(("flux", "amp")):
+                keys.append(("free",))
             elif isinstance(p.prior, UniformPrior):
                 keys.append(("free", round(p.prior.low, 1), round(p.prior.upp, 1)))
             else:

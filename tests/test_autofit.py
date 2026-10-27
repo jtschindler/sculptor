@@ -713,6 +713,43 @@ def test_component_rule_starts_rescale_the_amplitude():
     assert trial.parameters["G_fwhm_km_s"].value == pytest.approx(3000, rel=0.1)
 
 
+def test_signature_ignores_the_amplitude_priors():
+    """The same line proposed on different residuals gets a different flux
+    prior, but is the same model (J1340 round 22a revisited models)."""
+    rule = _rule(lines=[CIV, CIII], max_components=1, start_fwhm_factors=())
+    signatures = []
+    for flux in (60.0, 20.0):
+        base = _model(lines=[(flux, CIV, 3000.0)])
+        cand = next(
+            c
+            for c in rule.propose(base, base.run_quick_fit())
+            if "1549" in c.description
+        )
+        signatures.append(
+            (
+                cand.parameters["line_0_flux"].prior.upp,
+                autofit._signature(AutoFit._with(base, cand)),
+            )
+        )
+    (upp_a, sig_a), (upp_b, sig_b) = signatures
+    assert upp_a != pytest.approx(upp_b, rel=0.1)
+    assert sig_a == sig_b
+
+    base = _model(lines=[(20.0, CIII, 3000.0)])
+    ciii = next(
+        c for c in rule.propose(base, base.run_quick_fit()) if "1908" in c.description
+    )
+    assert autofit._signature(AutoFit._with(base, ciii)) != sig_a
+
+
+def test_search_reports_when_it_does_not_converge(caplog):
+    with caplog.at_level(logging.WARNING, logger=autofit.logger.name):
+        stopped = AutoFit(_model(), [_rule()]).run(max_iterations=1)
+    assert not stopped.converged
+    assert "not converged" in str(stopped) and "not converged" in caplog.text
+    assert AutoFit(_model(), [_rule()]).run().converged
+
+
 def test_calibration_reports_every_quantile():
     calibration = calibrate_threshold(
         _model(lines=[]), [_rule()], n_sims=20, quantiles=(0.5, 0.8, 0.95)
