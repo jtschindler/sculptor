@@ -84,7 +84,9 @@ def test_line_rules():
 def test_iron_template_rule_finds_the_template():
     scale = 0.5 / np.max(_iron(np.geomspace(4200, 6200, 800), 1.0))
     model = _model(extra=lambda x: _iron(x, scale))
-    rule = qr.iron_template_rule(Z, vary_fwhm=False)
+    # The data cover 1400 - 2070 A rest: VW01 (TS06, the default, starts
+    # at 2200 A)
+    rule = qr.iron_template_rule(Z, preset="VW01_UV", vary_fwhm=False)
     assert isinstance(rule, ComponentRule)
 
     result = AutoFit(model, [rule]).run()
@@ -92,7 +94,9 @@ def test_iron_template_rule_finds_the_template():
     assert result.model.parameters["FeII_amp"].value == pytest.approx(scale, rel=0.1)
 
     # No iron in the data: not added
-    plain = AutoFit(_model(), [qr.iron_template_rule(Z, vary_fwhm=False)]).run()
+    plain = AutoFit(
+        _model(), [qr.iron_template_rule(Z, preset="VW01_UV", vary_fwhm=False)]
+    ).run()
     assert [c.name for c in plain.model.components] == ["PL"]
 
     with pytest.raises(ValueError, match="preset"):
@@ -116,7 +120,7 @@ def test_qso_rules_bundle():
     assert "CIII" not in names
     assert kinds.count("GaussianLineRule") == len(qr.DEFAULT_LINES) - 1
     assert "CIII] complex" in names and "CIII] second component" in names
-    assert "iron (VW01_UV)" in names and "iron (BG92_OPT)" in names
+    assert "iron (Tsuz_UV)" in names and "iron (BG92_OPT)" in names
     assert "Balmer continuum" in names
     assert kinds.count("Tie") == 0  # optional: the group is the only route
     group = next(r for r in rules if isinstance(r, LineGroupRule))
