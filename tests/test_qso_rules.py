@@ -12,7 +12,7 @@ from sculptor import component as sccomp
 from sculptor import model as scmod
 from sculptor import prior as scpri
 from sculptor.autofit import ComponentRule, GaussianLineRule, LineGroupRule
-from sculptor_extensions import qso_presets
+from sculptor_extensions import qso_advanced_models, qso_presets
 from sculptor_extensions import qso_rules as qr
 
 Z = 2.0
@@ -106,6 +106,45 @@ def test_balmer_rule_only_below_the_edge():
 
     red = _model(x=np.geomspace(3700 * (1 + Z), 4500 * (1 + Z), 400))
     assert rule.propose(red, red.run_quick_fit()) == []
+
+
+def _balmer_hol(x, fwhm):
+    """Balmer continuum + high-order lines at z=2 (amp_be 1)."""
+    balmer_dict = {
+        "redsh": _fixed(Z),
+        "amp_be": _fixed(1.0),
+        "Te": _fixed(15000.0),
+        "tau_be": _fixed(1.0),
+        "lambda_be": _fixed(3646.0),
+        "fwhm": _fixed(fwhm),
+    }
+    comp, pars = qso_advanced_models.initialize_balmer_with_hol(
+        "B", balmer_dict=balmer_dict
+    )
+    return comp.eval(x, [pars[k].value for k in comp.get_arg_keys()])
+
+
+def test_balmer_rule_with_high_order_lines():
+    """Data with the high-order lines: the HOL rule recovers their width,
+    and fits better than the sharp edge."""
+    x = np.geomspace(3300 * (1 + Z), 4300 * (1 + Z), 900)
+    shape = _balmer_hol(x, 4000.0)
+    model = _model(extra=lambda x: 0.3 * shape / shape.max(), x=x)
+
+    hol = qr.balmer_continuum_rule(Z, hol=True)
+    assert hol.name == "Balmer continuum + HOL"
+    with_hol = AutoFit(model, [hol]).run()
+    assert [c.name for c in with_hol.model.components] == ["PL", "BalmerCont"]
+    fwhm = with_hol.model.parameters["BalmerCont_fwhm"].value
+    assert fwhm == pytest.approx(4000.0, rel=0.15)
+
+    sharp = AutoFit(model, [qr.balmer_continuum_rule(Z)]).run()
+    assert with_hol.result.red_chisq < sharp.result.red_chisq
+
+    names = [getattr(r, "name", None) for r in qr.qso_rules(Z, balmer="hol")]
+    assert "Balmer continuum + HOL" in names and "Balmer continuum" not in names
+    with pytest.raises(ValueError, match="balmer"):
+        qr.qso_rules(Z, balmer="yes")
 
 
 def test_qso_rules_bundle():

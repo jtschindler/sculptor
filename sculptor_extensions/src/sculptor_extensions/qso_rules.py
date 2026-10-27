@@ -47,6 +47,7 @@ QSO_LINES = {
     "SiIII": 1892.03,
     "CIII": 1908.73,
     "MgII": 2798.75,
+    "Hdelta": 4102.89,
     "Hgamma": 4341.68,
     "Hbeta": 4862.68,
     "OIII_4960": 4960.30,
@@ -74,6 +75,7 @@ DEFAULT_LINES = (
     "HeII",
     "CIII",
     "MgII",
+    "Hdelta",
     "Hgamma",
     "Hbeta",
     "OIII",
@@ -474,12 +476,26 @@ def iron_template_rule(
 
 
 def balmer_continuum_rule(
-    redshift, prefix="BalmerCont", Te=15000.0, tau_be=1.0, lambda_be=3646.0
+    redshift,
+    prefix="BalmerCont",
+    Te=15000.0,
+    tau_be=1.0,
+    lambda_be=3646.0,
+    hol=False,
+    fwhm=3000.0,
+    fwhm_range=(1000.0, 10000.0),
 ):
-    """Rule that adds a Balmer continuum (Dietrich et al. 2003, without the
-    high-order lines: `qso_advanced_models.fast_balmer_continuum_model`),
-    with its amplitude estimated from the residuals. Only proposed if the
-    fit regions reach below the Balmer edge.
+    """Rule that adds a Balmer continuum (Dietrich et al. 2003), with its
+    amplitude estimated from the residuals. Only proposed if the fit
+    regions reach below the Balmer edge.
+
+    Without `hol` the continuum drops to zero at the edge
+    (`qso_advanced_models.fast_balmer_continuum_model`). With `hol` the
+    high-order Balmer lines (n = 7 - 50, Storey & Hummer 1995) are added,
+    broadened by a free FWHM and scaled to 0.3 times the continuum at the
+    edge (`qso_advanced_models.BalmerContinuumWithHOL`): they fill the
+    region just above the edge, which the sharp edge leaves to the other
+    components.
 
     :param redshift: Systemic redshift (fixed)
     :type redshift: float
@@ -491,6 +507,12 @@ def balmer_continuum_rule(
     :type tau_be: float
     :param lambda_be: Balmer edge, Angstrom
     :type lambda_be: float
+    :param hol: Include the high-order Balmer lines
+    :type hol: bool
+    :param fwhm: With `hol`: starting FWHM of the high-order lines, km/s
+    :type fwhm: float
+    :param fwhm_range: With `hol`: their FWHM prior range, km/s
+    :type fwhm_range: (float, float)
     :return: The rule
     :rtype: sculptor.autofit.ComponentRule
     """
@@ -511,9 +533,17 @@ def balmer_continuum_rule(
             "tau_be": _fixed(tau_be),
             "lambda_be": _fixed(lambda_be),
         }
-        return qa.initialize_balmer_without_hol(prefix, balmer_dict)
+        if not hol:
+            return qa.initialize_balmer_without_hol(prefix, balmer_dict)
+        balmer_dict["fwhm"] = {
+            "value": fwhm,
+            "vary": True,
+            "prior": UniformPrior(f"{prefix}_fwhm", *fwhm_range),
+        }
+        return qa.initialize_balmer(prefix, balmer_dict=balmer_dict)
 
-    return ComponentRule("Balmer continuum", factory, linear_param="amp_be")
+    name = "Balmer continuum + HOL" if hol else "Balmer continuum"
+    return ComponentRule(name, factory, linear_param="amp_be")
 
 
 def qso_rules(
@@ -537,8 +567,9 @@ def qso_rules(
     :param iron: Component name -> iron template preset (see
         `iron_template_rule`); None or {} for none
     :type iron: dict
-    :param balmer: Include the Balmer continuum rule
-    :type balmer: bool
+    :param balmer: Include the Balmer continuum rule: True (sharp edge),
+        "hol" (with the high-order Balmer lines) or False
+    :type balmer: bool or str
     :param narrow_group: Include `narrow_line_group` (`NARROW_TIE_LINES`
         among `lines`)
     :type narrow_group: bool
@@ -570,8 +601,10 @@ def qso_rules(
             rules.append(ciii_second_component_rule())
     for prefix, preset in (iron or {}).items():
         rules.append(iron_template_rule(redshift, preset=preset, prefix=prefix))
+    if balmer not in (True, False, "hol"):
+        raise ValueError(f"balmer must be True, False or 'hol', not {balmer!r}")
     if balmer:
-        rules.append(balmer_continuum_rule(redshift))
+        rules.append(balmer_continuum_rule(redshift, hol=balmer == "hol"))
     if narrow_tie:
         tied = [name for name in NARROW_TIE_LINES if name in lines]
         if len(tied) >= 2:
