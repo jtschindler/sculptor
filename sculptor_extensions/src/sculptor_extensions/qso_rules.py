@@ -575,7 +575,7 @@ def qso_rules(
     redshift,
     lines=DEFAULT_LINES,
     iron=IRON_TEMPLATES,
-    balmer=True,
+    balmer="hol",
     narrow_group=True,
     narrow_tie=False,
     ciii_complex=True,
@@ -592,8 +592,9 @@ def qso_rules(
     :param iron: Component name -> iron template preset (see
         `iron_template_rule`); None or {} for none
     :type iron: dict
-    :param balmer: Include the Balmer continuum rule: True (sharp edge),
-        "hol" (with the high-order Balmer lines) or False
+    :param balmer: Include the Balmer continuum rule: "hol" (default; with
+        the high-order Balmer lines, their ratio to the continuum free),
+        True (sharp edge only) or False
     :type balmer: bool or str
     :param narrow_group: Include `narrow_line_group` (`NARROW_TIE_LINES`
         among `lines`)
