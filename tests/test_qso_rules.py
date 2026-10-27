@@ -285,6 +285,29 @@ def test_narrow_line_group_found_at_systemic():
     assert result.ties["narrow"].status == "tied"  # the tie sees the group
 
 
+def test_backward_step_keeps_a_line_the_group_cannot_replace():
+    """Without the broad Hbeta the narrow group's width goes to its bound:
+    the backward step does not remove the broad line, however high its
+    rule's threshold (J1340 round 22a, q99)."""
+    model, lines, z = _weak_narrow_model(1.0)
+    rules = [*lines, qr.narrow_line_group(lines, z)]
+    found = AutoFit(model, rules).run()
+    names = [c.name for c in found.model.components]
+    assert "Hbeta_0" in names and "narrow_fwhm_km_s" in found.model.parameters
+
+    search = AutoFit(found.model, rules)
+    without = search._without(found.model, "Hbeta_0")
+    assert "narrow_fwhm_km_s" in search._fit(without)[0].at_bound
+
+    hbeta = search.rule_keys[next(i for i, r in enumerate(rules) if r is lines[0])]
+    assert lines[0].prefix == "Hbeta"
+    search._rule_thresholds = {hbeta: 1e9}
+    kept, _, _ = search._backward(
+        found.model, found.result, search._fit(found.model)[1], [], set(), 10.0
+    )
+    assert "Hbeta_0" in [c.name for c in kept.components]
+
+
 def test_narrow_line_group_starts_at_a_residual_peak():
     model, lines, z = _weak_narrow_model(1.5, dv=500.0)
     group = qr.narrow_line_group(lines, z, velocity_range=1000.0)

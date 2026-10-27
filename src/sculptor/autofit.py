@@ -2005,11 +2005,26 @@ class AutoFit:
             logger.info(f"AutoFit: {label}: {n_clipped} pixels clipped, re-scored")
         return model, result, score
 
+    def _guarded_at_bound(self, model, result):
+        """Guarded parameters of `model` (see `Rule.guarded`) at a prior
+        bound in `result`."""
+        at_bound = set(result.at_bound)
+        return {
+            name
+            for rule in self.rules
+            for params, _ in rule.guarded(model)
+            for name in params
+            if name in at_bound
+        }
+
     def _backward(self, model, result, score, history, seen, threshold):
         """Remove components that no longer earn `threshold`, one at a time
-        (the least useful first)."""
+        (the least useful first). As for an addition, a removal whose fit
+        leaves further guarded parameters at a prior bound is not made: the
+        remaining components would take over the removed one's flux."""
         while True:
             worst = None
+            before = self._guarded_at_bound(model, result)
             for names, key in self._keyed_removal_units(model):
                 trial = model
                 for name in names:
@@ -2018,6 +2033,13 @@ class AutoFit:
                     continue
                 trial_result, trial_score = self._fit(trial)
                 if trial_result is None:
+                    continue
+                bad = self._guarded_at_bound(trial, trial_result) - before
+                if bad:
+                    logger.debug(
+                        f"AutoFit: remove {', '.join(names)}: rejected, "
+                        f"{', '.join(sorted(bad))} at a prior bound"
+                    )
                     continue
                 # Keeping `names` is worth trial_score - score
                 rule_threshold = self._rule_thresholds.get(key, threshold)
