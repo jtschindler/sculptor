@@ -84,16 +84,20 @@ DEFAULT_LINES = (
 )
 
 # Iron templates of `qso_rules`: component name -> `iron_template_rule`
-# preset, or (preset, rest-frame range in A)
-IRON_TEMPLATES = {"FeII_UV": "VW01_UV", "FeII_opt": "BG92_OPT"}
-# Alternatives (round 27). VW01_UV ends at 3089 A and BG92_OPT starts at
-# 3685 A, leaving no iron in between. TS06 (Tsuzuki et al. 2006) reaches
-# 3500 A: either in place of VW01 above 2200 A, or only in the gap.
+# preset, or (preset, rest-frame range in A).
+# VW01 (Vestergaard & Wilkes 2001) below 2200 A, TS06 (Tsuzuki et al.
+# 2006) at 2200-3500 A (iron under MgII, and up to 3500 A where VW01_UV
+# stops at 3089 A), BG92 from 3685 A. Round 27: TS06's 3190-3320 A bump
+# is over-predicted by ~1 sigma in the dev objects; needs a human look.
 IRON_TEMPLATES_TS06 = {
     "FeII_UV": "VW01_FUV",
     "FeII_TS": "Tsuz_UV",
     "FeII_opt": "BG92_OPT",
 }
+IRON_TEMPLATES = IRON_TEMPLATES_TS06
+# Alternatives: VW01 up to 3089 A (no iron at 3089-3685 A), or VW01 plus
+# TS06 only in that gap
+IRON_TEMPLATES_VW01 = {"FeII_UV": "VW01_UV", "FeII_opt": "BG92_OPT"}
 IRON_TEMPLATES_GAP = {
     "FeII_UV": "VW01_UV",
     "FeII_gap": ("Tsuz_UV", (3089.0, 3500.0)),
@@ -613,7 +617,8 @@ def qso_rules(
     :type lines: list(str) or dict
     :param iron: Component name -> iron template preset, or (preset,
         rest-frame range) (see `iron_template_rule`); None or {} for none.
-        E.g. `IRON_TEMPLATES_TS06`, `IRON_TEMPLATES_GAP`
+        Default VW01 + TS06 + BG92 (`IRON_TEMPLATES`); alternatives
+        `IRON_TEMPLATES_VW01`, `IRON_TEMPLATES_GAP`
     :type iron: dict
     :param balmer: Include the Balmer continuum rule: "hol" (default; with
         the high-order Balmer lines, their ratio to the continuum free),

@@ -104,6 +104,7 @@ def test_iron_template_schemes():
         rules = qr.qso_rules(Z, iron=iron)
         return [r.name for r in rules if getattr(r, "name", "").startswith("iron")]
 
+    assert names(qr.IRON_TEMPLATES_VW01) == ["iron (VW01_UV)", "iron (BG92_OPT)"]
     assert names(qr.IRON_TEMPLATES_TS06) == [
         "iron (VW01_FUV)",
         "iron (Tsuz_UV)",
@@ -190,7 +191,12 @@ def test_qso_rules_bundle():
     assert "CIII" not in names
     assert kinds.count("GaussianLineRule") == len(qr.DEFAULT_LINES) - 1
     assert "CIII] complex" in names and "CIII] second component" in names
-    assert "iron (VW01_UV)" in names and "iron (BG92_OPT)" in names
+    # VW01 below 2200 A, TS06 at 2200-3500 A, BG92
+    assert [n for n in names if n.startswith("iron")] == [
+        "iron (VW01_FUV)",
+        "iron (Tsuz_UV)",
+        "iron (BG92_OPT)",
+    ]
     assert "Balmer continuum + HOL" in names
     assert "OI" in names  # OI 1304 / SiII 1306 blend
     oi = next(r for r in rules if getattr(r, "prefix", None) == "OI")
