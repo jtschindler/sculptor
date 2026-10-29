@@ -125,13 +125,22 @@ def test_iron_template_schemes():
     assert np.any(flux[(rest > 3100) & (rest < 3490)] > 0)
 
 
-def test_balmer_rule_only_below_the_edge():
+def test_balmer_rule_where_it_has_flux():
     rule = qr.balmer_continuum_rule(Z)
     model = _model()  # rest frame 1400 - 2067 A, below the 3646 A edge
     assert len(rule.propose(model, model.run_quick_fit())) <= 1
 
-    red = _model(x=np.geomspace(3700 * (1 + Z), 4500 * (1 + Z), 400))
-    assert rule.propose(red, red.run_quick_fit()) == []
+    # Above the edge: the sharp edge has no flux there, the high-order
+    # lines do (and the data have them)
+    x = np.geomspace(3700 * (1 + Z), 4500 * (1 + Z), 400)
+    shape = _balmer_hol(x, 4000.0, 1.0)
+    red = _model(extra=lambda x: 0.3 * shape / shape.max(), x=x)
+    fit = red.run_quick_fit()
+    assert rule.propose(red, fit) == []
+    hol = qr.balmer_continuum_rule(Z, hol=True)
+    assert [c.description for c in hol.propose(red, fit)] == [
+        "Balmer continuum + HOL: add BalmerCont"
+    ]
 
 
 def _balmer_hol(x, fwhm, hol_ratio):

@@ -515,8 +515,12 @@ def balmer_continuum_rule(
     hol_ratio_range=(0.0, 2.0),
 ):
     """Rule that adds a Balmer continuum (Dietrich et al. 2003), with its
-    amplitude estimated from the residuals. Only proposed if the fit
-    regions reach below the Balmer edge.
+    amplitude estimated from the residuals. Proposed wherever the component
+    has flux on the fitted pixels, as every continuum-like component (the
+    `ComponentRule` amplitude estimate): below the edge, or with `hol` also
+    above it, where the high-order lines are (a fit range starting above
+    the edge then gets the lines; the continuum part below the edge is
+    unconstrained there and trades with `hol_ratio`).
 
     Without `hol` the continuum drops to zero at the edge
     (`qso_advanced_models.fast_balmer_continuum_model`). With `hol` the
@@ -555,10 +559,7 @@ def balmer_continuum_rule(
     """
 
     def factory(model):
-        """The Balmer continuum component, if the fit covers the edge."""
-        x = model.spec.dispersion[model.get_fit_mask()]
-        if x.size == 0 or x.min() > lambda_be * (1 + redshift):
-            return None
+        """The Balmer continuum component."""
         balmer_dict = {
             "redsh": _fixed(redshift),
             "amp_be": {
