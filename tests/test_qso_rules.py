@@ -192,6 +192,31 @@ def test_balmer_rule_with_high_order_lines():
         qr.qso_rules(Z, balmer="yes")
 
 
+def test_balmer_hol_lines_alone():
+    """The lines-only template: `flux` is the integrated flux of all the
+    lines; the rule finds and measures them above the edge."""
+    model = qso_advanced_models.BalmerHOLLines()
+    x = np.linspace(3550 * (1 + Z), 4100 * (1 + Z), 20000)
+    flux = model(x, Z, 2.5, 3000.0)
+    assert np.trapezoid(flux, x) == pytest.approx(2.5, rel=1e-3)
+    assert np.all(flux[x < 3600 * (1 + Z)] < 1e-3 * flux.max())
+
+    # Data above the edge with the lines: proposed and recovered; no
+    # continuum below the edge to constrain
+    x = np.geomspace(3700 * (1 + Z), 4500 * (1 + Z), 400)
+    shape = model(x, Z, 1.0, 4000.0)
+    data = _model(extra=lambda x: 0.3 * shape / shape.max(), x=x)
+    rule = qr.balmer_hol_rule(Z)
+    assert [c.description for c in rule.propose(data, data.run_quick_fit())] == [
+        "Balmer high-order lines: add BalmerHOL"
+    ]
+    found = AutoFit(data, [rule]).run()
+    assert [c.name for c in found.model.components] == ["PL", "BalmerHOL"]
+    par = found.model.parameters
+    assert par["BalmerHOL_fwhm"].value == pytest.approx(4000.0, rel=0.15)
+    assert par["BalmerHOL_flux"].value == pytest.approx(0.3 / shape.max(), rel=0.15)
+
+
 def test_qso_rules_bundle():
     rules = qr.qso_rules(Z)
     names = [getattr(r, "prefix", None) or r.name for r in rules]
@@ -206,7 +231,9 @@ def test_qso_rules_bundle():
         "iron (Tsuz_UV)",
         "iron (BG92_OPT)",
     ]
-    assert "Balmer continuum + HOL" in names
+    # Balmer continuum (sharp edge) and high-order lines, independently
+    assert "Balmer continuum" in names and "Balmer high-order lines" in names
+    assert "Balmer continuum + HOL" not in names
     assert "OI" in names  # OI 1304 / SiII 1306 blend
     oi = next(r for r in rules if getattr(r, "prefix", None) == "OI")
     model = _model()
@@ -224,7 +251,7 @@ def test_qso_rules_bundle():
     assert len(bare) == len(qr.DEFAULT_LINES)
     tie = qr.qso_rules(Z, narrow_tie=True)[-1]
     assert tie.prefixes == ["Hbeta", "Halpha", "OIII"]
-    assert len(qr.qso_rules(Z, lines=["CIV", "Hbeta"], iron=None)) == 3
+    assert len(qr.qso_rules(Z, lines=["CIV", "Hbeta"], iron=None)) == 4
 
 
 def test_oiii_doublet_rule():

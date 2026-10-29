@@ -6,7 +6,8 @@ development spectra): broad Gaussians at the strong lines in the fit
 regions (`DEFAULT_LINES`, including the broad "HeII" red shelf), the CIII]
 complex with SiIII] and AlIII (`ciii_complex_rule`) and its optional
 second broad CIII] (`ciii_second_component_rule`), the UV and optical iron
-templates (`IRON_TEMPLATES`), the Balmer continuum, and the narrow
+templates (`IRON_TEMPLATES`), the Balmer continuum and, separately, the
+high-order Balmer lines (`balmer_hol_rule`), and the narrow
 components of Hbeta, Halpha and [OIII] proposed together at the systemic
 redshift (`narrow_line_group`, the only route for a narrow Hbeta /
 Halpha). `narrow_line_tie` is optional. Components narrower than
@@ -598,11 +599,55 @@ def balmer_continuum_rule(
     )
 
 
+def balmer_hol_rule(
+    redshift, prefix="BalmerHOL", fwhm=3000.0, fwhm_range=(1000.0, 10000.0)
+):
+    """Rule that adds the high-order Balmer lines alone
+    (`qso_advanced_models.BalmerHOLLines`: n = 7 - 50, fixed relative
+    strengths, one free FWHM), with their flux estimated from the
+    residuals, independently of the Balmer continuum. Proposed wherever the
+    lines have flux on the fitted pixels (about 3646 - 3970 A rest).
+
+    :param redshift: Systemic redshift (fixed)
+    :type redshift: float
+    :param prefix: Component name
+    :type prefix: str
+    :param fwhm: Starting FWHM, km/s
+    :type fwhm: float
+    :param fwhm_range: FWHM prior range, km/s
+    :type fwhm_range: (float, float)
+    :return: The rule
+    :rtype: sculptor.autofit.ComponentRule
+    """
+
+    def factory(model):
+        """The high-order lines component."""
+        hol_dict = {
+            "redsh": _fixed(redshift),
+            "flux": {
+                "value": 1.0,
+                "vary": True,
+                "prior": UniformPrior(f"{prefix}_flux", 0, 1e30),
+            },
+            "fwhm": {
+                "value": fwhm,
+                "vary": True,
+                "prior": UniformPrior(f"{prefix}_fwhm", *fwhm_range),
+            },
+        }
+        return qam.initialize_balmer_hol_lines(prefix, hol_dict=hol_dict)
+
+    return ComponentRule("Balmer high-order lines", factory, linear_param="flux")
+
+
+BALMER_OPTIONS = ("separate", "hol", True, False)
+
+
 def qso_rules(
     redshift,
     lines=DEFAULT_LINES,
     iron=IRON_TEMPLATES,
-    balmer="hol",
+    balmer="separate",
     narrow_group=True,
     narrow_tie=False,
     ciii_complex=True,
@@ -621,9 +666,12 @@ def qso_rules(
         Default VW01 + TS06 + BG92 (`IRON_TEMPLATES`); alternatives
         `IRON_TEMPLATES_VW01`, `IRON_TEMPLATES_GAP`
     :type iron: dict
-    :param balmer: Include the Balmer continuum rule: "hol" (default; with
-        the high-order Balmer lines, their ratio to the continuum free),
-        True (sharp edge only) or False
+    :param balmer: "separate" (default): the Balmer continuum (sharp edge)
+        and the high-order Balmer lines as two independent components
+        (`balmer_continuum_rule`, `balmer_hol_rule`); "hol": one component
+        with the lines' ratio to the continuum free (only constrained if the
+        fit reaches below the edge; for a later, manual stage); True: the
+        continuum only; False: neither
     :type balmer: bool or str
     :param narrow_group: Include `narrow_line_group` (`NARROW_TIE_LINES`
         among `lines`)
@@ -661,10 +709,12 @@ def qso_rules(
                 redshift, preset=preset, prefix=prefix, disp_range=disp_range
             )
         )
-    if balmer not in (True, False, "hol"):
-        raise ValueError(f"balmer must be True, False or 'hol', not {balmer!r}")
+    if not any(balmer is option or balmer == option for option in BALMER_OPTIONS):
+        raise ValueError(f"balmer must be one of {BALMER_OPTIONS}, not {balmer!r}")
     if balmer:
         rules.append(balmer_continuum_rule(redshift, hol=balmer == "hol"))
+    if balmer == "separate":
+        rules.append(balmer_hol_rule(redshift))
     if narrow_tie:
         tied = [name for name in NARROW_TIE_LINES if name in lines]
         if len(tied) >= 2:

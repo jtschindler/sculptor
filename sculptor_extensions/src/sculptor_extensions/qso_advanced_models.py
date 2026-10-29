@@ -220,6 +220,53 @@ class BalmerContinuumHOLRatio:
         return amp_be * (continuum + lines) * 1e-8
 
 
+class BalmerHOLLines:
+    """The high-order Balmer lines alone (n = 7 - 50, Storey & Hummer 1995
+    case B emissivities, one FWHM), without the Balmer continuum: a template
+    with a linear `flux`, the integrated flux of all the lines (as
+    `analysis.line_model_gaussian`'s `flux`). Caches the wavelength grid
+    like `CachedBalmerContinuumWithHOL`: give each component its own
+    instance."""
+
+    def __init__(self):
+        self._grid = CachedBalmerContinuumWithHOL()
+        self.__code__ = sccomp.FakeCode(
+            co_argcount=4, co_varnames=("x", "redsh", "flux", "fwhm")
+        )
+        self.__name__ = "balmer_hol_lines"
+
+    def __call__(self, x, redsh, flux, fwhm):
+        """Evaluate the model.
+
+        :param x: Observed-frame dispersion in Angstroem
+        :type x: np.ndarray
+        :param redsh: Redshift
+        :type redsh: float
+        :param flux: Integrated flux of all the lines
+        :type flux: float
+        :param fwhm: FWHM of the lines in km/s
+        :type fwhm: float
+        :return: The lines
+        :rtype: np.ndarray
+        """
+        _, diff2 = self._grid._rest_frame(x, redsh)
+        # Each line's Gaussian has area emissivity * sqrt(2 pi) in the rest
+        # frame; 1 + z converts the rest-frame density to the observed one
+        norm = np.sqrt(2.0 * np.pi) * np.sum(_HOL_EMISS) * (1.0 + redsh)
+        return flux * _hol_lines(diff2, fwhm) / norm
+
+
+def initialize_balmer_hol_lines(prefix, hol_dict=None):
+    """Initialize a `BalmerHOLLines` component; `hol_dict` with "redsh",
+    "flux" and "fwhm" (see `component_setup.initialize_component`).
+
+    :return: Component and parameters
+    """
+    return initialize_component(
+        prefix, BalmerHOLLines(), hol_dict, dict_name="hol_dict"
+    )
+
+
 def initialize_balmer_hol_ratio(prefix, balmer_dict=None):
     """Initialize a `BalmerContinuumHOLRatio` component; `balmer_dict` as
     for `initialize_balmer_with_hol`, plus "hol_ratio".
