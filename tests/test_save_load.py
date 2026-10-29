@@ -61,8 +61,12 @@ def test_component_round_trip(tmp_path, line_component):
 
     loaded = sccomp.FitComponent("other", ana.power_law_at2500)
     loaded.load("SiIV_a", tmp_path)
+    # `load` used to share the unpickled object's __dict__: collecting that
+    # object emptied the loaded state (Python 3.13)
+    gc.collect()
 
     assert loaded.name == "SiIV_a"
+    assert loaded.param_mapping._owner is loaded
     assert loaded.function is ana.line_model_gaussian
     assert loaded.get_arg_keys() == comp.get_arg_keys()
 
@@ -83,6 +87,7 @@ def test_model_round_trip(tmp_path, fit_model):
 
     loaded = scmod.FitModel()
     loaded.load("fit", tmp_path)
+    gc.collect()
 
     assert (tmp_path / "fit.pkl").exists()
     assert [c.name for c in loaded.components] == ["pl", "SiIV_a"]
@@ -95,35 +100,6 @@ def test_model_round_trip(tmp_path, fit_model):
 
     x = model.spec.dispersion
     assert np.array_equal(loaded.eval(x, chain[-1]), model.eval(x, chain[-1]))
-
-
-def test_loaded_model_survives_garbage_collection(tmp_path, fit_model):
-    """`load` used to share the unpickled object's `__dict__`; once that
-    object was collected (Python 3.13), the loaded model's parameters and
-    spectrum were emptied."""
-    fit_model.save("fit", tmp_path)
-    loaded = scmod.FitModel()
-    loaded.load("fit", tmp_path)
-    gc.collect()
-
-    assert list(loaded.parameters) == list(fit_model.parameters)
-    assert np.array_equal(loaded.spec.dispersion, fit_model.spec.dispersion)
-    assert [c.name for c in loaded.components] == ["pl", "SiIV_a"]
-    for comp in loaded.components:
-        assert comp.param_mapping._owner is comp
-
-
-def test_loaded_component_survives_garbage_collection(tmp_path, line_component):
-    comp, _ = line_component()
-    comp.save("SiIV_a", tmp_path)
-    loaded = sccomp.FitComponent("other", ana.power_law_at2500)
-    loaded.load("SiIV_a", tmp_path)
-    gc.collect()
-
-    assert loaded.param_mapping._owner is loaded
-    loaded.get_arg_keys()
-    loaded.param_mapping.update({"redsh": "SiIV_a_redsh"})
-    assert loaded.get_arg_keys()[0] == "SiIV_a_redsh"
 
 
 def test_model_evaluates_in_spawned_worker(fit_model):
