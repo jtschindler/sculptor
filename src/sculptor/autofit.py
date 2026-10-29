@@ -2152,10 +2152,11 @@ class Calibration:
     :param improvements: Largest improvement of each simulation (failed
         simulations left out)
     :type improvements: np.ndarray
-    :param thresholds: Quantile -> threshold
+    :param thresholds: Quantile -> threshold (at least `min_threshold`)
     :type thresholds: dict
     :param intervals: Quantile -> (low, high): 90% bootstrap interval of the
-        threshold, its uncertainty from the finite number of simulations
+        quantile of the improvements, its uncertainty from the finite number
+        of simulations (before the floor)
     :type intervals: dict
     :param noise: Noise model of the simulations
     :type noise: str
@@ -2169,6 +2170,8 @@ class Calibration:
         rules on their own, for the quantile corrected for the number of
         calibrated rules (see `calibrate_threshold`)
     :type by_rule: dict
+    :param min_threshold: Floor of the thresholds
+    :type min_threshold: float
     """
 
     criterion: str
@@ -2179,6 +2182,7 @@ class Calibration:
     n_fits: int = 0
     rule_improvements: dict = field(default_factory=dict)
     by_rule: dict = field(default_factory=dict)
+    min_threshold: float = 0.0
 
     def rule_thresholds(self, quantile):
         """Rule key -> threshold at `quantile`, for the calibrated rules.
@@ -2198,7 +2202,7 @@ class Calibration:
         """
         if quantile in self.thresholds:
             return self.thresholds[quantile]
-        return float(np.quantile(self.improvements, quantile))
+        return max(float(np.quantile(self.improvements, quantile)), self.min_threshold)
 
     def __str__(self):
         imp = self.improvements
@@ -2210,9 +2214,11 @@ class Calibration:
         lines = [header]
         for quantile, value in self.thresholds.items():
             low, high = self.intervals[quantile]
+            raw = float(np.quantile(imp, quantile))
+            floor = f"the floor; quantile {raw:.1f}, " if raw < value else ""
             lines.append(
                 f"  {quantile:.1%} quantile: threshold {value:.1f} "
-                f"(90% bootstrap interval {low:.1f} - {high:.1f})"
+                f"({floor}90% bootstrap interval {low:.1f} - {high:.1f})"
             )
         if self.by_rule:
             lines.append(
@@ -2287,6 +2293,7 @@ def calibrate_threshold(
     min_rule_sims=20,
     min_rule_threshold=10.0,
     noise_model=None,
+    min_threshold=10.0,
 ):
     """Thresholds for `AutoFit` from simulations without extra components.
 
@@ -2299,7 +2306,11 @@ def calibrate_threshold(
     which an added component is unlikely to fit noise (a false positive
     rate of about 1 - q per step). Each threshold comes with a bootstrap
     interval; high quantiles need many simulations (n_sims (1 - q) of them
-    lie above the threshold).
+    lie above the threshold). The thresholds are at least `min_threshold`:
+    where noise rarely improves the criterion at all (few searched pixels,
+    residuals close to white noise), the quantile falls to about 0 and
+    would accept any improvement, however small (round 28, J1504 optical
+    piece: 0.2, a narrow Hgamma added at a BIC gain of 1.6).
 
     Use a model of the real features, e.g. from a search with a fixed
     threshold (as `AutoFit` does with `threshold="calibrate"`): residuals
@@ -2355,6 +2366,9 @@ def calibrate_threshold(
     :param min_rule_threshold: Floor of the per-rule thresholds (capped at
         the global threshold)
     :type min_rule_threshold: float
+    :param min_threshold: Floor of the global thresholds (default 10: a BIC
+        difference above 10 is "very strong" evidence, Kass & Raftery 1995)
+    :type min_threshold: float
     :param noise_model: With `noise="residuals"`: the model whose residuals
         give the noise (same spectrum as `model`), None (default) for
         `model`. A null model without some real features counts their
@@ -2465,6 +2479,12 @@ def calibrate_threshold(
     thresholds, intervals = {}, {}
     for quantile in quantiles:
         thresholds[quantile] = float(np.quantile(improvements, quantile))
+        if thresholds[quantile] < min_threshold:
+            logger.info(
+                f"calibrate_threshold: {quantile:.1%} threshold "
+                f"{thresholds[quantile]:.1f} raised to the floor {min_threshold:.1f}"
+            )
+            thresholds[quantile] = float(min_threshold)
         boot = np.quantile(resampled, quantile, axis=1)
         intervals[quantile] = tuple(float(v) for v in np.quantile(boot, [0.05, 0.95]))
         if improvements.size * (1 - quantile) < 3:
@@ -2504,6 +2524,7 @@ def calibrate_threshold(
         n_fits=search.n_fits,
         rule_improvements=rule_improvements,
         by_rule=by_rule,
+        min_threshold=float(min_threshold),
     )
     logger.info(str(calibration))
     return calibration

@@ -752,7 +752,11 @@ def test_search_reports_when_it_does_not_converge(caplog):
 
 def test_calibration_reports_every_quantile():
     calibration = calibrate_threshold(
-        _model(lines=[]), [_rule()], n_sims=20, quantiles=(0.5, 0.8, 0.95)
+        _model(lines=[]),
+        [_rule()],
+        n_sims=20,
+        quantiles=(0.5, 0.8, 0.95),
+        min_threshold=0.0,
     )
     imp = calibration.improvements
     assert list(calibration.thresholds) == [0.5, 0.8, 0.95]
@@ -767,6 +771,20 @@ def test_calibration_reports_every_quantile():
 
     with pytest.raises(ValueError, match="quantiles"):
         calibrate_threshold(_model(lines=[]), [_rule()], quantiles=(95,))
+
+
+def test_calibration_threshold_floor():
+    # A rule that proposes nothing: noise improves nothing, quantiles of 0
+    silent = _rule(min_significance=1e9)
+    floored = calibrate_threshold(_model(lines=[]), [silent], n_sims=5)
+    assert np.all(floored.improvements == 0)
+    assert floored.thresholds == {0.95: 10.0, 0.99: 10.0}
+    assert floored.threshold(0.5) == 10.0
+    assert "the floor; quantile 0.0" in str(floored)
+
+    raw = calibrate_threshold(_model(lines=[]), [silent], n_sims=5, min_threshold=0.0)
+    assert raw.thresholds == {0.95: 0.0, 0.99: 0.0}
+    assert "the floor" not in str(raw)
 
 
 def test_calibrated_threshold_is_the_default():
