@@ -541,6 +541,27 @@ def test_group_calibrated_without_narrow_lines_added_alone(monkeypatch):
     assert "narrow" in cal.rule_improvements
 
 
+def test_broad_line_at_its_lower_bound_is_not_narrow():
+    """The broad-only Hbeta starts at NARROW_FWHM_MAX: at that bound it is
+    still broad, neither the group's hypothesis nor a narrow line to tie."""
+    model, lines, z = _weak_narrow_model(0.0)
+    found = AutoFit(model, lines).run().model
+    group = qr.narrow_line_group(lines, z)
+    tie = qr.narrow_line_tie(["Hbeta", "OIII"])
+    assert lines[0].fwhm_range[0] == qr.NARROW_FWHM_MAX
+    found.parameters["OIII_0_fwhm_km_s"].value = 500.0  # a narrow [OIII]
+    width = found.parameters["Hbeta_0_fwhm_km_s"]
+
+    width.value = qr.NARROW_FWHM_MAX
+    assert "Hbeta_0" not in group.null_removals(found)
+    names, reason = tie.select(found)
+    assert names is None and "Hbeta" in reason
+
+    width.value = qr.NARROW_FWHM_MAX - 1
+    assert "Hbeta_0" in group.null_removals(found)
+    assert sorted(tie.select(found)[0]) == ["Hbeta_0", "OIII_0"]
+
+
 def test_group_rejected_when_not_systemic():
     """Cores 600 km/s from the systemic redshift are outside the default
     window: the group would end at its redshift bound."""

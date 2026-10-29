@@ -895,9 +895,10 @@ class LineGroupRule(Rule):
         return [(shared, comps)] if comps else []
 
     def null_removals(self, model):
-        """The group's components and the members' components within the
-        group's width range (e.g. a narrow Hbeta added on its own by the
-        Hbeta rule): the same hypothesis.
+        """The group's components and the members' components narrower
+        than the group's largest width (e.g. a narrow Hbeta added on its own
+        by the Hbeta rule): the same hypothesis. A component at that width
+        is not counted: a broad-only member's range may start there.
 
         :param model: The model
         :type model: sculptor.model.FitModel
@@ -911,7 +912,7 @@ class LineGroupRule(Rule):
                 par = model.parameters.get(key)
                 if (
                     par is not None
-                    and par.value <= self.fwhm_range[1]
+                    and par.value < self.fwhm_range[1]
                     and name not in names
                 ):
                     names.append(name)
@@ -1103,7 +1104,7 @@ class Tie(Rule):
     the narrow cores of Hbeta and [OIII] share redshift and width.
 
     It applies to the narrowest component of each rule `<prefix>_<n>` in
-    `prefixes` whose `width_arg` is at most `max_width`, if at least
+    `prefixes` whose `width_arg` is below `max_width`, if at least
     `min_components` rules have one. `AutoFit` tests it when its search
     converges, like a removal: the tied model is kept unless the untied one
     earns the threshold (see the module docstring). The shared parameters
@@ -1120,8 +1121,9 @@ class Tie(Rule):
     :type prefixes: list(str)
     :param args: Arguments to share
     :type args: list(str)
-    :param max_width: Largest `width_arg` of a tied component (e.g. the
-        narrow-line FWHM limit), or None for any
+    :param max_width: Limit of `width_arg` of a tied component (e.g. the
+        narrow-line FWHM limit; a component at it is not tied: a broad-only
+        rule's range may start there), or None for any
     :type max_width: float
     :param width_arg: Argument that measures the width
     :type width_arg: str
@@ -1184,7 +1186,7 @@ class Tie(Rule):
                 if key is None:
                     continue
                 width = model.parameters[key].value
-                if self.max_width is None or width <= self.max_width:
+                if self.max_width is None or width < self.max_width:
                     widths[comp.name] = width
             # A component already sharing the tie's parameters (e.g. added
             # by a `LineGroupRule` of the same name) comes first
@@ -1202,7 +1204,7 @@ class Tie(Rule):
             else:
                 missing.append(prefix)
         if len(chosen) < self.min_components:
-            limit = "" if self.max_width is None else f" <= {self.max_width:g}"
+            limit = "" if self.max_width is None else f" < {self.max_width:g}"
             return None, (
                 f"no component with {self.width_arg}{limit} for {', '.join(missing)}"
             )

@@ -205,7 +205,7 @@ def line_rules(
 
 def narrow_line_tie(lines=NARROW_TIE_LINES, max_fwhm=None, args=None):
     """Hypothesis that the narrow components of `lines` (the narrowest
-    Gaussian of each with FWHM <= `max_fwhm`) share redshift and FWHM, in
+    Gaussian of each with FWHM below `max_fwhm`) share redshift and FWHM, in
     parameters `narrow_redsh` and `narrow_fwhm_km_s`. AutoFit tests it once
     its search converges and keeps it unless the untied model earns the
     threshold; `AutoFitResult.ties["narrow"]` reports the outcome (e.g.
