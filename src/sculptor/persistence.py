@@ -53,7 +53,14 @@ class PickleMixin:
                 f"{type(loaded).__name__}, not a {type(self).__name__}."
             )
 
-        # Share the loaded object's attribute dict rather than copying it:
-        # objects that point back to their owner (e.g. a FitComponent's
-        # param_mapping) then keep updating this object's state.
-        self.__dict__ = loaded.__dict__
+        # Copy the loaded object's attributes rather than sharing its dict:
+        # with a shared dict, collecting the loaded object emptied the
+        # objects it held (Python 3.13: parameters and spectrum of a
+        # loaded FitModel gone after gc.collect()). Attributes that point
+        # back to their owner (a FitComponent's param_mapping) are
+        # re-pointed to this object.
+        self.__dict__.clear()
+        self.__dict__.update(loaded.__dict__)
+        for value in self.__dict__.values():
+            if getattr(value, "_owner", None) is loaded:
+                value._owner = self
