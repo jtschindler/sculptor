@@ -427,14 +427,11 @@ def test_calibration_rule_floor_and_bound_rejection(monkeypatch):
     cal = calibrate()
     assert np.all(cal.rule_improvements["narrow"] == 0)
     assert cal.rule_improvements["narrow"].size == 4
-    # A threshold of 0, raised to the floor (capped at the global one)
-    assert cal.thresholds[0.9] > 10.0
-    assert cal.by_rule["narrow"][0.9] == 10.0
-    assert calibrate(min_rule_threshold=0.0).by_rule["narrow"][0.9] == 0.0
-    assert (
-        calibrate(min_rule_threshold=1e9).by_rule["narrow"][0.9]
-        == (cal.thresholds[0.9])
-    )
+    # A threshold of 0, raised to the floor (the global one's too)
+    assert cal.thresholds[0.9] > autofit.MIN_THRESHOLD
+    assert cal.by_rule["narrow"][0.9] == autofit.MIN_THRESHOLD
+    assert calibrate(min_threshold=0.0).by_rule["narrow"][0.9] == 0.0
+    assert calibrate(min_threshold=1e9).by_rule["narrow"][0.9] == 1e9
 
 
 def _clip_with(monkeypatch, masks):
@@ -827,6 +824,29 @@ def test_calibrated_threshold_is_the_default():
         autofit.AutoFit(base, [_rule()], threshold="auto")
 
 
+def test_min_threshold_is_the_preliminary_threshold_and_the_floor():
+    calibration = {"n_sims": 6, "quantiles": (0.9,), "min_rule_sims": 3}
+    result = autofit.AutoFit(
+        _model(), [_rule()], calibration=calibration, min_threshold=40.0
+    ).run()
+    assert result.preliminary.threshold == 40.0
+    assert result.calibration.min_threshold == 40.0
+    assert result.threshold >= 40.0
+    assert all(v[0.9] >= 40.0 for v in result.calibration.by_rule.values())
+    with pytest.raises(ValueError, match="min_threshold"):
+        autofit.AutoFit(_model(), [_rule()], calibration={"min_threshold": 5.0})
+
+
+def test_an_improvement_equal_to_the_threshold_earns_it():
+    """A component worth exactly the threshold is added, and the backward
+    step keeps it."""
+    fit = AutoFit(_model(lines=[(15.0, CIII, 3000.0)]), [_rule(max_components=1)])
+    gain = -fit.run().history[1].delta
+    found = fit._search(gain, 20)
+    assert [step.action for step in found.history] == ["start", "add"]
+    assert fit._search(np.nextafter(gain, np.inf), 20).history[-1].action == "start"
+
+
 def _record_nulls(monkeypatch, noise_models=None):
     """Component names of every null model `calibrate_threshold` gets (and
     of its noise models, into `noise_models`)."""
@@ -854,7 +874,7 @@ def test_recalibration_on_the_selected_model(monkeypatch, caplog):
             _model(),
             [_rule(max_components=6, min_significance=0.0)],
             calibration=calibration,
-            preliminary_threshold=-np.inf,
+            min_threshold=-np.inf,
             recalibrate=1,
         ).run()
     preliminary = autofit._component_names(result.preliminary.model)
@@ -873,7 +893,7 @@ def test_recalibration_on_the_selected_model(monkeypatch, caplog):
         _model(),
         [_rule(max_components=6, min_significance=0.0)],
         calibration=calibration,
-        preliminary_threshold=-np.inf,
+        min_threshold=-np.inf,
     ).run()
     assert len(once.calibrations) == 1 == len(nulls)
     assert "recalibrated" not in str(once)

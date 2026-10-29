@@ -8,7 +8,7 @@ a base model (e.g. a power-law continuum), each iteration
    residuals show the most significant unmodeled emission),
 2. quick-fits the model with each candidate added and scores it with the
    criterion (BIC by default, or AICc, or any callable),
-3. keeps the best candidate if it lowers the criterion by more than
+3. keeps the best candidate if it lowers the criterion by at least
    `threshold`, then tries removing each removable component (or group of
    components that share guarded parameters, see below) and drops it if
    it no longer earns `threshold`,
@@ -45,9 +45,12 @@ The threshold is calibrated by default (`threshold="calibrate"`): a
 preliminary search with a fixed threshold gives a model of the real
 features; `calibrate_threshold` simulates it with noise like its residuals
 and takes quantiles of the criterion improvements that noise alone
-achieves (95% and 99% by default; at least 10, as the preliminary
-search's threshold and the per-rule floor); the search is then rerun for
-each quantile. With `recalibrate` the calibration is repeated with the model the
+achieves (95% and 99% by default); the search is then rerun for each
+quantile. One value, `min_threshold` (default `MIN_THRESHOLD` = 10), is
+the preliminary search's threshold and the floor of every calibrated
+threshold (global and per rule). A change earns a threshold when it
+improves the criterion by at least that much (additions, backward steps
+and ties alike). With `recalibrate` the calibration is repeated with the model the
 first quantile selects as the null (the noise still from the preliminary
 model's residuals), and the searches rerun, until that model no longer
 changes. `AutoFitResult` holds the model of the first quantile, the others
@@ -91,6 +94,14 @@ from sculptor.prior import UniformPrior
 logger = logging.getLogger(__name__)
 
 _FWHM_TO_SIGMA = 1 / np.sqrt(8 * np.log(2))
+
+# Threshold of the preliminary search and floor of the calibrated
+# thresholds: a BIC difference above 10 is "very strong" evidence (Kass &
+# Raftery 1995). Where noise rarely improves the criterion (few searched
+# pixels, near-white residuals) the calibrated quantile falls to about 0
+# and would accept any improvement (round 28, J1504 optical piece: 0.2, a
+# narrow Hgamma added at a BIC gain of 1.6)
+MIN_THRESHOLD = 10.0
 
 # Loggers of the quick fits run during the search; their per-fit messages
 # are silenced (warnings included: candidates at prior bounds are expected)
@@ -1493,10 +1504,12 @@ class AutoFit:
     :param calibration: With `threshold="calibrate"`: keyword arguments of
         `calibrate_threshold`, e.g. `{"quantiles": (0.9, 0.95, 0.99),
         "n_sims": 500}`; the first quantile selects `AutoFitResult.model`
+        (the floor is `min_threshold`, not set here)
     :type calibration: dict
-    :param preliminary_threshold: With `threshold="calibrate"`: fixed
-        threshold of the preliminary search
-    :type preliminary_threshold: float
+    :param min_threshold: With `threshold="calibrate"`: threshold of the
+        preliminary search and floor of the calibrated thresholds, global
+        and per rule (see `MIN_THRESHOLD`)
+    :type min_threshold: float
     :param absorbers: Keyword arguments of
         `sculptor.absorbers.find_absorbers` (e.g. `{"redshift": 7.18,
         "name": "J0412"}`) to search the preliminary model's residuals (a
@@ -1530,7 +1543,7 @@ class AutoFit:
         clip_after=2,
         multistart=True,
         calibration=None,
-        preliminary_threshold=10.0,
+        min_threshold=MIN_THRESHOLD,
         absorbers=None,
         per_rule=True,
         recalibrate=0,
@@ -1538,6 +1551,10 @@ class AutoFit:
         if isinstance(threshold, str) and threshold != "calibrate":
             raise ValueError(
                 f"threshold must be a number or 'calibrate', not {threshold!r}"
+            )
+        if "min_threshold" in (calibration or {}):
+            raise ValueError(
+                "Set the floor with AutoFit(min_threshold=...), not in `calibration`."
             )
         if callable(criterion):
             self.criterion_name = getattr(criterion, "__name__", "criterion")
@@ -1561,7 +1578,7 @@ class AutoFit:
         self.clip_after = clip_after
         self.multistart = multistart
         self.calibration = dict(calibration or {})
-        self.preliminary_threshold = preliminary_threshold
+        self.min_threshold = min_threshold
         self.absorbers = None if absorbers is None else dict(absorbers)
         self.per_rule = per_rule
         self.recalibrate = int(recalibrate)
@@ -1714,7 +1731,7 @@ class AutoFit:
             found.n_fits = self.n_fits
             return found
 
-        preliminary = self._search(self.preliminary_threshold, max_iterations)
+        preliminary = self._search(self.min_threshold, max_iterations)
         if self.absorbers is not None:
             inventory = self._mask_absorbers(preliminary.model)
             if len(inventory.features):
@@ -1731,6 +1748,7 @@ class AutoFit:
         kwargs = {
             "per_rule": self.per_rule,
             "noise_model": preliminary.model,
+            "min_threshold": self.min_threshold,
             **self.calibration,
         }
         null, calibrations, seen = preliminary.model, [], set()
@@ -1846,7 +1864,7 @@ class AutoFit:
                         cand, trial_result
                     ):
                         continue
-                    if score - trial_score <= rule_threshold:
+                    if score - trial_score < rule_threshold:
                         continue
                     if best is None or trial_score < best[2]:
                         best = (trial, trial_result, trial_score, cand)
@@ -2318,9 +2336,8 @@ def calibrate_threshold(
     n_bootstrap=1000,
     per_rule=True,
     min_rule_sims=20,
-    min_rule_threshold=10.0,
     noise_model=None,
-    min_threshold=10.0,
+    min_threshold=MIN_THRESHOLD,
 ):
     """Thresholds for `AutoFit` from simulations without extra components.
 
@@ -2333,11 +2350,8 @@ def calibrate_threshold(
     which an added component is unlikely to fit noise (a false positive
     rate of about 1 - q per step). Each threshold comes with a bootstrap
     interval; high quantiles need many simulations (n_sims (1 - q) of them
-    lie above the threshold). The thresholds are at least `min_threshold`:
-    where noise rarely improves the criterion at all (few searched pixels,
-    residuals close to white noise), the quantile falls to about 0 and
-    would accept any improvement, however small (round 28, J1504 optical
-    piece: 0.2, a narrow Hgamma added at a BIC gain of 1.6).
+    lie above the threshold). The thresholds, global and per rule, are at
+    least `min_threshold` (see `MIN_THRESHOLD`).
 
     Use a model of the real features, e.g. from a search with a fixed
     threshold (as `AutoFit` does with `threshold="calibrate"`): residuals
@@ -2355,12 +2369,10 @@ def calibrate_threshold(
     group found by the preliminary search, a narrow Hbeta its member rule
     added alone, or the iron template of a `ComponentRule`) is calibrated
     on simulations of `model` without it. Rules that propose nothing in at
-    least
-    `min_rule_sims` simulations keep the global threshold. A rule's
-    threshold is at least `min_rule_threshold` (or the global threshold, if
-    that is lower): a hypothesis that never improves the criterion on noise
-    gives a threshold of 0, which says only that the simulations do not
-    reach its tail.
+    least `min_rule_sims` simulations keep the global threshold. The floor
+    matters most here: a hypothesis that never improves the criterion on
+    noise gives a threshold of 0, which says only that the simulations do
+    not reach its tail.
 
     Candidates are judged as in the search: a fit rejected for parameters
     at a prior bound (`Candidate.reject_at_bound`) improves
@@ -2392,11 +2404,8 @@ def calibrate_threshold(
     :param min_rule_sims: Simulations a rule needs candidates in to get its
         own threshold
     :type min_rule_sims: int
-    :param min_rule_threshold: Floor of the per-rule thresholds (capped at
-        the global threshold)
-    :type min_rule_threshold: float
-    :param min_threshold: Floor of the global thresholds (default 10: a BIC
-        difference above 10 is "very strong" evidence, Kass & Raftery 1995)
+    :param min_threshold: Floor of the thresholds, global and per rule
+        (default `MIN_THRESHOLD`)
     :type min_threshold: float
     :param noise_model: With `noise="residuals"`: the model whose residuals
         give the noise (same spectrum as `model`), None (default) for
@@ -2535,13 +2544,12 @@ def calibrate_threshold(
             by_rule[key] = {}
             for q in quantiles:
                 value = tail_threshold(values, 1 - (1 - q) / n_rules)
-                floor = min(min_rule_threshold, thresholds[q])
-                if value < floor:
+                if value < min_threshold:
                     logger.info(
                         f"calibrate_threshold: {key}: {q:.1%} threshold "
-                        f"{value:.1f} raised to the floor {floor:.1f}"
+                        f"{value:.1f} raised to the floor {min_threshold:.1f}"
                     )
-                    value = floor
+                    value = float(min_threshold)
                 by_rule[key][q] = value
 
     calibration = Calibration(
