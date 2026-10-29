@@ -45,8 +45,9 @@ The threshold is calibrated by default (`threshold="calibrate"`): a
 preliminary search with a fixed threshold gives a model of the real
 features; `calibrate_threshold` simulates it with noise like its residuals
 and takes quantiles of the criterion improvements that noise alone
-achieves (95% and 99% by default); the search is then rerun for each
-quantile. With `recalibrate` the calibration is repeated with the model the
+achieves (95% and 99% by default; at least 10, as the preliminary
+search's threshold and the per-rule floor); the search is then rerun for
+each quantile. With `recalibrate` the calibration is repeated with the model the
 first quantile selects as the null (the noise still from the preliminary
 model's residuals), and the searches rerun, until that model no longer
 changes. `AutoFitResult` holds the model of the first quantile, the others
