@@ -517,6 +517,21 @@ def test_component_rule_scales_and_adds_once():
     assert rule.propose(final.model, final.result) == []  # already there
 
 
+def test_component_rule_calibrated_without_its_component():
+    """A component the preliminary model already has: its rule proposes
+    nothing on that null, so it is calibrated on simulations without it
+    and gets its own threshold."""
+    rule = ComponentRule("CIII]", _line_factory("CIII_x", CIII), linear_param="flux")
+    found = AutoFit(_model(lines=[(15.0, CIII, 3000.0)]), [rule]).run().model
+    assert rule.null_removals(found) == ["CIII_x"]
+    kwargs = {"n_sims": 8, "quantiles": [0.9], "min_rule_sims": 4}
+    cal = calibrate_threshold(found, [rule], **kwargs)
+    # Proposed in the simulations where the noise has positive flux there
+    assert cal.rule_improvements["CIII]"].size >= 4
+    assert "CIII]" in cal.by_rule
+    assert calibrate_threshold(found, [rule], per_rule=False, **kwargs).by_rule == {}
+
+
 def test_component_rule_skips_components_the_data_do_not_ask_for():
     rule = ComponentRule("HeII", _line_factory("HeII_x", HEII), linear_param="flux")
     base = _model(lines=[])

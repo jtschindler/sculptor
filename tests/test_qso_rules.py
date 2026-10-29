@@ -719,6 +719,10 @@ def test_ciii_second_component_rule():
     )
     assert widths[0] == pytest.approx(1500.0, rel=0.2)
     assert result.model.parameters["CIIIc_redsh"].value == pytest.approx(Z, abs=1e-3)
+    # Calibrated without their components: the complex also takes the
+    # second Gaussian on its redshift
+    assert rules[0].null_removals(result.model) == ["CIIIc", "CIIIc_b"]
+    assert rules[1].null_removals(result.model) == ["CIIIc_b"]
 
     # One width is enough for a plain complex
     result = AutoFit(_model(_ciii_complex), rules, threshold=10.0).run()

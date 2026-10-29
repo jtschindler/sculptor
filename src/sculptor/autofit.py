@@ -702,6 +702,30 @@ class ComponentRule(Rule):
         """
         return [c.name for c in model.components if c.name in self._produced]
 
+    def null_removals(self, model):
+        """The rule's components in `model` (its hypothesis: while they are
+        there it proposes nothing, so it can only be calibrated without
+        them), and the components that use their parameters (e.g. a second
+        CIII] Gaussian on the complex's redshift).
+
+        :param model: The model
+        :type model: sculptor.model.FitModel
+        :rtype: list(str)
+        """
+        names = self.owned(model)
+        own = {
+            key
+            for c in model.components
+            if c.name in names
+            for key in c.get_arg_keys()
+            if key.startswith(f"{c.name}_")
+        }
+        return names + [
+            c.name
+            for c in model.components
+            if c.name not in names and own & set(c.get_arg_keys())
+        ]
+
     def propose(self, model, result):
         """The factory's components as one candidate (see the class).
 
@@ -2328,8 +2352,10 @@ def calibrate_threshold(
     - q; such quantiles lie in the tail of a few hundred simulations and are
     extrapolated with an exponential fit to it (`tail_threshold`). A rule
     whose hypothesis is in `model` (`Rule.null_removals`: e.g. the narrow
-    group found by the preliminary search, or a narrow Hbeta its member
-    rule added alone) is calibrated on simulations of `model` without it. Rules that propose nothing in at least
+    group found by the preliminary search, a narrow Hbeta its member rule
+    added alone, or the iron template of a `ComponentRule`) is calibrated
+    on simulations of `model` without it. Rules that propose nothing in at
+    least
     `min_rule_sims` simulations keep the global threshold. A rule's
     threshold is at least `min_rule_threshold` (or the global threshold, if
     that is lower): a hypothesis that never improves the criterion on noise
