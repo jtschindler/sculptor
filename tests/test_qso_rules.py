@@ -110,10 +110,9 @@ def test_iron_template_schemes():
         "iron (Tsuz_UV)",
         "iron (BG92_OPT)",
     ]
-    assert names(qr.IRON_TEMPLATES_GAP) == [
-        "iron (VW01_UV)",
-        "iron (Tsuz_UV 3089-3500)",
-        "iron (BG92_OPT)",
+    assert names(None) == []
+    assert names({"FeII_gap": ("Tsuz_UV", (3089.0, 3500.0))}) == [
+        "iron (Tsuz_UV 3089-3500)"
     ]
 
     # The range restricts the template
@@ -240,7 +239,7 @@ def test_qso_rules_bundle():
     for name in ("OIII_0", "OI_0"):
         model.components.append(sccomp.FitComponent(name, ana.line_model_gaussian))
     assert oi.owned(model) == ["OI_0"]  # not [OIII]
-    assert kinds.count("Tie") == 0  # optional: the group is the only route
+    assert kinds.count("Tie") == 0  # the group is the only narrow route
     group = next(r for r in rules if isinstance(r, LineGroupRule))
     assert [m.prefix for m in group.members] == ["Hbeta", "Halpha", "OIII"]
     assert group.fwhm_range == (100.0, qr.NARROW_FWHM_MAX)
@@ -249,8 +248,6 @@ def test_qso_rules_bundle():
         Z, iron=None, balmer=False, narrow_group=False, ciii_complex=False
     )
     assert len(bare) == len(qr.DEFAULT_LINES)
-    tie = qr.qso_rules(Z, narrow_tie=True)[-1]
-    assert tie.prefixes == ["Hbeta", "Halpha", "OIII"]
     assert len(qr.qso_rules(Z, lines=["CIV", "Hbeta"], iron=None)) == 4
 
 
@@ -319,9 +316,14 @@ def _narrow_lines_model(hbeta_dv=0.0, oiii_fwhm=500.0, hbeta_fwhm=500.0):
     rules = [
         _narrow_capable_hbeta(z),
         *qr.line_rules(z, ["OIII"]),
-        qr.narrow_line_tie(["Hbeta", "OIII"]),
+        _narrow_tie(["Hbeta", "OIII"]),
     ]
     return model, rules, z
+
+
+def _narrow_tie(lines):
+    """A `Tie` of the narrow components of `lines` (redshift and FWHM)."""
+    return autofit.Tie("narrow", lines, max_width=qr.NARROW_FWHM_MAX)
 
 
 def _narrow_capable_hbeta(z):
@@ -377,10 +379,11 @@ def test_narrow_line_tie_needs_narrow_components():
 
 
 def test_narrow_fwhm_limit_is_a_module_setting(monkeypatch):
-    assert qr.narrow_line_tie().max_width == 1200.0
+    lines = qr.line_rules(Z, ["Hbeta", "OIII"])
+    assert qr.narrow_line_group(lines, Z).fwhm_range == (100.0, 1200.0)
     monkeypatch.setattr(qr, "NARROW_FWHM_MAX", 300.0)
-    assert qr.narrow_line_tie().max_width == 300.0
-    assert qr.narrow_line_tie(max_fwhm=800.0).max_width == 800.0
+    assert qr.narrow_line_group(lines, Z).fwhm_range == (100.0, 300.0)
+    assert qr.narrow_line_group(lines, Z, max_fwhm=800.0).fwhm_range[1] == 800.0
     rules = {r.prefix: r for r in qr.line_rules(Z, ["Hbeta", "CIV", "OIII"])}
     # Broad only: above NARROW_FWHM_MAX, at least the broad minimum
     assert rules["Hbeta"].fwhm_range == (1000.0, 15000.0)
@@ -421,7 +424,7 @@ def _narrow_members(comps):
 def test_narrow_line_group_found_at_systemic():
     model, lines, z = _weak_narrow_model(1.0)
     group = qr.narrow_line_group(lines, z)
-    rules = [*lines, group, qr.narrow_line_tie(["Hbeta", "OIII"])]
+    rules = [*lines, group, _narrow_tie(["Hbeta", "OIII"])]
     result = AutoFit(model, rules).run()
 
     comps = {c.name: c for c in result.model.components}
@@ -582,7 +585,7 @@ def test_broad_line_at_its_lower_bound_is_not_narrow():
     model, lines, z = _weak_narrow_model(0.0)
     found = AutoFit(model, lines).run().model
     group = qr.narrow_line_group(lines, z)
-    tie = qr.narrow_line_tie(["Hbeta", "OIII"])
+    tie = _narrow_tie(["Hbeta", "OIII"])
     assert lines[0].fwhm_range[0] == qr.NARROW_FWHM_MAX
     found.parameters["OIII_0_fwhm_km_s"].value = 500.0  # a narrow [OIII]
     width = found.parameters["Hbeta_0_fwhm_km_s"]

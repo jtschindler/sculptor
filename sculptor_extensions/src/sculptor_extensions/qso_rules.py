@@ -6,12 +6,12 @@ development spectra): broad Gaussians at the strong lines in the fit
 regions (`DEFAULT_LINES`, including the broad "HeII" red shelf), the CIII]
 complex with SiIII] and AlIII (`ciii_complex_rule`) and its optional
 second broad CIII] (`ciii_second_component_rule`), the UV and optical iron
-templates (`IRON_TEMPLATES`), the Balmer continuum and, separately, the
-high-order Balmer lines (`balmer_hol_rule`), and the narrow
+templates (`IRON_TEMPLATES_TS06`), the Balmer continuum and, separately,
+the high-order Balmer lines (`balmer_hol_rule`), and the narrow
 components of Hbeta, Halpha and [OIII] proposed together at the systemic
 redshift (`narrow_line_group`, the only route for a narrow Hbeta /
-Halpha). `narrow_line_tie` is optional. Components narrower than
-`NARROW_FWHM_MAX` count as narrow; change it before building the rules::
+Halpha). Components narrower than `NARROW_FWHM_MAX` count as narrow;
+change it before building the rules::
 
     qso_rules.NARROW_FWHM_MAX = 1000.0
 
@@ -29,7 +29,7 @@ Each rule can also be built on its own (`line_rules`, `iron_template_rule`,
 
 from sculptor import analysis as ana
 from sculptor import utils as scut
-from sculptor.autofit import ComponentRule, GaussianLineRule, LineGroupRule, Tie
+from sculptor.autofit import ComponentRule, GaussianLineRule, LineGroupRule
 from sculptor.component import FitComponent
 from sculptor.prior import UniformPrior
 from sculptor_extensions import qso, qso_presets
@@ -103,15 +103,8 @@ IRON_TEMPLATES_TS06 = {
     "FeII_TS": "Tsuz_UV",
     "FeII_opt": "BG92_OPT",
 }
-IRON_TEMPLATES = IRON_TEMPLATES_TS06
-# Alternatives: VW01 up to 3089 A (no iron at 3089-3685 A), or VW01 plus
-# TS06 only in that gap
+# Alternative: VW01 up to 3089 A (no iron at 3089-3685 A)
 IRON_TEMPLATES_VW01 = {"FeII_UV": "VW01_UV", "FeII_opt": "BG92_OPT"}
-IRON_TEMPLATES_GAP = {
-    "FeII_UV": "VW01_UV",
-    "FeII_gap": ("Tsuz_UV", (3089.0, 3500.0)),
-    "FeII_opt": "BG92_OPT",
-}
 # Forbidden lines get the narrow FWHM range
 NARROW_LINES = ("OIII", "OIII_4960", "OIII_5008")
 
@@ -120,13 +113,13 @@ NARROW_LINES = ("OIII", "OIII_4960", "OIII_5008")
 # `narrow_line_group` alone (one hypothesis, one route)
 LINES_WITH_NARROW = ("Hbeta", "Halpha")
 
-# Components with a FWHM up to this (km/s) count as narrow, e.g. for
-# `narrow_line_tie`; change it before building the rules
+# Components with a FWHM below this (km/s) count as narrow (the narrow
+# group's largest width); change it before building the rules
 NARROW_FWHM_MAX = 1200.0
 
-# Lines whose narrow components `narrow_line_tie` ties (and
-# `narrow_line_group` proposes together) by default
-NARROW_TIE_LINES = ("Hbeta", "Halpha", "OIII")
+# Lines whose narrow components `narrow_line_group` proposes together by
+# default
+NARROW_GROUP_LINES = ("Hbeta", "Halpha", "OIII")
 
 # Allowed velocity offset of the narrow-line group from the systemic
 # redshift, km/s: the group models cores at the systemic redshift, not
@@ -214,39 +207,13 @@ def line_rules(
     return rules
 
 
-def narrow_line_tie(lines=NARROW_TIE_LINES, max_fwhm=None, args=None):
-    """Hypothesis that the narrow components of `lines` (the narrowest
-    Gaussian of each with FWHM below `max_fwhm`) share redshift and FWHM, in
-    parameters `narrow_redsh` and `narrow_fwhm_km_s`. AutoFit tests it once
-    its search converges and keeps it unless the untied model earns the
-    threshold; `AutoFitResult.ties["narrow"]` reports the outcome (e.g.
-    rejected when [OIII] is dominated by a shifted outflow).
-
-    :param lines: Line names (rule prefixes of `line_rules`)
-    :type lines: list(str)
-    :param max_fwhm: Largest narrow FWHM, km/s (default `NARROW_FWHM_MAX`,
-        read when called)
-    :type max_fwhm: float
-    :param args: Shared arguments (default redshift and FWHM)
-    :type args: list(str)
-    :return: The tie (pass it among the rules)
-    :rtype: sculptor.autofit.Tie
-    """
-    return Tie(
-        "narrow",
-        lines,
-        args=("redsh", "fwhm_km_s") if args is None else args,
-        max_width=NARROW_FWHM_MAX if max_fwhm is None else max_fwhm,
-    )
-
-
 def narrow_line_group(
-    rules, redshift, lines=NARROW_TIE_LINES, max_fwhm=None, min_fwhm=100.0, **kwargs
+    rules, redshift, lines=NARROW_GROUP_LINES, max_fwhm=None, min_fwhm=100.0, **kwargs
 ):
     """Rule that proposes the narrow components of `lines` together, at the
     systemic redshift, sharing redshift and FWHM (`narrow_redsh`,
-    `narrow_fwhm_km_s`, the names `narrow_line_tie` uses): weak narrow
-    lines that would not earn the threshold one at a time may earn it
+    `narrow_fwhm_km_s`): weak narrow lines that would not earn the threshold
+    one at a time may earn it
     together. See `sculptor.autofit.LineGroupRule`. By default it waits
     for the members with broad components (e.g. Hbeta), not for those that
     are narrow only (`NARROW_LINES`, [OIII]): a weak [OIII] may never be
@@ -657,10 +624,9 @@ BALMER_OPTIONS = ("separate", "hol", True, False)
 def qso_rules(
     redshift,
     lines=DEFAULT_LINES,
-    iron=IRON_TEMPLATES,
+    iron=IRON_TEMPLATES_TS06,
     balmer="separate",
     narrow_group=True,
-    narrow_tie=False,
     ciii_complex=True,
     ciii_second=True,
     **line_kwargs,
@@ -674,8 +640,8 @@ def qso_rules(
     :type lines: list(str) or dict
     :param iron: Component name -> iron template preset, or (preset,
         rest-frame range) (see `iron_template_rule`); None or {} for none.
-        Default VW01 + TS06 + BG92 (`IRON_TEMPLATES`); alternatives
-        `IRON_TEMPLATES_VW01`, `IRON_TEMPLATES_GAP`
+        Default VW01 + TS06 + BG92 (`IRON_TEMPLATES_TS06`); alternative
+        `IRON_TEMPLATES_VW01`
     :type iron: dict
     :param balmer: "separate" (default): the Balmer continuum (sharp edge)
         and the high-order Balmer lines as two independent components
@@ -684,13 +650,9 @@ def qso_rules(
         fit reaches below the edge; for a later, manual stage); True: the
         continuum only; False: neither
     :type balmer: bool or str
-    :param narrow_group: Include `narrow_line_group` (`NARROW_TIE_LINES`
+    :param narrow_group: Include `narrow_line_group` (`NARROW_GROUP_LINES`
         among `lines`)
     :type narrow_group: bool
-    :param narrow_tie: Include `narrow_line_tie` (same lines): it ties
-        narrow components added separately, which with the default rules
-        only the group adds
-    :type narrow_tie: bool
     :param ciii_complex: Fit "CIII" as `ciii_complex_rule`
     :type ciii_complex: bool
     :param ciii_second: With `ciii_complex`, also include
@@ -726,8 +688,4 @@ def qso_rules(
         rules.append(balmer_continuum_rule(redshift, hol=balmer == "hol"))
     if balmer == "separate":
         rules.append(balmer_hol_rule(redshift))
-    if narrow_tie:
-        tied = [name for name in NARROW_TIE_LINES if name in lines]
-        if len(tied) >= 2:
-            rules.append(narrow_line_tie(tied))
     return rules
