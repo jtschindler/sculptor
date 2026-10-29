@@ -58,10 +58,18 @@ QSO_LINES = {
 }
 
 # Doublets fitted as one component: name -> (function, line used for the
-# detection, fixed arguments). [OIII] 5008/4960 = 2.98 (Storey & Zeippen
-# 2000); `flux` is the 4960 line's.
+# detection, fixed arguments, largest velocity offset in km/s).
+# [OIII] 5008/4960 = 2.98 (Storey & Zeippen 2000); `flux` is the 4960
+# line's. The offset stays below the lines' separation (2870 km/s): with
+# more, the detection window around 5008 A reaches the 4960 line, and a
+# doublet shifted by -2870 km/s fits it.
 DOUBLETS = {
-    "OIII": (qso.line_model_gaussian_oiii_doublet, 5008.24, {"fluxratio": 2.98}),
+    "OIII": (
+        qso.line_model_gaussian_oiii_doublet,
+        5008.24,
+        {"fluxratio": 2.98},
+        2000.0,
+    ),
 }
 
 # Lines fitted by default: Lya and NV need absorption modeling and are left
@@ -150,7 +158,8 @@ def line_rules(
     (fixed center, redshift free within +-`velocity_range`), with up to
     `max_components` Gaussians each. Doublets in `DOUBLETS` (e.g. "OIII")
     are one component per pair, with one redshift and width and a fixed
-    flux ratio. Lines in `LINES_WITH_NARROW` are broad only (above
+    flux ratio, and at most their own velocity offset (below the lines'
+    separation). Lines in `LINES_WITH_NARROW` are broad only (above
     `NARROW_FWHM_MAX`): their narrow components come from
     `narrow_line_group`.
 
@@ -163,7 +172,8 @@ def line_rules(
     :param narrow_fwhm: FWHM range of the forbidden lines ([OIII]), km/s
     :type narrow_fwhm: (float, float)
     :param velocity_range: Allowed velocity offset, km/s (CIV is often
-        blueshifted by a few 1000 km/s)
+        blueshifted by a few 1000 km/s); doublets take the smaller of this
+        and their own (`DOUBLETS`)
     :type velocity_range: float
     :param max_components: Maximum Gaussians per line
     :type max_components: int
@@ -178,9 +188,10 @@ def line_rules(
         }
     rules = []
     for name, rest in lines.items():
-        function, fixed = None, None
+        function, fixed, max_velocity = None, None, velocity_range
         if name in DOUBLETS:
-            function, _, fixed = DOUBLETS[name]
+            function, _, fixed, doublet_velocity = DOUBLETS[name]
+            max_velocity = min(velocity_range, doublet_velocity)
         if name in NARROW_LINES:
             fwhm_range = narrow_fwhm
         elif name in LINES_WITH_NARROW:
@@ -193,7 +204,7 @@ def line_rules(
                 redshift=redshift,
                 lines=[rest],
                 fwhm_range=fwhm_range,
-                velocity_range=velocity_range,
+                velocity_range=max_velocity,
                 max_components=max_components,
                 function=function,
                 fixed=fixed,

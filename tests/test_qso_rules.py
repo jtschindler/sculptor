@@ -274,6 +274,35 @@ def test_oiii_doublet_rule():
     assert result.model.parameters["OIII_0_flux"].value == pytest.approx(5.0, rel=0.1)
 
 
+def test_oiii_doublet_search_stops_short_of_4960():
+    """The doublet's velocity range stays below the 4960 - 5008 separation:
+    emission at 4960 A alone is not taken for a shifted doublet."""
+    (rule,) = qr.line_rules(Z, ["OIII"])
+    assert rule.velocity_range == 2000.0
+    assert qr.line_rules(Z, ["OIII"], velocity_range=800.0)[0].velocity_range == 800
+    assert qr.line_rules(Z, ["CIV"])[0].velocity_range == 5000.0
+
+    z = 0.2
+    x = np.geomspace(4800 * (1 + z), 5100 * (1 + z), 600)
+    model = _model(x=x)
+    model.parameters["PL_redsh"].value = z
+    line = ana.line_model_gaussian(x, z, 5.0, qr.QSO_LINES["OIII_4960"], 600.0)
+    model.spec.fluxden = model.spec.fluxden + line
+    result = model.run_quick_fit()
+    (rule,) = qr.line_rules(z, ["OIII"])
+    assert rule.propose(model, result) == []
+    wide = GaussianLineRule(
+        "OIII",
+        z,
+        lines=rule.lines,
+        fwhm_range=rule.fwhm_range,
+        velocity_range=5000.0,
+        function=rule.function,
+        fixed=rule.fixed,
+    )
+    assert len(wide.propose(model, result)) == 1  # what the old range did
+
+
 def _narrow_lines_model(hbeta_dv=0.0, oiii_fwhm=500.0, hbeta_fwhm=500.0):
     """Narrow Hbeta (offset by `hbeta_dv` km/s) and the [OIII] doublet at
     z = 0.2."""
@@ -524,7 +553,13 @@ def test_group_calibrated_without_narrow_lines_added_alone(monkeypatch):
     found = AutoFit(model, lines, threshold=10.0).run().model
     group = qr.narrow_line_group(lines, z)
     assert group.guarded(found) == []  # not the group's own components
-    assert sorted(group.null_removals(found)) == ["Hbeta_1", "OIII_1"]
+    narrow = sorted(
+        c.name
+        for c in found.components
+        if c.name != "PL" and found.parameters[f"{c.name}_fwhm_km_s"].value < 1200
+    )
+    assert [name.split("_")[0] for name in narrow] == ["Hbeta", "OIII"]
+    assert sorted(group.null_removals(found)) == narrow
 
     removed = []
     without = autofit.AutoFit._without
@@ -537,7 +572,7 @@ def test_group_calibrated_without_narrow_lines_added_alone(monkeypatch):
     cal = autofit.calibrate_threshold(
         found, [*lines, group], n_sims=12, quantiles=[0.9], min_rule_sims=10
     )
-    assert {"Hbeta_1", "OIII_1"} <= set(removed)
+    assert set(narrow) <= set(removed)
     assert "narrow" in cal.rule_improvements
 
 
