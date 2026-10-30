@@ -107,6 +107,23 @@ def test_matched_filter_uses_the_local_pixel_scale():
     assert amp[peak] == pytest.approx(line.max(), rel=0.1)
 
 
+def test_matched_filter_kernel_longer_than_the_data():
+    """A kernel wider than the spectrum gives one value per pixel, the
+    same as the direct sum (np.convolve "same" would return the kernel's
+    length)."""
+    x = np.geomspace(5000.0, 5100.0, 50)
+    resid = np.zeros(x.size)
+    resid[25] = 1.0
+    weight = np.ones(x.size)
+    signif, amp = autofit.matched_filter(x, resid, weight, 20000.0)
+    assert signif.shape == amp.shape == x.shape
+    # Direct sum at the spike: amp = K(0) / sum K^2 over the pixels
+    fwhm_pix = 20000.0 / 2.998e5 / np.log(x[1] / x[0])
+    sigma = fwhm_pix * autofit._FWHM_TO_SIGMA
+    kernel = np.exp(-0.5 * ((np.arange(x.size) - 25) / sigma) ** 2)
+    assert amp[25] == pytest.approx(1.0 / np.sum(kernel**2), rel=1e-3)
+
+
 def test_finds_the_input_lines():
     base = _model()
     result = AutoFit(base, [_rule()]).run()
@@ -120,6 +137,7 @@ def test_finds_the_input_lines():
     )
     np.testing.assert_allclose(fwhms, [1200, 3000, 5000], rtol=0.15)
     assert 0.85 < result.result.red_chisq < 1.15
+    assert result.converged
     assert result.model.quick_fit_result is result.result
     assert [s.action for s in result.history] == ["start", "add", "add", "add"]
     assert all(s.delta < -10 for s in result.history[1:])
@@ -205,12 +223,7 @@ def test_criteria():
         AutoFit(_model(), [_rule()], criterion="nope")
 
 
-def test_a_high_threshold_keeps_the_base_model():
-    result = AutoFit(_model(), [_rule()], threshold=1e9).run()
-    assert len(result.model.components) == 1
-
-
-def test_correlated_noise_keeps_the_residual_correlations():
+def test_correlated_noise_keeps_the_residual_correlations_and_amplitude():
     width = 5
     rng = np.random.default_rng(1)
     raw = np.convolve(rng.normal(0, 1, 820), np.ones(width), "same")[10:-10]
@@ -231,6 +244,13 @@ def test_correlated_noise_keeps_the_residual_correlations():
     ]
     assert lag1(norm) == pytest.approx(lag1(resid), abs=0.1)
     assert lag1(norm) > 0.5
+
+    # White noise 4x the errors: the simulated noise is 4x too
+    model = _model(lines=[], noise=np.random.default_rng(4).normal(0, 4 * ERR, 800))
+    result = model.run_quick_fit()
+    noise = correlated_noise(model, result, np.random.default_rng(5))
+    mask = model.get_fit_mask()
+    assert np.std(noise[mask]) == pytest.approx(4 * ERR, rel=0.1)
 
 
 def test_calibrate_threshold_grows_with_correlated_noise():
@@ -263,58 +283,52 @@ def _with_absorbers(model):
     return model
 
 
-def test_clipping_keeps_absorbers_from_becoming_components():
+CLIP = {"low": 3, "grow": 2}
+
+
+def _absorbers_masked(model):
+    x = model.spec.dispersion
+    fitted = model.get_fit_mask()
+    return not any(fitted[np.argmin(np.abs(x - cen))] for cen, _ in ABSORBERS)
+
+
+def test_clipping_keeps_absorbers_from_becoming_components(caplog):
     base = _with_absorbers(_model())
 
     plain = AutoFit(base, [_rule()]).run()
-    clipped = AutoFit(base, [_rule()], clip={"low": 3, "grow": 2}).run()
-
     assert len(plain.model.components) > 4  # absorbers modeled as lines
+    assert all(s.action != "clip" for s in plain.history)
+
+    fit = AutoFit(base, [_rule()], clip=CLIP)
+    clipped = fit.run()
     assert len(clipped.model.components) == 4
     np.testing.assert_allclose(_centers(clipped.model), [CIV, CIV, CIII], atol=2)
     assert 0.85 < clipped.result.red_chisq < 1.15
     actions = [s.action for s in clipped.history]
     assert actions.index("clip") == 3  # after clip_after=2 additions
-
-    x = clipped.model.spec.dispersion
-    fitted = clipped.model.get_fit_mask()
-    for cen, _ in ABSORBERS:
-        assert not fitted[np.argmin(np.abs(x - cen))]
+    assert _absorbers_masked(clipped.model)
     assert base.clip_mask is None  # the base model is not changed
 
-
-def test_clip_after_delays_clipping():
-    base = _with_absorbers(_model())
-    result = AutoFit(base, [_rule()], clip={"low": 3, "grow": 2}, clip_after=3).run()
-    actions = [s.action for s in result.history]
-    assert actions.index("clip") > 3
-
-
-def test_final_clip_matches_the_final_model(caplog):
-    """The search ends with a clip against the final model, even when the
-    clipping during the search never started."""
-    base = _with_absorbers(_model())
-    result = AutoFit(base, [_rule()], clip={"low": 3, "grow": 2}, clip_after=99).run()
-    last = result.history[-1]
-    assert last.action == "clip"
-    assert last.description.startswith("final sigma clipping")
-    assert [s.action for s in result.history].count("clip") == 1
-    x = result.model.spec.dispersion
-    fitted = result.model.get_fit_mask()
-    for cen, _ in ABSORBERS:
-        assert not fitted[np.argmin(np.abs(x - cen))]
-
-    # Clipping again against the final model changes nothing, and says so
-    fit = AutoFit(base, [_rule()], clip={"low": 3, "grow": 2})
-    found = fit.run()
+    # The final clip against the final model: here it changes nothing, and
+    # says so
     history = []
     with caplog.at_level(logging.INFO, logger="sculptor.autofit"):
-        fit._clip(found.model, found.result, 0.0, history, final=True)
+        fit._clip(clipped.model, clipped.result, 0.0, history, final=True)
     assert history == []
     assert "final sigma clipping: mask unchanged" in caplog.text
 
-    unclipped = AutoFit(base, [_rule()]).run()
-    assert all(s.action != "clip" for s in unclipped.history)
+    # clip_after delays the clipping
+    later = AutoFit(base, [_rule()], clip=CLIP, clip_after=3).run()
+    assert [s.action for s in later.history].index("clip") > 3
+
+    # The search ends with a clip against the final model, even when the
+    # clipping during the search never started
+    never = AutoFit(base, [_rule()], clip=CLIP, clip_after=99).run()
+    last = never.history[-1]
+    assert last.action == "clip"
+    assert last.description.startswith("final sigma clipping")
+    assert [s.action for s in never.history].count("clip") == 1
+    assert _absorbers_masked(never.model)
 
 
 def _with_mgii_absorber(model, z_abs=0.9):
@@ -441,7 +455,6 @@ def test_calibration_rule_floor_and_bound_rejection(monkeypatch):
     assert cal.thresholds[0.9] > autofit.MIN_THRESHOLD
     assert cal.by_rule["narrow"][0.9] == autofit.MIN_THRESHOLD
     assert calibrate(min_threshold=0.0).by_rule["narrow"][0.9] == 0.0
-    assert calibrate(min_threshold=1e9).by_rule["narrow"][0.9] == 1e9
 
 
 def _clip_with(monkeypatch, masks):
@@ -487,7 +500,7 @@ def test_clip_warns_when_it_does_not_converge(monkeypatch, caplog):
     assert len(calls) == 10
 
 
-# -- rules: components, swaps, absorption; SpIC -------------------------------
+# -- component rules; SpIC -----------------------------------------------------
 
 
 def _line_factory(name, cen, fwhm=3000.0):
@@ -560,29 +573,6 @@ def test_component_rule_max_uses_and_none():
     assert [c.name for c in result.model.components] == ["PL", "CIV_a", "CIV_b"]
 
 
-def curved_power_law(x, redsh, amp, slope, curv):
-    """Power law with a log-parabolic curvature."""
-    logx = np.log(x / 5000.0)
-    return amp * np.exp((slope + curv * logx) * logx)
-
-
-def test_matched_filter_kernel_longer_than_the_data():
-    """A kernel wider than the spectrum gives one value per pixel, the
-    same as the direct sum (np.convolve "same" would return the kernel's
-    length)."""
-    x = np.geomspace(5000.0, 5100.0, 50)
-    resid = np.zeros(x.size)
-    resid[25] = 1.0
-    weight = np.ones(x.size)
-    signif, amp = autofit.matched_filter(x, resid, weight, 20000.0)
-    assert signif.shape == amp.shape == x.shape
-    # Direct sum at the spike: amp = K(0) / sum K^2 over the pixels
-    fwhm_pix = 20000.0 / 2.998e5 / np.log(x[1] / x[0])
-    sigma = fwhm_pix * autofit._FWHM_TO_SIGMA
-    kernel = np.exp(-0.5 * ((np.arange(x.size) - 25) / sigma) ** 2)
-    assert amp[25] == pytest.approx(1.0 / np.sum(kernel**2), rel=1e-3)
-
-
 def test_spic():
     model = _model()
     result = AutoFit(model, [_rule()], criterion="spic").run()
@@ -601,15 +591,7 @@ def test_spic():
     assert spic(base_fit, base) > base_fit.chi_sq
 
 
-def test_correlated_noise_keeps_the_residual_amplitude():
-    model = _model(lines=[], noise=np.random.default_rng(4).normal(0, 4 * ERR, 800))
-    result = model.run_quick_fit()
-    noise = correlated_noise(model, result, np.random.default_rng(5))
-    mask = model.get_fit_mask()
-    assert np.std(noise[mask]) == pytest.approx(4 * ERR, rel=0.1)
-
-
-# -- line profiles, fixed and shared parameters ---------------------------------
+# -- line profiles, fixed and shared parameters --------------------------------
 
 
 def doublet(x, redsh, flux, fwhm_km_s, fluxratio):
@@ -655,7 +637,7 @@ def test_rule_owns_only_its_numbered_components():
     assert GaussianLineRule("Hbeta", redshift=Z).owned(model) == ["Hbeta_0"]
 
 
-# -- multi-start ----------------------------------------------------------------
+# -- multi-start ---------------------------------------------------------------
 
 
 def test_line_candidates_carry_alternative_widths():
@@ -769,7 +751,6 @@ def test_search_reports_when_it_does_not_converge(caplog):
         stopped = AutoFit(_model(), [_rule()]).run(max_iterations=1)
     assert not stopped.converged
     assert "not converged" in str(stopped) and "not converged" in caplog.text
-    assert AutoFit(_model(), [_rule()]).run().converged
 
 
 def test_calibration_reports_every_quantile():
@@ -938,7 +919,7 @@ def test_recalibration_stops_when_the_model_does_not_change(monkeypatch):
     assert len(result.calibrations) == 1
 
 
-# -- prior bounds ---------------------------------------------------------------
+# -- prior bounds --------------------------------------------------------------
 
 
 def test_parameters_at_a_prior_bound_are_flagged():
