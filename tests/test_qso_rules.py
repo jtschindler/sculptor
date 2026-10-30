@@ -361,6 +361,24 @@ def test_narrow_line_tie_accepted():
     assert "tie narrow: tied" in str(result)
 
 
+def test_backward_steps_and_clipping_follow_a_tie(monkeypatch):
+    """A tie is a change like an addition: the backward steps and the
+    clipping follow it."""
+    calls = []
+    for name in ("_backward", "_clip"):
+        original = getattr(autofit.AutoFit, name)
+
+        def spy(self, model, result, score, history, *args, _o=original, _n=name, **kw):
+            calls.append((_n, history[-1].action))
+            return _o(self, model, result, score, history, *args, **kw)
+
+        monkeypatch.setattr(autofit.AutoFit, name, spy)
+    model, rules, _ = _narrow_lines_model()
+    AutoFit(model, rules, clip={"low": 5, "high": 5}).run()
+    assert ("_backward", "tie") in calls
+    assert ("_clip", "tie") in calls
+
+
 def test_narrow_line_tie_rejected_for_an_offset():
     model, rules, _ = _narrow_lines_model(hbeta_dv=600.0)
     result = AutoFit(model, rules).run()
@@ -456,7 +474,7 @@ def test_backward_step_keeps_a_line_the_group_cannot_replace():
     hbeta = search.rule_keys[next(i for i, r in enumerate(rules) if r is lines[0])]
     assert lines[0].prefix == "Hbeta"
     search._rule_thresholds = {hbeta: 1e9}
-    kept, _, _ = search._backward(
+    kept, *_ = search._backward(
         found.model, found.result, search._fit(found.model)[1], [], set(), 10.0
     )
     assert "Hbeta_0" in [c.name for c in kept.components]

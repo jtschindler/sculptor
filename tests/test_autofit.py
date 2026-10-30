@@ -185,6 +185,16 @@ def test_removes_a_component_that_does_not_earn_the_threshold():
     assert "remove" in [s.action for s in result.history]
     assert _centers(result.model) == pytest.approx([CIII], abs=2)
 
+    # max_iterations counts every change, the removal too
+    n = autofit._n_changes(result.history)
+    assert [s.action for s in result.history] == ["start", "add", "remove"]
+    search = AutoFit(base, [_rule()], removable=["fake"])
+    assert search.run(max_iterations=n).converged
+    short = search.run(max_iterations=n - 1)
+    assert not short.converged
+    assert autofit._n_changes(short.history) == n - 1
+    assert "fake" in [c.name for c in short.model.components]
+
 
 def test_criteria():
     for criterion in ("aicc", "aic", lambda r, m: r.bic):

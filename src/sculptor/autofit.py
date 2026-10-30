@@ -13,7 +13,10 @@ a base model (e.g. a power-law continuum), each iteration
    components that share guarded parameters, see below) and drops it if
    it no longer earns `threshold`,
 
-and stops when no candidate improves the model.
+and stops when no candidate improves the model. Every accepted change (an
+addition, or at convergence a removal at a bound or a tie, see below) is
+followed by the backward steps and, with `clip`, the clipping;
+`run(max_iterations=...)` caps the number of changes, removals included.
 
 A candidate can carry alternative starting values (`Candidate.starts`,
 e.g. several widths of a new Gaussian, see `GaussianLineRule`): it is
@@ -1694,13 +1697,14 @@ class AutoFit:
         new.parameters = {k: p for k, p in new.parameters.items() if k in used}
         return new
 
-    def run(self, max_iterations=20):
+    def run(self, max_iterations=40):
         """Build the model: one search with a fixed threshold, or with
         `threshold="calibrate"` a preliminary search, the calibration and a
         search per quantile.
 
-        :param max_iterations: Maximum number of accepted additions per
-            search
+        :param max_iterations: Maximum number of changes of the model per
+            search (additions, removals and ties; the search stops, not
+            converged, when a further one is due)
         :type max_iterations: int
         :return: The selected model, its quick fit and the history (and the
             calibration and the models of the other quantiles)
@@ -1847,70 +1851,45 @@ class AutoFit:
         seen = {_signature(model)}
         ties = {}
 
+        # Every accepted change (an addition, a removal at a bound or a tie)
+        # is followed by the backward steps and, once `clip_after`
+        # components were added, by the clipping
         converged = False
-        for _ in range(max_iterations):
-            best = None
-            for key, rule in zip(self.rule_keys, self.rules, strict=True):
-                rule_threshold = self._rule_thresholds.get(key, threshold)
-                for cand in rule.propose(model, result):
-                    if _signature(self._with(model, cand)) in seen:
-                        continue
-                    trial, trial_result, trial_score = self._fit_candidate(model, cand)
-                    logger.debug(
-                        f"AutoFit: {cand.description}: "
-                        f"{self.criterion_name} {trial_score - score:+.2f}"
-                    )
-                    if trial_result is None or self._rejected_at_bound(
-                        cand, trial_result
-                    ):
-                        continue
-                    if score - trial_score < rule_threshold:
-                        continue
-                    if best is None or trial_score < best[2]:
-                        best = (trial, trial_result, trial_score, cand)
-
-            if best is None:
-                # Converged: guarded parameters that drifted to a bound take
-                # their components with them, and a tie the data accept
-                # simplifies the model; the search goes on from there
-                model, result, score, removed = self._remove_at_bound(
-                    model, result, score, history, seen
-                )
-                if removed:
-                    continue
-                model, result, score, tied = self._test_ties(
-                    model, result, score, history, seen, threshold, ties
-                )
-                if tied:
-                    continue
+        while True:
+            change = self._next_change(model, result, score, seen, threshold, ties)
+            if change is None:
                 converged = True
                 break
-
-            model, result, new_score, cand = best
+            if _n_changes(history) >= max_iterations:
+                break
+            action, trial, trial_result, trial_score, description, tie_test = change
             history.append(
                 AutoFitStep(
-                    "add",
-                    cand.description,
-                    new_score,
-                    new_score - score,
-                    [c.name for c in model.components],
+                    action,
+                    description,
+                    trial_score,
+                    trial_score - score,
+                    [c.name for c in trial.components],
                 )
             )
-            logger.info(f"AutoFit: {cand.description}: {new_score - score:+.2f}")
-            score = new_score
+            logger.info(f"AutoFit: {description}: {trial_score - score:+.2f}")
+            if tie_test is not None:
+                ties[tie_test[0]] = tie_test[1]
+            model, result, score = trial, trial_result, trial_score
             seen.add(_signature(model))
 
-            model, result, score = self._backward(
-                model, result, score, history, seen, threshold
+            model, result, score, stopped = self._backward(
+                model, result, score, history, seen, threshold, max_iterations
             )
-
             n_added = sum(step.action == "add" for step in history)
             if self.clip is not None and n_added >= self.clip_after:
                 model, result, score = self._clip(model, result, score, history)
+            if stopped:
+                break
 
         if not converged:
             logger.warning(
-                f"AutoFit: not converged after {max_iterations} iterations; "
+                f"AutoFit: not converged after {max_iterations} changes; "
                 "the model is the last state of the search"
             )
         if self.clip is not None:
@@ -1932,11 +1911,54 @@ class AutoFit:
             converged=converged,
         )
 
-    def _remove_at_bound(self, model, result, score, history, seen):
-        """Remove the components of the first guarded parameters (see
-        `Rule.guarded`) one of which is at a prior bound.
+    def _next_change(self, model, result, score, seen, threshold, ties):
+        """The next change of the search: the best addition; once none earns
+        its threshold (convergence), the removal of components whose
+        guarded parameters drifted to a bound, else the first tie the data
+        accept.
 
-        :return: model, result, score, and whether components were removed
+        :return: (action, model, result, score, description, tie outcome
+            (name, TieTest) or None), or None if nothing changes
+        """
+        best = self._best_addition(model, result, score, seen, threshold)
+        if best is not None:
+            trial, trial_result, trial_score, cand = best
+            return "add", trial, trial_result, trial_score, cand.description, None
+        change = self._removal_at_bound(model, result)
+        if change is not None:
+            return change
+        return self._accepted_tie(model, score, threshold, ties)
+
+    def _best_addition(self, model, result, score, seen, threshold):
+        """The candidate that improves the criterion most, among those that
+        earn their rule's threshold.
+
+        :return: (model, result, score, candidate), or None
+        """
+        best = None
+        for key, rule in zip(self.rule_keys, self.rules, strict=True):
+            rule_threshold = self._rule_thresholds.get(key, threshold)
+            for cand in rule.propose(model, result):
+                if _signature(self._with(model, cand)) in seen:
+                    continue
+                trial, trial_result, trial_score = self._fit_candidate(model, cand)
+                logger.debug(
+                    f"AutoFit: {cand.description}: "
+                    f"{self.criterion_name} {trial_score - score:+.2f}"
+                )
+                if trial_result is None or self._rejected_at_bound(cand, trial_result):
+                    continue
+                if score - trial_score < rule_threshold:
+                    continue
+                if best is None or trial_score < best[2]:
+                    best = (trial, trial_result, trial_score, cand)
+        return best
+
+    def _removal_at_bound(self, model, result):
+        """The removal of the components of the first guarded parameters
+        (see `Rule.guarded`) one of which is at a prior bound.
+
+        :return: a change as from `_next_change`, or None
         """
         at_bound = set(result.at_bound)
         for rule in self.rules:
@@ -1950,29 +1972,18 @@ class AutoFit:
                 trial_result, trial_score = self._fit(trial)
                 if trial_result is None:
                     continue
-                history.append(
-                    AutoFitStep(
-                        "remove",
-                        f"remove {', '.join(comps)} ({', '.join(bad)} at a "
-                        "prior bound)",
-                        trial_score,
-                        trial_score - score,
-                        [c.name for c in trial.components],
-                    )
+                description = (
+                    f"remove {', '.join(comps)} ({', '.join(bad)} at a prior bound)"
                 )
-                logger.info(
-                    f"AutoFit: remove {', '.join(comps)}, {', '.join(bad)} at a "
-                    f"prior bound: {trial_score - score:+.2f}"
-                )
-                seen.add(_signature(trial))
-                return trial, trial_result, trial_score, True
-        return model, result, score, False
+                return "remove", trial, trial_result, trial_score, description, None
+        return None
 
-    def _test_ties(self, model, result, score, history, seen, threshold, ties):
-        """Test the applicable ties (see `Tie`); apply the first one the data
-        accept. Outcomes are written into `ties`.
+    def _accepted_tie(self, model, score, threshold, ties):
+        """Test the applicable ties (see `Tie`) until the data accept one.
+        The outcomes of the others are written into `ties`; the accepted
+        one's comes with the change.
 
-        :return: model, result, score, and whether a tie was applied
+        :return: a change as from `_next_change`, or None
         """
         for tie in self.ties:
             names, reason = tie.select(model)
@@ -1998,20 +2009,10 @@ class AutoFit:
                 ties[tie.name] = TieTest("rejected", names, delta)
                 logger.info(f"AutoFit: tie {tie.name} rejected: {delta:+.2f}")
                 continue
-            ties[tie.name] = TieTest("tied", names, delta)
-            history.append(
-                AutoFitStep(
-                    "tie",
-                    f"tie {', '.join(names)} ({', '.join(tie.args)})",
-                    trial_score,
-                    delta,
-                    [c.name for c in trial.components],
-                )
-            )
-            logger.info(f"AutoFit: tie {tie.name} ({', '.join(names)}): {delta:+.2f}")
-            seen.add(_signature(trial))
-            return trial, trial_result, trial_score, True
-        return model, result, score, False
+            description = f"tie {', '.join(names)} ({', '.join(tie.args)})"
+            outcome = (tie.name, TieTest("tied", names, delta))
+            return "tie", trial, trial_result, trial_score, description, outcome
+        return None
 
     def _clip(self, model, result, score, history, final=False):
         """Sigma-clip with the current model and refit, until the mask no
@@ -2078,11 +2079,17 @@ class AutoFit:
             if name in at_bound
         }
 
-    def _backward(self, model, result, score, history, seen, threshold):
+    def _backward(
+        self, model, result, score, history, seen, threshold, max_changes=np.inf
+    ):
         """Remove components that no longer earn `threshold`, one at a time
         (the least useful first). As for an addition, a removal whose fit
         leaves further guarded parameters at a prior bound is not made: the
-        remaining components would take over the removed one's flux."""
+        remaining components would take over the removed one's flux.
+
+        :return: model, result, score, and whether a removal is left undone
+            because `history` reached `max_changes` changes
+        """
         while True:
             worst = None
             before = self._guarded_at_bound(model, result)
@@ -2109,7 +2116,9 @@ class AutoFit:
                 ):
                     worst = (trial, trial_result, trial_score, ", ".join(names))
             if worst is None:
-                return model, result, score
+                return model, result, score, False
+            if _n_changes(history) >= max_changes:
+                return model, result, score, True
 
             model, result, new_score, name = worst
             history.append(
@@ -2124,6 +2133,12 @@ class AutoFit:
             logger.info(f"AutoFit: remove {name}: {new_score - score:+.2f}")
             score = new_score
             seen.add(_signature(model))
+
+
+def _n_changes(history):
+    """Number of changes of the model in `history` (additions, removals and
+    ties; not the start or the clipping)."""
+    return sum(step.action in ("add", "remove", "tie") for step in history)
 
 
 def _signature(model):
