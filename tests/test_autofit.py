@@ -347,6 +347,11 @@ def test_clipping_keeps_absorbers_from_becoming_components(caplog):
     assert _absorbers_masked(never.model)
 
 
+def test_clipping_that_clips_nothing_records_no_step():
+    found = AutoFit(_model(), [_rule()], clip={"low": 10}, clip_after=0).run()
+    assert [s.action for s in found.history] == ["start", "add", "add", "add"]
+
+
 def _with_mgii_absorber(model, z_abs=0.9):
     """A MgII doublet absorber (unresolved, 60% / 40% deep) in the
     continuum."""

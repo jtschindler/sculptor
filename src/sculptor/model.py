@@ -910,7 +910,8 @@ class FitModel(PickleMixin):
             e.g. around unresolved narrow lines, whose core is as narrow as
             a cosmic ray and whose wings an unfinished model misses
         :type protect: list(tuple(float, float))
-        :return: Whether the clip mask changed
+        :return: Whether the clip mask changed the fitted pixels (a first
+            clip that clips nothing does not)
         :rtype: bool
         :raises ValueError: if no spectrum is set, there are no values or
             `scale` is unknown
@@ -972,7 +973,9 @@ class FitModel(PickleMixin):
             return False
 
         old = getattr(self, "clip_mask", None)
-        changed = old is None or not np.array_equal(old & region, new & region)
+        if old is None:  # nothing clipped yet
+            old = np.ones_like(new)
+        changed = not np.array_equal(old & region, new & region)
         self.clip_mask = new
         if changed:
             logger.info(f"Sigma clipping: {n_clipped} of {n_region} pixels clipped")

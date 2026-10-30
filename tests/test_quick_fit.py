@@ -411,6 +411,15 @@ def test_sigma_clip_masks_and_restores(fit_model):
     assert fit_model.clip_mask is None
 
 
+def test_sigma_clip_that_clips_nothing_changes_nothing(fit_model):
+    """No outliers: the first clip (no clip mask yet) reports no change, so
+    AutoFit neither refits nor records a "clip" step."""
+    values = fit_model.run_quick_fit().values
+    assert fit_model.clip_mask is None
+    assert not fit_model.sigma_clip(low=10, values=values)
+    assert fit_model.clip_mask is not None and fit_model.clip_mask.all()
+
+
 def test_sigma_clip_upper_and_max_fraction(fit_model, caplog):
     fit_model.spec.fluxden[200] += 0.1
     result = fit_model.run_quick_fit()
