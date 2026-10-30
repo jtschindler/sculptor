@@ -74,7 +74,6 @@ def test_line_rules():
     assert [r.prefix for r in rules] == ["CIV", "OIII_5008"]
     assert all(isinstance(r, GaussianLineRule) for r in rules)
     assert rules[0].lines == [qr.QSO_LINES["CIV"]]
-    assert rules[1].fwhm_range == (100.0, 2500.0)  # narrow
     assert rules[0].max_components == 2
 
     custom = qr.line_rules(Z, {"X": 1700.0})
@@ -105,12 +104,7 @@ def test_iron_template_schemes():
         return [r.name for r in rules if getattr(r, "name", "").startswith("iron")]
 
     assert names(qr.IRON_TEMPLATES_VW01) == ["iron (VW01_UV)", "iron (BG92_OPT)"]
-    assert names(qr.IRON_TEMPLATES_TS06) == [
-        "iron (VW01_FUV)",
-        "iron (Tsuz_UV)",
-        "iron (BG92_OPT)",
-    ]
-    assert names(None) == []
+    assert names(None) == []  # the default (TS06): test_qso_rules_bundle
     assert names({"FeII_gap": ("Tsuz_UV", (3089.0, 3500.0))}) == [
         "iron (Tsuz_UV 3089-3500)"
     ]
@@ -247,13 +241,12 @@ def test_qso_rules_bundle():
     companions = [r for r in rules if isinstance(r, autofit.CompanionLineRule)]
     assert [r.name for r in companions] == ["narrow Hgamma", "narrow Hdelta"]
     assert all(r.group is group for r in companions)
-    # Broad only, like Hbeta: the narrow cores are the companions
-    for r in rules:
-        if getattr(r, "prefix", None) in ("Hgamma", "Hdelta", "Hbeta"):
-            assert r.fwhm_range == (qr.NARROW_FWHM_MAX, 15000.0)
+    no_second = [getattr(r, "name", "") for r in qr.qso_rules(Z, ciii_second=False)]
+    assert "CIII] complex" in no_second and "CIII] second component" not in no_second
     bare = qr.qso_rules(
         Z, iron=None, balmer=False, narrow_group=False, ciii_complex=False
     )
+    assert "CIII" in [getattr(r, "prefix", "") for r in bare]
     assert len(bare) == len(qr.DEFAULT_LINES)
     assert len(qr.qso_rules(Z, lines=["CIV", "Hbeta"], iron=None)) == 4
 
@@ -262,7 +255,6 @@ def test_oiii_doublet_rule():
     (rule,) = qr.line_rules(Z, ["OIII"])
     assert rule.lines == [5008.24]
     assert rule.fixed == {"fluxratio": 2.98}
-    assert rule.fwhm_range == (100.0, 2500.0)
 
     # Found in a spectrum at the right rest frame
     z = 0.2
@@ -307,6 +299,9 @@ def test_oiii_doublet_search_stops_short_of_4960():
     assert len(wide.propose(model, result)) == 1  # what the old range did
 
 
+# -- Tie (generic `autofit.Tie`; `qso_rules` builds none) ----------------------
+
+
 def _narrow_lines_model(hbeta_dv=0.0, oiii_fwhm=500.0, hbeta_fwhm=500.0):
     """Narrow Hbeta (offset by `hbeta_dv` km/s) and the [OIII] doublet at
     z = 0.2."""
@@ -346,7 +341,7 @@ def _narrow_capable_hbeta(z):
     )
 
 
-def test_narrow_line_tie_accepted():
+def test_tie_accepted():
     model, rules, z = _narrow_lines_model()
     result = AutoFit(model, rules).run()
 
@@ -421,7 +416,7 @@ def test_backward_steps_and_clipping_follow_a_tie(monkeypatch):
     assert ("_clip", "tie") in calls
 
 
-def test_narrow_line_tie_rejected_for_an_offset():
+def test_tie_rejected_for_an_offset():
     model, rules, _ = _narrow_lines_model(hbeta_dv=600.0)
     result = AutoFit(model, rules).run()
     test = result.ties["narrow"]
@@ -430,7 +425,7 @@ def test_narrow_line_tie_rejected_for_an_offset():
     assert "narrow_redsh" not in result.model.parameters
 
 
-def test_narrow_line_tie_needs_narrow_components():
+def test_tie_needs_narrow_components():
     model, rules, _ = _narrow_lines_model(oiii_fwhm=2000.0)
     result = AutoFit(model, rules).run()
     test = result.ties["narrow"]
@@ -444,11 +439,19 @@ def test_narrow_fwhm_limit_is_a_module_setting(monkeypatch):
     monkeypatch.setattr(qr, "NARROW_FWHM_MAX", 300.0)
     assert qr.narrow_line_group(lines, Z).fwhm_range == (100.0, 300.0)
     assert qr.narrow_line_group(lines, Z, max_fwhm=800.0).fwhm_range[1] == 800.0
-    rules = {r.prefix: r for r in qr.line_rules(Z, ["Hbeta", "CIV", "OIII"])}
-    # Broad only: above NARROW_FWHM_MAX, at least the broad minimum
-    assert rules["Hbeta"].fwhm_range == (1000.0, 15000.0)
-    assert rules["CIV"].fwhm_range == (1000.0, 15000.0)
+    names = [*qr.LINES_WITH_NARROW, "CIV", "OIII"]
+    rules = {r.prefix: r for r in qr.line_rules(Z, names)}
+    # Broad only (the narrow cores come from the group and its companions):
+    # above NARROW_FWHM_MAX, at least the broad minimum
+    for name in (*qr.LINES_WITH_NARROW, "CIV"):
+        assert rules[name].fwhm_range == (1000.0, 15000.0)
     assert rules["OIII"].fwhm_range == (100.0, 2500.0)
+    monkeypatch.undo()
+    for name in qr.LINES_WITH_NARROW:
+        assert qr.line_rules(Z, [name])[0].fwhm_range == (1200.0, 15000.0)
+
+
+# -- narrow-line group and companions ------------------------------------------
 
 
 def _weak_narrow_model(narrow_flux, dv=0.0):
@@ -484,8 +487,7 @@ def _narrow_members(comps):
 def test_narrow_line_group_found_at_systemic():
     model, lines, z = _weak_narrow_model(1.0)
     group = qr.narrow_line_group(lines, z)
-    rules = [*lines, group, _narrow_tie(["Hbeta", "OIII"])]
-    result = AutoFit(model, rules).run()
+    result = AutoFit(model, [*lines, group]).run()
 
     comps = {c.name: c for c in result.model.components}
     tied = _narrow_members(comps)
@@ -496,7 +498,6 @@ def test_narrow_line_group_found_at_systemic():
     steps = [step.description for step in result.history]
     group_step = next(i for i, d in enumerate(steps) if "narrow group" in d)
     assert group_step > 2  # after the broad Hbeta and the [OIII] outflow
-    assert result.ties["narrow"].status == "tied"  # the tie sees the group
 
 
 def test_backward_step_keeps_a_line_the_group_cannot_replace():
@@ -757,6 +758,9 @@ def test_group_that_drifts_to_a_bound_is_removed_at_convergence():
     assert "narrow_redsh" in removal.description
 
 
+# -- other rules and helpers ---------------------------------------------------
+
+
 def test_narrow_line_windows():
     (window,) = qr.narrow_line_windows(7.0, lines=["OIII_5008"], velocity=300.0)
     centre = 5008.24 * 8.0
@@ -764,26 +768,15 @@ def test_narrow_line_windows():
     assert (window[1] - window[0]) / centre == pytest.approx(600.0 / 2.998e5, rel=1e-3)
 
 
-def test_ciii_complex_rule():
-    def complex_(x):
-        return qso_presets.qso.CIII_complex_model_func(
-            x,
-            Z,
-            1908.73,
-            1857.40,
-            1892.03,
-            30.0,
-            3000.0,
-            0.0,
-            6.0,
-            3000.0,
-            0.0,
-            8.0,
-            3000.0,
-            0.0,
-        )
+def _ciii_complex(x, fwhm=3000.0):
+    return qso_presets.qso.CIII_complex_model_func(
+        x, Z, 1908.73, 1857.40, 1892.03, 30.0, fwhm, 0.0, 6.0, fwhm, 0.0, 8.0,
+        fwhm, 0.0,
+    )  # fmt: skip
 
-    model = _model(complex_)
+
+def test_ciii_complex_rule():
+    model = _model(_ciii_complex)
     rule = qr.ciii_complex_rule(Z)
     (cand,) = rule.propose(model, model.run_quick_fit())
     assert (
@@ -808,13 +801,6 @@ def test_ciii_complex_rule():
     free = qr.ciii_complex_rule(Z, shared_width=False)
     (cand,) = free.propose(model, model.run_quick_fit())
     assert "CIIIc_fwhm_km_s_alIII" in cand.parameters
-
-
-def _ciii_complex(x, fwhm=3000.0):
-    return qso_presets.qso.CIII_complex_model_func(
-        x, Z, 1908.73, 1857.40, 1892.03, 30.0, fwhm, 0.0, 6.0, fwhm, 0.0, 8.0,
-        fwhm, 0.0,
-    )  # fmt: skip
 
 
 def test_ciii_second_component_rule():
@@ -857,11 +843,3 @@ def test_ciii_second_component_rule():
     # One width is enough for a plain complex
     result = AutoFit(_model(_ciii_complex), rules, threshold=10.0).run()
     assert [c.name for c in result.model.components] == ["PL", "CIIIc"]
-
-
-def test_qso_rules_ciii_complex_option():
-    names = [getattr(r, "name", "") for r in qr.qso_rules(Z, ciii_second=False)]
-    assert "CIII] complex" in names and "CIII] second component" not in names
-    plain = qr.qso_rules(Z, ciii_complex=False)
-    assert "CIII" in [getattr(r, "prefix", "") for r in plain]
-    assert "CIII] complex" not in [getattr(r, "name", "") for r in plain]
