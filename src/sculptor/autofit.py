@@ -1920,7 +1920,7 @@ class AutoFit:
             inventory = self._mask_absorbers(preliminary.model)
             if len(inventory.features):
                 # The null model of the calibration without the absorbers
-                preliminary.model.absorber_mask = inventory.mask
+                preliminary.model.absorber_mask = self.base.absorber_mask
                 refit, _ = self._fit(preliminary.model)
                 if refit is not None:
                     preliminary.model.quick_fit_result = refit
@@ -1988,7 +1988,8 @@ class AutoFit:
 
     def _mask_absorbers(self, model):
         """Absorber inventory from `model`'s residuals; the absorbers are
-        masked in the base model of the following searches.
+        masked in the base model of the following searches, on top of an
+        absorber mask the base model already has.
 
         :rtype: sculptor.absorbers.AbsorberInventory
         """
@@ -1996,8 +1997,11 @@ class AutoFit:
 
         inventory = scabs.find_absorbers(model, **self.absorbers)
         logger.info(f"AutoFit: {inventory}")
+        given = getattr(self.base, "absorber_mask", None)
         self.base = copy.deepcopy(self.base)
-        self.base.absorber_mask = inventory.mask
+        self.base.absorber_mask = (
+            inventory.mask if given is None else given & inventory.mask
+        )
         return inventory
 
     def _search(self, threshold, max_iterations, rule_thresholds=None):

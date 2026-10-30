@@ -380,6 +380,23 @@ def test_absorbers_are_reported_and_masked(threshold):
     assert fit.base is base and base.absorber_mask is None
 
 
+def test_found_absorbers_add_to_a_given_absorber_mask():
+    """An absorber mask set on the base model (e.g. a known DLA) stays,
+    together with the absorbers found."""
+    base = _with_mgii_absorber(_model(n=2500))
+    x = base.spec.dispersion
+    given = (x < 4400) | (x > 4450)
+    base.absorber_mask = given.copy()
+    result = AutoFit(
+        base, [_rule()], absorbers={"redshift": Z, "name": "QSO", "n_sims": 30}
+    ).run()
+    fitted = result.model.get_fit_mask()
+    assert not fitted[~given].any()
+    assert not fitted[~result.absorbers.mask].any()
+    assert list(result.absorbers.systems["species"]) == ["MgII"]
+    np.testing.assert_array_equal(base.absorber_mask, given)  # base not changed
+
+
 def test_tail_threshold_and_rule_keys():
     rng = np.random.default_rng(3)
     values = rng.exponential(10.0, 400)
