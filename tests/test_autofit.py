@@ -1039,3 +1039,25 @@ def test_parameters_at_a_prior_bound_are_flagged():
     flagged = AutoFit(base, [narrow]).run()
     assert "line_0_fwhm_km_s" in flagged.at_bound
     assert "at a prior bound: " in str(flagged)
+
+
+def test_a_guarded_line_at_a_prior_bound_is_rejected():
+    """The same line with the width guarded: not added. Its guarded
+    parameters are its varying ones; the rule is still calibrated by adding
+    one more line (no null removals)."""
+    base = _model(lines=[(20.0, CIII, 4000.0)])
+    kwargs = {"redshift": Z, "lines": [CIII], "max_components": 1}
+    guarded = GaussianLineRule(
+        "line", fwhm_range=(300, 1500), guard=("fwhm_km_s",), **kwargs
+    )
+    assert AutoFit(base, [guarded]).run().components() == ["PL"]
+
+    wide = GaussianLineRule("line", guard=("redsh", "fwhm_km_s", "cen"), **kwargs)
+    found = AutoFit(base, [wide]).run()
+    assert found.components() == ["PL", "line_0"]
+    assert wide.guarded(found.model) == [
+        (["line_0_redsh", "line_0_fwhm_km_s"], ["line_0"])
+    ]  # the center is fixed
+    assert wide.null_removals(found.model) == []
+    with pytest.raises(ValueError, match="guard"):
+        GaussianLineRule("line", guard=("sigma",), **kwargs)

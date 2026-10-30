@@ -41,7 +41,8 @@ removal: it is kept unless the untied model earns the tie's threshold
 outcome, e.g. a tie the data reject.
 
 A rule may also name parameters that must not end at a prior bound
-(`Rule.guarded`, e.g. the shared redshift and width of a `LineGroupRule`):
+(`Rule.guarded`, e.g. the shared redshift and width of a `LineGroupRule`,
+or a line's width and offset with `GaussianLineRule(guard=...)`):
 a candidate is rejected if one does, and when the search converges the
 components of a guarded parameter that has since drifted to a bound are
 removed and the search resumes. Components that share guarded parameters
@@ -381,6 +382,13 @@ class GaussianLineRule(Rule):
         relative to the detection width (clipped to `fwhm_range`), with the
         flux re-estimated for each; the best fit counts. () for one start.
     :type start_fwhm_factors: tuple(float)
+    :param guard: Arguments (e.g. `("redsh", "fwhm_km_s")`) whose varying
+        parameters must not end at a prior bound (`Rule.guarded`): a
+        candidate is rejected if one does, and a component whose parameter
+        drifts to a bound later is removed. A line at its widest width or
+        largest offset is often a filler of continuum misfit, not the line.
+        () (default) for none
+    :type guard: tuple(str)
     """
 
     def __init__(
@@ -398,6 +406,7 @@ class GaussianLineRule(Rule):
         function=None,
         fixed=None,
         start_fwhm_factors=(1 / 3, 3.0),
+        guard=(),
     ):
         self.prefix = prefix
         self.redshift = redshift
@@ -412,7 +421,11 @@ class GaussianLineRule(Rule):
         self.function = ana.line_model_gaussian if function is None else function
         self.fixed = dict(fixed or {})
         self.start_fwhm_factors = tuple(start_fwhm_factors)
+        self.guard = tuple(guard)
         args = FitComponent("check", self.function).function_args
+        unknown = set(self.guard) - set(args)
+        if unknown:
+            raise ValueError(f"`guard` names unknown arguments {sorted(unknown)}")
         missing = {"redsh", "flux", "fwhm_km_s"} - set(args)
         if missing:
             raise ValueError(f"`function` lacks the arguments {sorted(missing)}")
@@ -432,6 +445,47 @@ class GaussianLineRule(Rule):
             for c in model.components
             if c.name.startswith(head) and c.name[len(head) :].isdigit()
         ]
+
+    def guarded(self, model):
+        """Each of the rule's components with its `guard` parameters that
+        vary.
+
+        :param model: The model
+        :type model: sculptor.model.FitModel
+        :rtype: list(tuple(list(str), list(str)))
+        """
+        if not self.guard:
+            return []
+        names = set(self.owned(model))
+        pairs = []
+        for comp in model.components:
+            if comp.name not in names:
+                continue
+            params = self._guarded_params(comp, model.parameters)
+            if params:
+                pairs.append((params, [comp.name]))
+        return pairs
+
+    def _guarded_params(self, comp, parameters):
+        """The varying parameters of `comp` for the `guard` arguments, its
+        own only (shared ones, e.g. a narrow group's, are guarded by the
+        rule they belong to)."""
+        keys = [comp.param_mapping[arg] for arg in self.guard]
+        return [
+            key
+            for key in keys
+            if key.startswith(f"{comp.name}_")
+            and key in parameters
+            and parameters[key].vary
+        ]
+
+    def null_removals(self, model):
+        """None: the rule is calibrated by adding one more line to the null
+        (its guarded components are single lines, not one hypothesis).
+
+        :rtype: list(str)
+        """
+        return []
 
     def _new_name(self, model):
         """First free `<prefix>_<n>`."""
@@ -580,6 +634,7 @@ class GaussianLineRule(Rule):
             parameters=pars,
             significance=float(signif),
             starts=self._starts(model, result, comp, pars, rest, obs, fwhm, others),
+            reject_at_bound=self._guarded_params(comp, pars),
         )
 
     def _starts(self, model, result, comp, pars, rest, obs, fwhm, others):

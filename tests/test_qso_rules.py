@@ -80,6 +80,27 @@ def test_line_rules():
     assert custom[0].lines == [1700.0]
 
 
+def test_broad_lines_are_guarded_at_their_bounds():
+    """Broad lines must not end at a bound of their offset or width;
+    [OIII] is not guarded."""
+    rules = {r.prefix: r for r in qr.line_rules(Z, ["CIV", "Hbeta", "OIII"])}
+    assert rules["CIV"].guard == rules["Hbeta"].guard == ("redsh", "fwhm_km_s")
+    assert rules["OIII"].guard == ()
+    assert all(r.guard == () for r in qr.line_rules(Z, ["CIV"], guard_broad=()))
+
+
+def test_a_group_member_is_not_guarded_by_its_line_rule():
+    """The narrow Hbeta of the group uses the group's redshift and width:
+    the group guards them, not the Hbeta rule (else the member would be a
+    removal unit of its own)."""
+    model, lines, z = _weak_narrow_model(1.0)
+    found = AutoFit(model, [*lines, qr.narrow_line_group(lines, z)]).run().model
+    hbeta = lines[0]
+    assert hbeta.guarded(found) == [
+        (["Hbeta_0_redsh", "Hbeta_0_fwhm_km_s"], ["Hbeta_0"])
+    ]
+
+
 def test_iron_template_rule_finds_the_template():
     scale = 0.5 / np.max(_iron(np.geomspace(4200, 6200, 800), 1.0))
     model = _model(extra=lambda x: _iron(x, scale))
