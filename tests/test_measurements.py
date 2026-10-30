@@ -180,9 +180,8 @@ def test_calc_apparent_mag_from_fluxden_ab_zero_point():
     assert mag.value == pytest.approx(0.0, abs=1e-3)
 
 
-def test_analyze_emission_feature_default_measurements(dispersion):
-    """Regression: the default measurements (EW, flux, lum) used to crash."""
-
+def _line_on_continuum():
+    """A fixed model: the CIV line over a flat continuum."""
     cont = FitComponent("cont", analysis.power_law_at2500)
     line = FitComponent("CIV", analysis.line_model_gaussian)
     params = {**cont.create_params(), **line.create_params()}
@@ -198,8 +197,13 @@ def test_analyze_emission_feature_default_measurements(dispersion):
     for name, param in params.items():
         param.value = values[name]
         param.vary = False
+    return FitModel(components=[cont, line], parameters=params), cont, line
 
-    model = FitModel(components=[cont, line], parameters=params)
+
+def test_analyze_emission_feature_default_measurements(dispersion):
+    """Regression: the default measurements (EW, flux, lum) used to crash."""
+
+    model, cont, line = _line_on_continuum()
 
     result = analysis.analyze_emission_feature(
         model,
@@ -276,22 +280,7 @@ def test_get_nonparametric_measurements_disp_range_in_angstrom(line_spec):
 
 
 def test_analyze_emission_feature_nonparam_with_disp_range(dispersion):
-    cont = FitComponent("cont", analysis.power_law_at2500)
-    line = FitComponent("CIV", analysis.line_model_gaussian)
-    params = {**cont.create_params(), **line.create_params()}
-    values = {
-        "cont_redsh": REDSHIFT,
-        "cont_amp": CONT_LEVEL,
-        "cont_slope": 0.0,
-        "CIV_redsh": REDSHIFT,
-        "CIV_flux": LINE_FLUX,
-        "CIV_cen": REST_CEN,
-        "CIV_fwhm_km_s": FWHM_KM_S,
-    }
-    for name, param in params.items():
-        param.value = values[name]
-        param.vary = False
-    model = FitModel(components=[cont, line], parameters=params)
+    model, cont, line = _line_on_continuum()
     obs_cen = REST_CEN * (1 + REDSHIFT)
 
     result = analysis.analyze_emission_feature(

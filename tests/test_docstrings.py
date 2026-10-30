@@ -1,4 +1,4 @@
-"""Convention (review §4): every public function, method and class in the
+"""Convention: every public function, method and class in the
 maintained packages has a reST docstring without placeholder fields."""
 
 import ast

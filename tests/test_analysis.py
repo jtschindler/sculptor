@@ -1,4 +1,4 @@
-"""Tests for the `sculptor.analysis` clean-up (review §2.9, 2.10, §5.2).
+"""Tests for `sculptor.analysis`.
 
 - `analyze_mcmc_results` is the working routine (it used to be a stub that
   only printed; the real one was the private `_mcmc_analyze`, kept as an
@@ -10,7 +10,6 @@
 import extinction
 import numpy as np
 import pytest
-from astropy import constants as const
 from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
 from astropy.table import QTable
@@ -197,9 +196,6 @@ def test_continuum_without_redshift_raises(setup):
         )
 
 
-C_KM_S = const.c.to("km/s").value
-
-
 class _FakeSpec:
     def __init__(self, dispersion, fluxden, fluxden_err):
         self.dispersion = np.asarray(dispersion, dtype=float)
@@ -227,96 +223,43 @@ class _FakeModel:
         return np.zeros_like(dispersion, dtype=float)
 
 
-def test_get_line_snr_uses_per_sample_fwhm_window_and_does_not_mutate_input():
-    cen = 5000.0
-    redshift = 0.0
-    sigma = 2.0
-
-    # Sample 0 has a narrow FWHM (narrow window around `cen`); sample 1 has
-    # a much wider FWHM. A spike placed just outside sample 0's window but
-    # inside sample 1's window must only be picked up for sample 1 -- if the
-    # window were frozen at sample 0's (the bug), sample 1 would miss it too.
-    fwhm = np.array([300.0, 30000.0])
-    spike_wave = 5100.0
-
+def _spike_snr(l_min=None, l_max=None):
+    """`get_line_snr` around a line at 5000 A for two samples, FWHM 300 and
+    30000 km/s, with a spike at 5100 A (outside the narrow sample's window,
+    inside the wide one's); returns the S/N and the line dict."""
     disp = np.linspace(4000, 6000, 20001)
     flux = np.zeros_like(disp)
-    flux[np.argmin(np.abs(disp - spike_wave))] = 100.0
-    fluxerr = np.ones_like(disp)
-
-    spec = _FakeSpec(disp, flux, fluxerr)
-    model = _FakeModel(spec)
-
-    line_dict = {
-        "line1": {"cen": cen, "fwhm": fwhm, "l_min": None, "l_max": None},
-    }
-    flat_chain = np.zeros((2, 1))
-
+    flux[np.argmin(np.abs(disp - 5100.0))] = 100.0
+    model = _FakeModel(_FakeSpec(disp, flux, np.ones_like(disp)))
+    fwhm = np.array([300.0, 30000.0])
+    line_dict = {"line1": {"cen": 5000.0, "fwhm": fwhm, "l_min": l_min, "l_max": l_max}}
     line_snr, peak_snr = analysis.get_line_snr(
         model,
-        flat_chain,
+        np.zeros((2, 1)),
         cont_component=None,
-        redshift=redshift,
+        redshift=0.0,
         line_dict=line_dict,
-        sigma=sigma,
+        sigma=2.0,
     )
+    return line_snr, peak_snr, line_dict
 
-    # Sample 0's narrow window must not capture the spike.
-    assert line_snr[0, 0] == 0.0
-    assert peak_snr[0, 0] == 0.0
 
-    # Sample 1's wide window must capture the spike.
-    assert line_snr[0, 1] > 0.5
-    assert peak_snr[0, 1] > 50.0
-
-    # The input dict must not be mutated with a cached window.
+def test_get_line_snr_uses_per_sample_fwhm_window_and_does_not_mutate_input():
+    """If the window were frozen at sample 0's (the bug), sample 1 would
+    miss the spike too."""
+    line_snr, peak_snr, line_dict = _spike_snr()
+    assert line_snr[0, 0] == 0.0 and peak_snr[0, 0] == 0.0
+    assert line_snr[0, 1] > 0.5 and peak_snr[0, 1] > 50.0
+    # The input dict is not mutated with a cached window
     assert line_dict["line1"]["l_min"] is None
     assert line_dict["line1"]["l_max"] is None
 
 
 def test_get_line_snr_respects_fixed_window_when_provided():
-    cen = 5000.0
-    redshift = 0.0
-    sigma = 2.0
-
-    # FWHM varies across samples, but l_min/l_max are pinned, so the window
-    # used must be the same fixed one for every sample.
-    fwhm = np.array([300.0, 30000.0])
-    fixed_l_min, fixed_l_max = 5090.0, 5110.0
-    spike_wave = 5100.0  # inside the fixed window regardless of sample.
-
-    disp = np.linspace(4000, 6000, 20001)
-    flux = np.zeros_like(disp)
-    flux[np.argmin(np.abs(disp - spike_wave))] = 100.0
-    fluxerr = np.ones_like(disp)
-
-    spec = _FakeSpec(disp, flux, fluxerr)
-    model = _FakeModel(spec)
-
-    line_dict = {
-        "line1": {
-            "cen": cen,
-            "fwhm": fwhm,
-            "l_min": fixed_l_min,
-            "l_max": fixed_l_max,
-        },
-    }
-    flat_chain = np.zeros((2, 1))
-
-    line_snr, peak_snr = analysis.get_line_snr(
-        model,
-        flat_chain,
-        cont_component=None,
-        redshift=redshift,
-        line_dict=line_dict,
-        sigma=sigma,
+    """With l_min / l_max pinned, every sample uses that window."""
+    line_snr, peak_snr, line_dict = _spike_snr(5090.0, 5110.0)
+    assert np.all(line_snr[0] > 0.0) and np.all(peak_snr[0] > 50.0)
+    assert (line_dict["line1"]["l_min"], line_dict["line1"]["l_max"]) == (
+        5090.0,
+        5110.0,
     )
-
-    # Both samples use the same fixed window, so both must see the spike.
-    assert line_snr[0, 0] > 0.0
-    assert line_snr[0, 1] > 0.0
-    assert peak_snr[0, 0] > 50.0
-    assert peak_snr[0, 1] > 50.0
-
-    assert line_dict["line1"]["l_min"] == fixed_l_min
-    assert line_dict["line1"]["l_max"] == fixed_l_max
