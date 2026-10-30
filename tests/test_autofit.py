@@ -552,6 +552,20 @@ def test_component_rule_scales_and_adds_once():
     assert rule.propose(final.model, final.result) == []  # already there
 
 
+def test_linear_amplitude_with_the_resolution():
+    """With a resolution the least-squares flux is fitted with the broadened
+    template: a 300 km/s line seen at R = 1000 (300 km/s), i.e. 424 km/s
+    wide. The unbroadened template gave ~18% too little flux."""
+    base = _model(lines=[(15.0, CIII, np.hypot(300.0, 2.998e5 / 1000))])
+    base.resolution = 1000.0
+    result = base.run_quick_fit()
+    rule = ComponentRule(
+        "CIII]", _line_factory("CIII_x", CIII, fwhm=300.0), linear_param="flux"
+    )
+    (cand,) = rule.propose(base, result)
+    assert cand.parameters["CIII_x_flux"].value == pytest.approx(15.0, rel=0.05)
+
+
 def test_component_rule_calibrated_without_its_component():
     """A component the preliminary model already has: its rule proposes
     nothing on that null, so it is calibrated on simulations without it

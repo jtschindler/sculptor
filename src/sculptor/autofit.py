@@ -629,12 +629,18 @@ def _linear_amplitudes(model, result, comps, params, keys):
     lookup = {name: p.value for name, p in model.parameters.items()}
     lookup.update(dict(zip(result.param_names, result.values, strict=True)))
     lookup.update({name: p.value for name, p in params.items()})
+    # Broadened by the resolution, like the model the residuals come from
+    matrix, x_eval = None, x
+    if model.resolution is not None:
+        matrix, x_eval = model.resolution_matrix(x)
     units = []
     for key in keys:
         trial = {**lookup, **dict.fromkeys(keys, 0.0), key: 1.0}
         unit = sum(
-            comp.eval(x, [trial[k] for k in comp.get_arg_keys()]) for comp in comps
+            comp.eval(x_eval, [trial[k] for k in comp.get_arg_keys()]) for comp in comps
         )
+        if matrix is not None:
+            unit = matrix @ unit
         units.append(unit[mask])
     design = np.array(units).T
     resid = (model.spec.fluxden - model.eval(x, result.values))[mask]
