@@ -2,6 +2,7 @@
 
 import copy
 import logging
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -722,6 +723,32 @@ def test_fit_candidate_keeps_the_best_start():
 
     one = AutoFit(base, [_rule()], multistart=False)
     assert one._fit_candidate(base, cand)[2] == pytest.approx(scores[0])
+
+
+def test_fit_candidate_prefers_a_start_inside_the_bounds(monkeypatch):
+    """The best-scoring start ends at a `reject_at_bound` bound, a worse
+    one does not: the candidate is the worse one, not rejected."""
+    base = _model(lines=[(20.0, CIV, 3000.0)])
+    (cand, *_) = _rule(lines=[CIV]).propose(base, base.run_quick_fit())
+    cand.reject_at_bound = ["line_0_fwhm_km_s"]
+    assert len(cand.starts) >= 2
+    search = AutoFit(base, [_rule()])
+    # (at_bound, score) of the fits from the default start and starts 1, 2
+    fits = iter([(["line_0_fwhm_km_s"], 1.0), ([], 5.0), ([], 3.0)])
+
+    def fake_fit(model):
+        at_bound, score = next(fits, (["line_0_fwhm_km_s"], 0.0))
+        return SimpleNamespace(at_bound=at_bound), score
+
+    monkeypatch.setattr(search, "_fit", fake_fit)
+    _, result, score = search._fit_candidate(base, cand)
+    assert score == 3.0
+    assert not search._rejected_at_bound(cand, result)
+
+    # Every start at the bound: the best of them, rejected by the caller
+    fits = iter([])
+    _, result, score = search._fit_candidate(base, cand)
+    assert score == 0.0 and search._rejected_at_bound(cand, result)
 
 
 def test_component_rule_starts_rescale_the_amplitude():

@@ -211,6 +211,12 @@ class Candidate:
     reject_at_bound: list = field(default_factory=list)
 
 
+def _at_bound(candidate, result):
+    """The candidate's `reject_at_bound` parameters at a prior bound in
+    `result`."""
+    return set(candidate.reject_at_bound) & set(result.at_bound)
+
+
 def matched_filter(x, resid, weight, fwhm_km_s):
     """Matched filter of a Gaussian of FWHM `fwhm_km_s` on residuals:
     significance and peak amplitude of the best-fitting Gaussian centered
@@ -1771,32 +1777,38 @@ class AutoFit:
     def _fit_candidate(self, model, candidate):
         """Fit `model` with the candidate from each of its starts.
 
+        The best start is the best-scoring one among those whose fit is not
+        rejected at a prior bound (`_rejected_at_bound`), or among all of
+        them if every fit is: a start that drifts to a bound does not hide
+        one that does not.
+
         :return: trial model, its quick fit and score, of the best start
             (quick fit None and score inf if all fits failed)
         """
         starts = [{}] + (candidate.starts if self.multistart else [])
-        best = (None, None, np.inf)
+        best, best_key = (None, None, np.inf), None
         for idx, start in enumerate(starts):
             trial = self._with(model, candidate)
             for name, value in start.items():
                 trial.parameters[name].value = value
             trial_result, trial_score = self._fit(trial)
-            if best[0] is None:
-                best = (trial, trial_result, trial_score)
-            elif trial_result is not None and (
-                best[1] is None or trial_score < best[2]
-            ):
-                best = (trial, trial_result, trial_score)
-                logger.debug(
-                    f"AutoFit: {candidate.description}: start {idx} {start} "
-                    f"is better ({trial_score:.2f})"
-                )
+            if trial_result is None:
+                key = (2, np.inf)
+            else:
+                key = (int(bool(_at_bound(candidate, trial_result))), trial_score)
+            if best_key is None or key < best_key:
+                if best_key is not None:
+                    logger.debug(
+                        f"AutoFit: {candidate.description}: start {idx} {start} "
+                        f"is better ({trial_score:.2f})"
+                    )
+                best, best_key = (trial, trial_result, trial_score), key
         return best
 
     def _rejected_at_bound(self, candidate, result):
         """Whether the candidate's fit is rejected for parameters at a prior
         bound (its `reject_at_bound` ones)."""
-        own = set(candidate.reject_at_bound) & set(result.at_bound)
+        own = _at_bound(candidate, result)
         if own:
             logger.debug(
                 f"AutoFit: {candidate.description}: rejected, "
