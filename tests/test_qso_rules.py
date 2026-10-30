@@ -361,6 +361,41 @@ def test_narrow_line_tie_accepted():
     assert "tie narrow: tied" in str(result)
 
 
+def test_tie_has_its_own_threshold():
+    """Untying is calibrated on simulations of the tied model, and the
+    search holds the tie to that threshold."""
+    model, rules, _ = _narrow_lines_model()
+    tied = AutoFit(model, rules).run().model
+    tie = rules[-1]
+    names = ["Hbeta_0", "OIII_0"]
+    untied = tie.untie(tied, names)
+    for name in names:
+        comp = next(c for c in untied.components if c.name == name)
+        for arg in ("redsh", "fwhm_km_s"):
+            assert comp.param_mapping[arg] == f"{name}_{arg}"
+            assert (
+                untied.parameters[f"{name}_{arg}"].value
+                == tied.parameters[f"narrow_{arg}"].value
+            )
+    assert "narrow_redsh" not in untied.parameters
+    assert tie.is_tied(tie.apply(untied, names)[0], names)
+
+    cal = autofit.calibrate_threshold(
+        tied, rules, n_sims=6, quantiles=[0.9], min_rule_sims=5
+    )
+    assert cal.rule_improvements["tie narrow"].size == 6
+    assert np.all(cal.rule_improvements["tie narrow"] >= 0)
+    assert "tie narrow" in cal.by_rule
+
+    # An offset Hbeta rejects the tie at the global threshold, not at a
+    # tie threshold above what untying gains
+    offset, rules, _ = _narrow_lines_model(hbeta_dv=600.0)
+    fit = AutoFit(offset, rules)
+    assert fit._search(10.0, 40).ties["narrow"].status == "rejected"
+    lenient = fit._search(10.0, 40, rule_thresholds={"tie narrow": 1e9})
+    assert "tie" in [step.action for step in lenient.history]
+
+
 def test_backward_steps_and_clipping_follow_a_tie(monkeypatch):
     """A tie is a change like an addition: the backward steps and the
     clipping follow it."""

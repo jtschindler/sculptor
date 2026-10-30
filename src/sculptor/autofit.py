@@ -32,8 +32,9 @@ starting at the systemic redshift.
 Ties (`Tie`, passed among the rules) are hypotheses that components share
 parameters, e.g. the narrow cores of Hbeta and [OIII] their redshift and
 width. When the search converges, each applicable tie is tested like a
-removal: it is kept unless the untied model earns `threshold`, and the
-search resumes from the tied model. `AutoFitResult.ties` reports each
+removal: it is kept unless the untied model earns the tie's threshold
+(its own calibrated one with `per_rule`, see `calibrate_threshold`, else
+`threshold`), and the search resumes from the tied model. `AutoFitResult.ties` reports each
 outcome, e.g. a tie the data reject.
 
 A rule may also name parameters that must not end at a prior bound
@@ -1145,7 +1146,7 @@ class Tie(Rule):
     `prefixes` whose `width_arg` is below `max_width`, if at least
     `min_components` rules have one. `AutoFit` tests it when its search
     converges, like a removal: the tied model is kept unless the untied one
-    earns the threshold (see the module docstring). The shared parameters
+    earns the tie's threshold (see the module docstring). The shared parameters
     are `<name>_<arg>`, with the intersection of the components' uniform
     priors, fitted from each component's values (multi-start). A tie is
     not undone later.
@@ -1296,6 +1297,29 @@ class Tie(Rule):
         used = {key for c in new.components for key in c.get_arg_keys()}
         new.parameters = {k: p for k, p in new.parameters.items() if k in used}
         return new, starts
+
+    def untie(self, model, names):
+        """Copy of `model` with the components `names` untied: each gets its
+        own copy (`<component>_<arg>`, same value and prior) of the shared
+        parameters.
+
+        :rtype: sculptor.model.FitModel
+        """
+        new = copy.deepcopy(model)
+        for comp in new.components:
+            if comp.name not in names:
+                continue
+            for arg in self.args:
+                own = f"{comp.name}_{arg}"
+                param = copy.deepcopy(new.parameters[comp.param_mapping[arg]])
+                param.name = own
+                if param.prior is not None:
+                    param.prior.name = own
+                new.parameters[own] = param
+                comp.param_mapping[arg] = own
+        used = {key for c in new.components for key in c.get_arg_keys()}
+        new.parameters = {k: p for k, p in new.parameters.items() if k in used}
+        return new
 
 
 def _local_maxima(values, minimum):
@@ -1573,7 +1597,6 @@ class AutoFit:
         self.criterion_arg = criterion
         self.base = model
         self.rules = list(rules)
-        self.ties = [rule for rule in self.rules if isinstance(rule, Tie)]
         self.threshold = threshold
         self.removable = set(removable)
         self.quick_fit_kwargs = dict(quick_fit_kwargs or {})
@@ -1985,7 +2008,10 @@ class AutoFit:
 
         :return: a change as from `_next_change`, or None
         """
-        for tie in self.ties:
+        for key, tie in zip(self.rule_keys, self.rules, strict=True):
+            if not isinstance(tie, Tie):
+                continue
+            tie_threshold = self._rule_thresholds.get(key, threshold)
             names, reason = tie.select(model)
             if names is None:
                 ties[tie.name] = TieTest("not applicable", reason=reason)
@@ -2005,7 +2031,7 @@ class AutoFit:
                     best = (trial, trial_result, trial_score)
             trial, trial_result, trial_score = best
             delta = trial_score - score
-            if trial_result is None or delta >= threshold:
+            if trial_result is None or delta >= tie_threshold:
                 ties[tie.name] = TieTest("rejected", names, delta)
                 logger.info(f"AutoFit: tie {tie.name} rejected: {delta:+.2f}")
                 continue
@@ -2384,7 +2410,11 @@ def calibrate_threshold(
     group found by the preliminary search, a narrow Hbeta its member rule
     added alone, or the iron template of a `ComponentRule`) is calibrated
     on simulations of `model` without it. Rules that propose nothing in at
-    least `min_rule_sims` simulations keep the global threshold. The floor
+    least `min_rule_sims` simulations keep the global threshold. A `Tie`
+    that applies to `model` is calibrated on simulations of the tied model
+    (`Tie.apply`, or `model` itself if already tied), by the improvement
+    that untying (`Tie.untie`) achieves; one that does not apply keeps the
+    global threshold. The floor
     matters most here: a hypothesis that never improves the criterion on
     noise gives a threshold of 0, which says only that the simulations do
     not reach its tail.
@@ -2489,6 +2519,25 @@ def calibrate_threshold(
                 flux = reduced.eval(reduced.spec.dispersion, reduced_result.values)
                 without[key] = (reduced, flux)
 
+    # Ties that apply to the null model: calibrated on simulations of the
+    # tied model, by what untying gains
+    tied_nulls = {}
+    if per_rule:
+        for key, tie in zip(keys, search.rules, strict=True):
+            if not isinstance(tie, Tie):
+                continue
+            names, _ = tie.select(null)
+            if names is None:
+                continue
+            if tie.is_tied(null, names):
+                tied = copy.deepcopy(null)
+            else:
+                tied = tie.apply(null, names)[0]
+            tied_result, _ = search._fit(tied)
+            if tied_result is not None:
+                flux = tied.eval(tied.spec.dispersion, tied_result.values)
+                tied_nulls[key] = (tie, names, tied, flux)
+
     improvements = np.full(n_sims, np.nan)
     by_key = {key: np.full(n_sims, np.nan) for key in keys}
     for idx in range(n_sims):
@@ -2519,6 +2568,16 @@ def calibrate_threshold(
             rule_best = best_score(red, red_result, red_score, rule)
             if rule_best is not None:
                 by_key[key][idx] = max(red_score - rule_best, 0.0)
+
+        for key, (tie, names, tied, flux) in tied_nulls.items():
+            sim_tied = copy.deepcopy(tied)
+            sim_tied.spec.fluxden = flux + realization
+            tied_result, tied_score = search._fit(sim_tied)
+            if tied_result is None:
+                continue
+            # Untied from the tied best fit (a failed fit gains nothing)
+            _, untied_score = search._fit(tie.untie(sim_tied, names))
+            by_key[key][idx] = max(tied_score - untied_score, 0.0)
     improvements = improvements[np.isfinite(improvements)]
     if improvements.size == 0:
         raise ValueError("calibrate_threshold: all simulations failed.")
