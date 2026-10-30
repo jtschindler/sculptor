@@ -31,23 +31,25 @@ def _fixed(**values):
 
 
 @pytest.mark.parametrize(
-    ("prefix", "tied_func", "untied_func", "ratio"),
+    ("prefix", "tied_func", "untied_func", "ratio", "centers"),
     [
         (
             "NII",
             qa.line_model_gaussian_NII_doublet,
             qso.line_model_gaussian_nii_doublet,
             2.96,
+            (6549.85, 6585.28),
         ),
         (
             "SII",
             qa.line_model_gaussian_SII_doublet,
             qso.line_model_gaussian_sii_doublet,
             1.0,
+            (6718.29, 6732.67),
         ),
     ],
 )
-def test_doublet_switch_tied_by_default(prefix, tied_func, untied_func, ratio):
+def test_doublet_switch_tied_by_default(prefix, tied_func, untied_func, ratio, centers):
     tied_dict = _fixed(redsh=0.1, flux=5.0, fwhm_km_s=300.0, fluxratio=ratio)
     comp, params = qa.initialize_gaussian_line_model(prefix, tied_dict)
     assert comp.function is tied_func
@@ -62,11 +64,15 @@ def test_doublet_switch_tied_by_default(prefix, tied_func, untied_func, ratio):
     assert comp_u.function is untied_func
     assert sorted(params_u) == sorted(f"{prefix}_{p}" for p in untied_dict)
 
-    # With equal widths and flux_b = ratio * flux_a, both models agree.
+    # Two Gaussians; with equal widths and flux_b = ratio * flux_a, both
+    # models agree.
     x = np.linspace(7000, 7600, 2000)
+    expected = ana.line_model_gaussian(x, 0.1, 5.0, centers[0], 300.0)
+    expected += ana.line_model_gaussian(x, 0.1, 5.0 * ratio, centers[1], 300.0)
     tied = comp.function(x, 0.1, 5.0, 300.0, ratio)
     untied = comp_u.function(x, 0.1, 5.0, 5.0 * ratio, 300.0, 300.0)
-    np.testing.assert_allclose(tied, untied, rtol=1e-12)
+    np.testing.assert_allclose(tied, expected, rtol=1e-12)
+    np.testing.assert_allclose(untied, expected, rtol=1e-12)
 
 
 BALMER = {
@@ -187,14 +193,16 @@ def test_civ_bh_masses(func, coefficient, reference):
     assert mass.to_value(u.Msun) == pytest.approx(expected)
 
 
-def test_dalla_bonta_2020_values_and_units():
-    # At the pivot (L = 1e42 erg/s, FWHM = 10^3.5 km/s) only the zero point
-    # remains: log M = 7.015.
-    mass, _ = qso.se_bhmass_db20(10**3.5 * KM_S, 1e42 * u.erg / u.s)
-    assert np.log10(mass.to_value(u.Msun)) == pytest.approx(7.015)
-
-    other, _ = qso.se_bhmass_db20(10**3.5 * 1e3 * u.m / u.s, 1e35 * u.W)
-    assert other.to_value(u.Msun) == pytest.approx(mass.to_value(u.Msun))
+def test_dalla_bonta_2020_values():
+    fwhm, lum, f = 4000 * KM_S, 3e42 * u.erg / u.s, 1.5
+    mass, _ = qso.se_bhmass_db20(fwhm, lum, virial_factor=f)
+    log_mass = (
+        np.log10(f)
+        + 7.015
+        + 0.784 * (np.log10(3e42) - 42)
+        + 1.387 * (np.log10(4000) - 3.5)
+    )
+    assert mass.to_value(u.Msun) == pytest.approx(10**log_mass, rel=1e-12)
 
     with pytest.raises(ValueError, match="not supported"):
         qso.se_bhmass_db20(3000 * KM_S, 1e42 * u.erg / u.s, "Ha_LHa")

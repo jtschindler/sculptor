@@ -156,37 +156,12 @@ def test_setup_hb_o3_lines_preset():
 # --- shared model code ----------------------------------------------------------
 
 
-def test_doublets_are_two_gaussian_lines():
-    x = np.linspace(19000, 21000, 2001)
-    expected = ana.line_model_gaussian(x, 2.0, 5.0, 6549.85, 300.0)
-    expected += ana.line_model_gaussian(x, 2.0, 5.0 * 2.96, 6585.28, 300.0)
-    np.testing.assert_array_equal(
-        qa.line_model_gaussian_NII_doublet(x, 2.0, 5.0, 300.0), expected
-    )
-    np.testing.assert_array_equal(
-        qso.line_model_gaussian_nii_doublet(x, 2.0, 5.0, 5.0 * 2.96, 300.0, 300.0),
-        expected,
-    )
-
-
 def test_virial_bh_mass():
     mass = qso.virial_bh_mass(
         3000 * KM_S, 1e45 * u.erg / u.s, zero_point=10**6.91, width_exp=2, lum_exp=0.5
     )
     assert mass.unit == u.Msun
     assert mass.value == pytest.approx(10**6.91 * 3**2 * 10**0.5)
-
-
-def test_db20_matches_its_log_form():
-    fwhm, lum, f = 4000 * KM_S, 3e42 * u.erg / u.s, 1.5
-    mass, _ = qso.se_bhmass_db20(fwhm, lum, virial_factor=f)
-    log_mass = (
-        np.log10(f)
-        + 7.015
-        + 0.784 * (np.log10(3e42) - 42)
-        + 1.387 * (np.log10(4000) - 3.5)
-    )
-    assert mass.to_value(u.Msun) == pytest.approx(10**log_mass, rel=1e-12)
 
 
 def test_balmer_models_share_the_shape():
@@ -205,18 +180,6 @@ def test_balmer_models_share_the_shape():
     edge = qam.balmer_continuum_at_edge(Te, tau_be, lambda_be)
     expected = ana.power_law_at2500(x_obs, redsh, 1.0, -1.5) + 3.0 * shape / edge
     np.testing.assert_allclose(with_pl, expected, rtol=1e-14)
-
-
-def test_cached_hol_model_is_the_uncached_one():
-    x = np.linspace(4000, 6000, 501)
-    args = (x, 0.5, 1.0, 15000.0, 1.0, 3646.0, 2000.0)
-    cached = qam.CachedBalmerContinuumWithHOL()
-    assert isinstance(cached, qam.BalmerContinuumWithHOL)
-    np.testing.assert_array_equal(cached(*args), qam.BalmerContinuumWithHOL()(*args))
-    np.testing.assert_array_equal(cached(*args), qam.BalmerContinuumWithHOL()(*args))
-
-
-# --- line properties -----------------------------------------------------------
 
 
 # --- old names ------------------------------------------------------------------

@@ -100,7 +100,10 @@ def test_lya_absorption():
 def test_balmer_continuum_with_hol():
     x, k = _split_x("hol")
     _close(qam.BalmerContinuumWithHOL()(x, **k), "hol__y", 1e-8)
-    _close(qam.CachedBalmerContinuumWithHOL()(x, **k), "hol__y", 1e-8)
+    cached = qam.CachedBalmerContinuumWithHOL()
+    assert isinstance(cached, qam.BalmerContinuumWithHOL)
+    for _ in range(2):  # computed, then from the cache
+        _close(cached(x, **k), "hol__y", 1e-8)
 
 
 def test_template_model():

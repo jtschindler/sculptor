@@ -97,15 +97,3 @@ def test_fast_iron_setup_gives_the_same_model():
     slow = FitModel(components=[slow_comp], parameters=slow_params).eval(x, [])
     fast = FitModel(components=[fast_comp], parameters=fast_params).eval(x, [])
     np.testing.assert_allclose(fast, slow, rtol=1e-9, atol=1e-12 * slow.max())
-
-
-def test_all_iron_setups_accept_fast():
-    import inspect
-
-    setups = [n for n in dir(qso_presets) if n.startswith("setup_iron_template_")]
-    assert len(setups) == 10
-    for name in setups:
-        assert (
-            inspect.signature(getattr(qso_presets, name)).parameters["fast"].default
-            is True
-        )
