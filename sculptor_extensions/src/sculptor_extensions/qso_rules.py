@@ -10,7 +10,9 @@ templates (`IRON_TEMPLATES_TS06`), the Balmer continuum and, separately,
 the high-order Balmer lines (`balmer_hol_rule`), and the narrow
 components of Hbeta, Halpha and [OIII] proposed together at the systemic
 redshift (`narrow_line_group`, the only route for a narrow Hbeta /
-Halpha). Components narrower than `NARROW_FWHM_MAX` count as narrow;
+Halpha), then narrow Hgamma and Hdelta on the group's kinematics
+(`narrow_line_companions`). Components narrower than `NARROW_FWHM_MAX`
+count as narrow;
 change it before building the rules::
 
     qso_rules.NARROW_FWHM_MAX = 1000.0
@@ -29,7 +31,12 @@ Each rule can also be built on its own (`line_rules`, `iron_template_rule`,
 
 from sculptor import analysis as ana
 from sculptor import utils as scut
-from sculptor.autofit import ComponentRule, GaussianLineRule, LineGroupRule
+from sculptor.autofit import (
+    CompanionLineRule,
+    ComponentRule,
+    GaussianLineRule,
+    LineGroupRule,
+)
 from sculptor.component import FitComponent
 from sculptor.prior import UniformPrior
 from sculptor_extensions import qso, qso_presets
@@ -110,8 +117,14 @@ NARROW_LINES = ("OIII", "OIII_4960", "OIII_5008")
 
 # Permitted lines with a narrow component: their own rule is broad only
 # (FWHM above `NARROW_FWHM_MAX`); the narrow component comes from
-# `narrow_line_group` alone (one hypothesis, one route)
-LINES_WITH_NARROW = ("Hbeta", "Halpha")
+# `narrow_line_group` or `narrow_line_companions` alone (one hypothesis,
+# one route)
+LINES_WITH_NARROW = ("Hbeta", "Halpha", "Hgamma", "Hdelta")
+
+# Lines whose narrow components `narrow_line_companions` proposes one at a
+# time on the narrow group's redshift and FWHM, once the group is in the
+# model: too weak to earn a threshold with kinematics of their own
+NARROW_COMPANION_LINES = ("Hgamma", "Hdelta")
 
 # Components with a FWHM below this (km/s) count as narrow (the narrow
 # group's largest width); change it before building the rules
@@ -256,6 +269,34 @@ def narrow_line_group(
         fwhm_range=(min_fwhm, NARROW_FWHM_MAX if max_fwhm is None else max_fwhm),
         **kwargs,
     )
+
+
+def narrow_line_companions(rules, group, lines=NARROW_COMPANION_LINES):
+    """Rules that propose the narrow components of `lines` on the narrow
+    group's redshift and FWHM, one line at a time, once the group is in the
+    model (`sculptor.autofit.CompanionLineRule`): a narrow Hbeta implies
+    narrow Hgamma and Hdelta, too weak to be found with kinematics of
+    their own. Each has only its flux free, its own threshold, and is
+    removed with the group.
+
+    :param rules: The line rules (from `line_rules`)
+    :type rules: list
+    :param group: The narrow group (from `narrow_line_group`)
+    :type group: sculptor.autofit.LineGroupRule
+    :param lines: Line names (rule prefixes); those without a rule are
+        skipped
+    :type lines: list(str)
+    :return: The rules (named "narrow Hgamma", ...)
+    :rtype: list(sculptor.autofit.CompanionLineRule)
+    """
+    by_prefix = {
+        r.prefix: r
+        for r in rules
+        if isinstance(r, GaussianLineRule) and r.lines is not None
+    }
+    return [
+        CompanionLineRule(group, by_prefix[name]) for name in lines if name in by_prefix
+    ]
 
 
 def narrow_line_windows(
@@ -651,7 +692,8 @@ def qso_rules(
         continuum only; False: neither
     :type balmer: bool or str
     :param narrow_group: Include `narrow_line_group` (`NARROW_GROUP_LINES`
-        among `lines`)
+        among `lines`) and its `narrow_line_companions`
+        (`NARROW_COMPANION_LINES`)
     :type narrow_group: bool
     :param ciii_complex: Fit "CIII" as `ciii_complex_rule`
     :type ciii_complex: bool
@@ -670,7 +712,7 @@ def qso_rules(
     if narrow_group:
         group = narrow_line_group(rules, redshift)
         if group is not None:
-            rules.append(group)
+            rules += [group, *narrow_line_companions(rules, group)]
     if complex_:
         rules.append(ciii_complex_rule(redshift))
         if ciii_second:

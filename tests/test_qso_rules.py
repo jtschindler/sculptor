@@ -244,6 +244,13 @@ def test_qso_rules_bundle():
     assert [m.prefix for m in group.members] == ["Hbeta", "Halpha", "OIII"]
     assert group.fwhm_range == (100.0, qr.NARROW_FWHM_MAX)
     assert group.velocity_range == qr.NARROW_VELOCITY_RANGE
+    companions = [r for r in rules if isinstance(r, autofit.CompanionLineRule)]
+    assert [r.name for r in companions] == ["narrow Hgamma", "narrow Hdelta"]
+    assert all(r.group is group for r in companions)
+    # Broad only, like Hbeta: the narrow cores are the companions
+    for r in rules:
+        if getattr(r, "prefix", None) in ("Hgamma", "Hdelta", "Hbeta"):
+            assert r.fwhm_range == (qr.NARROW_FWHM_MAX, 15000.0)
     bare = qr.qso_rules(
         Z, iron=None, balmer=False, narrow_group=False, ciii_complex=False
     )
@@ -651,6 +658,73 @@ def test_broad_line_at_its_lower_bound_is_not_narrow():
     width.value = qr.NARROW_FWHM_MAX - 1
     assert "Hbeta_0" in group.null_removals(found)
     assert sorted(tie.select(found)[0]) == ["Hbeta_0", "OIII_0"]
+
+
+def _companion_model(hgamma_narrow):
+    """`_weak_narrow_model`'s lines with narrow cores of flux 1.5, plus a
+    broad Hgamma and a narrow one of flux `hgamma_narrow` at the systemic
+    redshift, with the group and its companions among the rules."""
+    z = 0.2
+    x = np.geomspace(4250 * (1 + z), 5100 * (1 + z), 1400)
+    model = _model(x=x)
+    model.parameters["PL_redsh"].value = z
+    doublet = qso_presets.qso.line_model_gaussian_oiii_doublet
+    z_out = z - 800.0 / 2.998e5 * (1 + z)
+    model.spec.fluxden = (
+        model.spec.fluxden
+        + ana.line_model_gaussian(x, z, 40.0, 4862.68, 4000.0)
+        + ana.line_model_gaussian(x, z, 15.0, 4341.68, 4000.0)
+        + doublet(x, z_out, 8.0, 1500.0, 2.98)
+        + ana.line_model_gaussian(x, z, 1.5, 4862.68, 400.0)
+        + doublet(x, z, 1.5, 400.0, 2.98)
+        + ana.line_model_gaussian(x, z, hgamma_narrow, 4341.68, 400.0)
+    )
+    lines = qr.line_rules(z, ["Hgamma", "Hbeta", "OIII"])
+    group = qr.narrow_line_group(lines, z)
+    companions = qr.narrow_line_companions(lines, group)
+    return model, [*lines, group, *companions], z
+
+
+def test_narrow_companion_on_the_group_kinematics():
+    model, rules, _ = _companion_model(1.0)
+    group, (companion,) = rules[3], rules[4:]
+    assert companion.name == "narrow Hgamma" and companion.member is rules[0]
+    # Not before the group is in the model
+    assert companion.propose(model, model.run_quick_fit()) == []
+
+    fit = AutoFit(model, rules)
+    found = fit.run()
+    (name,) = companion.companions(found.model)
+    comp = next(c for c in found.model.components if c.name == name)
+    assert comp.param_mapping["redsh"] == "narrow_redsh"
+    assert comp.param_mapping["fwhm_km_s"] == "narrow_fwhm_km_s"
+    assert f"{name}_redsh" not in found.model.parameters  # only its flux
+    assert found.model.parameters[f"{name}_flux"].value == pytest.approx(1.0, rel=0.3)
+    assert companion.propose(found.model, found.result) == []  # once
+
+    # Removed alone against its own threshold, or with the group
+    units = fit._keyed_removal_units(found.model)
+    assert ([name], "narrow Hgamma") in units
+    grouped = next(u for u, key in units if key == "narrow")
+    assert name in grouped and len(grouped) == 3
+    assert companion.null_removals(found.model) == [name]
+    assert name in group.null_removals(found.model)
+
+    # Without a narrow Hgamma in the data, none is added
+    model, rules, _ = _companion_model(0.0)
+    found = AutoFit(model, rules).run()
+    assert "narrow_redsh" in found.model.parameters
+    assert rules[4].companions(found.model) == []
+
+
+def test_companion_rule_calibrated_without_its_line():
+    model, rules, _ = _companion_model(1.0)
+    found = AutoFit(model, rules).run().model
+    cal = autofit.calibrate_threshold(
+        found, rules, n_sims=10, quantiles=[0.9], min_rule_sims=5
+    )
+    assert cal.rule_improvements["narrow Hgamma"].size >= 5
+    assert "narrow Hgamma" in cal.by_rule
 
 
 def test_group_rejected_when_not_systemic():

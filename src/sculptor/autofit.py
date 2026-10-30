@@ -27,7 +27,10 @@ where it starts.
 Several weak lines with the same kinematics, e.g. the narrow cores of
 Hbeta and [OIII], may earn the threshold together but not one at a time:
 `LineGroupRule` proposes them as one candidate with shared parameters,
-starting at the systemic redshift.
+starting at the systemic redshift. Once the group is in the model,
+`CompanionLineRule` proposes further lines on its kinematics one at a
+time (e.g. a narrow Hgamma), each with its flux as the only new
+parameter.
 
 Ties (`Tie`, passed among the rules) are hypotheses that components share
 parameters, e.g. the narrow cores of Hbeta and [OIII] their redshift and
@@ -285,12 +288,26 @@ class Rule:
         """Parameters of `model` that must not end at a prior bound, with
         the components that use them: AutoFit removes those components
         when, at convergence, one of the parameters is at a bound, and
-        backward steps remove them together, never one alone.
+        backward steps remove them together, never one alone (except those
+        some rule names in `removable_alone`).
 
         :param model: The model
         :type model: sculptor.model.FitModel
         :return: (parameter names, component names) pairs
         :rtype: list(tuple(list(str), list(str)))
+        """
+        return []
+
+    def removable_alone(self, model):
+        """Components of `model` that backward steps may also remove on
+        their own, against this rule's threshold, although they share
+        guarded parameters (e.g. `CompanionLineRule`'s lines on a group's
+        kinematics: they go with the group, but the group does not need
+        them).
+
+        :param model: The model
+        :type model: sculptor.model.FitModel
+        :rtype: list(str)
         """
         return []
 
@@ -1108,6 +1125,119 @@ class LineGroupRule(Rule):
         return variants
 
 
+class CompanionLineRule(Rule):
+    """Rule: a further line on the kinematics of a `LineGroupRule`, e.g. a
+    narrow Hgamma at the redshift and width of the narrow Hbeta and [OIII].
+
+    Proposed once the group is in the model (its shared parameters are
+    there): one component of `member`'s line using the group's shared
+    parameters, so that only its flux is new and a weak line may earn the
+    threshold. The component is named and owned by `member`; backward
+    steps may remove it alone, against this rule's threshold
+    (`removable_alone`), and it goes with the group when the group is
+    removed. `calibrate_threshold` calibrates the rule on simulations
+    without its components (`null_removals`).
+
+    :param group: The group whose shared parameters the line uses
+    :type group: LineGroupRule
+    :param member: Rule of the line, with one line in `lines`
+    :type member: GaussianLineRule
+    :param name: Name of the rule (default "<group> <member>")
+    :type name: str
+    """
+
+    def __init__(self, group, member, name=None):
+        if member.lines is None or len(member.lines) != 1:
+            raise ValueError(f"Member {member.prefix!r} needs exactly one line.")
+        self.group = group
+        self.member = member
+        self.name = f"{group.name} {member.prefix}" if name is None else name
+
+    def _shared(self):
+        return {self.group.shared_name(arg) for arg in self.group.args}
+
+    def owned(self, model):
+        """The member rule owns the components.
+
+        :rtype: list
+        """
+        return []
+
+    def companions(self, model):
+        """The member's components on the group's shared parameters.
+
+        :param model: The model
+        :type model: sculptor.model.FitModel
+        :rtype: list(str)
+        """
+        owned = set(self.member.owned(model))
+        shared = self._shared()
+        return [
+            c.name
+            for c in model.components
+            if c.name in owned and set(c.param_mapping.values()) & shared
+        ]
+
+    def removable_alone(self, model):
+        """The companions (see `Rule.removable_alone`).
+
+        :rtype: list(str)
+        """
+        return self.companions(model)
+
+    def null_removals(self, model):
+        """The companions (the rule's hypothesis).
+
+        :rtype: list(str)
+        """
+        return self.companions(model)
+
+    def propose(self, model, result):
+        """The line on the group's kinematics (see the class).
+
+        :param model: The current model
+        :type model: sculptor.model.FitModel
+        :param result: Its quick fit
+        :type result: sculptor.quick_fit.QuickFitResult
+        :return: Zero or one candidate
+        :rtype: list(Candidate)
+        """
+        member = self.member
+        if not self._shared() <= set(model.parameters):
+            return []
+        if self.companions(model) or not member._search_mask(model).any():
+            return []
+        if len(member.owned(model)) >= member.max_components:
+            return []
+        cname = member._new_name(model)
+        comp = FitComponent(cname, member.function)
+        pars = comp.create_params()
+        if "cen" in comp.function_args:
+            pars[f"{cname}_cen"].value = member.lines[0]
+            pars[f"{cname}_cen"].vary = False
+        for arg, value in member.fixed.items():
+            pars[f"{cname}_{arg}"].value = value
+            pars[f"{cname}_{arg}"].vary = False
+        for arg in self.group.args:
+            del pars[f"{cname}_{arg}"]
+            comp.param_mapping[arg] = self.group.shared_name(arg)
+        flux_key = comp.param_mapping["flux"]
+        pars[flux_key].value = 1.0
+        amp = _linear_amplitude(model, result, comp, pars, flux_key)
+        if amp is None or amp <= 0:
+            return []
+        pars[flux_key].value = amp
+        pars[flux_key].prior = UniformPrior(flux_key, 0.0, 100 * amp)
+        return [
+            Candidate(
+                description=f"add {cname} at line {member.lines[0]:.2f} A on the "
+                f"{self.group.name} group's kinematics",
+                components=[comp],
+                parameters=pars,
+            )
+        ]
+
+
 @dataclass
 class TieTest:
     """Outcome of the last test of a `Tie`.
@@ -1682,23 +1812,28 @@ class AutoFit:
 
     def _keyed_removal_units(self, model):
         """`_removal_units` with the key of the rule that owns each unit
-        (the guarding rule for a group; None if no rule owns it).
+        (the guarding rule for a group, the `removable_alone` rule for a
+        component it names; None if no rule owns it).
 
         :rtype: list(tuple(list(str), str))
         """
         removable = self._removable(model)
-        units, grouped = [], set()
+        units, grouped, alone = [], set(), {}
         for key, rule in zip(self.rule_keys, self.rules, strict=True):
             for _, comps in rule.guarded(model):
                 if all(name in removable for name in comps):
                     units.append((list(comps), key))
                 grouped.update(comps)
+            for name in rule.removable_alone(model):
+                alone.setdefault(name, key)
         owner = {}
         for key, rule in zip(self.rule_keys, self.rules, strict=True):
             for name in rule.owned(model):
                 owner.setdefault(name, key)
         units.extend(
-            ([name], owner.get(name)) for name in removable if name not in grouped
+            ([name], alone.get(name, owner.get(name)))
+            for name in removable
+            if name not in grouped or name in alone
         )
         return units
 
