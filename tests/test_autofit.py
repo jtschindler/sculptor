@@ -124,6 +124,21 @@ def test_matched_filter_kernel_longer_than_the_data():
     assert amp[25] == pytest.approx(1.0 / np.sum(kernel**2), rel=1e-3)
 
 
+def test_masked_nan_pixel_next_to_a_line():
+    """A NaN pixel masked in the spectrum does not hide a line beside it
+    (0 weight x NaN residual spread NaN over the filter kernel)."""
+    base = _model(lines=[(15.0, CIII, 3000.0)])
+    x = base.spec.dispersion
+    near = np.argmin(np.abs(x - CIII * (1 + Z))) + 15
+    base.spec.fluxden[near] = np.nan
+    base.spec.mask[near] = False
+
+    signif, _ = _rule().significance_map(base, base.run_quick_fit(), 3000.0)
+    assert np.all(np.isfinite(signif))
+    result = AutoFit(base, [_rule()]).run()
+    assert _centers(result.model) == pytest.approx([CIII], abs=2)
+
+
 def test_finds_the_input_lines():
     base = _model()
     result = AutoFit(base, [_rule()]).run()

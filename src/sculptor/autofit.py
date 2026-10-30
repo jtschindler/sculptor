@@ -237,6 +237,10 @@ def matched_filter(x, resid, weight, fwhm_km_s):
         np.broadcast_to(fwhm_km_s, x.shape) / scut.c_km_s / np.gradient(np.log(x))
     )
     group = np.round(np.log10(fwhm_pix) / 0.02)
+    # Ignored pixels may hold NaN (masked bad pixels): 0 * NaN would spread
+    # NaN over the kernel
+    with np.errstate(invalid="ignore"):
+        weighted = np.where(weight > 0, weight * resid, 0.0)
     num = np.zeros_like(resid, dtype=float)
     den = np.zeros_like(resid, dtype=float)
     for value in np.unique(group):
@@ -248,7 +252,7 @@ def matched_filter(x, resid, weight, fwhm_km_s):
         # The central part of the full convolution ("same" returns the
         # kernel's length when the kernel is the longer)
         centre = slice(half, half + x.size)
-        num[sel] = np.convolve(weight * resid, kernel)[centre][sel]
+        num[sel] = np.convolve(weighted, kernel)[centre][sel]
         den[sel] = np.convolve(weight, kernel**2)[centre][sel]
     with np.errstate(divide="ignore", invalid="ignore"):
         amp = np.where(den > 0, num / den, 0.0)
