@@ -1,8 +1,11 @@
 """Tests for the quick fit (`FitModel.run_quick_fit`, `sculptor.quick_fit`)
 and the `FitModel.fit` dispatcher."""
 
+import json
 import logging
 
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from astropy import units as u
@@ -13,7 +16,10 @@ from sculptor import analysis as ana
 from sculptor import component as sccomp
 from sculptor import model as scmod
 from sculptor import prior as scpri
+from sculptor import quick_fit as qf
 from sculptor.quick_fit import QuickFitResult
+
+matplotlib.use("Agg")
 
 TRUTH = {
     "pl_amp": 0.02,
@@ -242,16 +248,6 @@ def test_quick_then_mcmc_starts_at_the_best_fit(fit_model):
         fit_model.fit("quick+mcmc", nsteps=3, nwalkers=10, pos=first, progress=False)
 
 
-def test_quick_fit_result_survives_save_and_load(fit_model, tmp_path):
-    result = fit_model.run_quick_fit()
-    fit_model.save("fit", tmp_path)
-
-    loaded = scmod.FitModel()
-    loaded.load("fit", tmp_path)
-    np.testing.assert_array_equal(loaded.quick_fit_result.values, result.values)
-    assert loaded.quick_fit_result.param_names == result.param_names
-
-
 def test_analysis_runs_on_the_best_fit(fit_model):
     """The analysis functions take the best-fit vector like a sample."""
 
@@ -285,10 +281,6 @@ def test_str_lists_parameters(fit_model):
 
 
 def test_plot_marks_clipped_and_absorber_pixels(fit_model, tmp_path):
-    import matplotlib
-    import matplotlib.pyplot as plt
-
-    matplotlib.use("Agg")
     dip = _absorbed(fit_model)
     fit_model.run_quick_fit()
     fit_model.absorber_mask = ~dip
@@ -301,9 +293,6 @@ def test_plot_marks_clipped_and_absorber_pixels(fit_model, tmp_path):
 
 
 def test_plot_quick_fit_result(fit_model, tmp_path):
-    import matplotlib
-
-    matplotlib.use("Agg")
     with pytest.raises(ValueError, match="run_quick_fit"):
         fit_model.plot_quick_fit_result(save=True, save_dir=tmp_path)
 
@@ -321,11 +310,6 @@ def test_plot_quick_fit_result(fit_model, tmp_path):
 
 
 def test_plot_y_limits_follow_the_shown_pixels(fit_model, tmp_path):
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
     result = fit_model.run_quick_fit()
     x = fit_model.spec.dispersion
     fitted = fit_model.get_fit_mask()
@@ -373,8 +357,6 @@ def test_export_round_trip(fit_model, tmp_path, suffix):
 
 
 def test_ecsv_export_is_a_readable_table(fit_model, tmp_path):
-    from astropy.table import Table
-
     result = fit_model.run_quick_fit()
     result.write(tmp_path / "fit.ecsv")
     table = Table.read(tmp_path / "fit.ecsv")
@@ -383,8 +365,6 @@ def test_ecsv_export_is_a_readable_table(fit_model, tmp_path):
 
 
 def test_json_export_handles_nan(tmp_path):
-    import json
-
     model, *_ = _linear_model()
     result = model.run_quick_fit()
     result.errors[:] = np.nan
@@ -572,8 +552,6 @@ def test_start_on_a_bound_is_not_reported_outside(caplog):
 
 
 def test_component_evaluator_matches_eval(fit_model):
-    from sculptor import quick_fit as qf
-
     fit_model.resolution = 2000.0
     fit_model.get_params_to_sample()
     x = fit_model.spec.dispersion

@@ -7,6 +7,7 @@ changes), the chi-square degrees of freedom and big-endian input.
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from sculptor import component, model, parameter
 
@@ -47,48 +48,53 @@ def _build_model_with_fixed_and_variable_params():
     return fit_model
 
 
-# --------------------------------------------------------------------------
-# Bug 1: get_params_to_sample() must be idempotent.
-# --------------------------------------------------------------------------
-
-
-def test_get_params_to_sample_idempotent():
+def test_get_params_to_sample_is_idempotent():
+    """Repeated calls (as `eval`, `initialize_emcee` and
+    `initialize_positions` make) give the same split and the same model."""
     fit_model = _build_model_with_fixed_and_variable_params()
-
-    fit_model.get_params_to_sample()
-    assert len(fit_model.params_constant_val) == len(fit_model.params_constant)
-    assert len(fit_model.params_constant_val) == 2  # line_sigma, cont_slope
-
-    # Call it again, mirroring eval() -> initialize_emcee()/initialize_positions().
-    fit_model.get_params_to_sample()
-    fit_model.get_params_to_sample()
-
-    assert len(fit_model.params_constant_val) == len(fit_model.params_constant)
-    assert len(fit_model.params_constant_val) == 2
-    assert fit_model.vardim == len(fit_model.params_variable)
-    assert fit_model.vardim == 3  # line_amp, line_cen, cont_intercept
-
-
-def test_eval_unaffected_by_repeated_get_params_to_sample_calls():
-    fit_model = _build_model_with_fixed_and_variable_params()
-
     x = np.linspace(4900, 5100, 200)
     values = [10.0, 5000.0, 1.0]  # line_amp, line_cen, cont_intercept (in order)
+    y_first = fit_model.eval(x, values, broaden_by_resolution=False)
 
-    y_before = fit_model.eval(x, values, broaden_by_resolution=False)
+    for _ in range(3):
+        fit_model.get_params_to_sample()
+    assert len(fit_model.params_constant_val) == len(fit_model.params_constant) == 2
+    assert fit_model.vardim == len(fit_model.params_variable) == 3
 
-    # Simulate repeated setup calls, as initialize_emcee/initialize_positions do.
+    y_again = fit_model.eval(x, values, broaden_by_resolution=False)
+    np.testing.assert_allclose(y_again, y_first)
+    expected = _gaussian(x, 10.0, 5000.0, 5.0) + _linear(x, 0.01, 1.0)
+    np.testing.assert_allclose(y_first, expected)
+
+
+def test_eval_picks_up_parameter_changes(fit_model):
+    """`eval` used to cache the variable/fixed split and the fixed values on
+    its first call, ignoring later edits until `get_params_to_sample()`."""
+    x = fit_model.spec.dispersion
+    theta = [p.value for p in fit_model.parameters.values() if p.vary]
+    before = fit_model.eval(x, theta)
+
+    fixed = next(p for p in fit_model.parameters.values() if not p.vary)
+    fixed.value = fixed.value * 1.01 + 0.01
+    assert not np.allclose(fit_model.eval(x, theta), before)
+
+    values = dict(zip(fit_model.params_variable, theta, strict=True))
+    fixed.vary = True
+    values[fixed.name] = fixed.value
+    theta_more = [values[n] for n, p in fit_model.parameters.items() if p.vary]
+    assert len(theta_more) == len(theta) + 1
+    fit_model.eval(x, theta_more)  # no length mismatch
+    assert fixed.name in fit_model.params_variable
+
+
+def test_eval_raises_on_params_values_length_mismatch():
+    """A wrong number of values (e.g. an emcee walker of the wrong
+    dimension) raises instead of evaluating an incomplete parameter set."""
+    fit_model = _build_model_with_fixed_and_variable_params()
     fit_model.get_params_to_sample()
-    fit_model.get_params_to_sample()
-
-    y_after = fit_model.eval(x, values, broaden_by_resolution=False)
-
-    np.testing.assert_allclose(y_before, y_after)
-
-
-# --------------------------------------------------------------------------
-# Bug 2: calculate_chi_sq() degrees of freedom.
-# --------------------------------------------------------------------------
+    too_few = np.ones(len(fit_model.params_variable) - 1)
+    with pytest.raises(ValueError):
+        fit_model.eval(np.linspace(4900, 5100, 50), too_few)
 
 
 def test_calculate_chi_sq_dof_counts_only_variable_params():
@@ -112,46 +118,28 @@ def test_calculate_chi_sq_dof_counts_only_variable_params():
     np.testing.assert_allclose(reduced_chi_sq, chi_sq / expected_dof)
 
 
-# --------------------------------------------------------------------------
-# Optimization: cached arg-key mapping in FitComponent, used by FitModel.eval.
-# --------------------------------------------------------------------------
-
-
-def test_get_arg_keys_matches_param_mapping_and_is_cached():
+def test_get_arg_keys_is_cached_and_follows_param_mapping():
+    """Cached, and invalidated by any change of `param_mapping` after the
+    first call: in place (the coupled-parameter idiom,
+    `comp.param_mapping.update({"redsh": "redsh_nl"})`) or reassigned."""
     comp = component.FitComponent("line", _gaussian)
     comp.create_params()
 
-    expected = [comp.param_mapping[arg] for arg in comp.function_args]
     arg_keys = comp.get_arg_keys()
-
-    assert arg_keys == expected
-    # Cached: same object returned on subsequent calls.
+    assert arg_keys == [comp.param_mapping[arg] for arg in comp.function_args]
+    assert arg_keys == ["line_amp", "line_cen", "line_sigma"]
     assert comp.get_arg_keys() is arg_keys
 
+    comp.param_mapping.update({"cen": "redsh_nl"})
+    assert comp.get_arg_keys() == ["line_amp", "redsh_nl", "line_sigma"]
 
-def test_eval_output_unchanged_across_repeated_calls_with_caching():
-    fit_model = _build_model_with_fixed_and_variable_params()
-
-    x = np.linspace(4900, 5100, 200)
-    values = [10.0, 5000.0, 1.0]
-
-    y_first = fit_model.eval(x, values, broaden_by_resolution=False)
-    y_second = fit_model.eval(x, values, broaden_by_resolution=False)
-
-    np.testing.assert_allclose(y_first, y_second)
-
-    expected = _gaussian(x, 10.0, 5000.0, 5.0) + _linear(x, 0.01, 1.0)
-    np.testing.assert_allclose(y_first, expected)
-
-
-# --------------------------------------------------------------------------
-# Bug fix: big-endian dispersion no longer crashes FitModel.eval() when
-# resolution broadening is active (FITS-loaded spectra are commonly
-# big-endian; see src/sculptor/utils.py::broaden_spectrum).
-# --------------------------------------------------------------------------
+    comp.param_mapping = {"amp": "shared_amp", "cen": "line_cen", "sigma": "line_sigma"}
+    assert comp.get_arg_keys() == ["shared_amp", "line_cen", "line_sigma"]
 
 
 def test_eval_with_resolution_handles_bigendian_dispersion():
+    """FITS-loaded spectra are often big-endian; the resolution broadening
+    used to crash on them."""
     comp = component.FitComponent("line", _gaussian)
     params = comp.create_params()
     params["line_amp"] = parameter.FitParameter("line_amp", 10.0)
@@ -168,68 +156,8 @@ def test_eval_with_resolution_handles_bigendian_dispersion():
     x_bigendian = x_native.astype(">f8")
     values = [10.0, 5000.0, 5.0]
 
-    y_native = fit_model.eval(x_native, values)  # must not raise
-    y_bigendian = fit_model.eval(x_bigendian, values)  # must not raise either
+    y_native = fit_model.eval(x_native, values)
+    y_bigendian = fit_model.eval(x_bigendian, values)
 
     assert np.all(np.isfinite(y_bigendian))
     np.testing.assert_array_equal(y_native, y_bigendian)
-
-
-# --------------------------------------------------------------------------
-# Fix: FitComponent.param_mapping mutation always invalidates the cached
-# get_arg_keys() result, even after the component has already been
-# evaluated once (the coupled-parameter idiom, e.g.
-# `comp.param_mapping.update({'redsh': 'redsh_nl'})`).
-# --------------------------------------------------------------------------
-
-
-def test_get_arg_keys_reflects_in_place_param_mapping_update_after_caching():
-    comp = component.FitComponent("line", _gaussian)
-    comp.create_params()
-
-    # Warm the cache (as a first FitModel.eval() call would).
-    first = comp.get_arg_keys()
-    assert first == ["line_amp", "line_cen", "line_sigma"]
-
-    # Re-couple 'cen' onto a shared/global parameter, in place -- exactly
-    # the idiom agn_fit_new.py uses to couple redshift/FWHM across
-    # components.
-    comp.param_mapping.update({"cen": "redsh_nl"})
-
-    updated = comp.get_arg_keys()
-    assert updated == ["line_amp", "redsh_nl", "line_sigma"]
-
-
-def test_get_arg_keys_reflects_param_mapping_reassignment_after_caching():
-    comp = component.FitComponent("line", _gaussian)
-    comp.create_params()
-
-    comp.get_arg_keys()  # warm the cache
-
-    comp.param_mapping = {"amp": "shared_amp", "cen": "line_cen", "sigma": "line_sigma"}
-
-    assert comp.get_arg_keys() == ["shared_amp", "line_cen", "line_sigma"]
-
-
-# --------------------------------------------------------------------------
-# `FitModel.eval()` zips `params_variable`/`params_constant` keys against the
-# caller-supplied values with `strict=True`, so a length mismatch (e.g. an
-# `emcee` walker position with the wrong dimensionality) raises immediately
-# instead of silently zipping only up to the shorter length and evaluating
-# with a wrong/incomplete parameter set.
-# --------------------------------------------------------------------------
-
-
-def test_eval_raises_on_params_values_length_mismatch():
-    fit_model = _build_model_with_fixed_and_variable_params()
-    fit_model.get_params_to_sample()
-
-    x = np.linspace(4900, 5100, 50)
-    too_few = np.ones(len(fit_model.params_variable) - 1)
-
-    try:
-        fit_model.eval(x, too_few)
-    except ValueError:
-        pass
-    else:
-        raise AssertionError("expected ValueError for mismatched params_values length")

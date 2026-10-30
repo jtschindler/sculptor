@@ -83,6 +83,7 @@ def test_component_round_trip(tmp_path, line_component):
 
 def test_model_round_trip(tmp_path, fit_model):
     model = fit_model
+    quick = model.run_quick_fit()
     model.save("fit", tmp_path)
 
     loaded = scmod.FitModel()
@@ -100,6 +101,8 @@ def test_model_round_trip(tmp_path, fit_model):
 
     x = model.spec.dispersion
     assert np.array_equal(loaded.eval(x, chain[-1]), model.eval(x, chain[-1]))
+    np.testing.assert_array_equal(loaded.quick_fit_result.values, quick.values)
+    assert loaded.quick_fit_result.param_names == quick.param_names
 
 
 def test_model_evaluates_in_spawned_worker(fit_model):

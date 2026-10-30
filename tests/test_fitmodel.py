@@ -1,4 +1,4 @@
-"""Tests for the `FitModel` clean-up (review §2.2, 2.4, 2.5, 2.6, §5.3, 5.4).
+"""Tests for `FitModel`: chains, posterior bands, spectrum and fit masks.
 
 - One chain accessor (`get_flat_chain`) used by every method.
 - A model with only a `flat_chain` (no sampler, `nsteps`/`nwalkers` None)
@@ -39,7 +39,7 @@ def _chain_only_copy(model):
     return other
 
 
-# -- chain access (§2.5) -----------------------------------------------------
+# -- chain access --------------------------------------------------------------
 
 
 def test_get_flat_chain_reads_the_sampler(fit_model):
@@ -111,7 +111,7 @@ def test_log_probability_includes_prior_on_a_fresh_model(fit_model):
     assert got == expected
 
 
-# -- plotting a chain-only model (§5.4) ---------------------------------------
+# -- plotting a chain-only model -----------------------------------------------
 
 
 def test_plot_mcmc_result_without_sampler(fit_model, tmp_path):
@@ -133,7 +133,7 @@ def test_posterior_is_recomputed_when_discard_changes(fit_model, tmp_path):
     assert fit_model.posterior_discard == 5
 
 
-# -- posterior bands and components (§2.4) ------------------------------------
+# -- posterior bands and components --------------------------------------------
 
 
 def test_posterior_bands_have_no_side_effects(fit_model):
@@ -162,7 +162,7 @@ def test_component_bands_use_the_pool(fit_model):
     assert not np.allclose(serial[0], full[0])
 
 
-# -- no spectrum (§5.3) --------------------------------------------------------
+# -- no spectrum ---------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -196,7 +196,7 @@ def test_spectrum_assigned_later_gets_a_fit_mask(fit_model):
     assert model.gpm_fit.dtype == bool and model.gpm_fit.any()
 
 
-# -- prefixes (§2.6) and removed stub (§2.2) -----------------------------------
+# -- prefixes ------------------------------------------------------------------
 
 
 def test_get_components_by_prefix(fit_model):
@@ -269,27 +269,7 @@ def test_fit_mask_without_spectrum_mask(fit_model):
     assert np.array_equal(fit_model.get_fit_mask(), fit_model.gpm_fit)
 
 
-# -- parameter changes, fit-mask ranges, sampler ---------------------------------
-
-
-def test_eval_picks_up_parameter_changes(fit_model):
-    """`eval` used to cache the variable/fixed split and the fixed values on
-    its first call, ignoring later edits until `get_params_to_sample()`."""
-    x = fit_model.spec.dispersion
-    theta = fit_model.get_flat_chain(discard=DISCARD)[-1]
-    before = fit_model.eval(x, theta)
-
-    fixed = next(p for p in fit_model.parameters.values() if not p.vary)
-    fixed.value = fixed.value * 1.01 + 0.01
-    assert not np.allclose(fit_model.eval(x, theta), before)
-
-    values = dict(zip(fit_model.params_variable, theta, strict=True))
-    fixed.vary = True
-    values[fixed.name] = fixed.value
-    theta_more = [values[n] for n, p in fit_model.parameters.items() if p.vary]
-    assert len(theta_more) == len(theta) + 1
-    fit_model.eval(x, theta_more)  # no length mismatch
-    assert fixed.name in fit_model.params_variable
+# -- fit-mask ranges, sampler --------------------------------------------------
 
 
 def test_fit_mask_ranges_include_both_ends(fit_model):
