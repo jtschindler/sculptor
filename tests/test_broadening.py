@@ -1,9 +1,9 @@
 """Correctness of the resolution broadening: `sculptor.resolution` (used
-by `FitModel.eval`) and the older `sculptor.utils.broaden_spectrum`.
+by `FitModel.eval`) and the older `sculptor.utils.broaden_spectrum` (kept,
+not used by the fit: it convolves at the pixel centers only).
 
 Replaces the interactive `examples/test_resolution.py` scratch script (now
-in `deprecated/examples/`); its timing comparison lives in
-`benchmarks/bench_broaden_spectrum.py`.
+in `deprecated/examples/`).
 """
 
 import numpy as np
