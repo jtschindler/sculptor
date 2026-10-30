@@ -1284,6 +1284,18 @@ class TieTest:
         return text + ")"
 
 
+def _shared_range(model, names, arg):
+    """Intersection (low, upp) of the uniform priors of `arg` of the
+    components `names`; False if they do not overlap, None if not all the
+    priors are uniform."""
+    comps = [c for c in model.components if c.name in names]
+    priors = [model.parameters[c.param_mapping[arg]].prior for c in comps]
+    if not all(isinstance(p, UniformPrior) for p in priors):
+        return None
+    low, upp = max(p.low for p in priors), min(p.upp for p in priors)
+    return (low, upp) if low < upp else False
+
+
 class Tie(Rule):
     """Hypothesis that components of several rules share parameters, e.g.
     the narrow cores of Hbeta and [OIII] share redshift and width.
@@ -1399,6 +1411,9 @@ class Tie(Rule):
                 key = comp.param_mapping.get(arg)
                 if key is None or not model.parameters[key].vary:
                     return None, f"{name} has no variable {arg}"
+        for arg in self.args:
+            if _shared_range(model, chosen, arg) is False:
+                return None, f"the {arg} priors of {', '.join(chosen)} do not overlap"
         return chosen, ""
 
     def is_tied(self, model, names):
@@ -1421,12 +1436,11 @@ class Tie(Rule):
             shared = self.shared_name(arg)
             param = copy.deepcopy(new.parameters[keys[0]])
             param.name = shared
-            priors = [new.parameters[k].prior for k in keys]
-            if all(isinstance(p, UniformPrior) for p in priors):
-                low = max(p.low for p in priors)
-                upp = min(p.upp for p in priors)
-                if low < upp:
-                    param.prior = UniformPrior(shared, low, upp)
+            shared_range = _shared_range(new, names, arg)
+            if shared_range is False:
+                raise ValueError(f"Tie {self.name}: the {arg} priors do not overlap")
+            if shared_range is not None:
+                param.prior = UniformPrior(shared, *shared_range)
             elif param.prior is not None:
                 param.prior.name = shared
             values = [new.parameters[k].value for k in keys]

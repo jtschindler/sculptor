@@ -559,6 +559,31 @@ def _line_factory(name, cen, fwhm=3000.0):
     return factory
 
 
+def test_tie_not_applicable_when_the_priors_do_not_overlap():
+    """Widths limited to (100, 1200) and (1200, 10000) km/s cannot be
+    shared: not applicable, instead of clipping one into the other's
+    range."""
+    model = _model(lines=[])
+    for name, (low, upp) in {"a_0": (100, 1200), "b_0": (1200, 10000)}.items():
+        comp, pars = _line_factory(name, CIV, fwhm=1000.0)(model)
+        pars[f"{name}_fwhm_km_s"].prior = scpri.UniformPrior(
+            f"{name}_fwhm_km_s", low, upp
+        )
+        model.add_component(comp)
+        model.add_parameters(pars)
+    tie = autofit.Tie("t", ["a", "b"], args=["fwhm_km_s"])
+    names, reason = tie.select(model)
+    assert names is None and "do not overlap" in reason
+    with pytest.raises(ValueError, match="do not overlap"):
+        tie.apply(model, ["a_0", "b_0"])
+
+    model.parameters["b_0_fwhm_km_s"].prior.low = 500.0
+    names, _ = tie.select(model)
+    tied, _ = tie.apply(model, names)
+    prior = tied.parameters["t_fwhm_km_s"].prior
+    assert (prior.name, prior.low, prior.upp) == ("t_fwhm_km_s", 500.0, 1200.0)
+
+
 def test_component_rule_scales_and_adds_once():
     rule = ComponentRule("CIII]", _line_factory("CIII_x", CIII), linear_param="flux")
     base = _model(lines=[(15.0, CIII, 3000.0)])
