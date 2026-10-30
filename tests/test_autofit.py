@@ -385,6 +385,11 @@ def test_tail_threshold_and_rule_keys():
     # Beyond the sample: exponential extrapolation, P(> t) = exp(-t / 10)
     assert autofit.tail_threshold(values, 0.999) == pytest.approx(69.1, rel=0.2)
     assert autofit.tail_threshold(values, 0.5) == pytest.approx(np.median(values))
+    # 95% zeros (a rule that improves nothing in most simulations), 5%
+    # exponential with mean 5: P(> t) = 0.05 exp(-t / 5)
+    tied = np.concatenate([np.zeros(3800), rng.exponential(5.0, 200)])
+    assert autofit.tail_threshold(tied, 0.99) == pytest.approx(5 * np.log(5), rel=0.2)
+    assert autofit.tail_threshold(tied, 0.9) == 0.0  # within the zeros
     rules = [_rule(), _rule(), GaussianLineRule("other", redshift=Z)]
     assert autofit.rule_keys(rules) == ["line#0", "line#1", "other"]
     # A tie shares its name with the group it tests; it gets its own key

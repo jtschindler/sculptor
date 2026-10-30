@@ -2486,15 +2486,21 @@ def rule_keys(rules):
 
 
 def tail_threshold(values, quantile, tail_fraction=0.2):
-    """Quantile of `values`, from an exponential fit to the largest
-    `tail_fraction` of them (peaks over a threshold) when it lies beyond
-    the empirical range of a sample this size.
+    """Quantile of `values`; above 1 - `tail_fraction`, from an
+    exponential fit to the samples above that quantile (peaks over a
+    threshold), which also reaches quantiles beyond the sample.
+
+    The tail holds the samples strictly above the base quantile: with ties
+    at the base (e.g. many improvements of 0) that is fewer than
+    `tail_fraction` of them, and the extrapolation uses their actual
+    fraction. A quantile within the ties is the base itself.
 
     :param values: Samples (e.g. improvements of noise-only simulations)
     :type values: np.ndarray
     :param quantile: Quantile
     :type quantile: float
-    :param tail_fraction: Fraction of the samples in the fitted tail
+    :param tail_fraction: Fraction of the samples in the fitted tail, at
+        most
     :type tail_fraction: float
     :rtype: float
     """
@@ -2506,7 +2512,8 @@ def tail_threshold(values, quantile, tail_fraction=0.2):
     if excess.size == 0:
         return base
     scale = float(np.mean(excess))
-    return base + scale * np.log(tail_fraction / (1 - quantile))
+    above = excess.size / values.size  # P(value > base)
+    return base + scale * max(0.0, float(np.log(above / (1 - quantile))))
 
 
 def calibrate_threshold(
