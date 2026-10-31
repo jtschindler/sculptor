@@ -1027,6 +1027,38 @@ def test_recalibration_stops_when_the_model_does_not_change(monkeypatch):
     assert len(result.calibrations) == 1
 
 
+def test_recalibration_cycle_keeps_the_highest_threshold(monkeypatch):
+    """Null A selects B and null B selects A: the recalibration stops at
+    the cycle, and of its calibrations the one with the highest threshold
+    (on A, selecting B) is kept, however many rounds are allowed."""
+
+    def named(*names):
+        return SimpleNamespace(components=[SimpleNamespace(name=n) for n in names])
+
+    model_a, model_b = named("PL", "a"), named("PL", "b")
+    # null -> (threshold, selected model): the preliminary selects A
+    plan = {("PL", "a"): (70.0, model_b), ("PL", "b"): (60.0, model_a)}
+    nulls = []
+
+    def calibrate(null, *args, **kwargs):
+        names = autofit._component_names(null)
+        nulls.append(names)
+        threshold, _ = plan.get(names, (50.0, model_a))
+        return SimpleNamespace(thresholds={0.95: threshold}, n_fits=0, null=names)
+
+    def searches(self, calibration, max_iterations):
+        _, model = plan.get(calibration.null, (50.0, model_a))
+        return {0.95: SimpleNamespace(model=model, components=list)}
+
+    monkeypatch.setattr(autofit, "calibrate_threshold", calibrate)
+    monkeypatch.setattr(autofit.AutoFit, "_quantile_searches", searches)
+    result = autofit.AutoFit(_model(), [_rule()], recalibrate=5).run()
+    assert nulls[1:] == [("PL", "a"), ("PL", "b")]
+    assert result.model is model_b
+    assert result.calibration is result.calibrations[1]
+    assert result.calibration.thresholds == {0.95: 70.0}
+
+
 # -- prior bounds --------------------------------------------------------------
 
 

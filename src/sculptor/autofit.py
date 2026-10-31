@@ -62,7 +62,8 @@ improves the criterion by at least that much (additions, backward steps
 and ties alike). With `recalibrate` the calibration is repeated with the model the
 first quantile selects as the null (the noise still from the preliminary
 model's residuals), and the searches rerun, until that model no longer
-changes. `AutoFitResult` holds the model of the first quantile, the others
+changes; if the models cycle instead (A selects B, B selects A), the
+calibration of the cycle with the highest threshold is kept. `AutoFitResult` holds the model of the first quantile, the others
 in `by_quantile`, and the calibrations.
 
 With `clip`, the fit mask is sigma-clipped (`FitModel.sigma_clip`) after
@@ -1724,6 +1725,12 @@ class AutoFitResult:
                         f"{q:.1%}: {t:.1f}" for q, t in first.thresholds.items()
                     )
                 )
+                if self.calibration is not self.calibrations[-1]:
+                    lines.append(
+                        "  the selected models cycle: kept calibration "
+                        f"{self.calibrations.index(self.calibration)}, the "
+                        "cycle's highest threshold"
+                    )
             lines += ["", "Models by quantile:"]
             mine = set(self.components())
             for quantile, other in self.by_quantile.items():
@@ -1811,7 +1818,9 @@ class AutoFit:
         further calibrations, each on the model the first quantile selected
         with the previous one (then the searches are rerun); stops early
         when the selected model has the components of the model calibrated
-        on (or of an earlier one). The noise of every calibration comes
+        on, or of an earlier one: a cycle, of whose calibrations the one
+        with the highest (first-quantile) threshold and its searches are
+        kept. The noise of every calibration comes
         from the preliminary model's residuals. 0 (default) calibrates on
         the preliminary model only
     :type recalibrate: int
@@ -2048,9 +2057,9 @@ class AutoFit:
             "min_threshold": self.min_threshold,
             **self.calibration,
         }
-        null, calibrations, seen = preliminary.model, [], set()
+        null, calibrations, nulls, rounds = preliminary.model, [], [], []
         for round_ in range(self.recalibrate + 1):
-            seen.add(_component_names(null))
+            nulls.append(_component_names(null))
             calibration = calibrate_threshold(
                 null,
                 self.rules,
@@ -2062,14 +2071,32 @@ class AutoFit:
             self.n_fits += calibration.n_fits
             calibrations.append(calibration)
             by_quantile = self._quantile_searches(calibration, max_iterations)
-            selected = next(iter(by_quantile.values()))
-            if _component_names(selected.model) in seen or round_ == self.recalibrate:
+            rounds.append((calibration, by_quantile))
+            names = _component_names(next(iter(by_quantile.values())).model)
+            if names in nulls:
+                # A model calibrated on before: the same null again (a fixed
+                # point), or a cycle through the nulls since then, whose
+                # highest threshold is kept (the result does not depend on
+                # where `recalibrate` stops)
+                cycle = rounds[nulls.index(names) :]
+                calibration, by_quantile = max(
+                    cycle, key=lambda item: next(iter(item[0].thresholds.values()))
+                )
+                if len(cycle) > 1:
+                    logger.info(
+                        f"AutoFit: recalibration cycles through {len(cycle)} "
+                        "models; the highest threshold is kept"
+                    )
                 break
+            if round_ == self.recalibrate:
+                break
+            selected = next(iter(by_quantile.values()))
             logger.info(
                 "AutoFit: recalibrating on the selected model "
                 f"({', '.join(selected.components())})"
             )
             null = copy.deepcopy(selected.model)
+        selected = next(iter(by_quantile.values()))
         for found in by_quantile.values():
             found.calibration = calibration
             found.calibrations = calibrations
