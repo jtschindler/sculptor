@@ -81,10 +81,11 @@ def test_line_rules():
 
 
 def test_broad_lines_are_guarded_at_their_bounds():
-    """Broad lines must not end at a bound of their offset or width;
-    [OIII] is not guarded."""
+    """Broad lines must not end at a bound of their offset or at their
+    largest width; [OIII] is not guarded."""
     rules = {r.prefix: r for r in qr.line_rules(Z, ["CIV", "Hbeta", "OIII"])}
-    assert rules["CIV"].guard == rules["Hbeta"].guard == ("redsh", "fwhm_km_s")
+    guard = ("redsh", ("fwhm_km_s", "upper"))
+    assert rules["CIV"].guard == rules["Hbeta"].guard == guard
     assert rules["OIII"].guard == ()
     assert all(r.guard == () for r in qr.line_rules(Z, ["CIV"], guard_broad=()))
 
@@ -97,7 +98,7 @@ def test_a_group_member_is_not_guarded_by_its_line_rule():
     found = AutoFit(model, [*lines, qr.narrow_line_group(lines, z)]).run().model
     hbeta = lines[0]
     assert hbeta.guarded(found) == [
-        (["Hbeta_0_redsh", "Hbeta_0_fwhm_km_s"], ["Hbeta_0"])
+        (["Hbeta_0_redsh", ("Hbeta_0_fwhm_km_s", "upper")], ["Hbeta_0"])
     ]
 
 

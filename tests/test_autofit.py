@@ -1061,3 +1061,23 @@ def test_a_guarded_line_at_a_prior_bound_is_rejected():
     assert wide.null_removals(found.model) == []
     with pytest.raises(ValueError, match="guard"):
         GaussianLineRule("line", guard=("sigma",), **kwargs)
+
+
+def test_a_line_guarded_at_one_bound_only():
+    """A line wider than the range ends at the largest width: rejected if
+    the upper bound is guarded, kept if only the lower one is."""
+    base = _model(lines=[(20.0, CIII, 4000.0)])
+    kwargs = {"redshift": Z, "lines": [CIII], "max_components": 1}
+    kwargs["fwhm_range"] = (300, 1500)
+    upper = GaussianLineRule("line", guard=(("fwhm_km_s", "upper"),), **kwargs)
+    assert AutoFit(base, [upper]).run().components() == ["PL"]
+
+    lower = GaussianLineRule("line", guard=("redsh", ("fwhm_km_s", "lower")), **kwargs)
+    found = AutoFit(base, [lower]).run()
+    assert found.components() == ["PL", "line_0"]
+    assert "line_0_fwhm_km_s" in found.at_bound
+    assert lower.guarded(found.model) == [
+        (["line_0_redsh", ("line_0_fwhm_km_s", "lower")], ["line_0"])
+    ]
+    with pytest.raises(ValueError, match="sides"):
+        GaussianLineRule("line", guard=(("fwhm_km_s", "top"),), **kwargs)

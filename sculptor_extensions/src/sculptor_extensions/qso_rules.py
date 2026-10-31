@@ -158,7 +158,7 @@ def line_rules(
     narrow_fwhm=(100.0, 2500.0),
     velocity_range=5000.0,
     max_components=3,
-    guard_broad=("redsh", "fwhm_km_s"),
+    guard_broad=("redsh", ("fwhm_km_s", "upper")),
     **kwargs,
 ):
     """One `GaussianLineRule` per line, at the line's rest wavelength
@@ -186,10 +186,13 @@ def line_rules(
     :type max_components: int
     :param guard_broad: `GaussianLineRule(guard=...)` of the broad lines
         (all but `NARROW_LINES`): a broad line must not end at a bound of
-        its velocity offset or width (round 29, J1504: HeII and Hdelta at
-        15000 km/s and +-5000 km/s filled continuum misfit and raised the
-        calibrated thresholds). () for none
-    :type guard_broad: tuple(str)
+        its velocity offset or at its largest width (round 29, J1504: HeII
+        and Hdelta at 15000 km/s and +-5000 km/s filled continuum misfit
+        and raised the calibrated thresholds). The smallest width is not
+        guarded: a broad Hbeta at `NARROW_FWHM_MAX` takes over from a
+        narrow group at its largest width (round 31, J1504: guarding both
+        made the Balmer lines come and go). () for none
+    :type guard_broad: tuple(str or tuple(str, str))
     :param kwargs: Passed on to `GaussianLineRule`
     :return: The rules
     :rtype: list(sculptor.autofit.GaussianLineRule)

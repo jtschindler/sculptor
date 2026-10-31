@@ -42,8 +42,9 @@ outcome, e.g. a tie the data reject.
 
 A rule may also name parameters that must not end at a prior bound
 (`Rule.guarded`, e.g. the shared redshift and width of a `LineGroupRule`,
-or a line's width and offset with `GaussianLineRule(guard=...)`):
-a candidate is rejected if one does, and when the search converges the
+or a line's width and offset with `GaussianLineRule(guard=...)`; either
+bound, or one only, e.g. a broad line's largest width but not its
+smallest): a candidate is rejected if one does, and when the search converges the
 components of a guarded parameter that has since drifted to a bound are
 removed and the search resumes. Components that share guarded parameters
 are removed together: a group earns the threshold jointly, so backward
@@ -200,8 +201,9 @@ class Candidate:
         from `parameters` and from each of these, and the best fit counts
     :type starts: list(dict)
     :param reject_at_bound: Parameters that must not end at a prior bound:
-        the candidate is rejected if one does
-    :type reject_at_bound: list(str)
+        the candidate is rejected if one does. Each a name (either bound)
+        or (name, side) for one bound only, side "lower" or "upper"
+    :type reject_at_bound: list(str or tuple(str, str))
     """
 
     description: str
@@ -212,10 +214,40 @@ class Candidate:
     reject_at_bound: list = field(default_factory=list)
 
 
+BOUND_SIDES = ("lower", "upper")
+
+
+def _guard_entries(guarded):
+    """(name, side) of each guarded entry: a name (side None, either
+    bound) or (name, side) with side in `BOUND_SIDES`."""
+    return [
+        (entry, None) if isinstance(entry, str) else tuple(entry) for entry in guarded
+    ]
+
+
+def _at_guarded_bound(guarded, result, parameters):
+    """Names of the `guarded` entries (see `_guard_entries`) at their
+    guarded prior bound in `result`; `parameters` (name -> parameter) give
+    the priors of the entries with a side."""
+    at_bound = set(result.at_bound)
+    hits = set()
+    for name, side in _guard_entries(guarded):
+        if name not in at_bound:
+            continue
+        if side is not None:
+            prior = parameters[name].prior
+            value = result.values[result.param_names.index(name)]
+            upper = abs(prior.upp - value) < abs(value - prior.low)
+            if side != BOUND_SIDES[int(upper)]:
+                continue
+        hits.add(name)
+    return hits
+
+
 def _at_bound(candidate, result):
-    """The candidate's `reject_at_bound` parameters at a prior bound in
-    `result`."""
-    return set(candidate.reject_at_bound) & set(result.at_bound)
+    """The candidate's `reject_at_bound` parameters at their guarded prior
+    bound in `result`."""
+    return _at_guarded_bound(candidate.reject_at_bound, result, candidate.parameters)
 
 
 def matched_filter(x, resid, weight, fwhm_km_s):
@@ -304,8 +336,10 @@ class Rule:
 
         :param model: The model
         :type model: sculptor.model.FitModel
-        :return: (parameter names, component names) pairs
-        :rtype: list(tuple(list(str), list(str)))
+        :return: (parameters, component names) pairs; a parameter is a
+            name (either bound) or (name, side) for one bound only, side
+            "lower" or "upper"
+        :rtype: list(tuple(list, list(str)))
         """
         return []
 
@@ -385,10 +419,12 @@ class GaussianLineRule(Rule):
     :param guard: Arguments (e.g. `("redsh", "fwhm_km_s")`) whose varying
         parameters must not end at a prior bound (`Rule.guarded`): a
         candidate is rejected if one does, and a component whose parameter
-        drifts to a bound later is removed. A line at its widest width or
-        largest offset is often a filler of continuum misfit, not the line.
+        drifts to a bound later is removed. An argument guards both bounds,
+        (argument, side) one only, side "lower" or "upper" (e.g.
+        `("fwhm_km_s", "upper")`). A line at its widest width or largest
+        offset is often a filler of continuum misfit, not the line.
         () (default) for none
-    :type guard: tuple(str)
+    :type guard: tuple(str or tuple(str, str))
     """
 
     def __init__(
@@ -423,9 +459,15 @@ class GaussianLineRule(Rule):
         self.start_fwhm_factors = tuple(start_fwhm_factors)
         self.guard = tuple(guard)
         args = FitComponent("check", self.function).function_args
-        unknown = set(self.guard) - set(args)
+        entries = _guard_entries(self.guard)
+        unknown = {arg for arg, _ in entries} - set(args)
         if unknown:
             raise ValueError(f"`guard` names unknown arguments {sorted(unknown)}")
+        sides = {side for _, side in entries} - {None, *BOUND_SIDES}
+        if sides:
+            raise ValueError(
+                f"`guard` sides must be in {BOUND_SIDES}, not {sorted(sides)}"
+            )
         missing = {"redsh", "flux", "fwhm_km_s"} - set(args)
         if missing:
             raise ValueError(f"`function` lacks the arguments {sorted(missing)}")
@@ -467,17 +509,19 @@ class GaussianLineRule(Rule):
         return pairs
 
     def _guarded_params(self, comp, parameters):
-        """The varying parameters of `comp` for the `guard` arguments, its
-        own only (shared ones, e.g. a narrow group's, are guarded by the
-        rule they belong to)."""
-        keys = [comp.param_mapping[arg] for arg in self.guard]
-        return [
-            key
-            for key in keys
-            if key.startswith(f"{comp.name}_")
-            and key in parameters
-            and parameters[key].vary
-        ]
+        """The varying parameters of `comp` for the `guard` arguments (with
+        their side, see `Rule.guarded`), its own only (shared ones, e.g. a
+        narrow group's, are guarded by the rule they belong to)."""
+        params = []
+        for arg, side in _guard_entries(self.guard):
+            key = comp.param_mapping[arg]
+            if (
+                key.startswith(f"{comp.name}_")
+                and key in parameters
+                and parameters[key].vary
+            ):
+                params.append(key if side is None else (key, side))
+        return params
 
     def null_removals(self, model):
         """None: the rule is calibrated by adding one more line to the null
@@ -2213,10 +2257,9 @@ class AutoFit:
 
         :return: a change as from `_next_change`, or None
         """
-        at_bound = set(result.at_bound)
         for rule in self.rules:
             for params, comps in rule.guarded(model):
-                bad = sorted(at_bound & set(params))
+                bad = sorted(_at_guarded_bound(params, result, model.parameters))
                 if not bad:
                     continue
                 trial = model
@@ -2324,15 +2367,13 @@ class AutoFit:
         return model, result, score
 
     def _guarded_at_bound(self, model, result):
-        """Guarded parameters of `model` (see `Rule.guarded`) at a prior
-        bound in `result`."""
-        at_bound = set(result.at_bound)
+        """Guarded parameters of `model` (see `Rule.guarded`) at their
+        guarded prior bound in `result`."""
         return {
             name
             for rule in self.rules
             for params, _ in rule.guarded(model)
-            for name in params
-            if name in at_bound
+            for name in _at_guarded_bound(params, result, model.parameters)
         }
 
     def _backward(
